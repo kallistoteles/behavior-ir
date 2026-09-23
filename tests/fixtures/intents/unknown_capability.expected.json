@@ -1,0 +1,9 @@
+{
+ "errors": [
+  {
+   "code": "UNKNOWN_CAPABILITY",
+   "path": "capability"
+  }
+ ],
+ "rejected": true
+}

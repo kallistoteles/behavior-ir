@@ -36,10 +36,10 @@ impl Phase {
 }
 
 /// A problem with the request itself (INVALID_INPUT), sorted by `path`.
-struct InputProblem {
-    code: &'static str,
-    path: String,
-    message: String,
+pub(crate) struct InputProblem {
+    pub(crate) code: &'static str,
+    pub(crate) path: String,
+    pub(crate) message: String,
 }
 
 fn section_name(role: ParamRole) -> &'static str {
@@ -65,7 +65,7 @@ pub(crate) fn sanitize_floats(v: &Json) -> Json {
     }
 }
 
-fn decode_param(
+pub(crate) fn decode_param(
     module: &Module,
     ty: &Type,
     raw: &Json,

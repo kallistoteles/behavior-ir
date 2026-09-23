@@ -132,11 +132,11 @@ class BehaviorModule:
         for d in decls:
             for _, t, _ in d.fields:
                 _types_in(t, seen)
-        for t in traced:
-            for p in t.params:
+        for td in traced:
+            for p in td.params:
                 _types_in(p.type, seen)
-            if t.body is not None:
-                _expr_types(t.body, seen)
+            if td.body is not None:
+                _expr_types(td.body, seen)
         for _, _, body in invs:
             _expr_types(body, seen)
         for params, frame in acts:
@@ -157,7 +157,8 @@ class BehaviorModule:
 
         files = [d.loc[0] for d in decls]
         files += [fn.loc[0] for fn in [*self.derived_fns, *self.invariant_fns, *self.action_fns]]
-        files += [t.loc[0] for t in [*enum_types.values(), *nominal_types.values()] if t.loc]
+        named: list[EnumT | NominalT] = [*enum_types.values(), *nominal_types.values()]
+        files += [t.loc[0] for t in named if t.loc]
         self.root = os.path.abspath(root) if root else os.path.commonpath(
             [os.path.dirname(f) for f in files]
         ) if files else os.getcwd()
@@ -178,7 +179,7 @@ class BehaviorModule:
                  "fields": [{"name": n, "type": t.wire(), "loc": self._loc(l)} for n, t, l in d.fields]}
                 for d in decls
             ],
-            "derived": [self._derived_wire(t) for t in traced],
+            "derived": [self._derived_wire(td) for td in traced],
             "invariants": [
                 {"name": fn.name, "entity": p.type.display(), "param": p.name,
                  "body": body.to_wire(), "loc": self._loc(fn.loc)}

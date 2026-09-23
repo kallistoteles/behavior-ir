@@ -1,0 +1,7 @@
+{
+ "capability": "delete_invoice",
+ "input": {},
+ "targets": {
+  "invoice": "1042"
+ }
+}

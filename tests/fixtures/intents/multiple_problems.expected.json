@@ -1,0 +1,17 @@
+{
+ "errors": [
+  {
+   "code": "WRONG_TYPE",
+   "path": "input.discount"
+  },
+  {
+   "code": "EXTRA_ARGUMENT",
+   "path": "input.note"
+  },
+  {
+   "code": "TARGET_MISMATCH",
+   "path": "targets.invoice"
+  }
+ ],
+ "rejected": true
+}

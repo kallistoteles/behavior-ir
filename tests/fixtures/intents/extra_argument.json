@@ -1,0 +1,9 @@
+{
+ "capability": "approve_invoice",
+ "input": {
+  "note": "rush"
+ },
+ "targets": {
+  "invoice": "1042"
+ }
+}

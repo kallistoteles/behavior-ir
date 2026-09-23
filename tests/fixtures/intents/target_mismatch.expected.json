@@ -1,0 +1,9 @@
+{
+ "errors": [
+  {
+   "code": "TARGET_MISMATCH",
+   "path": "targets.invoice"
+  }
+ ],
+ "rejected": true
+}

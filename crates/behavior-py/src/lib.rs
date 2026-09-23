@@ -27,10 +27,24 @@ fn replay(wire: &str, record: &str) -> String {
     }
 }
 
+/// Evaluates a structured intent with the host context; returns a DecisionRecord JSON, an
+/// IntentRejection JSON, or the AdmissionResult JSON.
+#[pyfunction]
+fn evaluate_intent(wire: &str, intent: &str, host: &str) -> String {
+    match behavior_core::admit(wire) {
+        Ok(m) => match behavior_core::evaluate_intent(&m, intent, host) {
+            Ok(record) => record.to_json_string(),
+            Err(rejection) => rejection.to_json_string(),
+        },
+        Err(r) => r.to_json_string(),
+    }
+}
+
 #[pymodule]
 fn _engine(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(admit, m)?)?;
     m.add_function(wrap_pyfunction!(evaluate, m)?)?;
     m.add_function(wrap_pyfunction!(replay, m)?)?;
+    m.add_function(wrap_pyfunction!(evaluate_intent, m)?)?;
     Ok(())
 }

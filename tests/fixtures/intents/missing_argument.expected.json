@@ -1,0 +1,9 @@
+{
+ "errors": [
+  {
+   "code": "MISSING_ARGUMENT",
+   "path": "input.discount"
+  }
+ ],
+ "rejected": true
+}

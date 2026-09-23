@@ -1,0 +1,15 @@
+{
+ "capability": "approve_invoice",
+ "input": {},
+ "state": {
+  "invoice": {
+   "amount": "43200",
+   "approved_by": null,
+   "id": "1042",
+   "status": "pending"
+  }
+ },
+ "targets": {
+  "invoice": "1042"
+ }
+}

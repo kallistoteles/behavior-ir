@@ -1,0 +1,14 @@
+{
+ "capability": "approve_invoice",
+ "context": {
+  "actor": {
+   "approval_limit": "9999999",
+   "id": "anna",
+   "role": "manager"
+  }
+ },
+ "input": {},
+ "targets": {
+  "invoice": "1042"
+ }
+}

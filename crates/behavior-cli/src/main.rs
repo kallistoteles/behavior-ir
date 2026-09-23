@@ -122,9 +122,24 @@ fn run(cli: Cli) -> Result<ExitCode, ExitCode> {
             emit(&r.to_json_string(), false);
             Ok(ExitCode::from(if r.matches { 0 } else { 2 }))
         }
-        Command::Intent { .. } => {
-            eprintln!("behavior: not implemented");
-            Err(ExitCode::from(USAGE))
+        Command::Intent { wire, intent, host } => {
+            let module = match behavior_core::admit(&read(&wire)?) {
+                Ok(m) => m,
+                Err(r) => {
+                    emit(&r.to_json_string(), false);
+                    return Ok(ExitCode::from(2));
+                }
+            };
+            match behavior_core::evaluate_intent(&module, &read(&intent)?, &read(&host)?) {
+                Ok(record) => {
+                    emit(&record.to_json_string(), false);
+                    Ok(ExitCode::from(result_code(record.result())))
+                }
+                Err(rejection) => {
+                    emit(&rejection.to_json_string(), false);
+                    Ok(ExitCode::from(2))
+                }
+            }
         }
     }
 }

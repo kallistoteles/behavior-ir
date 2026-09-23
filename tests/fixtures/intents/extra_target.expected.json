@@ -1,0 +1,9 @@
+{
+ "errors": [
+  {
+   "code": "EXTRA_TARGET",
+   "path": "targets.project"
+  }
+ ],
+ "rejected": true
+}

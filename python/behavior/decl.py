@@ -8,6 +8,7 @@ derived values reach the engine (research R11).
 from __future__ import annotations
 
 import inspect
+import os
 from dataclasses import dataclass
 from typing import Any, Callable
 
@@ -52,7 +53,9 @@ class EntityDecl:
 
 def entity(cls: type) -> type:
     """Marks a class whose `field(...)` attributes describe an entity."""
-    loc = (inspect.getfile(cls), getattr(cls, "__firstlineno__", 0))
+    # The caller's frame works for classes defined anywhere (modules, REPL, exec, notebooks).
+    file, line = caller_loc()
+    loc = (file, getattr(cls, "__firstlineno__", line))
     fields: list[tuple[str, BType, tuple[str, int]]] = []
     for name, value in vars(cls).items():
         if not isinstance(value, FieldSpec):
@@ -99,8 +102,12 @@ class ParamInfo:
     keyword: bool
 
 
+def _fn_loc(fn: Callable[..., Any]) -> tuple[str, int]:
+    return os.path.abspath(fn.__code__.co_filename), fn.__code__.co_firstlineno
+
+
 def _resolve_params(fn: Callable[..., Any], kind: str) -> list[ParamInfo]:
-    loc = (inspect.getfile(fn), fn.__code__.co_firstlineno)
+    loc = _fn_loc(fn)
     try:
         hints = inspect.get_annotations(fn, eval_str=True)
     except NameError as e:
@@ -140,7 +147,7 @@ class BehaviorFn:
     def __init__(self, fn: Callable[..., Any]) -> None:
         self.fn = fn
         self.name = fn.__name__
-        self.loc = (inspect.getfile(fn), fn.__code__.co_firstlineno)
+        self.loc = _fn_loc(fn)
         self.__doc__ = fn.__doc__
 
     def params(self) -> list[ParamInfo]:

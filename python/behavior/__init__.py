@@ -60,6 +60,34 @@ def evaluate(
     return Decision.from_json(_engine.evaluate(wire, json.dumps(request)))
 
 
+def evaluate_intent(
+    model: BehaviorModule,
+    intent: dict[str, Any],
+    *,
+    state: dict[str, Any],
+    context: dict[str, Any] | None = None,
+    data_version: str,
+    git_revision: str | None = None,
+) -> Decision:
+    """Evaluates a structured intent (capability, targets, input) with host-supplied state and
+    context. Raises IntentRejected listing every problem; nothing is evaluated then."""
+    from . import _engine
+
+    wire = _admitted_wire(model)
+    host: dict[str, Any] = {
+        "data_version": data_version,
+        "state": encode_request_values(state),
+        "context": encode_request_values(context or {}),
+    }
+    if git_revision is not None:
+        host["git_revision"] = git_revision
+    text = _engine.evaluate_intent(wire, json.dumps(intent), json.dumps(host))
+    out = json.loads(text)
+    if out.get("rejected"):
+        raise IntentRejected(out["errors"])
+    return Decision.from_json(text)
+
+
 def replay(model: BehaviorModule, record_json: str) -> ReplayResult:
     """Re-evaluates the request stored in a decision record and compares the outcome."""
     from . import _engine
@@ -69,7 +97,7 @@ def replay(model: BehaviorModule, record_json: str) -> ReplayResult:
 
 __all__ = [
     "AdmissionError", "AdmissionResult", "Change", "Decision", "ReplayResult", "TraceStep",
-    "evaluate", "replay", "BehaviorDefinitionError", "BehaviorError",
+    "evaluate", "evaluate_intent", "replay", "BehaviorDefinitionError", "BehaviorError",
     "BehaviorInvalid", "BehaviorModule", "BehaviorTypeError", "Context", "Id", "Input",
     "IntentRejected", "Option", "action", "admit", "and_", "derived", "ensures", "entity",
     "field", "invariant", "nominal", "none", "not_", "or_", "requires", "rule", "set_",

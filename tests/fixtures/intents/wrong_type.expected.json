@@ -1,0 +1,9 @@
+{
+ "errors": [
+  {
+   "code": "WRONG_TYPE",
+   "path": "input.discount"
+  }
+ ],
+ "rejected": true
+}

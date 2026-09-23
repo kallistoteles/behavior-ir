@@ -1,0 +1,1335 @@
+{
+ "env": {
+  "nominals": [
+   {
+    "name": "Money",
+    "underlying": {
+     "t": "decimal"
+    },
+    "ops": [
+     "add",
+     "order",
+     "ratio",
+     "scale"
+    ]
+   },
+   {
+    "name": "Quantity",
+    "underlying": {
+     "t": "int"
+    },
+    "ops": [
+     "add",
+     "order",
+     "ratio",
+     "scale"
+    ]
+   },
+   {
+    "name": "Email",
+    "underlying": {
+     "t": "string"
+    },
+    "ops": []
+   },
+   {
+    "name": "Plain",
+    "underlying": {
+     "t": "decimal"
+    },
+    "ops": []
+   }
+  ],
+  "enums": [
+   {
+    "name": "Status",
+    "values": [
+     "pending",
+     "approved"
+    ]
+   }
+  ],
+  "entities": [
+   "User",
+   "Project"
+  ]
+ },
+ "cases": [
+  {
+   "op": "add",
+   "operands": [
+    {
+     "t": "int"
+    },
+    {
+     "t": "int"
+    }
+   ],
+   "expect": {
+    "t": "int"
+   }
+  },
+  {
+   "op": "add",
+   "operands": [
+    {
+     "t": "int"
+    },
+    {
+     "t": "decimal"
+    }
+   ],
+   "expect": {
+    "t": "decimal"
+   }
+  },
+  {
+   "op": "add",
+   "operands": [
+    {
+     "t": "decimal"
+    },
+    {
+     "t": "int"
+    }
+   ],
+   "expect": {
+    "t": "decimal"
+   }
+  },
+  {
+   "op": "sub",
+   "operands": [
+    {
+     "t": "decimal"
+    },
+    {
+     "t": "decimal"
+    }
+   ],
+   "expect": {
+    "t": "decimal"
+   }
+  },
+  {
+   "op": "add",
+   "operands": [
+    {
+     "t": "nominal",
+     "name": "Money"
+    },
+    {
+     "t": "nominal",
+     "name": "Money"
+    }
+   ],
+   "expect": {
+    "t": "nominal",
+    "name": "Money"
+   }
+  },
+  {
+   "op": "sub",
+   "operands": [
+    {
+     "t": "nominal",
+     "name": "Money"
+    },
+    {
+     "t": "nominal",
+     "name": "Money"
+    }
+   ],
+   "expect": {
+    "t": "nominal",
+    "name": "Money"
+   }
+  },
+  {
+   "op": "add",
+   "operands": [
+    {
+     "t": "nominal",
+     "name": "Money"
+    },
+    {
+     "t": "decimal"
+    }
+   ],
+   "expect": {
+    "error": "TYPE_MISMATCH"
+   }
+  },
+  {
+   "op": "add",
+   "operands": [
+    {
+     "t": "decimal"
+    },
+    {
+     "t": "nominal",
+     "name": "Money"
+    }
+   ],
+   "expect": {
+    "error": "TYPE_MISMATCH"
+   }
+  },
+  {
+   "op": "add",
+   "operands": [
+    {
+     "t": "nominal",
+     "name": "Money"
+    },
+    {
+     "t": "nominal",
+     "name": "Quantity"
+    }
+   ],
+   "expect": {
+    "error": "TYPE_MISMATCH"
+   }
+  },
+  {
+   "op": "add",
+   "operands": [
+    {
+     "t": "nominal",
+     "name": "Plain"
+    },
+    {
+     "t": "nominal",
+     "name": "Plain"
+    }
+   ],
+   "expect": {
+    "error": "OP_NOT_ALLOWED"
+   }
+  },
+  {
+   "op": "add",
+   "operands": [
+    {
+     "t": "string"
+    },
+    {
+     "t": "string"
+    }
+   ],
+   "expect": {
+    "error": "TYPE_MISMATCH"
+   }
+  },
+  {
+   "op": "add",
+   "operands": [
+    {
+     "t": "bool"
+    },
+    {
+     "t": "int"
+    }
+   ],
+   "expect": {
+    "error": "TYPE_MISMATCH"
+   }
+  },
+  {
+   "op": "mul",
+   "operands": [
+    {
+     "t": "int"
+    },
+    {
+     "t": "int"
+    }
+   ],
+   "expect": {
+    "t": "int"
+   }
+  },
+  {
+   "op": "mul",
+   "operands": [
+    {
+     "t": "int"
+    },
+    {
+     "t": "decimal"
+    }
+   ],
+   "expect": {
+    "t": "decimal"
+   }
+  },
+  {
+   "op": "mul",
+   "operands": [
+    {
+     "t": "nominal",
+     "name": "Money"
+    },
+    {
+     "t": "int"
+    }
+   ],
+   "expect": {
+    "t": "nominal",
+    "name": "Money"
+   }
+  },
+  {
+   "op": "mul",
+   "operands": [
+    {
+     "t": "int"
+    },
+    {
+     "t": "nominal",
+     "name": "Money"
+    }
+   ],
+   "expect": {
+    "t": "nominal",
+    "name": "Money"
+   }
+  },
+  {
+   "op": "mul",
+   "operands": [
+    {
+     "t": "nominal",
+     "name": "Money"
+    },
+    {
+     "t": "decimal"
+    }
+   ],
+   "expect": {
+    "t": "nominal",
+    "name": "Money"
+   }
+  },
+  {
+   "op": "mul",
+   "operands": [
+    {
+     "t": "decimal"
+    },
+    {
+     "t": "nominal",
+     "name": "Money"
+    }
+   ],
+   "expect": {
+    "t": "nominal",
+    "name": "Money"
+   }
+  },
+  {
+   "op": "mul",
+   "operands": [
+    {
+     "t": "nominal",
+     "name": "Quantity"
+    },
+    {
+     "t": "int"
+    }
+   ],
+   "expect": {
+    "t": "nominal",
+    "name": "Quantity"
+   }
+  },
+  {
+   "op": "mul",
+   "operands": [
+    {
+     "t": "nominal",
+     "name": "Quantity"
+    },
+    {
+     "t": "decimal"
+    }
+   ],
+   "expect": {
+    "error": "TYPE_MISMATCH"
+   }
+  },
+  {
+   "op": "mul",
+   "operands": [
+    {
+     "t": "nominal",
+     "name": "Money"
+    },
+    {
+     "t": "nominal",
+     "name": "Money"
+    }
+   ],
+   "expect": {
+    "error": "TYPE_MISMATCH"
+   }
+  },
+  {
+   "op": "mul",
+   "operands": [
+    {
+     "t": "nominal",
+     "name": "Plain"
+    },
+    {
+     "t": "int"
+    }
+   ],
+   "expect": {
+    "error": "OP_NOT_ALLOWED"
+   }
+  },
+  {
+   "op": "div",
+   "operands": [
+    {
+     "t": "int"
+    },
+    {
+     "t": "int"
+    }
+   ],
+   "expect": {
+    "t": "decimal"
+   }
+  },
+  {
+   "op": "div",
+   "operands": [
+    {
+     "t": "decimal"
+    },
+    {
+     "t": "int"
+    }
+   ],
+   "expect": {
+    "t": "decimal"
+   }
+  },
+  {
+   "op": "div",
+   "operands": [
+    {
+     "t": "nominal",
+     "name": "Money"
+    },
+    {
+     "t": "nominal",
+     "name": "Money"
+    }
+   ],
+   "expect": {
+    "t": "decimal"
+   }
+  },
+  {
+   "op": "div",
+   "operands": [
+    {
+     "t": "nominal",
+     "name": "Quantity"
+    },
+    {
+     "t": "nominal",
+     "name": "Quantity"
+    }
+   ],
+   "expect": {
+    "t": "decimal"
+   }
+  },
+  {
+   "op": "div",
+   "operands": [
+    {
+     "t": "nominal",
+     "name": "Money"
+    },
+    {
+     "t": "decimal"
+    }
+   ],
+   "expect": {
+    "t": "nominal",
+    "name": "Money"
+   }
+  },
+  {
+   "op": "div",
+   "operands": [
+    {
+     "t": "nominal",
+     "name": "Money"
+    },
+    {
+     "t": "int"
+    }
+   ],
+   "expect": {
+    "t": "nominal",
+    "name": "Money"
+   }
+  },
+  {
+   "op": "div",
+   "operands": [
+    {
+     "t": "nominal",
+     "name": "Quantity"
+    },
+    {
+     "t": "int"
+    }
+   ],
+   "expect": {
+    "error": "TYPE_MISMATCH"
+   }
+  },
+  {
+   "op": "div",
+   "operands": [
+    {
+     "t": "nominal",
+     "name": "Plain"
+    },
+    {
+     "t": "nominal",
+     "name": "Plain"
+    }
+   ],
+   "expect": {
+    "error": "OP_NOT_ALLOWED"
+   }
+  },
+  {
+   "op": "div",
+   "operands": [
+    {
+     "t": "int"
+    },
+    {
+     "t": "nominal",
+     "name": "Money"
+    }
+   ],
+   "expect": {
+    "error": "TYPE_MISMATCH"
+   }
+  },
+  {
+   "op": "lt",
+   "operands": [
+    {
+     "t": "int"
+    },
+    {
+     "t": "int"
+    }
+   ],
+   "expect": {
+    "t": "bool"
+   }
+  },
+  {
+   "op": "le",
+   "operands": [
+    {
+     "t": "int"
+    },
+    {
+     "t": "decimal"
+    }
+   ],
+   "expect": {
+    "t": "bool"
+   }
+  },
+  {
+   "op": "gt",
+   "operands": [
+    {
+     "t": "decimal"
+    },
+    {
+     "t": "decimal"
+    }
+   ],
+   "expect": {
+    "t": "bool"
+   }
+  },
+  {
+   "op": "ge",
+   "operands": [
+    {
+     "t": "nominal",
+     "name": "Money"
+    },
+    {
+     "t": "nominal",
+     "name": "Money"
+    }
+   ],
+   "expect": {
+    "t": "bool"
+   }
+  },
+  {
+   "op": "lt",
+   "operands": [
+    {
+     "t": "nominal",
+     "name": "Plain"
+    },
+    {
+     "t": "nominal",
+     "name": "Plain"
+    }
+   ],
+   "expect": {
+    "error": "OP_NOT_ALLOWED"
+   }
+  },
+  {
+   "op": "lt",
+   "operands": [
+    {
+     "t": "nominal",
+     "name": "Money"
+    },
+    {
+     "t": "decimal"
+    }
+   ],
+   "expect": {
+    "error": "TYPE_MISMATCH"
+   }
+  },
+  {
+   "op": "lt",
+   "operands": [
+    {
+     "t": "string"
+    },
+    {
+     "t": "string"
+    }
+   ],
+   "expect": {
+    "error": "TYPE_MISMATCH"
+   }
+  },
+  {
+   "op": "lt",
+   "operands": [
+    {
+     "t": "option",
+     "of": {
+      "t": "int"
+     }
+    },
+    {
+     "t": "int"
+    }
+   ],
+   "expect": {
+    "error": "TYPE_MISMATCH"
+   }
+  },
+  {
+   "op": "eq",
+   "operands": [
+    {
+     "t": "int"
+    },
+    {
+     "t": "int"
+    }
+   ],
+   "expect": {
+    "t": "bool"
+   }
+  },
+  {
+   "op": "eq",
+   "operands": [
+    {
+     "t": "int"
+    },
+    {
+     "t": "decimal"
+    }
+   ],
+   "expect": {
+    "t": "bool"
+   }
+  },
+  {
+   "op": "eq",
+   "operands": [
+    {
+     "t": "string"
+    },
+    {
+     "t": "string"
+    }
+   ],
+   "expect": {
+    "t": "bool"
+   }
+  },
+  {
+   "op": "ne",
+   "operands": [
+    {
+     "t": "enum",
+     "name": "Status"
+    },
+    {
+     "t": "enum",
+     "name": "Status"
+    }
+   ],
+   "expect": {
+    "t": "bool"
+   }
+  },
+  {
+   "op": "eq",
+   "operands": [
+    {
+     "t": "nominal",
+     "name": "Email"
+    },
+    {
+     "t": "nominal",
+     "name": "Email"
+    }
+   ],
+   "expect": {
+    "t": "bool"
+   }
+  },
+  {
+   "op": "eq",
+   "operands": [
+    {
+     "t": "nominal",
+     "name": "Plain"
+    },
+    {
+     "t": "nominal",
+     "name": "Plain"
+    }
+   ],
+   "expect": {
+    "t": "bool"
+   }
+  },
+  {
+   "op": "eq",
+   "operands": [
+    {
+     "t": "nominal",
+     "name": "Money"
+    },
+    {
+     "t": "decimal"
+    }
+   ],
+   "expect": {
+    "error": "TYPE_MISMATCH"
+   }
+  },
+  {
+   "op": "eq",
+   "operands": [
+    {
+     "t": "nominal",
+     "name": "Email"
+    },
+    {
+     "t": "string"
+    }
+   ],
+   "expect": {
+    "error": "TYPE_MISMATCH"
+   }
+  },
+  {
+   "op": "eq",
+   "operands": [
+    {
+     "t": "id",
+     "entity": "User"
+    },
+    {
+     "t": "id",
+     "entity": "User"
+    }
+   ],
+   "expect": {
+    "t": "bool"
+   }
+  },
+  {
+   "op": "eq",
+   "operands": [
+    {
+     "t": "id",
+     "entity": "User"
+    },
+    {
+     "t": "id",
+     "entity": "Project"
+    }
+   ],
+   "expect": {
+    "error": "TYPE_MISMATCH"
+   }
+  },
+  {
+   "op": "eq",
+   "operands": [
+    {
+     "t": "id",
+     "entity": "User"
+    },
+    {
+     "t": "string"
+    }
+   ],
+   "expect": {
+    "error": "TYPE_MISMATCH"
+   }
+  },
+  {
+   "op": "eq",
+   "operands": [
+    {
+     "t": "enum",
+     "name": "Status"
+    },
+    {
+     "t": "string"
+    }
+   ],
+   "expect": {
+    "error": "TYPE_MISMATCH"
+   }
+  },
+  {
+   "op": "eq",
+   "operands": [
+    {
+     "t": "option",
+     "of": {
+      "t": "id",
+      "entity": "User"
+     }
+    },
+    {
+     "t": "id",
+     "entity": "User"
+    }
+   ],
+   "expect": {
+    "t": "bool"
+   }
+  },
+  {
+   "op": "eq",
+   "operands": [
+    {
+     "t": "id",
+     "entity": "User"
+    },
+    {
+     "t": "option",
+     "of": {
+      "t": "id",
+      "entity": "User"
+     }
+    }
+   ],
+   "expect": {
+    "t": "bool"
+   }
+  },
+  {
+   "op": "eq",
+   "operands": [
+    {
+     "t": "option",
+     "of": {
+      "t": "id",
+      "entity": "User"
+     }
+    },
+    {
+     "t": "option",
+     "of": {
+      "t": "id",
+      "entity": "User"
+     }
+    }
+   ],
+   "expect": {
+    "t": "bool"
+   }
+  },
+  {
+   "op": "ne",
+   "operands": [
+    {
+     "t": "option",
+     "of": {
+      "t": "id",
+      "entity": "User"
+     }
+    },
+    {
+     "t": "option",
+     "of": {
+      "t": "id",
+      "entity": "Project"
+     }
+    }
+   ],
+   "expect": {
+    "error": "TYPE_MISMATCH"
+   }
+  },
+  {
+   "op": "and",
+   "operands": [
+    {
+     "t": "bool"
+    },
+    {
+     "t": "bool"
+    }
+   ],
+   "expect": {
+    "t": "bool"
+   }
+  },
+  {
+   "op": "and",
+   "operands": [
+    {
+     "t": "bool"
+    },
+    {
+     "t": "bool"
+    },
+    {
+     "t": "bool"
+    }
+   ],
+   "expect": {
+    "t": "bool"
+   }
+  },
+  {
+   "op": "or",
+   "operands": [
+    {
+     "t": "bool"
+    },
+    {
+     "t": "bool"
+    }
+   ],
+   "expect": {
+    "t": "bool"
+   }
+  },
+  {
+   "op": "and",
+   "operands": [
+    {
+     "t": "bool"
+    },
+    {
+     "t": "int"
+    }
+   ],
+   "expect": {
+    "error": "TYPE_MISMATCH"
+   }
+  },
+  {
+   "op": "not",
+   "operands": [
+    {
+     "t": "bool"
+    }
+   ],
+   "expect": {
+    "t": "bool"
+   }
+  },
+  {
+   "op": "not",
+   "operands": [
+    {
+     "t": "int"
+    }
+   ],
+   "expect": {
+    "error": "TYPE_MISMATCH"
+   }
+  },
+  {
+   "op": "in",
+   "operands": [
+    {
+     "t": "string"
+    }
+   ],
+   "expect": {
+    "t": "bool"
+   },
+   "values": 2
+  },
+  {
+   "op": "in",
+   "operands": [
+    {
+     "t": "enum",
+     "name": "Status"
+    }
+   ],
+   "expect": {
+    "t": "bool"
+   },
+   "values": 1
+  },
+  {
+   "op": "in",
+   "operands": [
+    {
+     "t": "string"
+    }
+   ],
+   "expect": {
+    "error": "EMPTY_IN"
+   },
+   "values": 0
+  },
+  {
+   "op": "is_none",
+   "operands": [
+    {
+     "t": "option",
+     "of": {
+      "t": "id",
+      "entity": "User"
+     }
+    }
+   ],
+   "expect": {
+    "t": "bool"
+   }
+  },
+  {
+   "op": "is_some",
+   "operands": [
+    {
+     "t": "option",
+     "of": {
+      "t": "nominal",
+      "name": "Money"
+     }
+    }
+   ],
+   "expect": {
+    "t": "bool"
+   }
+  },
+  {
+   "op": "is_none",
+   "operands": [
+    {
+     "t": "id",
+     "entity": "User"
+    }
+   ],
+   "expect": {
+    "error": "TYPE_MISMATCH"
+   }
+  },
+  {
+   "op": "value_or",
+   "operands": [
+    {
+     "t": "option",
+     "of": {
+      "t": "nominal",
+      "name": "Money"
+     }
+    },
+    {
+     "t": "nominal",
+     "name": "Money"
+    }
+   ],
+   "expect": {
+    "t": "nominal",
+    "name": "Money"
+   }
+  },
+  {
+   "op": "value_or",
+   "operands": [
+    {
+     "t": "option",
+     "of": {
+      "t": "decimal"
+     }
+    },
+    {
+     "t": "int"
+    }
+   ],
+   "expect": {
+    "t": "decimal"
+   }
+  },
+  {
+   "op": "value_or",
+   "operands": [
+    {
+     "t": "option",
+     "of": {
+      "t": "nominal",
+      "name": "Money"
+     }
+    },
+    {
+     "t": "decimal"
+    }
+   ],
+   "expect": {
+    "error": "TYPE_MISMATCH"
+   }
+  },
+  {
+   "op": "value_or",
+   "operands": [
+    {
+     "t": "nominal",
+     "name": "Money"
+    },
+    {
+     "t": "nominal",
+     "name": "Money"
+    }
+   ],
+   "expect": {
+    "error": "TYPE_MISMATCH"
+   }
+  },
+  {
+   "op": "some",
+   "operands": [
+    {
+     "t": "id",
+     "entity": "User"
+    }
+   ],
+   "expect": {
+    "t": "option",
+    "of": {
+     "t": "id",
+     "entity": "User"
+    }
+   }
+  },
+  {
+   "op": "some",
+   "operands": [
+    {
+     "t": "option",
+     "of": {
+      "t": "id",
+      "entity": "User"
+     }
+    }
+   ],
+   "expect": {
+    "error": "NESTED_OPTION"
+   }
+  },
+  {
+   "op": "to_decimal",
+   "operands": [
+    {
+     "t": "int"
+    }
+   ],
+   "expect": {
+    "t": "decimal"
+   }
+  },
+  {
+   "op": "to_decimal",
+   "operands": [
+    {
+     "t": "decimal"
+    }
+   ],
+   "expect": {
+    "error": "TYPE_MISMATCH"
+   }
+  },
+  {
+   "op": "wrap",
+   "operands": [
+    {
+     "t": "decimal"
+    }
+   ],
+   "expect": {
+    "t": "nominal",
+    "name": "Money"
+   },
+   "target": "Money"
+  },
+  {
+   "op": "wrap",
+   "operands": [
+    {
+     "t": "int"
+    }
+   ],
+   "expect": {
+    "t": "nominal",
+    "name": "Money"
+   },
+   "target": "Money"
+  },
+  {
+   "op": "wrap",
+   "operands": [
+    {
+     "t": "string"
+    }
+   ],
+   "expect": {
+    "t": "nominal",
+    "name": "Email"
+   },
+   "target": "Email"
+  },
+  {
+   "op": "wrap",
+   "operands": [
+    {
+     "t": "string"
+    }
+   ],
+   "expect": {
+    "error": "TYPE_MISMATCH"
+   },
+   "target": "Money"
+  },
+  {
+   "op": "wrap",
+   "operands": [
+    {
+     "t": "nominal",
+     "name": "Money"
+    }
+   ],
+   "expect": {
+    "error": "TYPE_MISMATCH"
+   },
+   "target": "Money"
+  },
+  {
+   "op": "unwrap",
+   "operands": [
+    {
+     "t": "nominal",
+     "name": "Money"
+    }
+   ],
+   "expect": {
+    "t": "decimal"
+   }
+  },
+  {
+   "op": "unwrap",
+   "operands": [
+    {
+     "t": "nominal",
+     "name": "Quantity"
+    }
+   ],
+   "expect": {
+    "t": "int"
+   }
+  },
+  {
+   "op": "unwrap",
+   "operands": [
+    {
+     "t": "decimal"
+    }
+   ],
+   "expect": {
+    "error": "TYPE_MISMATCH"
+   }
+  },
+  {
+   "op": "check_type",
+   "operands": [
+    {
+     "t": "option",
+     "of": {
+      "t": "option",
+      "of": {
+       "t": "id",
+       "entity": "User"
+      }
+     }
+    }
+   ],
+   "expect": {
+    "error": "NESTED_OPTION"
+   }
+  },
+  {
+   "op": "check_type",
+   "operands": [
+    {
+     "t": "option",
+     "of": {
+      "t": "id",
+      "entity": "User"
+     }
+    }
+   ],
+   "expect": {
+    "t": "option",
+    "of": {
+     "t": "id",
+     "entity": "User"
+    }
+   }
+  }
+ ]
+}

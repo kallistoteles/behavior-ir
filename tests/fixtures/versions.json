@@ -1,0 +1,26 @@
+{
+ "_comment": "Behavior versions and item hashes of the Python DSL fixtures (python/tests/fixtures). Reviewed goldens.",
+ "invoice": {
+  "behavior_version": "sha256:a368bcf3396a136bc1440ae98a68749875654c2d1e3a32764147bdef94dd1bd3",
+  "items": {
+   "action:apply_discount": "sha256:3711162ee52a2f9c72e06c4c099060bb768ceaab120b2de137965a650a76cee0",
+   "action:approve_invoice": "sha256:d0e9b47b3a60b2cdcd9f1a0794c7576745c9e95b29adffad41ecc287b23d82df",
+   "entity:Invoice": "sha256:6621b8730bd924f2e7b4b741da5519dd6d4433539fb2d5c4fc6d735a96db5e1c",
+   "entity:User": "sha256:b0dfd93e6cfef52c8da0cbd415c16fb96db5162081c683ab1ca3e66ba45506ad",
+   "enum:InvoiceStatus": "sha256:4dd4710601911febe19f7214ea96f6597677ba63fac5eabd37064f46d5269a40",
+   "invariant:non_negative_amount": "sha256:45644c2ef28d34ffc13a6ea94569b95dfbf5b4b2073cd58eebfbc903efa92cc1",
+   "nominal:Money": "sha256:12364694ce79ebcaadf7ba9022bfbaebf8144b8f70bd28c9f3e7bfc5cf03127c"
+  }
+ },
+ "project_margin": {
+  "behavior_version": "sha256:450d7e633e3157ddff028ac413921af8d8b6e33b8b945c52e7b6f4276b05de0e",
+  "items": {
+   "action:flag_project": "sha256:64afa638524d9f166216dd9492c1a50093522a0fc8bebeb45fbaa6b9f620743a",
+   "action:flag_project_unguarded": "sha256:d700fe2e3e3bb617f8cb5c3d1a86545f6bce0b926e60549814a5b8760d591be4",
+   "derived:high_risk": "sha256:8b3c9360b00ac0fd85a3d83c59cfa2345622db0c1c9b9c41460c92c7a9eb946c",
+   "derived:margin": "sha256:2fb38fa4487f997fb8d12f6daaa73e49305865f8c08ad97aa35e8eb827118625",
+   "entity:Project": "sha256:e83fc7e14bb5b2011deac14c403e8ed78e8afe418f1536317667df67ec894960",
+   "nominal:Money": "sha256:12364694ce79ebcaadf7ba9022bfbaebf8144b8f70bd28c9f3e7bfc5cf03127c"
+  }
+ }
+}

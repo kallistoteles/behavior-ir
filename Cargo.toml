@@ -1,0 +1,15 @@
+[workspace]
+members = ["crates/behavior-core", "crates/behavior-cli", "crates/behavior-py"]
+resolver = "3"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+
+[workspace.lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
+
+[workspace.dependencies]
+behavior-core = { path = "crates/behavior-core" }

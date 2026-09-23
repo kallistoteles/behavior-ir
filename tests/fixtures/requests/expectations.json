@@ -1,0 +1,325 @@
+{
+ "discount_breaks_invariant": {
+  "changes": [],
+  "outcomes": [
+   true,
+   true,
+   {
+    "assigned": "-50"
+   },
+   false
+  ],
+  "phases": [
+   "invariant_pre",
+   "precondition",
+   "effect",
+   "invariant_post"
+  ],
+  "reads": {
+   "2": {
+    "discount": "150",
+    "invoice.amount": "100"
+   },
+   "3": {
+    "invoice.amount": "-50"
+   }
+  },
+  "reasons": [
+   "INVARIANT_VIOLATED"
+  ],
+  "result": "DENY",
+  "wire": "invoice"
+ },
+ "invalid_extra_field": {
+  "changes": [],
+  "outcomes": [],
+  "phases": [],
+  "reads": {},
+  "reasons": [
+   "EXTRA_FIELD"
+  ],
+  "result": "INVALID_INPUT",
+  "wire": "invoice"
+ },
+ "invalid_fractional_number": {
+  "changes": [],
+  "outcomes": [],
+  "phases": [],
+  "reads": {},
+  "reasons": [
+   "WRONG_TYPE"
+  ],
+  "result": "INVALID_INPUT",
+  "wire": "invoice"
+ },
+ "invalid_missing_field": {
+  "changes": [],
+  "outcomes": [],
+  "phases": [],
+  "reads": {},
+  "reasons": [
+   "MISSING_FIELD"
+  ],
+  "result": "INVALID_INPUT",
+  "wire": "invoice"
+ },
+ "invalid_wrong_section": {
+  "changes": [],
+  "outcomes": [],
+  "phases": [],
+  "reads": {},
+  "reasons": [
+   "MISSING_ARGUMENT",
+   "EXTRA_ARGUMENT"
+  ],
+  "result": "INVALID_INPUT",
+  "wire": "invoice"
+ },
+ "invoice_above_limit": {
+  "changes": [],
+  "outcomes": [
+   true,
+   true,
+   true,
+   false
+  ],
+  "phases": [
+   "invariant_pre",
+   "precondition",
+   "precondition",
+   "precondition"
+  ],
+  "reads": {
+   "3": {
+    "actor.approval_limit": "50000",
+    "invoice.amount": "60000"
+   }
+  },
+  "reasons": [
+   "PRECONDITION_FAILED"
+  ],
+  "result": "DENY",
+  "wire": "invoice"
+ },
+ "invoice_allowed": {
+  "changes": [
+   {
+    "field": "status",
+    "new": "approved",
+    "old": "pending",
+    "param": "invoice"
+   },
+   {
+    "field": "approved_by",
+    "new": "anna",
+    "old": null,
+    "param": "invoice"
+   }
+  ],
+  "outcomes": [
+   true,
+   true,
+   true,
+   true,
+   {
+    "assigned": "approved"
+   },
+   {
+    "assigned": "anna"
+   },
+   true,
+   true
+  ],
+  "phases": [
+   "invariant_pre",
+   "precondition",
+   "precondition",
+   "precondition",
+   "effect",
+   "effect",
+   "postcondition",
+   "invariant_post"
+  ],
+  "reads": {
+   "3": {
+    "actor.approval_limit": "50000",
+    "invoice.amount": "43200"
+   }
+  },
+  "reasons": [],
+  "result": "ALLOW",
+  "wire": "invoice"
+ },
+ "invoice_exact_boundary": {
+  "changes": [
+   {
+    "field": "status",
+    "new": "approved",
+    "old": "pending",
+    "param": "invoice"
+   },
+   {
+    "field": "approved_by",
+    "new": "anna",
+    "old": null,
+    "param": "invoice"
+   }
+  ],
+  "outcomes": [
+   true,
+   true,
+   true,
+   true,
+   {
+    "assigned": "approved"
+   },
+   {
+    "assigned": "anna"
+   },
+   true,
+   true
+  ],
+  "phases": [
+   "invariant_pre",
+   "precondition",
+   "precondition",
+   "precondition",
+   "effect",
+   "effect",
+   "postcondition",
+   "invariant_post"
+  ],
+  "reads": {
+   "3": {
+    "actor.approval_limit": "50000",
+    "invoice.amount": "50000"
+   }
+  },
+  "reasons": [],
+  "result": "ALLOW",
+  "wire": "invoice"
+ },
+ "invoice_invalid_state": {
+  "changes": [],
+  "outcomes": [
+   false
+  ],
+  "phases": [
+   "invariant_pre"
+  ],
+  "reads": {
+   "0": {
+    "invoice.amount": "-1"
+   }
+  },
+  "reasons": [
+   "INVARIANT_VIOLATED"
+  ],
+  "result": "INVALID_STATE",
+  "wire": "invoice"
+ },
+ "invoice_wrong_role": {
+  "changes": [],
+  "outcomes": [
+   true,
+   true,
+   false,
+   "skipped"
+  ],
+  "phases": [
+   "invariant_pre",
+   "precondition",
+   "precondition",
+   "precondition"
+  ],
+  "reads": {
+   "2": {
+    "actor.role": "clerk"
+   },
+   "3": {}
+  },
+  "reasons": [
+   "PRECONDITION_FAILED"
+  ],
+  "result": "DENY",
+  "wire": "invoice"
+ },
+ "margin_flagged": {
+  "changes": [
+   {
+    "field": "flagged",
+    "new": true,
+    "old": false,
+    "param": "project"
+   }
+  ],
+  "derived": [
+   [
+    "margin",
+    "S",
+    "0.02"
+   ],
+   [
+    "high_risk",
+    "S",
+    true
+   ]
+  ],
+  "outcomes": [
+   true,
+   {
+    "assigned": true
+   }
+  ],
+  "phases": [
+   "precondition",
+   "effect"
+  ],
+  "reads": {
+   "0": {
+    "high_risk": true,
+    "project.revenue": "100"
+   }
+  },
+  "reasons": [],
+  "result": "ALLOW",
+  "wire": "project_margin"
+ },
+ "margin_guarded_zero_revenue": {
+  "changes": [],
+  "derived": [],
+  "outcomes": [
+   false
+  ],
+  "phases": [
+   "precondition"
+  ],
+  "reads": {
+   "0": {
+    "project.revenue": "0"
+   }
+  },
+  "reasons": [
+   "PRECONDITION_FAILED"
+  ],
+  "result": "DENY",
+  "wire": "project_margin"
+ },
+ "margin_unguarded_zero_revenue": {
+  "changes": [],
+  "outcomes": [
+   {
+    "error_prefix": "division by zero"
+   }
+  ],
+  "phases": [
+   "precondition"
+  ],
+  "reads": {},
+  "reasons": [
+   "EVALUATION_ERROR"
+  ],
+  "result": "ERROR",
+  "wire": "project_margin"
+ }
+}

@@ -1,0 +1,22 @@
+[build-system]
+requires = ["maturin>=1.7,<2"]
+build-backend = "maturin"
+
+[project]
+name = "behavior"
+version = "0.1.0"
+requires-python = ">=3.13"
+description = "Python authoring layer for the verifiable Behavior IR"
+
+[tool.maturin]
+python-source = "python"
+module-name = "behavior._engine"
+manifest-path = "crates/behavior-py/Cargo.toml"
+
+[tool.pytest.ini_options]
+testpaths = ["python/tests"]
+pythonpath = ["."]
+
+[tool.mypy]
+strict = true
+files = ["python/behavior"]

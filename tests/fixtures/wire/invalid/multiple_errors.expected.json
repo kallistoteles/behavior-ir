@@ -1,0 +1,1 @@
+{"errors":[{"code":"NOT_BOOLEAN","loc":{"file":"a_other.py","line":5}},{"code":"TYPE_MISMATCH","loc":{"file":"invoice.py","line":28}},{"code":"TYPE_MISMATCH","loc":{"file":"invoice.py","line":38}}]}

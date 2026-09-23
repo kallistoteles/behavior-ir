@@ -1,0 +1,16 @@
+{
+ "action": "apply_discount",
+ "context": {},
+ "data_version": "18342",
+ "input": {
+  "discount": "150"
+ },
+ "state": {
+  "invoice": {
+   "amount": "100",
+   "approved_by": null,
+   "id": "1042",
+   "status": "pending"
+  }
+ }
+}

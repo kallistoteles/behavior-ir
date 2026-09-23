@@ -1,0 +1,14 @@
+{
+ "action": "flag_project_unguarded",
+ "context": {},
+ "data_version": "7",
+ "input": {},
+ "state": {
+  "project": {
+   "cost": "10",
+   "flagged": false,
+   "id": "p1",
+   "revenue": "0"
+  }
+ }
+}

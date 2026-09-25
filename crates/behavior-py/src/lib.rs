@@ -1,15 +1,32 @@
-//! PyO3 bindings: Python holds engine objects (research R12, R17).
+//! PyO3 bindings: Python holds engine objects and passes native values (research R12, R17).
 //!
 //! `Builder` constructs behavior node by node, checking each node with the engine's type
 //! checker; `Module` is an admitted module that evaluates, replays, and serializes itself.
-//! No behavior logic lives here: this file only converts between Python and engine types.
+//! Values cross the boundary as Python objects; JSON appears only for artifacts (wire files,
+//! the canonical serialization, decision records). No behavior logic lives here.
 
 use behavior_core::builder::{BuildError, Builder, Node, ScopeSite};
 use behavior_core::semantic::Module;
-use behavior_core::wire::{DerivedKind, Loc, WField, WParam, WType, decode_param, decode_type};
-use pyo3::exceptions::PyValueError;
+use behavior_core::wire::{DerivedKind, Loc, Role, WField, WParam, WType};
+use pyo3::IntoPyObjectExt;
+use pyo3::create_exception;
+use pyo3::exceptions::{PyException, PyTypeError, PyValueError};
 use pyo3::prelude::*;
-use serde_json::{Value, json};
+use pyo3::types::{PyBool, PyDict, PyFloat, PyInt, PyList, PyString, PyTuple};
+use serde_json::{Map, Value, json};
+
+create_exception!(
+    _engine,
+    EngineError,
+    PyException,
+    "An engine error: args are (code, message)."
+);
+create_exception!(
+    _engine,
+    EngineIntentRejected,
+    PyException,
+    "A rejected intent: args are (errors,), a list of {code, message, path} dicts."
+);
 
 fn loc(file: String, line: u64) -> Loc {
     Loc {
@@ -19,57 +36,206 @@ fn loc(file: String, line: u64) -> Loc {
 }
 
 fn build_err(e: BuildError) -> PyErr {
-    PyValueError::new_err(json!({"code": e.code, "message": e.message}).to_string())
+    EngineError::new_err((e.code, e.message))
 }
 
-fn bad_input(message: impl Into<String>) -> PyErr {
-    PyValueError::new_err(json!({"code": "DECODE_ERROR", "message": message.into()}).to_string())
+// --- value conversion (JSON exists only inside Rust) ------------------------------------
+
+/// Converts a Python value to the engine's value form. `Decimal` uses its plain `format(d,
+/// "f")` notation; `Enum` members use their value; floats are rejected.
+fn to_value(obj: &Bound<'_, PyAny>) -> PyResult<Value> {
+    if obj.is_none() {
+        return Ok(Value::Null);
+    }
+    if obj.is_instance_of::<PyBool>() {
+        return Ok(Value::Bool(obj.extract()?));
+    }
+    if obj.is_instance_of::<PyInt>() {
+        let i: i64 = obj
+            .extract()
+            .map_err(|_| PyValueError::new_err("integer out of the signed 64-bit range"))?;
+        return Ok(json!(i));
+    }
+    if obj.is_instance_of::<PyFloat>() {
+        return Err(PyTypeError::new_err(
+            "float values are not allowed: use decimal.Decimal for exact numbers",
+        ));
+    }
+    if let Ok(s) = obj.downcast::<PyString>() {
+        return Ok(Value::String(s.to_str()?.to_string()));
+    }
+    let py = obj.py();
+    let decimal = py.import("decimal")?.getattr("Decimal")?;
+    if obj.is_instance(&decimal)? {
+        let plain: String = obj.call_method1("__format__", ("f",))?.extract()?;
+        return Ok(Value::String(plain));
+    }
+    let enum_base = py.import("enum")?.getattr("Enum")?;
+    if obj.is_instance(&enum_base)? {
+        return to_value(&obj.getattr("value")?);
+    }
+    if let Ok(d) = obj.downcast::<PyDict>() {
+        let mut map = Map::new();
+        for (k, v) in d.iter() {
+            let key: String = k
+                .extract()
+                .map_err(|_| PyTypeError::new_err("dictionary keys must be strings"))?;
+            map.insert(key, to_value(&v)?);
+        }
+        return Ok(Value::Object(map));
+    }
+    if obj.is_instance_of::<PyList>() || obj.is_instance_of::<PyTuple>() {
+        let items: PyResult<Vec<Value>> = obj.try_iter()?.map(|x| to_value(&x?)).collect();
+        return Ok(Value::Array(items?));
+    }
+    Err(PyTypeError::new_err(format!(
+        "unsupported value {}",
+        obj.repr()?
+    )))
 }
 
-fn parse(text: &str) -> PyResult<Value> {
-    serde_json::from_str(text).map_err(|e| bad_input(format!("invalid JSON: {e}")))
+/// Converts an engine value to Python objects (dicts, lists, str, int, bool, None).
+fn to_py(py: Python<'_>, v: &Value) -> PyResult<Py<PyAny>> {
+    Ok(match v {
+        Value::Null => py.None(),
+        Value::Bool(b) => b.into_py_any(py)?,
+        Value::Number(n) => match (n.as_i64(), n.as_u64()) {
+            (Some(i), _) => i.into_py_any(py)?,
+            (_, Some(u)) => u.into_py_any(py)?,
+            _ => n.to_string().into_py_any(py)?,
+        },
+        Value::String(s) => s.into_py_any(py)?,
+        Value::Array(items) => {
+            let list = PyList::empty(py);
+            for x in items {
+                list.append(to_py(py, x)?)?;
+            }
+            list.into_py_any(py)?
+        }
+        Value::Object(map) => {
+            let dict = PyDict::new(py);
+            for (k, x) in map {
+                dict.set_item(k, to_py(py, x)?)?;
+            }
+            dict.into_py_any(py)?
+        }
+    })
 }
 
-fn wtype(text: &str) -> PyResult<WType> {
-    decode_type(&parse(text)?, "$").map_err(|e| bad_input(format!("{e:?}")))
-}
-
-fn wparams(text: &str) -> PyResult<Vec<WParam>> {
-    match parse(text)? {
-        Value::Array(items) => items
-            .iter()
-            .enumerate()
-            .map(|(i, v)| {
-                decode_param(v, &format!("$[{i}]")).map_err(|e| bad_input(format!("{e:?}")))
-            })
-            .collect(),
-        _ => Err(bad_input("parameters must be a list")),
+fn object(obj: &Bound<'_, PyAny>) -> PyResult<Value> {
+    match to_value(obj)? {
+        v @ Value::Object(_) => Ok(v),
+        _ => Err(PyTypeError::new_err("expected a dict")),
     }
 }
 
-/// `[{"name", "type", "file", "line"}]`
-fn wfields(text: &str) -> PyResult<Vec<WField>> {
-    let Value::Array(items) = parse(text)? else {
-        return Err(bad_input("fields must be a list"));
-    };
-    items
-        .iter()
-        .map(|f| {
-            let name = f["name"]
-                .as_str()
-                .ok_or_else(|| bad_input("field name"))?
-                .to_string();
-            let ty = decode_type(&f["type"], "$.type").map_err(|e| bad_input(format!("{e:?}")))?;
-            let file = f["file"].as_str().unwrap_or("<unknown>").to_string();
-            let line = f["line"].as_u64().unwrap_or(1);
-            Ok(WField {
+// --- types -------------------------------------------------------------------------------
+
+/// A behavior type as the engine names it.
+#[pyclass(name = "Type", frozen, eq, module = "behavior._engine")]
+#[derive(Clone, PartialEq)]
+struct PyType_ {
+    inner: WType,
+}
+
+#[pymethods]
+impl PyType_ {
+    #[staticmethod]
+    #[pyo3(name = "bool")]
+    fn bool_() -> Self {
+        PyType_ { inner: WType::Bool }
+    }
+    #[staticmethod]
+    #[pyo3(name = "int")]
+    fn int_() -> Self {
+        PyType_ { inner: WType::Int }
+    }
+    #[staticmethod]
+    fn decimal() -> Self {
+        PyType_ {
+            inner: WType::Decimal,
+        }
+    }
+    #[staticmethod]
+    fn string() -> Self {
+        PyType_ {
+            inner: WType::String,
+        }
+    }
+    #[staticmethod]
+    fn option(of: PyType_) -> Self {
+        PyType_ {
+            inner: WType::Option(Box::new(of.inner)),
+        }
+    }
+    #[staticmethod]
+    #[pyo3(name = "enum")]
+    fn enum_(name: String) -> Self {
+        PyType_ {
+            inner: WType::Enum(name),
+        }
+    }
+    #[staticmethod]
+    fn nominal(name: String) -> Self {
+        PyType_ {
+            inner: WType::Nominal(name),
+        }
+    }
+    #[staticmethod]
+    fn id(entity: String) -> Self {
+        PyType_ {
+            inner: WType::Id(entity),
+        }
+    }
+    #[staticmethod]
+    fn entity(name: String) -> Self {
+        PyType_ {
+            inner: WType::Entity(name),
+        }
+    }
+
+    fn is_option(&self) -> bool {
+        matches!(self.inner, WType::Option(_))
+    }
+
+    /// The inner type of an option, or None.
+    fn inner(&self) -> Option<PyType_> {
+        match &self.inner {
+            WType::Option(of) => Some(PyType_ {
+                inner: (**of).clone(),
+            }),
+            _ => None,
+        }
+    }
+
+    fn __repr__(&self) -> String {
+        format!("Type({:?})", self.inner)
+    }
+}
+
+/// `(name, role or None, Type)` tuples.
+fn params(ps: Vec<(String, Option<String>, PyType_)>) -> PyResult<Vec<WParam>> {
+    ps.into_iter()
+        .map(|(name, role, ty)| {
+            let role = match role.as_deref() {
+                None => None,
+                Some("state") => Some(Role::State),
+                Some("input") => Some(Role::Input),
+                Some("context") => Some(Role::Context),
+                Some(other) => {
+                    return Err(PyValueError::new_err(format!("unknown role `{other}`")));
+                }
+            };
+            Ok(WParam {
                 name,
-                ty,
-                loc: loc(file, line),
+                role,
+                ty: ty.inner,
             })
         })
         .collect()
 }
+
+// --- nodes, records, modules -------------------------------------------------------------
 
 /// A typed expression node owned by the engine.
 #[pyclass(name = "Node", frozen, module = "behavior._engine")]
@@ -80,10 +246,10 @@ struct PyNode {
 
 #[pymethods]
 impl PyNode {
-    /// The node's type as wire JSON, or None below an unresolved (cyclic) derived reference.
+    /// The node's type, or None below an unresolved (cyclic) derived reference.
     #[getter]
-    fn type_json(&self) -> Option<String> {
-        self.inner.type_wire_json().map(|v| v.to_string())
+    fn r#type(&self) -> Option<PyType_> {
+        self.inner.wire_type().map(|inner| PyType_ { inner })
     }
 
     /// The parameter role of field/param nodes: "state", "input", "context", or "read".
@@ -91,6 +257,40 @@ impl PyNode {
     fn role(&self) -> Option<&'static str> {
         self.inner.role()
     }
+}
+
+/// A decision record: `data` for Python, `json` as the canonical artifact.
+#[pyclass(name = "Record", frozen, module = "behavior._engine")]
+struct PyRecord {
+    data: Value,
+    json: String,
+}
+
+#[pymethods]
+impl PyRecord {
+    #[getter]
+    fn result(&self) -> String {
+        self.data["result"].as_str().unwrap_or("ERROR").to_string()
+    }
+    #[getter]
+    fn data(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        to_py(py, &self.data)
+    }
+    #[getter]
+    fn json(&self) -> String {
+        self.json.clone()
+    }
+}
+
+fn record(r: behavior_core::DecisionRecord) -> PyRecord {
+    PyRecord {
+        json: r.to_json_string(),
+        data: r.as_json().clone(),
+    }
+}
+
+fn admission_dict(py: Python<'_>, r: &behavior_core::AdmissionResult) -> PyResult<Py<PyAny>> {
+    to_py(py, &serde_json::to_value(r).unwrap_or(Value::Null))
 }
 
 /// An admitted behavior module.
@@ -101,15 +301,15 @@ struct EngineModule {
 
 #[pymethods]
 impl EngineModule {
-    /// Admits wire JSON; returns (module or None, AdmissionResult JSON).
+    /// Admits wire JSON (a file's contents); returns (module or None, admission dict).
     #[staticmethod]
-    fn from_wire(wire: &str) -> (Option<EngineModule>, String) {
+    fn from_wire(py: Python<'_>, wire: &str) -> PyResult<(Option<EngineModule>, Py<PyAny>)> {
         match behavior_core::admit(wire) {
             Ok(m) => {
-                let report = behavior_core::admission_result(&m).to_json_string();
-                (Some(EngineModule { inner: m }), report)
+                let report = admission_dict(py, &behavior_core::admission_result(&m))?;
+                Ok((Some(EngineModule { inner: m }), report))
             }
-            Err(r) => (None, r.to_json_string()),
+            Err(r) => Ok((None, admission_dict(py, &r)?)),
         }
     }
 
@@ -118,8 +318,8 @@ impl EngineModule {
         self.inner.behavior_version()
     }
 
-    fn admission_json(&self) -> String {
-        behavior_core::admission_result(&self.inner).to_json_string()
+    fn admission(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        admission_dict(py, &behavior_core::admission_result(&self.inner))
     }
 
     /// Canonical wire JSON serialized from the admitted module.
@@ -127,20 +327,66 @@ impl EngineModule {
         behavior_core::serialize::to_wire_json(&self.inner)
     }
 
-    fn evaluate(&self, request: &str) -> String {
-        behavior_core::evaluate(&self.inner, request).to_json_string()
+    #[pyo3(signature = (action, state, input, context, data_version, git_revision=None))]
+    fn evaluate(
+        &self,
+        action: String,
+        state: &Bound<'_, PyAny>,
+        input: &Bound<'_, PyAny>,
+        context: &Bound<'_, PyAny>,
+        data_version: String,
+        git_revision: Option<String>,
+    ) -> PyResult<PyRecord> {
+        let mut request = json!({
+            "action": action,
+            "data_version": data_version,
+            "state": object(state)?,
+            "input": object(input)?,
+            "context": object(context)?,
+        });
+        if let (Some(g), Value::Object(m)) = (git_revision, &mut request) {
+            m.insert("git_revision".into(), json!(g));
+        }
+        Ok(record(behavior_core::evaluate(
+            &self.inner,
+            &request.to_string(),
+        )))
     }
 
-    /// DecisionRecord JSON, or IntentRejection JSON.
-    fn evaluate_intent(&self, intent: &str, host: &str) -> String {
-        match behavior_core::evaluate_intent(&self.inner, intent, host) {
-            Ok(record) => record.to_json_string(),
-            Err(rejection) => rejection.to_json_string(),
+    /// Evaluates a structured intent with host-supplied state and context; raises
+    /// EngineIntentRejected listing every problem.
+    #[pyo3(signature = (intent, state, context, data_version, git_revision=None))]
+    fn evaluate_intent(
+        &self,
+        py: Python<'_>,
+        intent: &Bound<'_, PyAny>,
+        state: &Bound<'_, PyAny>,
+        context: &Bound<'_, PyAny>,
+        data_version: String,
+        git_revision: Option<String>,
+    ) -> PyResult<PyRecord> {
+        let mut host = json!({
+            "data_version": data_version,
+            "state": object(state)?,
+            "context": object(context)?,
+        });
+        if let (Some(g), Value::Object(m)) = (git_revision, &mut host) {
+            m.insert("git_revision".into(), json!(g));
+        }
+        let intent = object(intent)?;
+        match behavior_core::evaluate_intent(&self.inner, &intent.to_string(), &host.to_string()) {
+            Ok(r) => Ok(record(r)),
+            Err(rejection) => {
+                let errors = serde_json::to_value(&rejection.errors).unwrap_or(Value::Null);
+                Err(EngineIntentRejected::new_err((to_py(py, &errors)?,)))
+            }
         }
     }
 
-    fn replay(&self, record: &str) -> String {
-        behavior_core::replay(&self.inner, record).to_json_string()
+    /// Replays a decision record (its canonical JSON text); returns (matches, diff).
+    fn replay(&self, record_json: &str) -> (bool, Option<String>) {
+        let r = behavior_core::replay(&self.inner, record_json);
+        (r.matches, r.diff)
     }
 }
 
@@ -174,25 +420,32 @@ impl PyBuilder {
     fn declare_nominal(
         &mut self,
         name: &str,
-        underlying_json: &str,
+        underlying: PyType_,
         ops: Vec<String>,
         file: String,
         line: u64,
     ) -> PyResult<()> {
-        let underlying = wtype(underlying_json)?;
         self.inner
-            .declare_nominal(name, underlying, ops, loc(file, line))
+            .declare_nominal(name, underlying.inner, ops, loc(file, line))
             .map_err(build_err)
     }
 
+    /// `fields`: `(name, Type, file, line)` tuples.
     fn declare_entity(
         &mut self,
         name: &str,
-        fields_json: &str,
+        fields: Vec<(String, PyType_, String, u64)>,
         file: String,
         line: u64,
     ) -> PyResult<()> {
-        let fields = wfields(fields_json)?;
+        let fields = fields
+            .into_iter()
+            .map(|(n, t, f, l)| WField {
+                name: n,
+                ty: t.inner,
+                loc: loc(f, l),
+            })
+            .collect();
         self.inner
             .declare_entity(name, fields, loc(file, line))
             .map_err(build_err)
@@ -202,17 +455,17 @@ impl PyBuilder {
     fn push_scope(
         &mut self,
         site: &str,
-        params_json: &str,
+        ps: Vec<(String, Option<String>, PyType_)>,
         file: String,
         line: u64,
     ) -> PyResult<()> {
-        let site = match site {
-            "action" => ScopeSite::Action,
-            _ => ScopeSite::Derived,
+        let site = if site == "action" {
+            ScopeSite::Action
+        } else {
+            ScopeSite::Derived
         };
-        let ps = wparams(params_json)?;
         self.inner
-            .push_scope(site, ps, loc(file, line))
+            .push_scope(site, params(ps)?, loc(file, line))
             .map_err(build_err)
     }
 
@@ -222,16 +475,15 @@ impl PyBuilder {
 
     fn lit(
         &mut self,
-        type_json: &str,
-        value_json: &str,
+        ty: PyType_,
+        value: &Bound<'_, PyAny>,
         file: String,
         line: u64,
     ) -> PyResult<PyNode> {
-        let ty = wtype(type_json)?;
-        let value = parse(value_json)?;
+        let value = to_value(value)?;
         let inner = self
             .inner
-            .lit(ty, value, loc(file, line))
+            .lit(ty.inner, value, loc(file, line))
             .map_err(build_err)?;
         Ok(PyNode { inner })
     }
@@ -272,9 +524,15 @@ impl PyBuilder {
         Ok(PyNode { inner })
     }
 
-    fn in_(&mut self, arg: PyNode, values_json: &str, file: String, line: u64) -> PyResult<PyNode> {
-        let Value::Array(values) = parse(values_json)? else {
-            return Err(bad_input("values must be a list"));
+    fn in_(
+        &mut self,
+        arg: PyNode,
+        values: &Bound<'_, PyAny>,
+        file: String,
+        line: u64,
+    ) -> PyResult<PyNode> {
+        let Value::Array(values) = to_value(values)? else {
+            return Err(PyTypeError::new_err("values must be a list"));
         };
         let inner = self
             .inner
@@ -307,7 +565,7 @@ impl PyBuilder {
         &mut self,
         name: &str,
         kind: &str,
-        params_json: &str,
+        ps: Vec<(String, Option<String>, PyType_)>,
         body: PyNode,
         file: String,
         line: u64,
@@ -317,9 +575,8 @@ impl PyBuilder {
         } else {
             DerivedKind::Derived
         };
-        let ps = wparams(params_json)?;
         self.inner
-            .add_derived(name, kind, ps, body.inner, loc(file, line))
+            .add_derived(name, kind, params(ps)?, body.inner, loc(file, line))
             .map_err(build_err)
     }
 
@@ -341,19 +598,18 @@ impl PyBuilder {
     fn add_action(
         &mut self,
         name: &str,
-        params_json: &str,
+        ps: Vec<(String, Option<String>, PyType_)>,
         preconditions: Vec<(PyNode, String, u64)>,
         effects: Vec<(String, String, PyNode, String, u64)>,
         postconditions: Vec<(PyNode, String, u64)>,
         file: String,
         line: u64,
     ) -> PyResult<()> {
-        let ps = wparams(params_json)?;
         let cond = |(n, f, l): (PyNode, String, u64)| (n.inner, loc(f, l));
         self.inner
             .add_action(
                 name,
-                ps,
+                params(ps)?,
                 preconditions.into_iter().map(cond).collect(),
                 effects
                     .into_iter()
@@ -365,22 +621,33 @@ impl PyBuilder {
             .map_err(build_err)
     }
 
-    /// Admits the built module: returns (module or None, AdmissionResult JSON).
-    fn finish(&self, root: Option<String>) -> (Option<EngineModule>, String) {
+    /// Admits the built module: returns (module or None, admission dict).
+    fn finish(
+        &self,
+        py: Python<'_>,
+        root: Option<String>,
+    ) -> PyResult<(Option<EngineModule>, Py<PyAny>)> {
         match self.inner.finish(root.as_deref()) {
             Ok(m) => {
-                let report = behavior_core::admission_result(&m).to_json_string();
-                (Some(EngineModule { inner: m }), report)
+                let report = admission_dict(py, &behavior_core::admission_result(&m))?;
+                Ok((Some(EngineModule { inner: m }), report))
             }
-            Err(r) => (None, r.to_json_string()),
+            Err(r) => Ok((None, admission_dict(py, &r)?)),
         }
     }
 }
 
 #[pymodule]
 fn _engine(m: &Bound<'_, pyo3::types::PyModule>) -> PyResult<()> {
+    m.add_class::<PyType_>()?;
     m.add_class::<PyBuilder>()?;
     m.add_class::<PyNode>()?;
+    m.add_class::<PyRecord>()?;
     m.add_class::<EngineModule>()?;
+    m.add("EngineError", m.py().get_type::<EngineError>())?;
+    m.add(
+        "EngineIntentRejected",
+        m.py().get_type::<EngineIntentRejected>(),
+    )?;
     Ok(())
 }

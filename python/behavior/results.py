@@ -1,8 +1,7 @@
-"""Typed results built from the engine's JSON (contracts/engine-api.md)."""
+"""Typed results built from the engine's native results (contracts/engine-api.md)."""
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -24,8 +23,7 @@ class AdmissionResult:
     items: dict[str, str]
 
     @staticmethod
-    def from_json(text: str) -> AdmissionResult:
-        v = json.loads(text)
+    def from_dict(v: dict[str, Any]) -> AdmissionResult:
         return AdmissionResult(
             ok=v["ok"],
             behavior_version=v.get("behavior_version"),
@@ -65,11 +63,11 @@ class Decision:
     trace: list[TraceStep]
     derived: list[dict[str, Any]]
     behavior_version: str
-    record_json: str
+    record_json: str  # the canonical decision record, the audit artifact
 
     @staticmethod
-    def from_json(text: str) -> Decision:
-        v = json.loads(text)
+    def from_record(record: Any) -> Decision:
+        v = record.data
         return Decision(
             result=v["result"],
             changes=[Change(c["param"], c["field"], c["old"], c["new"]) for c in v["changes"]],
@@ -81,7 +79,7 @@ class Decision:
             ],
             derived=v["derived"],
             behavior_version=v["behavior_version"],
-            record_json=text,
+            record_json=record.json,
         )
 
 
@@ -89,8 +87,3 @@ class Decision:
 class ReplayResult:
     matches: bool
     diff: str | None = None
-
-    @staticmethod
-    def from_json(text: str) -> ReplayResult:
-        v = json.loads(text)
-        return ReplayResult(v["matches"], v.get("diff"))

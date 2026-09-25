@@ -29,17 +29,20 @@ pub fn replay(module: &Module, record: &str) -> ReplayResult;
 
 ### Python binding (`behavior._engine`, private)
 
-Revised 2026-09-25 (research R12, R17): Python holds engine objects.
+Revised 2026-09-25 (research R12, R17): Python holds engine objects and passes native values.
 
-| Class | Methods |
-|-------|---------|
-| `Builder` | `declare_type(desc_json)`, `declare_entities(decls_json)`, `push_scope(site, params_json)`, `pop_scope()`, node constructors `lit`, `field`, `param`, `derived_ref`, `op`, `in_`, `wrap` (each takes the author's `file`, `line`), `check_condition`, `check_effect`, `add_derived`, `add_invariant`, `add_action`, `finish(root) -> Module \| AdmissionResult JSON` |
-| `Node` | `type_json` (wire type, or `None` for a node below an unresolved cycle reference), `op`, `role` |
-| `Module` | `behavior_version`, `admission_json()`, `wire_json()` (canonical serialization), `evaluate(request_json)`, `evaluate_intent(intent_json, host_json)`, `replay(record_json)`; `Module.from_wire(json)` admits JSON |
+| Name | Contract |
+|------|----------|
+| `Type` | `Type.bool()`, `int()`, `decimal()`, `string()`, `option(t)`, `enum(name)`, `nominal(name)`, `id(entity)`, `entity(name)`; `is_option()`, `inner()`; equality |
+| `Builder` | `declare_enum(name, values, file, line)`, `declare_nominal(name, underlying: Type, ops, file, line)`, `declare_entity(name, fields: [(name, Type, file, line)], file, line)`, `push_scope(site, params: [(name, role or None, Type)], file, line)`, `pop_scope()`, node constructors `lit(Type, value, …)`, `field`, `param`, `derived_ref`, `op`, `in_(node, values, …)`, `wrap` (each takes the author's `file`, `line`), `check_condition`, `check_effect`, `add_derived`, `add_invariant`, `add_action`, `finish(root) -> (Module or None, admission dict)` |
+| `Node` | `type` (`Type`, or `None` below an unresolved cycle reference), `role` |
+| `Module` | `behavior_version`, `admission() -> dict`, `wire_json()` (canonical serialization), `evaluate(action, state, input, context, data_version, git_revision=None) -> Record`, `evaluate_intent(intent, state, context, data_version, git_revision=None) -> Record`, `replay(record_json) -> (matches, diff)`; `Module.from_wire(wire_json) -> (Module or None, admission dict)` |
+| `Record` | `result`, `data` (dict), `json` (canonical record text) |
+| `EngineError` | raised by builder calls with `args == (code, message)` |
+| `EngineIntentRejected` | raised by `evaluate_intent` with `args == (errors,)`, a list of `{code, message, path}` dicts |
 
-Node constructors and checks raise `ValueError` whose message is a JSON object
-`{"code", "message"}`; the Python layer attaches the author's location and raises
-`BehaviorTypeError` or `BehaviorDefinitionError`.
+Values: `None`, `bool`, `int`, `str`, `Decimal` (converted from its plain `format(d, "f")` form),
+`Enum` members (their value), and dicts and lists of these. `float` raises `TypeError`.
 
 ### CLI (`behavior`)
 

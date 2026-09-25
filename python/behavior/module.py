@@ -6,7 +6,6 @@ pipeline as wire JSON. The Python layer never emits or parses the behavior itsel
 
 from __future__ import annotations
 
-import json
 from contextvars import ContextVar
 from typing import Any, Sequence
 
@@ -39,9 +38,9 @@ class CompileSession:
                 self.builder.declare_enum(t.name, list(t.values), file, line)
             else:
                 self.builder.declare_nominal(
-                    t.name, json.dumps(t.underlying.wire()), sorted(t.ops), file, line
+                    t.name, t.underlying.engine(), sorted(t.ops), file, line
                 )
-        except ValueError as e:
+        except _engine.EngineError as e:
             raise engine_error(e, (file, line)) from None
         self._declared.add(t.name)
 
@@ -50,8 +49,8 @@ class CompileSession:
             self.declare(p.type)
         site = "action" if fn.kind == "action" else "derived"
         try:
-            self.builder.push_scope(site, fn.params_json(params), *fn.loc)
-        except ValueError as e:
+            self.builder.push_scope(site, fn.engine_params(params), *fn.loc)
+        except _engine.EngineError as e:
             raise engine_error(e, fn.loc) from None
 
     def trace_derived(self, fn: DerivedFn) -> None:
@@ -70,8 +69,8 @@ class CompileSession:
         if fn.kind == "rule":
             check_condition(body, f"rule `{fn.name}`", body.loc)
         try:
-            self.builder.add_derived(fn.name, fn.kind, fn.params_json(params), body.node, *fn.loc)
-        except ValueError as e:
+            self.builder.add_derived(fn.name, fn.kind, fn.engine_params(params), body.node, *fn.loc)
+        except _engine.EngineError as e:
             raise engine_error(e, body.loc) from None
 
 
@@ -116,13 +115,10 @@ class BehaviorModule:
                 for _, t, _ in d.fields:
                     session.declare(t)
             for d in decls:
-                fields = [
-                    {"name": n, "type": t.wire(), "file": l[0], "line": l[1]}
-                    for n, t, l in d.fields
-                ]
+                fields = [(n, t.engine(), l[0], l[1]) for n, t, l in d.fields]
                 try:
-                    session.builder.declare_entity(d.name, json.dumps(fields), *d.loc)
-                except ValueError as e:
+                    session.builder.declare_entity(d.name, fields, *d.loc)
+                except _engine.EngineError as e:
                     raise engine_error(e, d.loc) from None
             for fn in derived:
                 session.trace_derived(fn)
@@ -133,7 +129,7 @@ class BehaviorModule:
         finally:
             _SESSION.reset(token)
 
-        self._module, self._admission_json = session.builder.finish(root)
+        self._module, self._admission = session.builder.finish(root)
 
     @staticmethod
     def _trace_invariant(session: CompileSession, fn: InvariantFn) -> None:
@@ -148,7 +144,7 @@ class BehaviorModule:
         p = params[0]
         try:
             session.builder.add_invariant(fn.name, p.type.display(), p.name, body.node, *fn.loc)
-        except ValueError as e:
+        except _engine.EngineError as e:
             raise engine_error(e, body.loc) from None
 
     @staticmethod
@@ -169,13 +165,13 @@ class BehaviorModule:
         try:
             session.builder.add_action(
                 fn.name,
-                fn.params_json(params),
+                fn.engine_params(params),
                 [(c.expr.node, *c.loc) for c in frame.preconditions],
                 [(e.param, e.field, e.value.node, *e.loc) for e in frame.effects],
                 [(c.expr.node, *c.loc) for c in frame.postconditions],
                 *fn.loc,
             )
-        except ValueError as e:
+        except _engine.EngineError as e:
             raise engine_error(e, fn.loc) from None
 
     @property
@@ -184,7 +180,7 @@ class BehaviorModule:
         if self._module is None:
             from .results import AdmissionResult
 
-            raise BehaviorInvalid(AdmissionResult.from_json(self._admission_json))
+            raise BehaviorInvalid(AdmissionResult.from_dict(self._admission))
         return self._module
 
     def to_wire_json(self) -> str:

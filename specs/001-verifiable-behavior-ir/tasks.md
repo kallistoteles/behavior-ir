@@ -227,6 +227,19 @@ must not change; they are the regression net.
 
 ---
 
+## Phase 8: Revision — native values at the PyO3 boundary (2026-09-25)
+
+**Purpose**: Remove JSON as a transport between Python and the engine (research R12). JSON stays
+only where it is the artifact: wire files, canonical serialization, decision records, the CLI.
+
+- [X] T086 Update research.md (R12) and contracts/engine-api.md (Python binding) for native values: `Type` objects, parameter and field tuples, Python literal values, `EngineError`/`EngineIntentRejected` exceptions, dict results, and a `Record` object carrying the canonical record text
+- [X] T087 [P] Write `python/tests/test_boundary.py`: no module in `python/behavior/` imports `json`; `Node.type` is an engine `Type` (`is_option()`, `inner()`); engine errors carry `code` and `message` as exception arguments; `Module.evaluate` accepts native dicts (Decimal, Enum, None) and rejects floats with `TypeError`; `Record.json` equals the canonical record and `Record.data` is a dict
+- [X] T088 Implement in `crates/behavior-py/src/lib.rs`: `Type` class, native conversions (Python ↔ JSON values inside Rust only; `Decimal` via plain `format(d, "f")`, `Enum` via `.value`, floats rejected), `EngineError`/`EngineIntentRejected`, `Record`, and native signatures for `Builder` and `Module`; add `Type::to_wire_type` in `behavior-core`
+- [X] T089 Update `python/behavior/` (types, expr, decl, statements, module, results, `__init__`, `_engine.pyi`) to pass native values; delete `values.py`
+- [X] T090 Run all gates and quickstart §1–§8; update the implementation review
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies
@@ -236,6 +249,7 @@ must not change; they are the regression net.
 - **US1 (Phase 3)**, **US2 (Phase 4)**, **US3 (Phase 5)**: each depends only on Foundational
 - **Polish (Phase 6)**: depends on the stories you ship
 - **Revision (Phase 7)**: depends on Phases 1–6; T078–T079 before T080–T081, T082 before T083
+- **Revision (Phase 8)**: depends on Phase 7; T087 before T088–T089
 
 ### User Story Dependencies
 

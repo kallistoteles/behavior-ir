@@ -102,6 +102,22 @@ impl Type {
         matches!(self, Type::Int | Type::Decimal)
     }
 
+    /// The wire form of the type (names instead of declaration hashes).
+    pub fn to_wire_type(&self) -> crate::wire::WType {
+        use crate::wire::WType;
+        match self {
+            Type::Bool => WType::Bool,
+            Type::Int => WType::Int,
+            Type::Decimal => WType::Decimal,
+            Type::String => WType::String,
+            Type::Option(inner) => WType::Option(Box::new(inner.to_wire_type())),
+            Type::Enum(e) => WType::Enum(e.name.clone()),
+            Type::Nominal(n) => WType::Nominal(n.name.clone()),
+            Type::Id(e) => WType::Id(e.clone()),
+            Type::Entity(e) => WType::Entity(e.clone()),
+        }
+    }
+
     /// The wire JSON form of the type (`{"t": ...}`).
     pub fn to_wire_json(&self) -> Value {
         match self {

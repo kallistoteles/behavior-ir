@@ -10,6 +10,7 @@ from contextvars import ContextVar
 from dataclasses import dataclass, field
 from typing import Any
 
+from . import _engine
 from .errors import BehaviorDefinitionError
 from .expr import Expr, builder, engine_error, lift
 from .location import caller_loc
@@ -52,7 +53,7 @@ def _action_frame(what: str, loc: tuple[str, int]) -> Frame:
 def check_condition(expr: Expr, what: str, loc: tuple[str, int]) -> None:
     try:
         builder().builder.check_condition(expr.node, what)
-    except ValueError as e:
+    except _engine.EngineError as e:
         raise engine_error(e, loc) from None
 
 
@@ -81,9 +82,9 @@ def set_(target: Any, value: Any) -> None:
     if not isinstance(target, Expr) or target.target is None:
         raise BehaviorDefinitionError("set_() needs a field such as `invoice.status`", *loc)
     param, name = target.target
-    v = lift(value, target.type_json)
+    v = lift(value, target.type)
     try:
         builder().builder.check_effect(param, name, v.node)
-    except ValueError as e:
+    except _engine.EngineError as e:
         raise engine_error(e, loc) from None
     frame.effects.append(Effect(param, name, v, loc))

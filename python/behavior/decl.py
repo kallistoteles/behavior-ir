@@ -134,17 +134,10 @@ class BehaviorFn:
         self.loc = _fn_loc(fn)
         self.__doc__ = fn.__doc__
 
-    def params_json(self, params: list[ParamInfo]) -> str:
-        """Parameters in wire form for the engine builder."""
-        import json
-
-        out = []
-        for p in params:
-            item: dict[str, Any] = {"name": p.name, "type": p.type.wire()}
-            if self.kind == "action":
-                item["role"] = p.role
-            out.append(item)
-        return json.dumps(out)
+    def engine_params(self, params: list[ParamInfo]) -> list[tuple[str, str | None, Any]]:
+        """Parameters as `(name, role or None, Type)` tuples for the engine builder."""
+        action = self.kind == "action"
+        return [(p.name, p.role if action else None, p.type.engine()) for p in params]
 
     def params(self) -> list[ParamInfo]:
         return _resolve_params(self.fn, "action" if self.kind == "action" else "derived")

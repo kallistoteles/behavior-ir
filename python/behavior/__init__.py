@@ -5,7 +5,6 @@ The DSL only constructs behavior; the Rust engine admits, hashes, and evaluates 
 
 from __future__ import annotations
 
-import json
 from typing import Any
 
 from .decl import action, derived, entity, field, invariant, rule
@@ -15,14 +14,13 @@ from .errors import (
 from .expr import and_, none, not_, or_, underlying
 from .module import BehaviorModule
 from .results import AdmissionError, AdmissionResult, Change, Decision, ReplayResult, TraceStep
-from .values import encode_request_values
 from .statements import ensures, requires, set_
 from .types import Context, Id, Input, Option, nominal
 
 
 def admit(model: BehaviorModule) -> AdmissionResult:
     """The engine's admission result for the module (parse, resolve, type-check, hash)."""
-    return AdmissionResult.from_json(model._admission_json)
+    return AdmissionResult.from_dict(model._admission)
 
 
 def evaluate(
@@ -35,17 +33,15 @@ def evaluate(
     data_version: str,
     git_revision: str | None = None,
 ) -> Decision:
-    """Evaluates `action` as a transition over state, input, and context (engine-side)."""
-    request: dict[str, Any] = {
-        "action": action,
-        "data_version": data_version,
-        "state": encode_request_values(state),
-        "input": encode_request_values(input or {}),
-        "context": encode_request_values(context or {}),
-    }
-    if git_revision is not None:
-        request["git_revision"] = git_revision
-    return Decision.from_json(model.engine.evaluate(json.dumps(request)))
+    """Evaluates `action` as a transition over state, input, and context (engine-side).
+
+    Values are passed as Python objects (`Decimal`, `Enum` members, `None`, ...); floats raise
+    `TypeError` at the engine boundary.
+    """
+    record = model.engine.evaluate(
+        action, state, input or {}, context or {}, data_version, git_revision
+    )
+    return Decision.from_record(record)
 
 
 def evaluate_intent(
@@ -59,23 +55,21 @@ def evaluate_intent(
 ) -> Decision:
     """Evaluates a structured intent (capability, targets, input) with host-supplied state and
     context. Raises IntentRejected listing every problem; nothing is evaluated then."""
-    host: dict[str, Any] = {
-        "data_version": data_version,
-        "state": encode_request_values(state),
-        "context": encode_request_values(context or {}),
-    }
-    if git_revision is not None:
-        host["git_revision"] = git_revision
-    text = model.engine.evaluate_intent(json.dumps(intent), json.dumps(host))
-    out = json.loads(text)
-    if out.get("rejected"):
-        raise IntentRejected(out["errors"])
-    return Decision.from_json(text)
+    from . import _engine
+
+    try:
+        record = model.engine.evaluate_intent(
+            intent, state, context or {}, data_version, git_revision
+        )
+    except _engine.EngineIntentRejected as e:
+        raise IntentRejected(e.args[0]) from None
+    return Decision.from_record(record)
 
 
 def replay(model: BehaviorModule, record_json: str) -> ReplayResult:
     """Re-evaluates the request stored in a decision record and compares the outcome."""
-    return ReplayResult.from_json(model.engine.replay(record_json))
+    matches, diff = model.engine.replay(record_json)
+    return ReplayResult(matches, diff)
 
 
 __all__ = [

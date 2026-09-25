@@ -69,9 +69,14 @@ pub struct Node {
 }
 
 impl Node {
-    /// The node's type in wire form, or `None` if it is untyped (below a cycle reference).
+    /// The node's type in wire JSON form, or `None` if it is untyped (below a cycle reference).
     pub fn type_wire_json(&self) -> Option<Json> {
         self.ty.as_ref().map(Type::to_wire_json)
+    }
+
+    /// The node's type in wire form, or `None` if it is untyped.
+    pub fn wire_type(&self) -> Option<WType> {
+        self.ty.as_ref().map(Type::to_wire_type)
     }
 
     /// The parameter role of `field`/`param` nodes: `state`, `input`, `context`, or `read`.

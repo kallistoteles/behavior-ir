@@ -6,11 +6,11 @@ raises; the error is reported at the author's line (research R10, R17).
 
 from __future__ import annotations
 
-import json
 from decimal import Decimal
 from enum import Enum
 from typing import Any
 
+from . import _engine
 from .errors import BehaviorDefinitionError, BehaviorTypeError
 from .location import caller_loc
 from .types import BOOL, DECIMAL, INT, STRING, BType, NominalT, enum_type
@@ -34,13 +34,11 @@ _CONTROL_FLOW = (
 _DEFINITION_CODES = {"EFFECT_ON_READONLY", "RESERVED_NAME", "DECODE_ERROR", "DUPLICATE_NAME"}
 
 
-def engine_error(err: ValueError, loc: tuple[str, int]) -> Exception:
-    """Turns an engine error (`ValueError` with a JSON payload) into a DSL exception."""
-    try:
-        payload = json.loads(str(err))
-        code, message = payload["code"], payload["message"]
-    except (ValueError, KeyError, TypeError):
+def engine_error(err: Exception, loc: tuple[str, int]) -> Exception:
+    """Turns an engine error (`EngineError(code, message)`) into a DSL exception."""
+    if not isinstance(err, _engine.EngineError) or len(err.args) != 2:
         return BehaviorDefinitionError(str(err), *loc)
+    code, message = err.args
     if code in _DEFINITION_CODES:
         return BehaviorDefinitionError(f"{code}: {message}", *loc)
     return BehaviorTypeError(message, code, *loc)
@@ -62,7 +60,7 @@ def call(method: str, *args: Any, loc: tuple[str, int]) -> Any:
     session = builder()
     try:
         return getattr(session.builder, method)(*args, loc[0], loc[1])
-    except ValueError as e:
+    except _engine.EngineError as e:
         raise engine_error(e, loc) from None
 
 
@@ -87,17 +85,17 @@ class Expr:
         self.target = target  # (param, field) for field references
 
     @property
-    def type_json(self) -> dict[str, Any] | None:
-        """The engine-assigned type in wire form (None below an unresolved cycle reference)."""
-        t = self.node.type_json
-        return None if t is None else json.loads(t)
+    def type(self) -> _engine.Type | None:
+        """The engine-assigned type (None below an unresolved cycle reference)."""
+        t: _engine.Type | None = self.node.type
+        return t
 
     @property
     def role(self) -> str | None:
         return self.node.role  # type: ignore[no-any-return]
 
     def __repr__(self) -> str:
-        return f"Expr({self.op}: {self.type_json})"
+        return f"Expr({self.op}: {self.type})"
 
     def __bool__(self) -> bool:
         raise BehaviorDefinitionError(_CONTROL_FLOW, *caller_loc())
@@ -165,8 +163,8 @@ class Expr:
     # named operations
     def in_(self, values: list[Any] | tuple[Any, ...]) -> Expr:
         loc = caller_loc()
-        encoded = json.dumps([encode_literal(v) for v in values])
-        return Expr(call("in_", self.node, encoded, loc=loc), loc, "in", (self,))
+        literals = [encode_literal(v) for v in values]
+        return Expr(call("in_", self.node, literals, loc=loc), loc, "in", (self,))
 
     def is_none(self) -> Expr:
         return build("is_none", [self])
@@ -178,31 +176,16 @@ class Expr:
         return build("value_or", [self, lift(default)])
 
 
-def normalize_decimal(d: Decimal) -> str:
-    """Normalized plain notation: no exponent, no trailing zeros, `-0` → `0`."""
-    if not d.is_finite():
-        raise BehaviorDefinitionError(f"{d} is not a finite decimal", *caller_loc())
-    if d == 0:
-        return "0"
-    text = format(d.normalize(), "f")
-    if "." in text:
-        text = text.rstrip("0").rstrip(".")
-    return text
-
-
 def encode_literal(value: Any) -> Any:
-    """JSON form of a Python literal; floats are rejected before they reach the engine."""
+    """A Python literal as passed to the engine (`none` becomes None). Floats are rejected here
+    with a DSL error so the author sees their own line; the engine rejects them too."""
     if isinstance(value, float):
         raise BehaviorDefinitionError(
             "float literals are not allowed: use decimal.Decimal for exact numbers", *caller_loc()
         )
-    if value is None or value is none:
+    if value is none:
         return None
-    if isinstance(value, Enum):
-        return encode_literal(value.value)
-    if isinstance(value, Decimal):
-        return normalize_decimal(value)
-    if isinstance(value, (bool, int, str)):
+    if value is None or isinstance(value, (bool, int, str, Decimal, Enum)):
         return value
     raise BehaviorTypeError(f"{value!r} cannot be used in behavior", "TYPE_MISMATCH", *caller_loc())
 
@@ -225,27 +208,27 @@ def lit(t: BType, value: Any) -> Expr:
     """A literal of type `t` (e.g. a nominal literal `Money(Decimal("5"))`)."""
     loc = caller_loc()
     builder().declare(t)
-    node = call("lit", json.dumps(t.wire()), json.dumps(encode_literal(value)), loc=loc)
+    node = call("lit", t.engine(), encode_literal(value), loc=loc)
     return Expr(node, loc, "lit")
 
 
-def lift(value: object, expected: dict[str, Any] | None = None) -> Expr:
+def lift(value: object, expected: _engine.Type | None = None) -> Expr:
     """Turns a Python literal into a literal node; `expected` gives `none` its option type."""
     if isinstance(value, Expr):
         return value
     loc = caller_loc()
     encoded = encode_literal(value)
     if encoded is None:
-        if expected is None or expected.get("t") != "option":
+        if expected is None or not expected.is_option():
             raise BehaviorTypeError(
                 "`none` needs an optional value to compare with", "TYPE_MISMATCH", *loc
             )
-        return Expr(call("lit", json.dumps(expected), "null", loc=loc), loc, "lit")
+        return Expr(call("lit", expected, None, loc=loc), loc, "lit")
     t = _literal_type(value)
     if t is None:
         raise BehaviorTypeError(f"{value!r} cannot be used in behavior", "TYPE_MISMATCH", *loc)
     builder().declare(t)
-    return Expr(call("lit", json.dumps(t.wire()), json.dumps(encoded), loc=loc), loc, "lit")
+    return Expr(call("lit", t.engine(), encoded, loc=loc), loc, "lit")
 
 
 def build(op: str, operands: list[Expr]) -> Expr:
@@ -255,8 +238,8 @@ def build(op: str, operands: list[Expr]) -> Expr:
 
 
 def binary(op: str, left: object, right: object) -> Expr:
-    left_hint = left.type_json if isinstance(left, Expr) else None
-    right_hint = right.type_json if isinstance(right, Expr) else None
+    left_hint = left.type if isinstance(left, Expr) else None
+    right_hint = right.type if isinstance(right, Expr) else None
     return build(op, [lift(left, right_hint), lift(right, left_hint)])
 
 

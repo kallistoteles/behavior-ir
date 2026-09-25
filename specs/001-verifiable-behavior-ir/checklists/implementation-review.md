@@ -80,3 +80,18 @@ Each item was checked in the code or by a test, not by reading intent. Evidence 
   behavior versions as before.
 - [x] Python no longer contains typing rules or JSON emission of behavior; `test_types.py` was
   removed because there is no second checker to compare.
+
+## Revision 2026-09-25: native values at the PyO3 boundary (Phase 8)
+
+- [x] No module in `python/behavior/` imports or uses `json` (`test_boundary.py`). Types cross
+  as engine `Type` objects, parameters and fields as tuples, literals and requests as Python
+  values, errors as `EngineError(code, message)` / `EngineIntentRejected(errors)`, results as
+  dicts and a `Record` object.
+- [x] JSON remains only where it is the artifact: `Module.from_wire` (wire files),
+  `wire_json()` / `to_wire_json()` (canonical serialization), `Record.json` / `replay`
+  (decision records), and the CLI. Inside Rust, the binding converts Python values to the
+  engine's request format; that conversion never leaves Rust.
+- [x] `Decimal` values cross as their plain `format(d, "f")` text and are normalized by the
+  engine (`Decimal("4.32E+4")` → `"43200"`); `Enum` members cross as their values; floats raise
+  `TypeError` at the boundary (and the DSL still rejects float literals at the author's line).
+- [x] Fixtures unchanged; all gates pass.

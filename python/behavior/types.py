@@ -1,7 +1,7 @@
 """Type descriptors of the DSL: primitives, Option, Id, enums, nominal types, parameter roles.
 
-These only *describe* types and translate them to wire form; all typing rules live in the
-Rust engine (research R10, R17).
+These only *describe* types and translate them to engine `Type` objects; all typing rules live
+in the Rust engine (research R10, R17).
 """
 
 from __future__ import annotations
@@ -12,6 +12,7 @@ from decimal import Decimal
 from enum import Enum
 from typing import TYPE_CHECKING, Any
 
+from . import _engine
 from .errors import BehaviorDefinitionError
 from .location import caller_loc
 
@@ -24,7 +25,8 @@ OPS = frozenset({"order", "add", "scale", "ratio"})
 class BType:
     """Base class of type descriptors."""
 
-    def wire(self) -> dict[str, Any]:
+    def engine(self) -> _engine.Type:
+        """The engine's `Type` object for this descriptor."""
         raise NotImplementedError
 
     def display(self) -> str:
@@ -38,8 +40,8 @@ class BType:
 class PrimT(BType):
     name: str  # bool | int | decimal | string
 
-    def wire(self) -> dict[str, Any]:
-        return {"t": self.name}
+    def engine(self) -> _engine.Type:
+        return getattr(_engine.Type, self.name)()  # type: ignore[no-any-return]
 
     def display(self) -> str:
         return {"bool": "Bool", "int": "Int", "decimal": "Decimal", "string": "String"}[self.name]
@@ -55,8 +57,8 @@ STRING = PrimT("string")
 class OptionT(BType):
     of: BType
 
-    def wire(self) -> dict[str, Any]:
-        return {"t": "option", "of": self.of.wire()}
+    def engine(self) -> _engine.Type:
+        return _engine.Type.option(self.of.engine())
 
     def display(self) -> str:
         return f"Option<{self.of}>"
@@ -68,8 +70,8 @@ class EnumT(BType):
     values: tuple[str, ...]
     loc: tuple[str, int] | None = field(default=None, compare=False)
 
-    def wire(self) -> dict[str, Any]:
-        return {"t": "enum", "name": self.name}
+    def engine(self) -> _engine.Type:
+        return _engine.Type.enum(self.name)
 
     def display(self) -> str:
         return self.name
@@ -79,8 +81,8 @@ class EnumT(BType):
 class IdT(BType):
     entity: str
 
-    def wire(self) -> dict[str, Any]:
-        return {"t": "id", "entity": self.entity}
+    def engine(self) -> _engine.Type:
+        return _engine.Type.id(self.entity)
 
     def display(self) -> str:
         return f"Id<{self.entity}>"
@@ -90,8 +92,8 @@ class IdT(BType):
 class EntityT(BType):
     name: str
 
-    def wire(self) -> dict[str, Any]:
-        return {"t": "entity", "name": self.name}
+    def engine(self) -> _engine.Type:
+        return _engine.Type.entity(self.name)
 
     def display(self) -> str:
         return self.name
@@ -106,8 +108,8 @@ class NominalT(BType):
     ops: frozenset[str]
     loc: tuple[str, int] | None = field(default=None, compare=False)
 
-    def wire(self) -> dict[str, Any]:
-        return {"t": "nominal", "name": self.name}
+    def engine(self) -> _engine.Type:
+        return _engine.Type.nominal(self.name)
 
     def display(self) -> str:
         return self.name

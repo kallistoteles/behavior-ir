@@ -178,6 +178,14 @@ and on `S'` differ) and recorded in the trace.
   typed `Node` handles, and an admitted `Module` (behavior version, items, canonical wire JSON,
   `evaluate`, `evaluate_intent`, `replay`). JSON appears only where data leaves or enters the
   engine: requests, records, intents, and the canonical serialization.
+- **Native values** (revised again 2026-09-25): arguments and results cross the boundary as
+  Python objects, not JSON strings: engine `Type` objects, parameter/field tuples, Python
+  literal values (`Decimal` converted from its plain `format(d, "f")` form, `Enum` via its
+  value, floats rejected), dicts for requests and results, `EngineError(code, message)` and
+  `EngineIntentRejected(errors)` exceptions, and a `Record` object whose `json` is the canonical
+  record text. JSON remains only where it is the artifact itself: wire files
+  (`Module.from_wire`), the canonical serialization (`wire_json`), decision records (`Record.json`,
+  `replay`), and the CLI.
 - **Rationale**: Python is a binding to the engine, not a generator of JSON the engine happens
   to read. The CLI keeps its JSON-file interface (wire IR in, canonical JSON out).
 - **Alternatives**: JSON in/out functions (the previous design).

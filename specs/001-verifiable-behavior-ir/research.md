@@ -1,7 +1,8 @@
 # Research: Verifiable Behavior IR Core (v0.1)
 
 Decisions taken during `/speckit-plan` on 2026-09-23 and revised the same day after the
-clarification session and `PRINCIPLES.md`. Each entry: decision, rationale, alternatives.
+clarification session and `PRINCIPLES.md`. Revised again on 2026-09-25: Python became a binding to
+the Rust engine instead of a generator of wire JSON (R10, R12, R17). Each entry: decision, rationale, alternatives.
 
 ## R1. Where the engine lives
 
@@ -139,25 +140,24 @@ and on `S'` differ) and recorded in the trace.
   division by zero is an evaluation error.
 - **Implementation note**: Python must format with `format(d.normalize(), "f")` to avoid `5E+4`.
 
-## R10. DSL construction and typing in Python
+## R10. DSL construction in Python; typing in Rust only
 
-- **Decision**:
-  - Symbolic parameters are `Var` objects; attribute access yields a typed `FieldRef` expression.
-  - Every expression object carries its type; operator overloads check operand types using the
-    same operator table as the engine and raise `BehaviorTypeError` at the calling line.
-  - `Expr.__bool__` raises (catches `if`, `and`, `or`, `not`, chained comparisons); `__hash__`
-    is disabled because `__eq__` returns an expression.
-  - `&`, `|`, `~` and `and_()`, `or_()`, `not_()` build boolean nodes; `.in_([...])`,
-    `.is_none()`, `.is_some()`, `.value_or(x)`, `none` literal; `Money(Decimal("100"))` is a
-    literal of the nominal type, `Money(expr)` wraps an underlying-typed expression,
-    `underlying(expr)` unwraps.
-  - `requires`, `ensures`, `set_` append to the body being traced; `set_` target must be a field
-    of a state parameter.
-- **Rationale**: clarification Q3 — immediate author feedback. The engine repeats every check
-  on admission, so the Python checker can be simpler than the engine's without being trusted.
-- **Test obligation**: a shared table of typing cases (`tests/fixtures/typing_cases.json`) is
-  run against both the Python checker and the engine so the two agree.
-
+- **Decision** (revised 2026-09-25):
+  - Symbolic parameters are `EntityVar`/parameter objects; attribute access and operators call
+    the Rust builder (R17), which type-checks each node as it is built and returns a typed node
+    handle, or raises with the error code. Python turns that into `BehaviorTypeError` (or
+    `BehaviorDefinitionError` for DSL misuse such as effects on read-only parameters) at the
+    author's line.
+  - Python keeps only what Python must do: decorators, tracing bodies, capturing source
+    locations, operator overloading, `Expr.__bool__` raising (catches `if`, `and`, `or`, `not`,
+    chained comparisons), and rejecting Python `float` values before they reach the engine.
+  - `&`, `|`, `~` and `and_()`, `or_()`, `not_()`; `.in_([...])`, `.is_none()`, `.is_some()`,
+    `.value_or(x)`, `none`; `Money(Decimal("100"))` literal, `Money(expr)` wrap,
+    `underlying(expr)` unwrap; `requires`, `ensures`, `set_` — unchanged public API.
+- **Rationale**: one type checker. The previous design duplicated the typing rules in Python
+  and kept them aligned with a shared table; now there is nothing to align.
+- **Alternatives**: Python checker plus engine re-check (the previous design; two
+  implementations of the same rules).
 ## R11. When bodies are traced; derived references
 
 - **Decision**: decorators register functions without running them; calling a derived value or
@@ -172,10 +172,15 @@ and on `S'` differ) and recorded in the trace.
 
 ## R12. Python ↔ Rust boundary
 
-- **Decision**: PyO3 extension `behavior._engine` built with maturin, JSON strings in and out:
-  `admit`, `evaluate`, `evaluate_intent`, `replay`. The same functions back the `behavior` CLI.
-- **Rationale**: one contract (wire JSON), used by Python, CLI, fixtures, and future frontends.
-
+- **Decision** (revised 2026-09-25): the PyO3 extension `behavior._engine` exposes engine
+  objects, not JSON functions: a `Builder` (declares types and entities, builds typed
+  expression nodes, adds derived values, invariants, and actions, and finishes into a module),
+  typed `Node` handles, and an admitted `Module` (behavior version, items, canonical wire JSON,
+  `evaluate`, `evaluate_intent`, `replay`). JSON appears only where data leaves or enters the
+  engine: requests, records, intents, and the canonical serialization.
+- **Rationale**: Python is a binding to the engine, not a generator of JSON the engine happens
+  to read. The CLI keeps its JSON-file interface (wire IR in, canonical JSON out).
+- **Alternatives**: JSON in/out functions (the previous design).
 ## R13. Capability boundary and trust
 
 - **Decision**: a structured intent carries only what an AI may choose: the capability name,
@@ -205,6 +210,25 @@ and on `S'` differ) and recorded in the trace.
   Nix flake dev shell (host is NixOS with no Rust installed).
 - **Crates**: `serde`, `serde_json`, `rust_decimal`, `sha2`, `thiserror`, `pyo3`, `clap`; dev:
   `proptest`, `pretty_assertions`. Python dev: `pytest`, `mypy`.
+
+## R17. One construction path: builder and admission share the type checker
+
+- **Decision**: the Rust `Builder` records wire-level declarations and expression trees, and for
+  each new node runs the same type checker used by admission (`admit/typecheck.rs`) on that
+  node; `Builder::finish` hands the collected module to the same admission pipeline as JSON
+  (declarations → reference graph and cycles → type check → hashes). Wire JSON decoding
+  produces the same structures and enters the same pipeline. Semantic IR is therefore built in
+  exactly one place, whichever frontend is used.
+- **Serialization**: the canonical wire JSON is produced by the engine from the admitted
+  semantic module (`serialize.rs`): conversions appear explicitly (`some`, `to_decimal`),
+  literals are folded, and declarations are listed by name. Only admitted modules can be
+  serialized. Serializing and admitting again yields the same behavior version and the same
+  bytes (round-trip property).
+- **Forward references and cycles**: a reference to a derived value that is still being traced
+  (a cycle) produces an untyped node; nodes above it skip the immediate check, and `finish`
+  reports the cycle exactly as JSON admission does.
+- **Rationale**: principle 9 — untrusted representations and the Python binding both pass
+  through the same checks; there is no second way into the semantic model.
 
 ## R16. Deferred
 

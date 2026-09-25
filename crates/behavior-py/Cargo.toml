@@ -11,6 +11,7 @@ crate-type = ["cdylib"]
 [dependencies]
 behavior-core.workspace = true
 pyo3 = { version = "0.26", features = ["extension-module"] }
+serde_json = "1"
 
 [lints]
 workspace = true

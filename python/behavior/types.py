@@ -1,38 +1,37 @@
-"""Behavior types and the typing rules (data-model.md → Typing rules).
+"""Type descriptors of the DSL: primitives, Option, Id, enums, nominal types, parameter roles.
 
-These rules mirror the engine's so authors get errors where they write an expression. The
-engine checks everything again on admission; the shared table
-`tests/fixtures/typing_cases.json` keeps the two checkers in agreement.
+These only *describe* types and translate them to wire form; all typing rules live in the
+Rust engine (research R10, R17).
 """
 
 from __future__ import annotations
 
+import inspect
 from dataclasses import dataclass, field
 from decimal import Decimal
 from enum import Enum
 from typing import TYPE_CHECKING, Any
 
-from .errors import BehaviorDefinitionError, BehaviorTypeError
+from .errors import BehaviorDefinitionError
 from .location import caller_loc
 
 if TYPE_CHECKING:
     from .expr import Expr
 
-ORDER, ADD, SCALE, RATIO = "order", "add", "scale", "ratio"
-OPS = frozenset({ORDER, ADD, SCALE, RATIO})
+OPS = frozenset({"order", "add", "scale", "ratio"})
 
 
 class BType:
-    """Base class of behavior types."""
+    """Base class of type descriptors."""
 
     def wire(self) -> dict[str, Any]:
         raise NotImplementedError
 
-    def __str__(self) -> str:
-        return self.display()
-
     def display(self) -> str:
         raise NotImplementedError
+
+    def __str__(self) -> str:
+        return self.display()
 
 
 @dataclass(frozen=True)
@@ -68,7 +67,6 @@ class EnumT(BType):
     name: str
     values: tuple[str, ...]
     loc: tuple[str, int] | None = field(default=None, compare=False)
-    py_enum: type[Enum] | None = field(default=None, compare=False)
 
     def wire(self) -> dict[str, Any]:
         return {"t": "enum", "name": self.name}
@@ -100,20 +98,6 @@ class EntityT(BType):
 
 
 @dataclass(frozen=True)
-class UnknownT(BType):
-    """Placeholder for a derived value on a cycle; the engine reports the cycle."""
-
-    def wire(self) -> dict[str, Any]:
-        raise BehaviorDefinitionError("internal: unknown type has no wire form")
-
-    def display(self) -> str:
-        return "?"
-
-
-UNKNOWN = UnknownT()
-
-
-@dataclass(frozen=True)
 class NominalT(BType):
     """A nominal type over a primitive, with its declared operations."""
 
@@ -127,9 +111,6 @@ class NominalT(BType):
 
     def display(self) -> str:
         return self.name
-
-    def has(self, op: str) -> bool:
-        return op in self.ops
 
     def __call__(self, value: Any) -> Expr:
         """`Money(Decimal("5"))` is a literal; `Money(expr)` wraps an expression."""
@@ -149,17 +130,12 @@ def nominal(name: str, underlying: Any, ops: set[str] | frozenset[str] = frozens
     unknown = set(ops) - OPS
     if unknown:
         raise BehaviorDefinitionError(f"unknown operations {sorted(unknown)}", *loc)
-    if ops and prim not in (INT, DECIMAL):
-        raise BehaviorDefinitionError(f"operations on `{name}` require a numeric type", *loc)
     return NominalT(name, prim, frozenset(ops), loc)
 
 
 class _OptionFactory:
     def __getitem__(self, item: Any) -> OptionT:
-        inner = to_type(item)
-        if isinstance(inner, OptionT):
-            raise BehaviorTypeError("options cannot be nested", "NESTED_OPTION", *caller_loc())
-        return OptionT(inner)
+        return OptionT(to_type(item))
 
 
 class _IdFactory:
@@ -168,7 +144,9 @@ class _IdFactory:
             return IdT(item)
         decl = getattr(item, "__behavior_entity__", None)
         if decl is None:
-            raise BehaviorDefinitionError(f"Id[...] needs an @entity class, got {item!r}", *caller_loc())
+            raise BehaviorDefinitionError(
+                f"Id[...] needs an @entity class, got {item!r}", *caller_loc()
+            )
         return IdT(decl.name)
 
 
@@ -203,19 +181,17 @@ def enum_type(cls: type[Enum]) -> EnumT:
     values = tuple(m.value for m in cls)
     if not all(isinstance(v, str) for v in values):
         raise BehaviorDefinitionError(f"enum `{cls.__name__}` must have str values", *caller_loc())
-    import inspect
-
     try:
         loc: tuple[str, int] | None = (inspect.getfile(cls), cls.__firstlineno__)  # type: ignore[attr-defined]
     except (TypeError, AttributeError):
         loc = None
-    t = EnumT(cls.__name__, values, loc, cls)
+    t = EnumT(cls.__name__, values, loc)
     _ENUM_TYPES[cls] = t
     return t
 
 
 def to_type(spec: Any) -> BType:
-    """Converts a Python type annotation or DSL type to a behavior type."""
+    """Converts a Python annotation or DSL type to a type descriptor."""
     if isinstance(spec, BType):
         return spec
     if spec is bool:
@@ -236,178 +212,3 @@ def to_type(spec: Any) -> BType:
     if decl is not None:
         return EntityT(decl.name)
     raise BehaviorDefinitionError(f"unsupported type {spec!r}", *caller_loc())
-
-
-# --- typing rules ------------------------------------------------------------------------
-
-KEEP, TO_DECIMAL, SOME = "keep", "to_decimal", "some"
-
-
-def _numeric(t: BType) -> bool:
-    return t in (INT, DECIMAL)
-
-
-def _promote(a: BType, b: BType) -> list[str]:
-    if a == INT and b == INT:
-        return [KEEP, KEEP]
-    return [TO_DECIMAL if t == INT else KEEP for t in (a, b)]
-
-
-def _mismatch(op: str, operands: list[BType]) -> BehaviorTypeError:
-    listed = " and ".join(f"`{t}`" for t in operands)
-    return BehaviorTypeError(f"cannot apply `{op}` to {listed}", "TYPE_MISMATCH", *caller_loc())
-
-
-def _not_allowed(op: str, operands: list[BType]) -> BehaviorTypeError:
-    listed = " and ".join(f"`{t}`" for t in operands)
-    return BehaviorTypeError(f"`{op}` is not declared for {listed}", "OP_NOT_ALLOWED", *caller_loc())
-
-
-def check_type(t: BType) -> None:
-    if isinstance(t, OptionT):
-        if isinstance(t.of, OptionT):
-            raise BehaviorTypeError("options cannot be nested", "NESTED_OPTION", *caller_loc())
-        check_type(t.of)
-
-
-def coerce(expected: BType, actual: BType) -> str | None:
-    """How a value of type `actual` can be used where `expected` is required."""
-    if expected == actual or actual == UNKNOWN or expected == UNKNOWN:
-        return KEEP
-    if expected == DECIMAL and actual == INT:
-        return TO_DECIMAL
-    if isinstance(expected, OptionT) and expected.of == actual:
-        return SOME
-    return None
-
-
-COMPARISONS = {"eq", "ne", "lt", "le", "gt", "ge"}
-
-
-def type_of_op(
-    op: str,
-    operands: list[BType],
-    *,
-    count: int | None = None,
-    target: BType | None = None,
-) -> tuple[BType, list[str]]:
-    """Result type of `op` and the conversions for its operands; raises BehaviorTypeError."""
-    n = len(operands)
-    if UNKNOWN in operands:
-        boolish = op in COMPARISONS | {"and", "or", "not", "in", "is_none", "is_some"}
-        return (BOOL if boolish else UNKNOWN), [KEEP] * n
-    if op in ("eq", "ne"):
-        a, b = operands
-        if isinstance(a, EntityT) or isinstance(b, EntityT):
-            raise _mismatch(op, operands)
-        if a == b:
-            return BOOL, [KEEP, KEEP]
-        if _numeric(a) and _numeric(b):
-            return BOOL, _promote(a, b)
-        if isinstance(a, OptionT) and a.of == b:
-            return BOOL, [KEEP, SOME]
-        if isinstance(b, OptionT) and b.of == a:
-            return BOOL, [SOME, KEEP]
-        raise _mismatch(op, operands)
-    if op in ("lt", "le", "gt", "ge"):
-        a, b = operands
-        if _numeric(a) and _numeric(b):
-            return BOOL, _promote(a, b)
-        if isinstance(a, NominalT) and a == b:
-            if a.has(ORDER):
-                return BOOL, [KEEP, KEEP]
-            raise _not_allowed(op, operands)
-        raise _mismatch(op, operands)
-    if op in ("add", "sub"):
-        a, b = operands
-        if a == INT and b == INT:
-            return INT, [KEEP, KEEP]
-        if _numeric(a) and _numeric(b):
-            return DECIMAL, _promote(a, b)
-        if isinstance(a, NominalT) and a == b:
-            if a.has(ADD):
-                return a, [KEEP, KEEP]
-            raise _not_allowed(op, operands)
-        raise _mismatch(op, operands)
-    if op == "mul":
-        a, b = operands
-        if a == INT and b == INT:
-            return INT, [KEEP, KEEP]
-        if _numeric(a) and _numeric(b):
-            return DECIMAL, _promote(a, b)
-        if isinstance(a, NominalT) and _numeric(b):
-            nom, scalar, first = a, b, True
-        elif isinstance(b, NominalT) and _numeric(a):
-            nom, scalar, first = b, a, False
-        else:
-            raise _mismatch(op, operands)
-        if not nom.has(SCALE):
-            raise _not_allowed(op, operands)
-        if scalar == DECIMAL and nom.underlying != DECIMAL:
-            raise _mismatch(op, operands)
-        conv = TO_DECIMAL if nom.underlying == DECIMAL and scalar == INT else KEEP
-        return nom, ([KEEP, conv] if first else [conv, KEEP])
-    if op == "div":
-        a, b = operands
-        if _numeric(a) and _numeric(b):
-            return DECIMAL, [TO_DECIMAL if t == INT else KEEP for t in (a, b)]
-        if isinstance(a, NominalT) and a == b:
-            if a.has(RATIO):
-                return DECIMAL, [KEEP, KEEP]
-            raise _not_allowed(op, operands)
-        if isinstance(a, NominalT) and _numeric(b):
-            if not a.has(SCALE):
-                raise _not_allowed(op, operands)
-            if a.underlying != DECIMAL:
-                raise _mismatch(op, operands)
-            return a, [KEEP, TO_DECIMAL if b == INT else KEEP]
-        raise _mismatch(op, operands)
-    if op in ("and", "or"):
-        if n >= 2 and all(t == BOOL for t in operands):
-            return BOOL, [KEEP] * n
-        raise _mismatch(op, operands)
-    if op == "not":
-        if operands == [BOOL]:
-            return BOOL, [KEEP]
-        raise _mismatch(op, operands)
-    if op == "in":
-        if not count:
-            raise BehaviorTypeError("`in` needs at least one value", "EMPTY_IN", *caller_loc())
-        if isinstance(operands[0], (OptionT, EntityT)):
-            raise _mismatch(op, operands)
-        return BOOL, [KEEP]
-    if op in ("is_none", "is_some"):
-        if isinstance(operands[0], OptionT):
-            return BOOL, [KEEP]
-        raise _mismatch(op, operands)
-    if op == "value_or":
-        a, b = operands
-        if isinstance(a, OptionT):
-            c = coerce(a.of, b)
-            if c in (KEEP, TO_DECIMAL):
-                return a.of, [KEEP, c]
-        raise _mismatch(op, operands)
-    if op == "some":
-        a = operands[0]
-        if isinstance(a, OptionT):
-            raise BehaviorTypeError("options cannot be nested", "NESTED_OPTION", *caller_loc())
-        if isinstance(a, EntityT):
-            raise _mismatch(op, operands)
-        return OptionT(a), [KEEP]
-    if op == "to_decimal":
-        if operands == [INT]:
-            return DECIMAL, [KEEP]
-        raise _mismatch(op, operands)
-    if op == "wrap":
-        if not isinstance(target, NominalT):
-            raise _mismatch(op, operands)
-        c = coerce(target.underlying, operands[0])
-        if c in (KEEP, TO_DECIMAL):
-            return target, [c]
-        raise _mismatch(target.name, operands)
-    if op == "unwrap":
-        a = operands[0]
-        if isinstance(a, NominalT):
-            return a.underlying, [KEEP]
-        raise _mismatch(op, operands)
-    raise BehaviorDefinitionError(f"unknown operation `{op}`", *caller_loc())

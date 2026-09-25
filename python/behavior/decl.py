@@ -13,9 +13,9 @@ from dataclasses import dataclass
 from typing import Any, Callable
 
 from .errors import BehaviorDefinitionError, BehaviorTypeError
-from .expr import Expr, field_ref, param_ref
+from .expr import Expr, call, field_ref, param_ref
 from .location import caller_loc
-from .types import UNKNOWN, BType, EntityT, OptionT, RoleSpec, check_type, to_type
+from .types import BType, EntityT, RoleSpec, to_type
 
 
 @dataclass
@@ -28,7 +28,6 @@ def field(spec: Any) -> FieldSpec:
     """Declares an entity field of type `spec` (bool, int, Decimal, str, Enum, nominal, Id, Option)."""
     loc = caller_loc()
     t = to_type(spec)
-    check_type(t)
     if isinstance(t, EntityT):
         raise BehaviorDefinitionError("fields cannot hold entities; use Id[...]", *loc)
     return FieldSpec(t, loc)
@@ -39,16 +38,6 @@ class EntityDecl:
     name: str
     fields: list[tuple[str, BType, tuple[str, int]]]
     loc: tuple[str, int]
-
-    def field_type(self, name: str) -> BType | None:
-        if name == "id":
-            from .types import IdT
-
-            return IdT(self.name)
-        for n, t, _ in self.fields:
-            if n == name:
-                return t
-        return None
 
 
 def entity(cls: type) -> type:
@@ -82,12 +71,7 @@ class EntityVar:
     def __getattr__(self, item: str) -> Expr:
         if item.startswith("_"):
             raise AttributeError(item)
-        t = self._decl.field_type(item)
-        if t is None:
-            raise BehaviorTypeError(
-                f"`{self._decl.name}` has no field `{item}`", "UNKNOWN_FIELD", *caller_loc()
-            )
-        return field_ref(self._name, item, t, self._role)
+        return field_ref(self._name, item)
 
     def __bool__(self) -> bool:
         raise BehaviorDefinitionError("entities cannot drive Python control flow", *caller_loc())
@@ -136,7 +120,7 @@ def _resolve_params(fn: Callable[..., Any], kind: str) -> list[ParamInfo]:
 def _symbol(p: ParamInfo) -> Any:
     if p.decl is not None:
         return EntityVar(p.name, p.decl, p.role)
-    return param_ref(p.name, p.type, p.role)
+    return param_ref(p.name)
 
 
 class BehaviorFn:
@@ -149,6 +133,18 @@ class BehaviorFn:
         self.name = fn.__name__
         self.loc = _fn_loc(fn)
         self.__doc__ = fn.__doc__
+
+    def params_json(self, params: list[ParamInfo]) -> str:
+        """Parameters in wire form for the engine builder."""
+        import json
+
+        out = []
+        for p in params:
+            item: dict[str, Any] = {"name": p.name, "type": p.type.wire()}
+            if self.kind == "action":
+                item["role"] = p.role
+            out.append(item)
+        return json.dumps(out)
 
     def params(self) -> list[ParamInfo]:
         return _resolve_params(self.fn, "action" if self.kind == "action" else "derived")
@@ -172,22 +168,17 @@ class DerivedFn(BehaviorFn):
             raise BehaviorDefinitionError(
                 f"`{self.name}` can only be used inside a behavior body", *loc
             )
-        params = self.params()
-        if len(args) != len(params):
-            raise BehaviorTypeError(
-                f"`{self.name}` takes {len(params)} argument(s), got {len(args)}",
-                "ARITY_MISMATCH",
-                *loc,
-            )
         names = []
-        for arg, p in zip(args, params):
-            if not isinstance(arg, EntityVar) or arg._decl.name != p.type.display():
+        for arg in args:
+            if not isinstance(arg, EntityVar):
                 raise BehaviorTypeError(
-                    f"`{self.name}` expects a `{p.type}` parameter", "TYPE_MISMATCH", *loc
+                    f"`{self.name}` takes entity parameters, got {arg!r}", "TYPE_MISMATCH", *loc
                 )
             names.append(arg._name)
-        result = session.result_type(self)
-        return Expr("derived", result, (), {"name": self.name, "args": names}, loc)
+        # Trace the referenced body first (unless it is being traced: a cycle); the engine then
+        # checks arity and parameter types against it.
+        session.trace_derived(self)
+        return Expr(call("derived_ref", self.name, names, loc=loc), loc, "derived")
 
 
 class RuleFn(DerivedFn):
@@ -222,6 +213,4 @@ def action(fn: Callable[..., Any]) -> ActionFn:
     return ActionFn(fn)
 
 
-__all__ = [
-    "field", "entity", "derived", "rule", "invariant", "action", "UNKNOWN", "OptionT",
-]
+__all__ = ["field", "entity", "derived", "rule", "invariant", "action"]

@@ -70,7 +70,7 @@ impl AdmissionResult {
         }
     }
 
-    fn admitted(module: &Module) -> Self {
+    pub(crate) fn admitted(module: &Module) -> Self {
         AdmissionResult {
             ok: true,
             behavior_version: Some(module.behavior_version()),
@@ -93,29 +93,37 @@ impl AdmissionResult {
 
 /// Admits wire IR into a semantic module, or returns the failed AdmissionResult.
 pub fn admit(wire_text: &str) -> Result<Module, AdmissionResult> {
-    let w = match wire::decode_module(wire_text) {
-        Ok(w) => w,
+    admit_wire(&decode(wire_text)?)
+}
+
+fn decode(wire_text: &str) -> Result<wire::WModule, AdmissionResult> {
+    match wire::decode_module(wire_text) {
+        Ok(w) => Ok(w),
         Err(DecodeError::UnsupportedVersion(v)) => {
-            return Err(AdmissionResult::failed(vec![AdmissionError::new(
+            Err(AdmissionResult::failed(vec![AdmissionError::new(
                 "UNSUPPORTED_IR_VERSION",
                 format!(
                     "unsupported ir_version `{v}`; this engine accepts `{}`",
                     wire::IR_VERSION
                 ),
                 None,
-            )]));
+            )]))
         }
         Err(DecodeError::Structure { path, message }) => {
-            return Err(AdmissionResult::failed(vec![AdmissionError::new(
+            Err(AdmissionResult::failed(vec![AdmissionError::new(
                 "DECODE_ERROR",
                 format!("at {path}: {message}"),
                 None,
-            )]));
+            )]))
         }
-    };
+    }
+}
 
+/// The single entry point into the semantic IR, shared by JSON decoding and the builder
+/// (research R17).
+pub fn admit_wire(w: &wire::WModule) -> Result<Module, AdmissionResult> {
     let mut errors = Vec::new();
-    let decls = resolve::declarations(&w, &mut errors);
+    let decls = resolve::declarations(w, &mut errors);
     if !errors.is_empty() {
         return Err(AdmissionResult::failed(errors));
     }
@@ -123,11 +131,16 @@ pub fn admit(wire_text: &str) -> Result<Module, AdmissionResult> {
         Ok(order) => order,
         Err(errs) => return Err(AdmissionResult::failed(errs)),
     };
-    let module = typecheck::build_module(&w, decls, order, &mut errors);
+    let module = typecheck::build_module(w, decls, order, &mut errors);
     match module {
         Some(m) if errors.is_empty() => Ok(m),
         _ => Err(AdmissionResult::failed(errors)),
     }
+}
+
+/// The AdmissionResult of an admitted module.
+pub fn admission_result(module: &Module) -> AdmissionResult {
+    AdmissionResult::admitted(module)
 }
 
 /// Admission as a report (contracts/engine-api.md → `admit`).

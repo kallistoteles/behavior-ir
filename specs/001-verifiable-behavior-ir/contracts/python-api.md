@@ -87,7 +87,7 @@ model = BehaviorModule(
     root=".",            # optional base for relative source paths
 )                        # enums and nominal types used by fields are collected automatically
 
-model.to_wire_json() -> str           # canonical wire IR
+model.to_wire_json() -> str           # canonical wire IR, serialized by the engine from the admitted module
 
 result = admit(model)                 # AdmissionResult (engine-side parse, resolve, type-check, hash)
 result.ok, result.errors, result.behavior_version, result.evaluation_order, result.items
@@ -118,5 +118,9 @@ replay(model, decision.record_json)   # ReplayResult: .matches, .diff
 - Input values: `bool`, `int`, `Decimal`, `str`, `None` (option none), `Enum` members or their
   string values. `float` raises `TypeError` before reaching the engine.
 - Hashes and behavior versions always come from the engine; the Python package does not hash.
+- Type checking happens only in the engine: each operator calls the engine's builder, which
+  checks the node and raises at the author's line (revised 2026-09-25). `to_wire_json()` is
+  only available for admitted modules; it shows conversions explicitly and lists declarations
+  by name, so it round-trips to the same behavior version.
 - Result objects are frozen dataclasses built from the engine's JSON
   ([engine-api.md](engine-api.md)).

@@ -20,7 +20,7 @@ maturin develop          # builds behavior._engine into the dev shell's venv
 cargo fmt --check
 cargo clippy --all-targets -- -D warnings
 cargo test --workspace            # includes hash vectors, hash property tests, typing cases
-pytest python/tests               # includes the shared typing cases against the DSL
+pytest python/tests               # DSL errors at the author's line come from the engine builder
 scripts/determinism-check.sh      # admission, golden and replay cases run twice, byte comparison
 cargo test --release -p behavior-core -- --ignored perf   # SC-005 performance check
 ```

@@ -21,17 +21,8 @@ from .types import Context, Id, Input, Option, nominal
 
 
 def admit(model: BehaviorModule) -> AdmissionResult:
-    """Asks the engine to admit the module: parse, resolve, type-check, and hash."""
-    from . import _engine
-
-    return AdmissionResult.from_json(_engine.admit(model.to_wire_json()))
-
-
-def _admitted_wire(model: BehaviorModule) -> str:
-    result = admit(model)
-    if not result.ok:
-        raise BehaviorInvalid(result)
-    return model.to_wire_json()
+    """The engine's admission result for the module (parse, resolve, type-check, hash)."""
+    return AdmissionResult.from_json(model._admission_json)
 
 
 def evaluate(
@@ -45,9 +36,6 @@ def evaluate(
     git_revision: str | None = None,
 ) -> Decision:
     """Evaluates `action` as a transition over state, input, and context (engine-side)."""
-    from . import _engine
-
-    wire = _admitted_wire(model)
     request: dict[str, Any] = {
         "action": action,
         "data_version": data_version,
@@ -57,7 +45,7 @@ def evaluate(
     }
     if git_revision is not None:
         request["git_revision"] = git_revision
-    return Decision.from_json(_engine.evaluate(wire, json.dumps(request)))
+    return Decision.from_json(model.engine.evaluate(json.dumps(request)))
 
 
 def evaluate_intent(
@@ -71,9 +59,6 @@ def evaluate_intent(
 ) -> Decision:
     """Evaluates a structured intent (capability, targets, input) with host-supplied state and
     context. Raises IntentRejected listing every problem; nothing is evaluated then."""
-    from . import _engine
-
-    wire = _admitted_wire(model)
     host: dict[str, Any] = {
         "data_version": data_version,
         "state": encode_request_values(state),
@@ -81,7 +66,7 @@ def evaluate_intent(
     }
     if git_revision is not None:
         host["git_revision"] = git_revision
-    text = _engine.evaluate_intent(wire, json.dumps(intent), json.dumps(host))
+    text = model.engine.evaluate_intent(json.dumps(intent), json.dumps(host))
     out = json.loads(text)
     if out.get("rejected"):
         raise IntentRejected(out["errors"])
@@ -90,9 +75,7 @@ def evaluate_intent(
 
 def replay(model: BehaviorModule, record_json: str) -> ReplayResult:
     """Re-evaluates the request stored in a decision record and compares the outcome."""
-    from . import _engine
-
-    return ReplayResult.from_json(_engine.replay(_admitted_wire(model), record_json))
+    return ReplayResult.from_json(model.engine.replay(record_json))
 
 
 __all__ = [

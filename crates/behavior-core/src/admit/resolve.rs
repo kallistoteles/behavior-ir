@@ -249,12 +249,15 @@ pub(crate) fn declarations(w: &WModule, errs: &mut Vec<AdmissionError>) -> Decls
         }
         if ok {
             let h = hash::entity(&e.name, &fields);
+            let field_locs = e.fields.iter().map(|f| f.loc.clone()).collect();
             entities.insert(
                 e.name.clone(),
                 EntityItem {
                     name: e.name.clone(),
                     fields,
                     hash: h,
+                    loc: e.loc.clone(),
+                    field_locs,
                 },
             );
         }

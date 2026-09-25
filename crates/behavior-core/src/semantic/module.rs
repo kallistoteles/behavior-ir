@@ -75,6 +75,9 @@ pub struct EntityItem {
     /// Fields in declaration order, with the implicit `id: Id<Self>` first.
     pub(crate) fields: Vec<(String, Type)>,
     pub(crate) hash: Hash,
+    /// Source metadata (outside the hash): the entity and each declared field (not `id`).
+    pub(crate) loc: Loc,
+    pub(crate) field_locs: Vec<Loc>,
 }
 
 impl EntityItem {
@@ -191,6 +194,9 @@ pub struct Module {
     pub(crate) actions: BTreeMap<String, ActionItem>,
     pub(crate) name_table: BTreeMap<(Kind, String), Hash>,
     pub(crate) evaluation_order: Vec<String>,
+    /// Source metadata (outside the hash).
+    pub(crate) enum_locs: BTreeMap<String, Loc>,
+    pub(crate) nominal_locs: BTreeMap<String, Loc>,
     pub(crate) hash: Hash,
 }
 

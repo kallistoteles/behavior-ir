@@ -8,16 +8,20 @@ principles from `PRINCIPLES.md`.
 
 ## Summary
 
-Build the executable, analyzable core of the Behavior IR system. A typed Python DSL constructs
-behavior (entities, nominal types, derived values, rules, invariants, and transitions over
-state, input, and context) and rejects ill-typed expressions at the author's line. It emits
-untrusted **wire IR** (JSON). A Rust engine **admits** wire IR in one step (strict decode, name
-resolution, cycle detection, type checking, explicit conversions, recursive domain-separated
-content hashing) into a **semantic Behavior IR** that cannot be constructed any other way. The
+Build the executable, analyzable core of the Behavior IR system. A Python DSL, which is a PyO3
+binding to the Rust engine, constructs behavior (entities, nominal types, derived values, rules,
+invariants, and transitions over state, input, and context): every operator calls the engine's
+builder, which type-checks the node immediately, so ill-typed expressions fail at the author's
+line (revised 2026-09-25, research R10, R12, R17). Untrusted **wire IR** (JSON, from files or
+other frontends) is **admitted** by the same pipeline the builder finishes through (strict
+decode, name resolution, cycle detection, type checking, explicit conversions, recursive
+domain-separated content hashing) into a **semantic Behavior IR** that cannot be constructed any
+other way. The engine serializes admitted modules to canonical JSON. The
 engine evaluates transitions deterministically (invariants on S, preconditions, ΔS,
 postconditions and invariants on S'), emits decision records that cite item and predicate
 hashes, replays them, and checks structured intents whose context is supplied by the trusted
-host. Python calls the engine through a PyO3 module with a JSON API that also backs a CLI.
+host. Python holds engine objects (builder, nodes, modules) through PyO3; the CLI exposes the
+same engine over JSON files.
 Formal verification is deferred (research R16).
 
 ## Technical Context
@@ -31,7 +35,8 @@ engine; Python 3.13 for the authoring layer.
 **Storage**: N/A. Wire IR and fixtures are files in Git; the engine stores no data.
 
 **Testing**: `cargo test` with `proptest`, frozen hash vectors, and golden JSON fixtures;
-`pytest` for the DSL and end-to-end; a shared typing-case table run against both type checkers;
+`pytest` for the DSL and end-to-end; a typing-case table run against the engine's single type
+checker; serialization round-trip tests;
 a determinism script that runs golden and replay cases twice.
 
 **Target Platform**: Linux (NixOS dev shell via Nix flake).
@@ -72,6 +77,9 @@ semantic model (§9); invariants hold before and after (§11).
 **Post-design re-check (after Phase 1)**: all rows pass. The added contract (hashing.md) and
 admission pipeline introduced no new dependencies or components.
 
+**Re-check after the 2026-09-25 revision** (Python as a binding): all rows pass; Simplicity
+improves (one type checker, one serializer); no new dependencies.
+
 ## Project Structure
 
 ### Documentation (this feature)
@@ -79,7 +87,7 @@ admission pipeline introduced no new dependencies or components.
 ```text
 specs/001-verifiable-behavior-ir/
 ├── plan.md              # This file
-├── research.md          # Decisions R1–R16
+├── research.md          # Decisions R1–R17
 ├── data-model.md        # Semantic IR, typing rules, results, record
 ├── quickstart.md        # Validation guide
 ├── contracts/
@@ -107,6 +115,8 @@ crates/
 │   │   │   ├── types.rs      #   Type, nominal ops, typing rules
 │   │   │   ├── expr.rs
 │   │   │   └── module.rs     #   Module, items, name table
+│   │   ├── builder.rs        # construction API used by the Python binding (research R17)
+│   │   ├── serialize.rs      # admitted module → canonical wire JSON
 │   │   ├── admit/            # decode → resolve → graph/cycles → typecheck → convert → hash
 │   │   │   ├── resolve.rs
 │   │   │   ├── graph.rs
@@ -120,21 +130,20 @@ crates/
 │   │   └── canonical.rs      # canonical JSON output
 │   └── tests/                # hash vectors, hash properties, typing cases, goldens
 ├── behavior-cli/             # `behavior` binary
-└── behavior-py/              # PyO3 module `behavior._engine` (JSON in/out only)
+└── behavior-py/              # PyO3 module `behavior._engine`: Builder, Node, Module classes
 
 python/
 ├── behavior/
 │   ├── __init__.py           # public API (contracts/python-api.md)
-│   ├── types.py              # Option, Id, nominal, Context, Input, typing rules
-│   ├── expr.py               # typed expression nodes + operator overloading
+│   ├── types.py              # type descriptors: Option, Id, nominal, Context, Input (no rules)
+│   ├── expr.py               # operator overloading over engine node handles
 │   ├── decl.py               # entity, field, derived, rule, invariant, action
 │   ├── statements.py         # requires, ensures, set_, tracing context
-│   ├── module.py             # BehaviorModule, wire IR emission
+│   ├── module.py             # BehaviorModule: drives the engine builder
 │   ├── results.py            # AdmissionResult, Decision, ReplayResult
 │   └── errors.py
 └── tests/
     ├── fixtures/             # DSL fixtures (cycles.py, bad_types.py, …)
-    ├── test_types.py         # runs shared typing cases
     ├── test_dsl.py
     ├── test_wire.py          # golden wire IR
     └── test_end_to_end.py
@@ -168,5 +177,7 @@ private to `admit/`, so invalid semantic IR cannot be built elsewhere in the cra
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
 | Second language (Python) next to the Rust stack | User-chosen authoring layer: typing/autocomplete, programmatic composition, no premature text syntax | Hand-written wire IR: syntax design before the model is known, poor authoring ergonomics |
-| Two type checkers (Python DSL and engine) | Clarification Q3: immediate author feedback plus untrusted wire IR | Engine-only checking: errors appear only at `admit`; DSL-only: wire IR from other frontends unchecked. Drift is controlled by the shared typing-case table |
-| PyO3 binding crate | In-process `admit`/`evaluate` from Python | CLI via subprocess: slow and awkward; kept as a second surface over the same functions |
+| PyO3 binding crate | Python is a binding to the engine: typed nodes are built and checked in Rust as the author writes them | CLI via subprocess: slow, and could not give per-line type errors |
+
+The earlier "two type checkers" entry was removed on 2026-09-25: typing now exists only in Rust
+(research R17).

@@ -28,7 +28,10 @@ Each item was checked in the code or by a test, not by reading intent. Evidence 
   Python binding always call `admit` before `evaluate`/`replay`/`evaluate_intent`.
   Note: the guarantee is at the crate boundary; inside `behavior-core` only `admit/` builds
   semantic nodes by convention (verified by review, not by the compiler).
-- [x] §9 Typed at both layers: shared `typing_cases.json` passes in Rust (85 cases) and Python.
+- [x] §9 One type checker (revised 2026-09-25): the Python DSL drives the Rust builder, which
+  runs `admit/typecheck.rs` on each new node; JSON admission and `Builder::finish` share
+  `admit_wire`. The builder produces the same behavior versions as the hand-written wire
+  fixtures (`tests/builder.rs`); `typing_cases.json` (85 cases) runs against the engine.
 - [x] §11 Transitions preserve validity: invariants run on S before preconditions
   (`invoice_invalid_state` golden: INVALID_STATE, only `invariant_pre` in the trace).
 - [x] §13 AI only through capabilities: intents carry capability, targets, input; state and
@@ -64,3 +67,16 @@ Each item was checked in the code or by a test, not by reading intent. Evidence 
   state is rejected).
 - Entity locations use the caller's frame so entities defined outside module files (REPL,
   `exec`, notebooks) work; found while verifying the README example.
+
+## Revision 2026-09-25: Python as a binding (Phase 7)
+
+- [x] One construction path: `Builder::finish` and `admit` both call `admit_wire`; the builder
+  checks nodes with `admit::typecheck::check_expr`, not a copy of the rules.
+- [x] Only admitted modules serialize (`serialize::to_wire_json` takes `&Module`); round trip
+  and idempotence hold for every valid fixture and all 38 hash vectors (`tests/serialize.rs`).
+- [x] Regression net unchanged: `versions.json`, `hash_vectors.json`, and every decision record
+  are byte-identical; the Python golden wire files changed only by listing declarations by
+  name and writing two conversions explicitly (`some(actor.id)`), and they admit to the same
+  behavior versions as before.
+- [x] Python no longer contains typing rules or JSON emission of behavior; `test_types.py` was
+  removed because there is no second checker to compare.

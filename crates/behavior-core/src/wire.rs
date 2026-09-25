@@ -327,7 +327,7 @@ fn decode_strings(v: &Value, path: &str, identifiers: bool) -> R<Vec<String>> {
     }
 }
 
-fn decode_param(v: &Value, path: &str) -> R<WParam> {
+pub fn decode_param(v: &Value, path: &str) -> R<WParam> {
     let mut o = Obj::new(v, path)?;
     let name = o.ident("name")?;
     let type_path = o.sub("type");
@@ -347,7 +347,7 @@ fn decode_param(v: &Value, path: &str) -> R<WParam> {
     Ok(WParam { name, role, ty })
 }
 
-fn op_name(s: &str) -> Option<OpName> {
+pub(crate) fn op_name(s: &str) -> Option<OpName> {
     Some(match s {
         "eq" => OpName::Eq,
         "ne" => OpName::Ne,
@@ -372,7 +372,7 @@ fn op_name(s: &str) -> Option<OpName> {
     })
 }
 
-fn arity_ok(op: OpName, n: usize) -> bool {
+pub(crate) fn arity_ok(op: OpName, n: usize) -> bool {
     use OpName::*;
     match op {
         And | Or => n >= 2,

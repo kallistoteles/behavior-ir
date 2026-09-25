@@ -42,11 +42,14 @@ decision = evaluate(
 decision.result      # "ALLOW"; decision.record_json is the replayable decision record
 ```
 
-- The Python DSL only **constructs** behavior. Ill-typed expressions (`Money + Decimal`,
-  `Id[User] == Id[Project]`) and Python control flow on symbolic values fail at the author's line.
-- The engine **admits** wire IR (untrusted JSON) into a typed semantic IR, detects cycles,
-  and computes a content hash for every node. The module hash is the behavior version;
-  names, comments, and source lines are not part of it.
+- The Python DSL is a **binding to the Rust engine**: every operator calls the engine's builder,
+  which type-checks the node as it is built. Ill-typed expressions (`Money + Decimal`,
+  `Id[User] == Id[Project]`) and Python control flow on symbolic values fail at the author's line;
+  the typing rules exist only once, in Rust.
+- The engine **admits** wire IR (untrusted JSON, e.g. from files or other frontends) through
+  the same pipeline the builder finishes through, detects cycles, and computes a content hash
+  for every node. The module hash is the behavior version; names, comments, and source lines
+  are not part of it. Admitted modules serialize to canonical JSON (`model.to_wire_json()`).
 - Evaluation checks invariants on the current state, preconditions, computes the change set,
   then checks postconditions and invariants on the proposed state. Every call produces a
   canonical decision record that can be replayed byte for byte.

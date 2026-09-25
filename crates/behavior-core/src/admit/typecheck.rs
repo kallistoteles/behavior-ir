@@ -386,34 +386,10 @@ pub(crate) fn build_module(
         let Some(d) = by_name.get(name.as_str()) else {
             continue;
         };
-        let Some(ps) = params(&decls, &d.params, ParamSite::Derived, &d.loc, errs) else {
+        let Some(item) = derived_item(&decls, &derived, d, errs) else {
             continue;
         };
-        let body = {
-            let mut ctx = Ctx {
-                decls: &decls,
-                derived: &derived,
-                scope: &ps,
-                errs,
-            };
-            if d.kind == DerivedKind::Rule {
-                ctx.boolean(&d.body, &d.body.loc, "a rule")
-            } else {
-                ctx.expr(&d.body)
-            }
-        };
-        let Some(body) = body else { continue };
-        let h = hash::derived(d.kind, &param_triples(&ps), &body.hash);
-        derived.insert(
-            name.clone(),
-            DerivedItem {
-                kind: d.kind,
-                params: ps,
-                body,
-                hash: h,
-                loc: d.loc.clone(),
-            },
-        );
+        derived.insert(name.clone(), item);
     }
 
     let mut invariants = BTreeMap::new();
@@ -470,45 +446,13 @@ pub(crate) fn build_module(
         let mut effects = Vec::new();
         let mut assigned: BTreeSet<(String, String)> = BTreeSet::new();
         for e in &a.effects {
-            let Some(p) = ps.iter().find(|p| p.name == e.param) else {
-                ctx.err(
-                    "UNKNOWN_PARAM",
-                    format!("unknown parameter `{}`", e.param),
-                    &e.loc,
-                );
-                ok = false;
-                continue;
-            };
-            if p.role != ParamRole::State {
-                let msg = format!(
-                    "`{}` is read-only; only state parameters can change",
-                    e.param
-                );
-                ctx.err("EFFECT_ON_READONLY", msg, &e.loc);
-                ok = false;
-                continue;
-            }
-            if e.field == "id" {
-                ctx.err("RESERVED_NAME", "an entity's `id` cannot change", &e.loc);
-                ok = false;
-                continue;
-            }
-            let Type::Entity(entity) = &p.ty else {
-                continue;
-            };
-            let Some(fty) = decls
-                .entities
-                .get(entity)
-                .and_then(|x| x.field_type(&e.field))
-                .cloned()
-            else {
-                ctx.err(
-                    "UNKNOWN_FIELD",
-                    format!("`{entity}` has no field `{}`", e.field),
-                    &e.loc,
-                );
-                ok = false;
-                continue;
+            let fty = match effect_target(&decls, &ps, &e.param, &e.field) {
+                Ok(t) => t,
+                Err((code, msg)) => {
+                    ctx.err(code, msg, &e.loc);
+                    ok = false;
+                    continue;
+                }
             };
             if !assigned.insert((e.param.clone(), e.field.clone())) {
                 let msg = format!("`{}.{}` is assigned more than once", e.param, e.field);
@@ -605,6 +549,110 @@ pub(crate) fn build_module(
         actions,
         name_table,
         evaluation_order: order,
+        enum_locs: w
+            .enums
+            .iter()
+            .map(|e| (e.name.clone(), e.loc.clone()))
+            .collect(),
+        nominal_locs: w
+            .nominals
+            .iter()
+            .map(|n| (n.name.clone(), n.loc.clone()))
+            .collect(),
         hash: module_hash,
+    })
+}
+
+/// Type-checks one wire expression in a scope; used by the builder for each new node, with
+/// exactly the same rules as admission (research R17).
+pub(crate) fn check_expr(
+    decls: &Decls,
+    derived: &BTreeMap<String, DerivedItem>,
+    scope: &[Param],
+    w: &WExpr,
+) -> Result<Expr, AdmissionError> {
+    let mut errs = Vec::new();
+    let result = Ctx {
+        decls,
+        derived,
+        scope,
+        errs: &mut errs,
+    }
+    .expr(w);
+    match result {
+        Some(e) if errs.is_empty() => Ok(e),
+        _ => Err(errs.into_iter().next().unwrap_or_else(|| {
+            AdmissionError::new("TYPE_MISMATCH", "ill-typed expression", Some(&w.loc))
+        })),
+    }
+}
+
+/// The type of the field an effect assigns, or why the effect is not allowed.
+pub(crate) fn effect_target(
+    decls: &Decls,
+    scope: &[Param],
+    param: &str,
+    field: &str,
+) -> Result<Type, (&'static str, String)> {
+    let Some(p) = scope.iter().find(|p| p.name == param) else {
+        return Err(("UNKNOWN_PARAM", format!("unknown parameter `{param}`")));
+    };
+    if p.role != ParamRole::State {
+        return Err((
+            "EFFECT_ON_READONLY",
+            format!("`{param}` is read-only; only state parameters can change"),
+        ));
+    }
+    if field == "id" {
+        return Err((
+            "RESERVED_NAME",
+            "an entity's `id` cannot change".to_string(),
+        ));
+    }
+    let Type::Entity(entity) = &p.ty else {
+        return Err(("TYPE_MISMATCH", format!("`{param}` is not an entity")));
+    };
+    decls
+        .entities
+        .get(entity)
+        .and_then(|x| x.field_type(field))
+        .cloned()
+        .ok_or_else(|| {
+            (
+                "UNKNOWN_FIELD",
+                format!("`{entity}` has no field `{field}`"),
+            )
+        })
+}
+
+/// Type-checks and hashes one derived value (all derived values it references must already be
+/// in `derived`).
+pub(crate) fn derived_item(
+    decls: &Decls,
+    derived: &BTreeMap<String, DerivedItem>,
+    d: &crate::wire::WDerived,
+    errs: &mut Vec<AdmissionError>,
+) -> Option<DerivedItem> {
+    let ps = params(decls, &d.params, ParamSite::Derived, &d.loc, errs)?;
+    let body = {
+        let mut ctx = Ctx {
+            decls,
+            derived,
+            scope: &ps,
+            errs,
+        };
+        if d.kind == DerivedKind::Rule {
+            ctx.boolean(&d.body, &d.body.loc, "a rule")
+        } else {
+            ctx.expr(&d.body)
+        }
+    }?;
+    let h = hash::derived(d.kind, &param_triples(&ps), &body.hash);
+    Some(DerivedItem {
+        kind: d.kind,
+        params: ps,
+        body,
+        hash: h,
+        loc: d.loc.clone(),
     })
 }

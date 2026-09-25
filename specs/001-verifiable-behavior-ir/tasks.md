@@ -209,6 +209,24 @@ the equivalent direct requests (quickstart §7).
 
 ---
 
+## Phase 7: Revision — Python as a binding to the engine (2026-09-25)
+
+**Purpose**: Replace "Python emits wire JSON" with "Python drives the Rust builder through PyO3"
+(research R10, R12, R17). The public Python API, hash vectors, versions, and decision records
+must not change; they are the regression net.
+
+- [X] T077 Update plan.md, research.md (R10, R12, R17), contracts/engine-api.md, contracts/python-api.md, and contracts/ir-encoding.md for the binding design
+- [X] T078 [P] Write `crates/behavior-core/tests/serialize.rs`: for every file in `tests/fixtures/wire/valid/` and every hash vector, `admit → serialize → admit` gives the same behavior version and items, and serializing twice (serialize ∘ admit ∘ serialize) gives identical bytes; the output uses explicit `some`/`to_decimal` and lists declarations by name
+- [X] T079 [P] Write `crates/behavior-core/tests/builder.rs`: building the invoice and project margin models through the `Builder` API yields exactly the behavior versions of `tests/fixtures/wire/valid/invoice.json` and `project_margin.json`; node constructors return typed nodes or errors with codes (`TYPE_MISMATCH` for Money + Decimal, `OP_NOT_ALLOWED`, `UNKNOWN_FIELD`, `UNKNOWN_PARAM`, `NOT_BOOLEAN` via `check_condition`, `EFFECT_ON_READONLY` and `RESERVED_NAME` via `check_effect`); a derived cycle built with untyped references is reported by `finish` as `CYCLE`
+- [X] T080 Add source locations for enums, nominal types, entities, and fields to the semantic `Module` (outside the hash) and implement `crates/behavior-core/src/serialize.rs` (admitted module → canonical wire JSON); expose `admit_wire(WModule)` so JSON decoding and the builder share one admission entry point; make T078 pass
+- [X] T081 Implement `crates/behavior-core/src/builder.rs`: declarations, scope stack, node constructors that run `admit/typecheck.rs` on each new node (untyped nodes above unresolved derived references skip the check), `check_condition`, `check_effect`, `add_derived`/`add_invariant`/`add_action`, and `finish(root)` that relativizes locations and calls `admit_wire`; make T079 pass
+- [X] T082 Implement PyO3 classes `Builder`, `Node`, and `Module` in `crates/behavior-py/src/lib.rs` per contracts/engine-api.md (errors as `ValueError` with a JSON `{code, message}` payload); update `python/behavior/_engine.pyi`
+- [X] T083 Rewrite `python/behavior/types.py`, `expr.py`, `decl.py`, `statements.py`, `module.py`, and `__init__.py` to drive the engine builder: remove the Python typing rules and JSON emission, keep decorators, tracing, locations, operator overloading, and float rejection; delete `python/tests/test_types.py` (the typing table now runs only against the engine)
+- [X] T084 Regenerate `tests/fixtures/wire/python/*.json` from the engine serializer and review them; confirm `tests/fixtures/versions.json`, `tests/fixtures/hash_vectors.json`, and `tests/fixtures/records/*.json` are unchanged
+- [X] T085 Run all gates (fmt, clippy, cargo tests, pytest, mypy, determinism check, perf) and quickstart.md §1–§8; update README and the implementation review
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies
@@ -217,6 +235,7 @@ the equivalent direct requests (quickstart §7).
 - **Foundational (Phase 2)**: depends on Setup; blocks all user stories
 - **US1 (Phase 3)**, **US2 (Phase 4)**, **US3 (Phase 5)**: each depends only on Foundational
 - **Polish (Phase 6)**: depends on the stories you ship
+- **Revision (Phase 7)**: depends on Phases 1–6; T078–T079 before T080–T081, T082 before T083
 
 ### User Story Dependencies
 

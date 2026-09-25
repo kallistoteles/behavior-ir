@@ -29,8 +29,17 @@ pub fn replay(module: &Module, record: &str) -> ReplayResult;
 
 ### Python binding (`behavior._engine`, private)
 
-`admit(wire) -> str`, `evaluate(wire, request) -> str`,
-`evaluate_intent(wire, intent, host) -> str`, `replay(wire, record) -> str`; all return JSON.
+Revised 2026-09-25 (research R12, R17): Python holds engine objects.
+
+| Class | Methods |
+|-------|---------|
+| `Builder` | `declare_type(desc_json)`, `declare_entities(decls_json)`, `push_scope(site, params_json)`, `pop_scope()`, node constructors `lit`, `field`, `param`, `derived_ref`, `op`, `in_`, `wrap` (each takes the author's `file`, `line`), `check_condition`, `check_effect`, `add_derived`, `add_invariant`, `add_action`, `finish(root) -> Module \| AdmissionResult JSON` |
+| `Node` | `type_json` (wire type, or `None` for a node below an unresolved cycle reference), `op`, `role` |
+| `Module` | `behavior_version`, `admission_json()`, `wire_json()` (canonical serialization), `evaluate(request_json)`, `evaluate_intent(intent_json, host_json)`, `replay(record_json)`; `Module.from_wire(json)` admits JSON |
+
+Node constructors and checks raise `ValueError` whose message is a JSON object
+`{"code", "message"}`; the Python layer attaches the author's location and raises
+`BehaviorTypeError` or `BehaviorDefinitionError`.
 
 ### CLI (`behavior`)
 

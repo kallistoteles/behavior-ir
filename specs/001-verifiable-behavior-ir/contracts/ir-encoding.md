@@ -18,7 +18,8 @@ contract tests.
    literal value, below).
 
 The engine accepts non-canonical wire IR; canonical emission only matters for diffs and golden
-files.
+files. The canonical writer is the engine's serializer (research R17): it writes admitted
+modules with explicit conversions and declarations sorted by name.
 
 ## Document
 

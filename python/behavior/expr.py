@@ -1,21 +1,19 @@
-"""Typed expression trees. Operators build nodes; nothing here evaluates behavior.
+"""Operator overloading over engine nodes. Nothing here type-checks or evaluates behavior.
 
-Every node records its type and the author's source location, and operators check operand
-types as they build, so an ill-typed expression fails at the line where it is written.
+Each operation calls the engine's builder, which checks the new node and returns it typed, or
+raises; the error is reported at the author's line (research R10, R17).
 """
 
 from __future__ import annotations
 
+import json
 from decimal import Decimal
 from enum import Enum
 from typing import Any
 
 from .errors import BehaviorDefinitionError, BehaviorTypeError
 from .location import caller_loc
-from .types import (
-    BOOL, DECIMAL, INT, STRING, UNKNOWN, BType, EnumT, IdT, NominalT, OptionT, PrimT, enum_type,
-    type_of_op,
-)
+from .types import BOOL, DECIMAL, INT, STRING, BType, NominalT, enum_type
 
 
 class _NoneLiteral:
@@ -32,30 +30,74 @@ _CONTROL_FLOW = (
     "chained comparisons like `a < b < c`); use `&`, `|`, `~`, and_(), or_(), not_() instead"
 )
 
+# Engine error codes that describe misuse of the DSL rather than an ill-typed expression.
+_DEFINITION_CODES = {"EFFECT_ON_READONLY", "RESERVED_NAME", "DECODE_ERROR", "DUPLICATE_NAME"}
+
+
+def engine_error(err: ValueError, loc: tuple[str, int]) -> Exception:
+    """Turns an engine error (`ValueError` with a JSON payload) into a DSL exception."""
+    try:
+        payload = json.loads(str(err))
+        code, message = payload["code"], payload["message"]
+    except (ValueError, KeyError, TypeError):
+        return BehaviorDefinitionError(str(err), *loc)
+    if code in _DEFINITION_CODES:
+        return BehaviorDefinitionError(f"{code}: {message}", *loc)
+    return BehaviorTypeError(message, code, *loc)
+
+
+def builder() -> Any:
+    from .module import current_session
+
+    session = current_session()
+    if session is None:
+        raise BehaviorDefinitionError(
+            "behavior expressions can only be built inside behavior bodies", *caller_loc()
+        )
+    return session
+
+
+def call(method: str, *args: Any, loc: tuple[str, int]) -> Any:
+    """Calls a builder method with the author's location, converting engine errors."""
+    session = builder()
+    try:
+        return getattr(session.builder, method)(*args, loc[0], loc[1])
+    except ValueError as e:
+        raise engine_error(e, loc) from None
+
 
 class Expr:
-    """A typed expression node."""
+    """An engine node plus what the Python layer needs (location, field target, operands)."""
 
-    __slots__ = ("op", "type", "loc", "args", "data", "role")
+    __slots__ = ("node", "loc", "op", "args", "target")
     __hash__ = None  # type: ignore[assignment]  # `==` builds a node, so expressions are unhashable
 
     def __init__(
         self,
+        node: Any,
+        loc: tuple[str, int],
         op: str,
-        type_: BType,
         args: tuple[Expr, ...] = (),
-        data: dict[str, Any] | None = None,
-        loc: tuple[str, int] | None = None,
+        target: tuple[str, str] | None = None,
     ) -> None:
+        self.node = node
+        self.loc = loc
         self.op = op
-        self.type = type_
         self.args = args
-        self.data = data or {}
-        self.loc = loc or caller_loc()
-        self.role: str | None = None  # parameter role of `field`/`param` nodes
+        self.target = target  # (param, field) for field references
+
+    @property
+    def type_json(self) -> dict[str, Any] | None:
+        """The engine-assigned type in wire form (None below an unresolved cycle reference)."""
+        t = self.node.type_json
+        return None if t is None else json.loads(t)
+
+    @property
+    def role(self) -> str | None:
+        return self.node.role  # type: ignore[no-any-return]
 
     def __repr__(self) -> str:
-        return f"Expr({self.op}: {self.type})"
+        return f"Expr({self.op}: {self.type_json})"
 
     def __bool__(self) -> bool:
         raise BehaviorDefinitionError(_CONTROL_FLOW, *caller_loc())
@@ -123,58 +165,17 @@ class Expr:
     # named operations
     def in_(self, values: list[Any] | tuple[Any, ...]) -> Expr:
         loc = caller_loc()
-        literals = [lift(v, self.type) for v in values]
-        type_of_op("in", [self.type], count=len(literals))
-        return Expr("in", BOOL, (self,), {"values": [literal_value(v) for v in literals]}, loc)
+        encoded = json.dumps([encode_literal(v) for v in values])
+        return Expr(call("in_", self.node, encoded, loc=loc), loc, "in", (self,))
 
     def is_none(self) -> Expr:
-        return unary("is_none", self)
+        return build("is_none", [self])
 
     def is_some(self) -> Expr:
-        return unary("is_some", self)
+        return build("is_some", [self])
 
     def value_or(self, default: object) -> Expr:
-        expected = self.type.of if isinstance(self.type, OptionT) else None
-        return build("value_or", [self, lift(default, expected)])
-
-    def to_wire(self) -> dict[str, Any]:
-        node: dict[str, Any] = {"op": self.op, "loc": {"file": self.loc[0], "line": self.loc[1]}}
-        node.update(self.data)
-        if self.op == "lit":
-            node["type"] = self.type.wire()
-        if self.args:
-            node["args"] = [a.to_wire() for a in self.args]
-        return node
-
-
-def literal_value(e: Expr) -> Any:
-    return e.data["value"]
-
-
-def encode_literal(t: BType, value: Any) -> Any:
-    """Wire value of a Python literal of type `t`; rejects floats and wrong kinds."""
-    loc = caller_loc()
-    if isinstance(value, float):
-        raise BehaviorDefinitionError(
-            "float literals are not allowed: use decimal.Decimal for exact numbers", *loc
-        )
-    if isinstance(t, NominalT):
-        return encode_literal(t.underlying, value)
-    if isinstance(t, OptionT):
-        return None if value is none or value is None else encode_literal(t.of, value)
-    if t == BOOL and isinstance(value, bool):
-        return value
-    if t == INT and isinstance(value, int) and not isinstance(value, bool):
-        return value
-    if t == DECIMAL and isinstance(value, (Decimal, int)) and not isinstance(value, bool):
-        return normalize_decimal(Decimal(value))
-    if t == STRING and isinstance(value, str):
-        return value
-    if isinstance(t, IdT) and isinstance(value, str):
-        return value
-    if isinstance(t, EnumT) and isinstance(value, Enum) and value.value in t.values:
-        return value.value
-    raise BehaviorTypeError(f"{value!r} is not a `{t}` literal", "TYPE_MISMATCH", *loc)
+        return build("value_or", [self, lift(default)])
 
 
 def normalize_decimal(d: Decimal) -> str:
@@ -189,11 +190,24 @@ def normalize_decimal(d: Decimal) -> str:
     return text
 
 
-def lit(t: BType, value: Any) -> Expr:
-    return Expr("lit", t, (), {"value": encode_literal(t, value)}, caller_loc())
+def encode_literal(value: Any) -> Any:
+    """JSON form of a Python literal; floats are rejected before they reach the engine."""
+    if isinstance(value, float):
+        raise BehaviorDefinitionError(
+            "float literals are not allowed: use decimal.Decimal for exact numbers", *caller_loc()
+        )
+    if value is None or value is none:
+        return None
+    if isinstance(value, Enum):
+        return encode_literal(value.value)
+    if isinstance(value, Decimal):
+        return normalize_decimal(value)
+    if isinstance(value, (bool, int, str)):
+        return value
+    raise BehaviorTypeError(f"{value!r} cannot be used in behavior", "TYPE_MISMATCH", *caller_loc())
 
 
-def infer_literal_type(value: Any) -> BType | None:
+def _literal_type(value: Any) -> BType | None:
     if isinstance(value, bool):
         return BOOL
     if isinstance(value, int):
@@ -207,41 +221,43 @@ def infer_literal_type(value: Any) -> BType | None:
     return None
 
 
-def lift(value: object, expected: BType | None = None) -> Expr:
-    """Turns a Python literal into a literal node; `expected` types `none` and ints."""
+def lit(t: BType, value: Any) -> Expr:
+    """A literal of type `t` (e.g. a nominal literal `Money(Decimal("5"))`)."""
+    loc = caller_loc()
+    builder().declare(t)
+    node = call("lit", json.dumps(t.wire()), json.dumps(encode_literal(value)), loc=loc)
+    return Expr(node, loc, "lit")
+
+
+def lift(value: object, expected: dict[str, Any] | None = None) -> Expr:
+    """Turns a Python literal into a literal node; `expected` gives `none` its option type."""
     if isinstance(value, Expr):
         return value
     loc = caller_loc()
-    if isinstance(value, float):
-        raise BehaviorDefinitionError(
-            "float literals are not allowed: use decimal.Decimal for exact numbers", *loc
-        )
-    if value is none or value is None:
-        if isinstance(expected, OptionT):
-            return Expr("lit", expected, (), {"value": None}, loc)
-        raise BehaviorTypeError("`none` needs an optional value to compare with", "TYPE_MISMATCH", *loc)
-    t = infer_literal_type(value)
+    encoded = encode_literal(value)
+    if encoded is None:
+        if expected is None or expected.get("t") != "option":
+            raise BehaviorTypeError(
+                "`none` needs an optional value to compare with", "TYPE_MISMATCH", *loc
+            )
+        return Expr(call("lit", json.dumps(expected), "null", loc=loc), loc, "lit")
+    t = _literal_type(value)
     if t is None:
         raise BehaviorTypeError(f"{value!r} cannot be used in behavior", "TYPE_MISMATCH", *loc)
-    return Expr("lit", t, (), {"value": encode_literal(t, value)}, loc)
+    builder().declare(t)
+    return Expr(call("lit", json.dumps(t.wire()), json.dumps(encoded), loc=loc), loc, "lit")
 
 
-def build(op: str, operands: list[Expr], data: dict[str, Any] | None = None) -> Expr:
+def build(op: str, operands: list[Expr]) -> Expr:
     loc = caller_loc()
-    result, _ = type_of_op(op, [o.type for o in operands])
-    return Expr(op, result, tuple(operands), data, loc)
+    node = call("op", op, [o.node for o in operands], loc=loc)
+    return Expr(node, loc, op, tuple(operands))
 
 
 def binary(op: str, left: object, right: object) -> Expr:
-    left_hint = left.type if isinstance(left, Expr) else None
-    right_hint = right.type if isinstance(right, Expr) else None
-    a = lift(left, right_hint)
-    b = lift(right, left_hint)
-    return build(op, [a, b])
-
-
-def unary(op: str, operand: Expr) -> Expr:
-    return build(op, [operand])
+    left_hint = left.type_json if isinstance(left, Expr) else None
+    right_hint = right.type_json if isinstance(right, Expr) else None
+    return build(op, [lift(left, right_hint), lift(right, left_hint)])
 
 
 def _combine(op: str, items: tuple[object, ...]) -> Expr:
@@ -249,7 +265,7 @@ def _combine(op: str, items: tuple[object, ...]) -> Expr:
     for item in items:
         e = lift(item)
         # Flatten nested and/or of the same kind: `a & b & c` is one node.
-        if e.op == op and e.type == BOOL:
+        if e.op == op:
             operands.extend(e.args)
         else:
             operands.append(e)
@@ -270,8 +286,8 @@ def not_(item: object) -> Expr:
 
 def wrap(t: NominalT, e: Expr) -> Expr:
     loc = caller_loc()
-    result, _ = type_of_op("wrap", [e.type], target=t)
-    return Expr("wrap", result, (e,), {"nominal": t.name}, loc)
+    builder().declare(t)
+    return Expr(call("wrap", t.name, e.node, loc=loc), loc, "wrap", (e,))
 
 
 def underlying(e: Expr) -> Expr:
@@ -279,19 +295,11 @@ def underlying(e: Expr) -> Expr:
     return build("unwrap", [e])
 
 
-def param_ref(name: str, t: BType, role: str) -> Expr:
-    e = Expr("param", t, (), {"param": name}, caller_loc())
-    e.role = role
-    return e
+def param_ref(name: str) -> Expr:
+    loc = caller_loc()
+    return Expr(call("param", name, loc=loc), loc, "param")
 
 
-def field_ref(param: str, field: str, t: BType, role: str) -> Expr:
-    e = Expr("field", t, (), {"param": param, "field": field}, caller_loc())
-    e.role = role
-    return e
-
-
-__all__ = [
-    "Expr", "none", "lit", "lift", "and_", "or_", "not_", "wrap", "underlying", "PrimT",
-    "UNKNOWN",
-]
+def field_ref(param: str, field: str) -> Expr:
+    loc = caller_loc()
+    return Expr(call("field", param, field, loc=loc), loc, "field", target=(param, field))

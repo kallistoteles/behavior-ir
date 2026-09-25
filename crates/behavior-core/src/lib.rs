@@ -3,6 +3,7 @@
 #![forbid(unsafe_code)]
 
 pub mod admit;
+pub mod builder;
 pub mod canonical;
 pub mod decimal;
 pub mod eval;
@@ -10,10 +11,13 @@ pub mod intent;
 pub mod pretty;
 pub mod record;
 pub mod semantic;
+pub mod serialize;
 pub mod testing;
 pub mod wire;
 
-pub use admit::{AdmissionError, AdmissionResult, admission_report, admit};
+pub use admit::{
+    AdmissionError, AdmissionResult, admission_report, admission_result, admit, admit_wire,
+};
 pub use eval::evaluate;
 pub use intent::{IntentError, IntentRejection, evaluate_intent};
 pub use record::{DecisionRecord, ReplayResult, replay};

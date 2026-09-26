@@ -79,6 +79,11 @@ arguments) and a **context** (read-only facts such as the acting user). It retur
 one. Because the engine produces `ΔS` before anything changes, every check on the result
 happens **before** the change is applied.
 
+**Identity is semantic; parameter names are only bindings.** A change set addresses real state
+cells (entity type, id, field), not the parameter names an action happened to use. **Hidden
+aliasing is forbidden**: two parameters of one transition may not silently refer to the same
+entity; if shared identity is ever needed, it must be explicit in the behavior model.
+
 **Determinism is the most important invariant of the whole system.** Given the same state,
 input, context and behavior version, the result must be identical, byte for byte.
 
@@ -219,7 +224,22 @@ Transition T and invariant I:  I(S) ∧ pre(S,I,C) ∧ S'=apply(S,T(S,I,C)) ∧ 
 
 No one writes the solver model; it follows from the semantics.
 
+**Identity claims are data; authority requires evidence.** A statement such as "reviewer: anna"
+proves nothing. Who stands behind an attestation is established by a signature that verifies
+against a key the governing policy trusts, never by a name written in the attestation.
+
+**The verifier may assume exactly what the runtime guarantees — no more, no less.** Whatever the
+verifier takes for granted (types, validity of incoming entities, invariants on the starting
+state) must be exactly what the runtime checks before it evaluates. Assuming more makes proofs
+unsound; assuming less produces counterexamples that could never occur.
+
 ## 11. Ordinary transitions preserve validity; they do not establish it
+
+There are two kinds of validity rules. **Entity constraints** say what a valid instance of a
+type is (an employee's approval limit is not negative); they apply to every occurrence of the
+type, whether it arrives as state, input, or context, and a violation is reported by role
+(`INVALID_STATE`, `INVALID_INPUT`, `INVALID_CONTEXT`). **State invariants** are properties of the
+system state and apply to S and S' only.
 
 Invariants define the boundary of valid state and must hold both **before and after** every
 ordinary transition. A starting state that already breaks an invariant is rejected

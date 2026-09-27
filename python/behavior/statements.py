@@ -1,4 +1,5 @@
-"""Declarative statements inside behavior bodies: `requires`, `ensures`, `set_`.
+"""Declarative statements inside behavior bodies: `requires`, `ensures`, `set_`, and the
+lifecycle effects `create` and `remove` (feature 006).
 
 The Python layer only records statements; the engine checks them (Bool conditions, effects on
 state fields of the right type) and raises at the author's line.
@@ -31,12 +32,25 @@ class Effect:
 
 
 @dataclass
+class Lifecycle:
+    """A creation (`kind == "create"`, `name` the entity type) or removal (`name` the state
+    parameter)."""
+
+    kind: str
+    name: str
+    id: Expr | None
+    fields: list[tuple[str, Expr]]
+    loc: tuple[str, int]
+
+
+@dataclass
 class Frame:
     """The body currently being traced."""
 
     kind: str  # action | derived | rule | invariant
     preconditions: list[Condition] = field(default_factory=list)
     effects: list[Effect] = field(default_factory=list)
+    lifecycle: list[Lifecycle] = field(default_factory=list)
     postconditions: list[Condition] = field(default_factory=list)
 
 
@@ -88,3 +102,37 @@ def set_(target: Any, value: Any) -> None:
     except _engine.EngineError as e:
         raise engine_error(e, loc) from None
     frame.effects.append(Effect(param, name, v, loc))
+
+
+def create(entity_cls: Any, *, id: Any, **fields: Any) -> None:  # noqa: A002
+    """A creation effect: a new `entity_cls` with identity `id` (an `Id[entity_cls]`, usually an
+    `Input`) and a complete initial value, one keyword per field. The engine checks that the
+    value is complete and well typed, and at evaluation that the identity was never used."""
+    from .decl import entity_decl
+    from .types import IdT, RefT
+
+    loc = caller_loc()
+    frame = _action_frame("create", loc)
+    decl = entity_decl(entity_cls)
+    if decl is None:
+        raise BehaviorDefinitionError("create() needs an @entity class", *loc)
+    types = {name: t for name, t, _ in decl.fields}
+    values: list[tuple[str, Expr]] = []
+    for name, value in fields.items():
+        t = types.get(name)
+        if isinstance(t, RefT):
+            t = IdT(t.entity)
+        values.append((name, lift(value, t.engine() if t is not None else None)))
+    frame.lifecycle.append(Lifecycle("create", decl.name, lift(id), values, loc))
+
+
+def remove(entity: Any) -> None:
+    """A removal effect: the entity bound to state parameter `entity` is absent from the
+    resulting state. Its history is kept and its identity is never used again."""
+    from .decl import EntityVar
+
+    loc = caller_loc()
+    frame = _action_frame("remove", loc)
+    if not isinstance(entity, EntityVar):
+        raise BehaviorDefinitionError("remove() needs a state entity parameter", *loc)
+    frame.lifecycle.append(Lifecycle("remove", entity._name, None, [], loc))

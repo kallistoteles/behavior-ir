@@ -267,6 +267,27 @@ def not_(item: object) -> Expr:
     return build("not", [lift(item)])
 
 
+def _identity(e: object) -> Expr:
+    """An identity expression: an entity parameter stands for its `id`."""
+    from .decl import EntityVar
+
+    if isinstance(e, EntityVar):
+        return field_ref(e._name, "id")
+    return lift(e)
+
+
+def exists(e: object) -> Expr:
+    """`exists(id)` (feature 006): the entity with this identity exists — in the current state
+    in preconditions, in the resulting state in postconditions. `id` may be an `Id[T]`, an
+    `Option[Id[T]]` (an absent value gives false), or an entity parameter."""
+    return build("exists", [_identity(e)])
+
+
+def referenced(e: object) -> Expr:
+    """`referenced(id)` (feature 006): some surviving `Ref` field points at the identity."""
+    return build("referenced", [_identity(e)])
+
+
 def wrap(t: NominalT, e: Expr) -> Expr:
     loc = caller_loc()
     builder().declare(t)

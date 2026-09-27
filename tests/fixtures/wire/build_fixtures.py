@@ -810,6 +810,140 @@ def ledger_module() -> dict[str, object]:
     return m
 
 
+A = "accounts.py"
+
+
+def ref(entity: str) -> dict[str, object]:
+    return {"t": "ref", "entity": entity}
+
+
+def create(entity: str, id_: dict[str, object], fields: dict[str, dict[str, object]],
+           at: dict[str, object]) -> dict[str, object]:
+    return {"create": entity, "id": id_, "fields": fields, "loc": at}
+
+
+def remove(p: str, at: dict[str, object]) -> dict[str, object]:
+    return {"remove": p, "loc": at}
+
+
+def cond(expr: dict[str, object]) -> dict[str, object]:
+    return {"expr": expr, "loc": expr["loc"]}
+
+
+def accounts_module() -> dict[str, object]:
+    """Customers, accounts that reference them, and audit notes (feature 006 lifecycle fixtures)."""
+    at = lambda line: loc(A, line)  # noqa: E731
+    zero = lambda line: lit(MONEY, "0", at(line))  # noqa: E731
+    f = lambda p, fl, line: fld(p, fl, at(line))  # noqa: E731
+    p = lambda name, line: par(name, at(line))  # noqa: E731
+
+    def action(name: str, line: int, params: list[dict[str, object]], effects: list[dict[str, object]],
+               pre: list[dict[str, object]] | None = None,
+               post: list[dict[str, object]] | None = None) -> dict[str, object]:
+        return {"name": name, "loc": at(line), "params": params, "effects": effects,
+                "preconditions": pre or [], "postconditions": post or []}
+
+    def open_account(name: str, line: int, guarded: bool) -> dict[str, object]:
+        pre = [cond(op("ge", p("initial", line + 1), zero(line + 1), at=at(line + 1)))] if guarded else []
+        return action(
+            name, line,
+            [param("owner", ent("Customer"), "state"), param("account_id", idt("Account"), "input"),
+             param("initial", MONEY, "input")],
+            [create("Account", p("account_id", line + 2),
+                    {"owner": f("owner", "id", line + 2), "balance": p("initial", line + 2)}, at(line + 2))],
+            pre, [cond(op("exists", p("account_id", line + 3), at=at(line + 3)))])
+
+    def remove_customer(name: str, line: int, guarded: bool) -> dict[str, object]:
+        pre = ([cond(op("not", op("referenced", f("customer", "id", line + 1), at=at(line + 1)),
+                        at=at(line + 1)))] if guarded else [])
+        return action(name, line, [param("customer", ent("Customer"), "state")],
+                      [remove("customer", at(line + 2))], pre)
+
+    m = module(
+        nominals=[{"name": "Money", "underlying": DEC, "ops": ["add", "order", "ratio", "scale"],
+                   "scale": 2, "loc": at(3)}],
+        entities=[
+            {"name": "Customer", "loc": at(6), "fields": [field_decl("name", STR, at(7))]},
+            {"name": "Account", "loc": at(10), "fields": [
+                field_decl("owner", ref("Customer"), at(11)), field_decl("balance", MONEY, at(12))]},
+            {"name": "AuditNote", "loc": at(15), "fields": [
+                field_decl("about", idt("Customer"), at(16)), field_decl("text", STR, at(17))]},
+        ],
+        actions=[
+            open_account("open_account", 24, True),
+            open_account("open_account_unchecked", 30, False),
+            action("register_customer", 36,
+                   [param("customer_id", idt("Customer"), "input"), param("name", STR, "input")],
+                   [create("Customer", p("customer_id", 37), {"name": p("name", 37)}, at(37))]),
+            action("deposit", 40,
+                   [param("account", ent("Account"), "state"), param("amount", MONEY, "input")],
+                   [{"target": {"param": "account", "field": "balance"},
+                     "value": op("add", f("account", "balance", 42), p("amount", 42), at=at(42)),
+                     "loc": at(42)}],
+                   [cond(op("gt", p("amount", 41), zero(41), at=at(41)))]),
+            action("close_account", 45, [param("account", ent("Account"), "state")],
+                   [remove("account", at(47))],
+                   [cond(op("eq", f("account", "balance", 46), zero(46), at=at(46)))],
+                   [cond(op("not", op("exists", f("account", "id", 48), at=at(48)), at=at(48)))]),
+            remove_customer("remove_customer", 51, True),
+            remove_customer("remove_customer_unchecked", 55, False),
+            action("switch_and_remove", 59,
+                   [param("account", ent("Account"), "state"), param("old", ent("Customer"), "state"),
+                    param("new", ent("Customer"), "state")],
+                   [{"target": {"param": "account", "field": "owner"}, "value": f("new", "id", 61),
+                     "loc": at(61)},
+                    remove("old", at(62))],
+                   [cond(op("eq", f("account", "owner", 60), f("old", "id", 60), at=at(60)))]),
+            action("check_exists", 65, [param("note", ent("AuditNote"), "state")], [],
+                   [cond(op("exists", f("note", "about", 66), at=at(66)))]),
+            action("create_twice", 69,
+                   [param("owner", ent("Customer"), "state"), param("a", idt("Account"), "input"),
+                    param("b", idt("Account"), "input")],
+                   [create("Account", p("a", 70), {"owner": f("owner", "id", 70), "balance": zero(70)}, at(70)),
+                    create("Account", p("b", 71), {"owner": f("owner", "id", 71), "balance": zero(71)}, at(71))]),
+        ],
+    )
+    m["ir_version"] = "0.5"
+    m["constraints"] = [
+        {"name": "non_negative_balance", "entity": "Account", "param": "a",
+         "body": op("ge", f("a", "balance", 20), zero(20), at=at(20)), "loc": at(19)},
+    ]
+    return m
+
+
+def accounts_action(m: dict[str, object], name: str) -> dict[str, object]:
+    return next(a for a in m["actions"] if a["name"] == name)  # type: ignore[union-attr,index]
+
+
+def lifecycle_invalid_cases() -> dict[str, tuple[dict[str, object], list[dict[str, object]]]]:
+    cases: dict[str, tuple[dict[str, object], list[dict[str, object]]]] = {}
+
+    m = accounts_module()
+    del accounts_action(m, "open_account")["effects"][0]["fields"]["balance"]  # type: ignore[index]
+    cases["create_incomplete"] = (m, [err("CREATE_INCOMPLETE", A, 26)])
+
+    m = accounts_module()
+    accounts_action(m, "open_account")["effects"][0]["id"] = fld("owner", "id", loc(A, 26))  # type: ignore[index]
+    cases["create_wrong_id_type"] = (m, [err("TYPE_MISMATCH", A, 26)])
+
+    m = accounts_module()
+    m["ir_version"] = "0.4"
+    cases["lifecycle_in_0_4"] = (m, [err("UNSUPPORTED_IR_VERSION")])
+
+    m = accounts_module()
+    accounts_action(m, "deposit")["effects"].append(remove("amount", loc(A, 43)))  # type: ignore[union-attr]
+    cases["remove_non_state"] = (m, [err("TYPE_MISMATCH", A, 43)])
+
+    m = accounts_module()
+    accounts_action(m, "deposit")["effects"].append(remove("account", loc(A, 43)))  # type: ignore[union-attr]
+    cases["remove_and_update"] = (m, [err("LIFECYCLE_CONFLICT", A, 43)])
+
+    m = accounts_module()
+    accounts_action(m, "create_twice")["effects"][1]["id"] = par("a", loc(A, 71))  # type: ignore[index]
+    cases["create_same_input_twice"] = (m, [err("LIFECYCLE_CONFLICT", A, 71)])
+    return cases
+
+
 def main() -> None:
     valid = ROOT / "valid"
     invalid = ROOT / "invalid"
@@ -823,9 +957,11 @@ def main() -> None:
     dump(valid / "exact_bound_ok.json", bound_module(4))
     dump(valid / "exact_closure.json", exact_closure_module())
     dump(valid / "ledger.json", ledger_module())
+    dump(valid / "accounts.json", accounts_module())
     for name, (doc, errors) in {**invalid_cases(), **constraint_invalid_cases(), **fixed_scale_invalid_cases(),
                            "exact_bound_exceeded": (bound_module(5), [err("EXACT_BOUND_EXCEEDED", B, 10)]),
-                           **exact_closure_invalid_cases(), **decimal_store_invalid_cases()}.items():
+                           **exact_closure_invalid_cases(), **decimal_store_invalid_cases(),
+                           **lifecycle_invalid_cases()}.items():
         dump(invalid / f"{name}.json", doc)
         dump(invalid / f"{name}.expected.json", {"errors": errors})
 

@@ -310,12 +310,7 @@ fn evaluation_reads_one_consistent_snapshot() {
     commit(&mut other, &b);
     let rec = other.backend().record(1).unwrap().unwrap();
     let head = other.backend().head().unwrap().unwrap();
-    let landing = (
-        base.store_id().unwrap(),
-        rec.new_versions.clone(),
-        rec,
-        head,
-    );
+    let landing = behavior_store::conformance::Landing::of(base.store_id().unwrap(), rec, head);
     let s = Store::open(Interleave::new(base.into_backend(), landing)).unwrap();
     let s0 = s.state_at(0).unwrap_or_else(|_| s.current().unwrap());
     let ev = transfer(&s, "a1", "a3", "5.00", T0);

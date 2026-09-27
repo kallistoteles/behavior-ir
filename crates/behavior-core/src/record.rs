@@ -126,6 +126,11 @@ pub fn replay(module: &Module, record: &str) -> ReplayResult {
     if let (Some(g), Json::Object(m)) = (stored.get("git_revision"), &mut request) {
         m.insert("git_revision".into(), g.clone());
     }
+    // Recorded facts (feature 006) are the replay's facts: the observed facts of the evaluation,
+    // or the refused facts section of an invalid request.
+    if let (Some(f), Json::Object(m)) = (stored.get("facts"), &mut request) {
+        m.insert("facts".into(), f.clone());
+    }
     let replayed = evaluate(module, &request.to_string());
     match first_difference("", &stored, replayed.as_json()) {
         None => ReplayResult {

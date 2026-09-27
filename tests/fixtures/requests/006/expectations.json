@@ -1,0 +1,207 @@
+{
+ "check_exists_inconsistent": {
+  "reasons": [
+   {
+    "code": "INCONSISTENT_FACTS"
+   }
+  ],
+  "result": "INVALID_INPUT"
+ },
+ "check_exists_removed": {
+  "$absent": [
+   "facts.identities"
+  ],
+  "facts": {
+   "existence": [
+    {
+     "entity": "Customer",
+     "exists": false,
+     "id": "c1"
+    }
+   ]
+  },
+  "reasons": [
+   {
+    "code": "PRECONDITION_FAILED"
+   }
+  ],
+  "result": "DENY"
+ },
+ "check_exists_true": {
+  "$absent": [
+   "facts.identities",
+   "lifecycle"
+  ],
+  "facts": {
+   "existence": [
+    {
+     "entity": "Customer",
+     "exists": true,
+     "id": "c1"
+    }
+   ]
+  },
+  "record_version": "0.5",
+  "result": "ALLOW"
+ },
+ "check_exists_unknown": {
+  "reasons": [
+   {
+    "code": "UNKNOWN_FACT"
+   }
+  ],
+  "result": "ERROR"
+ },
+ "close_account": {
+  "$absent": [
+   "facts"
+  ],
+  "lifecycle": [
+   {
+    "entity": "Account",
+    "id": "a1",
+    "op": "remove",
+    "value": {
+     "balance": "0.00",
+     "id": "a1",
+     "owner": "c1"
+    }
+   }
+  ],
+  "record_version": "0.5",
+  "result": "ALLOW"
+ },
+ "deposit_no_facts": {
+  "$absent": [
+   "facts",
+   "lifecycle"
+  ],
+  "record_version": "0.4",
+  "result": "ALLOW"
+ },
+ "open_account_allowed": {
+  "facts": {
+   "identities": [
+    {
+     "entity": "Account",
+     "id": "a9",
+     "used": false
+    }
+   ]
+  },
+  "lifecycle": [
+   {
+    "entity": "Account",
+    "id": "a9",
+    "op": "create",
+    "value": {
+     "balance": "100.00",
+     "id": "a9",
+     "owner": "c1"
+    }
+   }
+  ],
+  "record_version": "0.5",
+  "result": "ALLOW"
+ },
+ "open_account_negative": {
+  "reasons": [
+   {
+    "code": "CONSTRAINT_VIOLATED"
+   }
+  ],
+  "result": "DENY"
+ },
+ "open_account_unknown": {
+  "reasons": [
+   {
+    "code": "UNKNOWN_FACT"
+   }
+  ],
+  "result": "ERROR"
+ },
+ "open_account_used": {
+  "facts": {
+   "identities": [
+    {
+     "entity": "Account",
+     "id": "a9",
+     "used": true
+    }
+   ]
+  },
+  "reasons": [
+   {
+    "code": "ENTITY_ID_ALREADY_USED"
+   }
+  ],
+  "result": "ENTITY_ID_ALREADY_USED"
+ },
+ "remove_customer_free": {
+  "facts": {
+   "references": [
+    {
+     "entity": "Customer",
+     "id": "c2",
+     "incoming": []
+    }
+   ]
+  },
+  "lifecycle": [
+   {
+    "entity": "Customer",
+    "id": "c2",
+    "op": "remove",
+    "value": {
+     "id": "c2",
+     "name": "Bo"
+    }
+   }
+  ],
+  "result": "ALLOW"
+ },
+ "remove_customer_referenced": {
+  "reasons": [
+   {
+    "code": "PRECONDITION_FAILED"
+   }
+  ],
+  "result": "DENY"
+ },
+ "remove_customer_unchecked_dangling": {
+  "reasons": [
+   {
+    "code": "DANGLING_REFERENCE",
+    "references": [
+     {
+      "entity": "Account",
+      "field": "owner",
+      "id": "a1"
+     }
+    ]
+   }
+  ],
+  "result": "DENY"
+ },
+ "switch_and_remove": {
+  "changes": [
+   {
+    "field": "owner",
+    "new": "c2",
+    "old": "c1"
+   }
+  ],
+  "lifecycle": [
+   {
+    "entity": "Customer",
+    "id": "c1",
+    "op": "remove",
+    "value": {
+     "id": "c1",
+     "name": "Ada"
+    }
+   }
+  ],
+  "result": "ALLOW"
+ }
+}

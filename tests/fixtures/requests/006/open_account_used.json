@@ -1,0 +1,24 @@
+{
+ "action": "open_account",
+ "context": {},
+ "data_version": "1",
+ "facts": {
+  "identities": [
+   {
+    "entity": "Account",
+    "id": "a9",
+    "used": true
+   }
+  ]
+ },
+ "input": {
+  "account_id": "a9",
+  "initial": "100.00"
+ },
+ "state": {
+  "owner": {
+   "id": "c1",
+   "name": "Ada"
+  }
+ }
+}

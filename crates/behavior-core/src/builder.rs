@@ -18,7 +18,7 @@ use crate::semantic::module::{DerivedItem, Module, Param, ParamRole};
 use crate::semantic::types::{Type, coerce};
 use crate::wire::{
     DerivedKind, Loc, WAction, WCond, WConstraint, WDerived, WEffect, WEntity, WEnum, WExpr,
-    WExprKind, WField, WInvariant, WModule, WNominal, WParam, WType, arity_ok, op_name,
+    WExprKind, WField, WInvariant, WLifecycle, WModule, WNominal, WParam, WType, arity_ok, op_name,
 };
 
 /// A construction error: the same codes as admission errors.
@@ -77,6 +77,11 @@ impl Node {
     /// The node's type in wire form, or `None` if it is untyped.
     pub fn wire_type(&self) -> Option<WType> {
         self.ty.as_ref().map(Type::to_wire_type)
+    }
+
+    /// The node's wire expression (for lifecycle effects built from nodes, feature 006).
+    pub fn into_wire(self) -> WExpr {
+        self.w
     }
 
     /// The parameter role of `field`/`param` nodes: `state`, `input`, `context`, or `read`.
@@ -213,7 +218,8 @@ impl Builder {
         };
         let site = match site {
             ScopeSite::Derived => ParamSite::Derived,
-            ScopeSite::Action => ParamSite::Action,
+            // Whether the action creates is known only when it is added (`add_action` checks).
+            ScopeSite::Action => ParamSite::CreatingAction,
         };
         let mut errors = Vec::new();
         match params(decls, &ps, site, &loc, &mut errors) {
@@ -520,11 +526,29 @@ impl Builder {
         ps: Vec<WParam>,
         preconditions: Vec<(Node, Loc)>,
         effects: Vec<(String, String, Node, Loc)>,
+        lifecycle: Vec<WLifecycle>,
         postconditions: Vec<(Node, Loc)>,
         loc: Loc,
     ) -> R<()> {
         self.claim(name)?;
         let cond = |(n, l): (Node, Loc)| WCond { expr: n.w, loc: l };
+        let creates = lifecycle
+            .iter()
+            .any(|l| matches!(l, WLifecycle::Create { .. }));
+        if !creates {
+            // Without a creation, an action needs a state parameter (checked as at admission).
+            self.ensure_decls()?;
+            if let Some(decls) = &self.decls {
+                let mut errors = Vec::new();
+                if params(decls, &ps, ParamSite::Action, &loc, &mut errors).is_none() {
+                    return Err(errors
+                        .into_iter()
+                        .next()
+                        .map(Into::into)
+                        .unwrap_or_else(|| err("ARITY_MISMATCH", "invalid parameters")));
+                }
+            }
+        }
         self.actions.push(WAction {
             name: name.into(),
             params: ps,
@@ -538,6 +562,7 @@ impl Builder {
                     loc: l,
                 })
                 .collect(),
+            lifecycle,
             postconditions: postconditions.into_iter().map(cond).collect(),
             loc,
         });
@@ -640,6 +665,18 @@ fn for_each_loc(w: &mut WModule, f: &mut dyn FnMut(&mut Loc)) {
         for e in &mut a.effects {
             f(&mut e.loc);
             expr_locs(&mut e.value, f);
+        }
+        for l in &mut a.lifecycle {
+            match l {
+                WLifecycle::Create {
+                    id, fields, loc, ..
+                } => {
+                    f(loc);
+                    expr_locs(id, f);
+                    fields.iter_mut().for_each(|(_, e)| expr_locs(e, f));
+                }
+                WLifecycle::Remove { loc, .. } => f(loc),
+            }
         }
     }
 }

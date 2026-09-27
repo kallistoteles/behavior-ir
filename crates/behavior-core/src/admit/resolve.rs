@@ -30,6 +30,15 @@ fn prim_of(t: &WType) -> Option<Prim> {
     })
 }
 
+/// Whether a wire type is `Ref<T>` or `Option<Ref<T>>` (feature 006): allowed on fields only.
+pub(crate) fn is_ref_type(t: &WType) -> bool {
+    match t {
+        WType::Ref(_) => true,
+        WType::Option(inner) => is_ref_type(inner),
+        _ => false,
+    }
+}
+
 fn contains_exact(t: &Type) -> bool {
     match t {
         Type::Exact(_) => true,
@@ -96,7 +105,7 @@ pub(crate) fn resolve_type(
                 return None;
             }
         },
-        WType::Id(entity) | WType::Entity(entity) => {
+        WType::Id(entity) | WType::Ref(entity) | WType::Entity(entity) => {
             if !entities.contains(entity) {
                 err(
                     errs,
@@ -106,7 +115,7 @@ pub(crate) fn resolve_type(
                 );
                 return None;
             }
-            if matches!(t, WType::Id(_)) {
+            if matches!(t, WType::Id(_) | WType::Ref(_)) {
                 Type::Id(entity.clone())
             } else {
                 Type::Entity(entity.clone())
@@ -278,6 +287,7 @@ pub(crate) fn declarations(w: &WModule, errs: &mut Vec<AdmissionError>) -> Decls
             continue;
         }
         let mut fields = vec![("id".to_string(), Type::Id(e.name.clone()))];
+        let mut references = Vec::new();
         let mut ok = true;
         for f in &e.fields {
             if f.name == "id" {
@@ -314,12 +324,17 @@ pub(crate) fn declarations(w: &WModule, errs: &mut Vec<AdmissionError>) -> Decls
                     );
                     ok = false;
                 }
-                Some(t) => fields.push((f.name.clone(), t)),
+                Some(t) => {
+                    if is_ref_type(&f.ty) {
+                        references.push(f.name.clone());
+                    }
+                    fields.push((f.name.clone(), t));
+                }
                 None => ok = false,
             }
         }
         if ok {
-            let h = hash::entity(&e.name, &fields);
+            let h = hash::entity(&e.name, &fields, &references);
             let field_locs = e.fields.iter().map(|f| f.loc.clone()).collect();
             entities.insert(
                 e.name.clone(),
@@ -329,6 +344,7 @@ pub(crate) fn declarations(w: &WModule, errs: &mut Vec<AdmissionError>) -> Decls
                     hash: h,
                     loc: e.loc.clone(),
                     field_locs,
+                    references,
                 },
             );
         }
@@ -385,7 +401,7 @@ pub(crate) fn declarations(w: &WModule, errs: &mut Vec<AdmissionError>) -> Decls
     }
     for a in &w.actions {
         claim_behavior(&a.name, &a.loc, errs);
-        let _ = params(&decls, &a.params, ParamSite::Action, &a.loc, errs);
+        let _ = params(&decls, &a.params, action_site(a), &a.loc, errs);
     }
     decls
 }
@@ -394,6 +410,20 @@ pub(crate) fn declarations(w: &WModule, errs: &mut Vec<AdmissionError>) -> Decls
 pub(crate) enum ParamSite {
     Derived,
     Action,
+    /// An action with a creation (feature 006): it may have no state parameter.
+    CreatingAction,
+}
+
+/// The parameter site of an action: one with a creation may have no state parameter.
+pub(crate) fn action_site(a: &crate::wire::WAction) -> ParamSite {
+    if a.lifecycle
+        .iter()
+        .any(|l| matches!(l, crate::wire::WLifecycle::Create { .. }))
+    {
+        ParamSite::CreatingAction
+    } else {
+        ParamSite::Action
+    }
 }
 
 /// Resolves a parameter list, reporting problems at the declaration's location.
@@ -413,6 +443,19 @@ pub(crate) fn params(
                 errs,
                 "DUPLICATE_NAME",
                 format!("parameter `{}` is declared twice", p.name),
+                loc,
+            );
+            ok = false;
+            continue;
+        }
+        if is_ref_type(&p.ty) {
+            err(
+                errs,
+                "TYPE_MISMATCH",
+                format!(
+                    "parameter `{}`: `Ref` is a field type; use `Id` for identities",
+                    p.name
+                ),
                 loc,
             );
             ok = false;
@@ -454,8 +497,8 @@ pub(crate) fn params(
                 ok = false;
                 continue;
             }
-            (ParamSite::Action, Some(r)) => r.into(),
-            (ParamSite::Action, None) => {
+            (ParamSite::Action | ParamSite::CreatingAction, Some(r)) => r.into(),
+            (ParamSite::Action | ParamSite::CreatingAction, None) => {
                 err(
                     errs,
                     "DECODE_ERROR",
@@ -486,11 +529,14 @@ pub(crate) fn params(
     let needed = match site {
         ParamSite::Derived => !ps.is_empty(),
         ParamSite::Action => out.iter().any(|p| p.role == ParamRole::State),
+        ParamSite::CreatingAction => true,
     };
     if ok && !needed {
         let what = match site {
             ParamSite::Derived => "a derived value needs at least one entity parameter",
-            ParamSite::Action => "an action needs at least one state parameter",
+            ParamSite::Action | ParamSite::CreatingAction => {
+                "an action needs at least one state parameter or a creation"
+            }
         };
         err(errs, "ARITY_MISMATCH", what, loc);
         ok = false;

@@ -11,7 +11,7 @@ use crate::semantic::expr::{Expr, ExprKind};
 use crate::semantic::module::{Module, ParamRole};
 use crate::semantic::types::{ArithOp, CmpOp, Type, ops};
 use crate::semantic::value::encode;
-use crate::wire::{DerivedKind, IR_VERSION_EXACT, Loc};
+use crate::wire::{DerivedKind, IR_VERSION_EXACT, IR_VERSION_LIFECYCLE, Loc};
 
 fn loc(l: &Loc) -> Json {
     json!({"file": l.file, "line": l.line})
@@ -88,6 +88,17 @@ fn expr(e: &Expr) -> Json {
             };
             json!({"op": "wrap", "nominal": nominal, "args": [expr(a)], "loc": loc(l)})
         }
+        ExprKind::Exists(a) => op_node("exists", vec![expr(a)], l),
+        ExprKind::Referenced(a) => op_node("referenced", vec![expr(a)], l),
+    }
+}
+
+/// The wire type of a field: `Ref<T>` for a reference field (feature 006).
+fn field_type(ty: &Type, reference: bool) -> Json {
+    match (ty, reference) {
+        (Type::Id(e), true) => json!({"t": "ref", "entity": e}),
+        (Type::Option(inner), true) => json!({"t": "option", "of": field_type(inner, true)}),
+        (t, _) => t.to_wire_json(),
     }
 }
 
@@ -163,7 +174,9 @@ pub fn to_wire_value(m: &Module) -> Json {
                 .iter()
                 .skip(1) // the implicit `id`
                 .zip(&e.field_locs)
-                .map(|((name, ty), l)| json!({"name": name, "type": ty.to_wire_json(), "loc": loc(l)}))
+                .map(|((name, ty), l)| {
+                    json!({"name": name, "type": field_type(ty, e.is_reference(name)), "loc": loc(l)})
+                })
                 .collect();
             json!({"name": e.name, "fields": fields, "loc": loc(&e.loc)})
         })
@@ -196,6 +209,7 @@ pub fn to_wire_value(m: &Module) -> Json {
     let constraints: Vec<Json> = m
         .constraints
         .iter()
+        .filter(|(_, c)| c.reference.is_none())
         .map(|(name, c)| {
             json!({"name": name, "entity": c.entity, "param": c.param,
                    "body": expr(&c.body), "loc": loc(&c.loc)})
@@ -208,22 +222,39 @@ pub fn to_wire_value(m: &Module) -> Json {
             let cond = |c: &crate::semantic::module::Condition| {
                 json!({"expr": expr(&c.expr), "loc": loc(&c.loc)})
             };
+            let mut effects: Vec<Json> = a
+                .effects
+                .iter()
+                .map(|e| {
+                    json!({
+                        "target": {"param": e.param, "field": e.field},
+                        "value": expr(&e.value),
+                        "loc": loc(&e.loc),
+                    })
+                })
+                .collect();
+            effects.extend(a.creates.iter().map(|c| {
+                let fields: Map<String, Json> =
+                    c.fields.iter().map(|(f, v)| (f.clone(), expr(v))).collect();
+                json!({"create": c.entity, "id": expr(&c.id), "fields": fields, "loc": loc(&c.loc)})
+            }));
+            effects.extend(
+                a.removes
+                    .iter()
+                    .map(|r| json!({"remove": r.param, "loc": loc(&r.loc)})),
+            );
             json!({
                 "name": name,
                 "params": params(&a.params, true),
                 "preconditions": a.preconditions.iter().map(cond).collect::<Vec<_>>(),
-                "effects": a.effects.iter().map(|e| json!({
-                    "target": {"param": e.param, "field": e.field},
-                    "value": expr(&e.value),
-                    "loc": loc(&e.loc),
-                })).collect::<Vec<_>>(),
+                "effects": effects,
                 "postconditions": a.postconditions.iter().map(cond).collect::<Vec<_>>(),
                 "loc": loc(&a.loc),
             })
         })
         .collect();
     let doc = json!({
-        "ir_version": IR_VERSION_EXACT,
+        "ir_version": if uses_lifecycle(m) { IR_VERSION_LIFECYCLE } else { IR_VERSION_EXACT },
         "enums": enums,
         "nominals": nominals,
         "entities": entities,
@@ -253,7 +284,9 @@ fn expr_uses_fixed_scale(e: &Expr) -> bool {
         | ExprKind::ToDecimal(a)
         | ExprKind::Wrap(a)
         | ExprKind::Unwrap(a)
-        | ExprKind::Rescale { arg: a, .. } => visit(a),
+        | ExprKind::Rescale { arg: a, .. }
+        | ExprKind::Exists(a)
+        | ExprKind::Referenced(a) => visit(a),
         ExprKind::Lit(_)
         | ExprKind::Field { .. }
         | ExprKind::Param(_)
@@ -280,6 +313,54 @@ pub fn uses_fixed_scale(m: &Module) -> bool {
                 .chain(&a.postconditions)
                 .any(|c| expr_uses_fixed_scale(&c.expr))
                 || a.effects.iter().any(|e| expr_uses_fixed_scale(&e.value))
+        })
+}
+
+fn expr_uses_lifecycle(e: &Expr) -> bool {
+    let mut found = matches!(e.kind(), ExprKind::Exists(_) | ExprKind::Referenced(_));
+    let mut visit = |x: &Expr| found |= expr_uses_lifecycle(x);
+    match e.kind() {
+        ExprKind::Cmp(_, a, b) | ExprKind::Arith(_, a, b) | ExprKind::ValueOr(a, b) => {
+            visit(a);
+            visit(b);
+        }
+        ExprKind::And(xs) | ExprKind::Or(xs) => xs.iter().for_each(visit),
+        ExprKind::Not(a)
+        | ExprKind::In(a, _)
+        | ExprKind::IsNone(a)
+        | ExprKind::IsSome(a)
+        | ExprKind::Some(a)
+        | ExprKind::ToDecimal(a)
+        | ExprKind::Wrap(a)
+        | ExprKind::Unwrap(a)
+        | ExprKind::Rescale { arg: a, .. }
+        | ExprKind::Exists(a)
+        | ExprKind::Referenced(a) => visit(a),
+        ExprKind::Lit(_)
+        | ExprKind::Field { .. }
+        | ExprKind::Param(_)
+        | ExprKind::DerivedRef { .. } => {}
+    }
+    found
+}
+
+/// Whether the module uses a form introduced by wire 0.5 (feature 006): reference fields,
+/// lifecycle effects, `exists`, `referenced`. Such a module serializes as `"0.5"`.
+pub fn uses_lifecycle(m: &Module) -> bool {
+    m.entities.values().any(|e| !e.references.is_empty())
+        || m.derived.values().any(|d| expr_uses_lifecycle(&d.body))
+        || m.invariants.values().any(|i| expr_uses_lifecycle(&i.body))
+        || m.constraints
+            .values()
+            .filter(|c| c.reference.is_none())
+            .any(|c| expr_uses_lifecycle(&c.body))
+        || m.actions.values().any(|a| {
+            a.has_lifecycle()
+                || a.preconditions
+                    .iter()
+                    .chain(&a.postconditions)
+                    .any(|c| expr_uses_lifecycle(&c.expr))
+                || a.effects.iter().any(|e| expr_uses_lifecycle(&e.value))
         })
 }
 

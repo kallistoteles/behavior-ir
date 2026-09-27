@@ -183,6 +183,11 @@ class BehaviorModule:
                 fn.engine_params(params),
                 [(c.expr.node, *c.loc) for c in frame.preconditions],
                 [(e.param, e.field, e.value.node, *e.loc) for e in frame.effects],
+                [
+                    (lc.kind, lc.name, lc.id.node if lc.id is not None else None,
+                     [(f, v.node) for f, v in lc.fields], *lc.loc)
+                    for lc in frame.lifecycle
+                ],
                 [(c.expr.node, *c.loc) for c in frame.postconditions],
                 *fn.loc,
             )

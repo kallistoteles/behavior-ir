@@ -89,6 +89,21 @@ class IdT(BType):
 
 
 @dataclass(frozen=True)
+class RefT(BType):
+    """`Ref[T]` (feature 006): a field holding an `Id[T]` whose entity must exist. It is `Id[T]`
+    plus the synthesized constraint `exists(field)`; the engine enforces it on the resulting
+    state of every transition."""
+
+    entity: str
+
+    def engine(self) -> _engine.Type:
+        return _engine.Type.ref(self.entity)
+
+    def display(self) -> str:
+        return f"Ref<{self.entity}>"
+
+
+@dataclass(frozen=True)
 class EntityT(BType):
     name: str
 
@@ -205,8 +220,21 @@ class _IdFactory:
         return IdT(decl.name)
 
 
+class _RefFactory:
+    def __getitem__(self, item: Any) -> RefT:
+        if isinstance(item, str):
+            return RefT(item)
+        decl = getattr(item, "__behavior_entity__", None)
+        if decl is None:
+            raise BehaviorDefinitionError(
+                f"Ref[...] needs an @entity class, got {item!r}", *caller_loc()
+            )
+        return RefT(decl.name)
+
+
 Option = _OptionFactory()
 Id = _IdFactory()
+Ref = _RefFactory()
 Exact = _ExactFactory()
 
 

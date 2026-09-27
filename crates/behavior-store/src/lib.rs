@@ -13,7 +13,9 @@ pub mod muhash;
 pub mod replay;
 pub mod store;
 
-use documents::{EntityKey, EntityVersion, Genesis, Head, TransitionRecord};
+use documents::{EntityKey, EntityVersion, Genesis, Head, RefChange, TransitionRecord};
+
+pub use behavior_core::RefEdge;
 
 pub use documents::StoreError;
 pub use memory::InMemoryBackend;
@@ -40,11 +42,14 @@ pub enum CasOutcome {
 pub trait Backend {
     fn genesis(&self) -> Result<Option<Genesis>, BackendError>;
     fn head(&self) -> Result<Option<Head>, BackendError>;
+    /// Creates the store: genesis, head, seed versions, and the seed's reference index (edges
+    /// added at position 0).
     fn create(
         &mut self,
         genesis: &Genesis,
         head: &Head,
         seed: &[EntityVersion],
+        seed_refs: &[RefChange],
     ) -> Result<(), BackendError>;
     /// The version of `key` with the newest `created_at <= position` (an as-of read: reads at one
     /// position form a consistent snapshot even while commits land).
@@ -59,10 +64,27 @@ pub trait Backend {
         revision: u64,
     ) -> Result<Option<EntityVersion>, BackendError>;
     fn record(&self, position: u64) -> Result<Option<TransitionRecord>, BackendError>;
+    /// The position at which `key` was removed, if it was (feature 006). Set once, inside the
+    /// commit that removes it, and never changed; versions of a removed entity are kept.
+    fn removed_at(&self, key: &EntityKey) -> Result<Option<u64>, BackendError>;
+    /// The surviving references to `target` as of `position` (feature 006): the derived
+    /// reverse-reference index, folded from its edge events (`added_at <= position` and not
+    /// dropped at or before `position`).
+    fn incoming_at(&self, target: &EntityKey, position: u64) -> Result<Vec<RefEdge>, BackendError>;
+    /// Whether the store has used `key` as of `position` (an identity names one lifetime,
+    /// feature 006): some version of it exists at or before `position`.
+    fn used_at(&self, key: &EntityKey, position: u64) -> Result<bool, BackendError> {
+        Ok(self.version_at(key, position)?.is_some())
+    }
+    /// The atomic compare-and-set: versions (updates and creations), removals (`removed_at` =
+    /// the new head's position), index changes, the record and the head, as one unit.
+    #[allow(clippy::too_many_arguments)]
     fn commit(
         &mut self,
         expected_last_record: &str,
         versions: &[EntityVersion],
+        removals: &[EntityKey],
+        ref_changes: &[RefChange],
         record: &TransitionRecord,
         new_head: &Head,
     ) -> Result<CasOutcome, BackendError>;

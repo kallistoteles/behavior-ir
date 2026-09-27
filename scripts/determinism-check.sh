@@ -45,9 +45,9 @@ if [ -f tests/fixtures/requests/expectations.json ]; then
   done < <(python3 -c 'import json,sys; [print(k, v["wire"]) for k, v in sorted(json.load(open(sys.argv[1])).items())]' tests/fixtures/requests/expectations.json)
 fi
 
-# Evaluation and replay of the feature 002, 003, and 004 requests (constraints, fixed-scale
-# values, exact ratios).
-for pair in "002:constraints" "003:fixed_scale" "004:exact_closure"; do
+# Evaluation and replay of the feature 002, 003, 004 and 006 requests (constraints, fixed-scale
+# values, exact ratios, evaluation facts).
+for pair in "002:constraints" "003:fixed_scale" "004:exact_closure" "006:accounts"; do
   dir="tests/fixtures/requests/${pair%%:*}"
   w="tests/fixtures/wire/valid/${pair##*:}.json"
   for r in "$dir"/*.json; do
@@ -70,6 +70,18 @@ if ! cmp -s "$tmp/history_a" "$tmp/history_b" || [ ! -s "$tmp/history_a" ]; then
 fi
 if [ "$(tail -n 2 "$tmp/history_a" | grep -c '"ok":true')" -ne 2 ]; then
   echo "STORE REPLAY FAILED" >&2
+  fail=1
+fi
+# Entity lifecycle (feature 006): a fixed history with creations, removals and reference changes,
+# and its data, behavior and reference replay reports.
+cargo run -q -p behavior-store --example lifecycle_history >"$tmp/lifecycle_a" 2>/dev/null || fail=1
+cargo run -q -p behavior-store --example lifecycle_history >"$tmp/lifecycle_b" 2>/dev/null || fail=1
+if ! cmp -s "$tmp/lifecycle_a" "$tmp/lifecycle_b" || [ ! -s "$tmp/lifecycle_a" ]; then
+  echo "NOT DETERMINISTIC: lifecycle history" >&2
+  fail=1
+fi
+if [ "$(tail -n 3 "$tmp/lifecycle_a" | grep -c '"ok":true')" -ne 3 ]; then
+  echo "LIFECYCLE REPLAY FAILED" >&2
   fail=1
 fi
 
@@ -111,6 +123,7 @@ fi
 if python3 -c "import behavior._engine" 2>/dev/null; then
   run_twice "examples.invoice.run" python3 -m examples.invoice.run
   run_twice "examples.project_margin.run" python3 -m examples.project_margin.run
+  run_twice "examples.accounts.run" python3 -m examples.accounts.run
 fi
 
 if [ "$fail" -ne 0 ]; then

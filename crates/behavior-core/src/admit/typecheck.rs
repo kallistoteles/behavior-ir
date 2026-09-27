@@ -3,20 +3,20 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::admit::resolve::{Decls, ParamSite, params, resolve_type};
+use crate::admit::resolve::{Decls, ParamSite, action_site, params, resolve_type};
 use crate::admit::{AdmissionError, hash};
 use crate::decimal::Dec;
 use crate::exact::Rounding;
 use crate::semantic::expr::{Expr, ExprKind};
 use crate::semantic::module::{
-    ActionItem, Condition, ConstraintItem, DerivedItem, Effect, InvariantItem, Kind, Module, Param,
-    ParamRole,
+    ActionItem, Condition, ConstraintItem, CreateEffect, DerivedItem, Effect, InvariantItem, Kind,
+    Module, Param, ParamRole, RemoveEffect,
 };
 use crate::semantic::types::{
     ArithOp, CmpOp, Conv, OpSig, Type, TypeCode, Unit, coerce, fixed_scale, type_of_op,
 };
 use crate::semantic::value::{Value, decode_scalar};
-use crate::wire::{DerivedKind, Loc, OpName, WExpr, WExprKind, WModule};
+use crate::wire::{DerivedKind, Loc, OpName, WExpr, WExprKind, WLifecycle, WModule};
 
 struct Ctx<'a> {
     decls: &'a Decls,
@@ -46,6 +46,8 @@ fn op_label(op: OpName) -> &'static str {
         OpName::ToDecimal => "to_decimal",
         OpName::Unwrap => "unwrap",
         OpName::ValueOr => "value_or",
+        OpName::Exists => "exists",
+        OpName::Referenced => "referenced",
     }
 }
 
@@ -419,6 +421,27 @@ impl Ctx<'_> {
                     return None;
                 }
                 let operands: Vec<Type> = typed.iter().map(|e| e.ty.clone()).collect();
+                if matches!(op, OpName::Exists | OpName::Referenced) {
+                    // `exists` takes `Id<T>` or `Option<Id<T>>`; `referenced` takes `Id<T>`.
+                    let ok = match (&operands[..], op) {
+                        ([Type::Id(_)], _) => true,
+                        ([Type::Option(inner)], OpName::Exists) => {
+                            matches!(inner.as_ref(), Type::Id(_))
+                        }
+                        _ => false,
+                    };
+                    if !ok {
+                        self.type_error(TypeCode::TypeMismatch, op_label(*op), &operands, loc);
+                        return None;
+                    }
+                    let arg = Box::new(typed.pop()?);
+                    let kind = if *op == OpName::Exists {
+                        ExprKind::Exists(arg)
+                    } else {
+                        ExprKind::Referenced(arg)
+                    };
+                    return Some(Expr::new(kind, Type::Bool, loc.clone()));
+                }
                 let sig = match op {
                     OpName::Eq => OpSig::Cmp(CmpOp::Eq),
                     OpName::Ne => OpSig::Cmp(CmpOp::Ne),
@@ -439,6 +462,7 @@ impl Ctx<'_> {
                     OpName::ToDecimal => OpSig::ToDecimal,
                     OpName::Unwrap => OpSig::Unwrap,
                     OpName::ValueOr => OpSig::ValueOr,
+                    OpName::Exists | OpName::Referenced => return None,
                 };
                 let (ty, convs) = match type_of_op(&sig, &operands) {
                     Ok(r) => r,
@@ -582,13 +606,61 @@ pub(crate) fn build_module(
                 body,
                 hash: h,
                 loc: c.loc.clone(),
+                reference: None,
             },
         );
     }
 
+    // `Ref<T>` fields: a synthesized constraint `exists(field)` (`is_none or exists` for an
+    // optional reference), so evaluation and verification see one existence semantics.
+    for (entity, item) in &decls.entities {
+        for (field, fty) in item.fields.iter().filter(|(f, _)| item.is_reference(f)) {
+            let loc = item
+                .fields
+                .iter()
+                .skip(1)
+                .zip(&item.field_locs)
+                .find(|((f, _), _)| f == field)
+                .map(|(_, l)| l.clone())
+                .unwrap_or_else(|| item.loc.clone());
+            let param = "self".to_string();
+            let read = Expr::new(
+                ExprKind::Field {
+                    param: param.clone(),
+                    field: field.clone(),
+                },
+                fty.clone(),
+                loc.clone(),
+            );
+            let exists = Expr::new(
+                ExprKind::Exists(Box::new(read.clone())),
+                Type::Bool,
+                loc.clone(),
+            );
+            let body = if matches!(fty, Type::Option(_)) {
+                let none = Expr::new(ExprKind::IsNone(Box::new(read)), Type::Bool, loc.clone());
+                Expr::new(ExprKind::Or(vec![none, exists]), Type::Bool, loc.clone())
+            } else {
+                exists
+            };
+            let h = hash::constraint(entity, &param, &body.hash);
+            constraints.insert(
+                format!("ref({entity}.{field})"),
+                ConstraintItem {
+                    entity: entity.clone(),
+                    param,
+                    body,
+                    hash: h,
+                    loc,
+                    reference: Some(field.clone()),
+                },
+            );
+        }
+    }
+
     let mut actions = BTreeMap::new();
     for a in &w.actions {
-        let Some(ps) = params(&decls, &a.params, ParamSite::Action, &a.loc, errs) else {
+        let Some(ps) = params(&decls, &a.params, action_site(a), &a.loc, errs) else {
             continue;
         };
         let mut ctx = Ctx {
@@ -669,6 +741,7 @@ pub(crate) fn build_module(
                 loc: e.loc.clone(),
             });
         }
+        let (creates, removes) = lifecycle(&mut ctx, &ps, &effects, &a.lifecycle, &mut ok);
         let mut post = Vec::new();
         for c in &a.postconditions {
             match ctx.boolean(&c.expr, &c.loc, "a postcondition") {
@@ -682,10 +755,17 @@ pub(crate) fn build_module(
         if !ok {
             continue;
         }
+        // Lifecycle effects follow the field effects; actions without them hash as before.
+        let effect_hashes: Vec<_> = effects
+            .iter()
+            .map(|e| e.hash)
+            .chain(creates.iter().map(|c| c.hash))
+            .chain(removes.iter().map(|r| r.hash))
+            .collect();
         let h = hash::action(
             &param_triples(&ps),
             &pre.iter().map(|c| c.expr.hash).collect::<Vec<_>>(),
-            &effects.iter().map(|e| e.hash).collect::<Vec<_>>(),
+            &effect_hashes,
             &post.iter().map(|c| c.expr.hash).collect::<Vec<_>>(),
         );
         actions.insert(
@@ -694,6 +774,8 @@ pub(crate) fn build_module(
                 params: ps,
                 preconditions: pre,
                 effects,
+                creates,
+                removes,
                 postconditions: post,
                 hash: h,
                 loc: a.loc.clone(),
@@ -744,6 +826,24 @@ pub(crate) fn build_module(
                 ));
             }
         }
+        for c in &a.creates {
+            check(&c.id, &facts);
+            for (field, value) in &c.fields {
+                let f = check(value, &facts);
+                if let Some(problem) = unrepresentable_store(value.ty(), &f) {
+                    lossy_stores.push(AdmissionError::new(
+                        "LOSSY_CONVERSION",
+                        format!(
+                            "creating `{}` with `{field}: {}` would lose information: {problem}; \
+                             use `rescale(value, Type, rounding)` with a fixed-scale type",
+                            c.entity,
+                            value.ty()
+                        ),
+                        Some(&c.loc),
+                    ));
+                }
+            }
+        }
     }
     errs.extend(lossy_stores);
 
@@ -767,7 +867,8 @@ pub(crate) fn build_module(
     for (n, x) in &invariants {
         name_table.insert((Kind::Invariant, n.clone()), x.hash);
     }
-    for (n, x) in &constraints {
+    // Synthesized reference constraints are part of their entity's hash, not items.
+    for (n, x) in constraints.iter().filter(|(_, c)| c.reference.is_none()) {
         name_table.insert((Kind::Constraint, n.clone()), x.hash);
     }
     for (n, x) in &actions {
@@ -797,6 +898,202 @@ pub(crate) fn build_module(
             .collect(),
         hash: module_hash,
     })
+}
+
+/// Converts a value for storage in a field of type `fty`, or reports why it cannot be stored.
+fn store_value(value: Expr, fty: &Type, what: &str) -> Result<Expr, (&'static str, String)> {
+    let coerced = if exact_store(&value.ty, fty) {
+        Some(Conv::Keep)
+    } else {
+        coerce(fty, &value.ty)
+    };
+    match coerced {
+        Some(c) => Ok(convert(value, c)),
+        None => {
+            let lossy = matches!(value.ty, Type::Exact(_))
+                || (fixed_scale(fty).is_some() && value.ty == Type::Decimal);
+            if lossy {
+                Err((
+                    "LOSSY_CONVERSION",
+                    format!(
+                        "assigning `{}` to `{what}: {fty}` would lose information; \
+                         use `rescale(value, {fty}, rounding)`",
+                        value.ty
+                    ),
+                ))
+            } else {
+                Err((
+                    "TYPE_MISMATCH",
+                    format!("cannot assign `{}` to `{what}: {fty}`", value.ty),
+                ))
+            }
+        }
+    }
+}
+
+/// Type-checks an action's lifecycle effects (feature 006, research R2): complete, well-typed
+/// creations with a typed identity; removals of state parameters; statically visible conflicts.
+fn lifecycle(
+    ctx: &mut Ctx<'_>,
+    ps: &[Param],
+    effects: &[Effect],
+    ws: &[WLifecycle],
+    ok: &mut bool,
+) -> (Vec<CreateEffect>, Vec<RemoveEffect>) {
+    let mut creates: Vec<CreateEffect> = Vec::new();
+    let mut removes: Vec<RemoveEffect> = Vec::new();
+    for w in ws {
+        match w {
+            WLifecycle::Create {
+                entity,
+                id,
+                fields,
+                loc,
+            } => {
+                let Some(item) = ctx.decls.entities.get(entity).cloned() else {
+                    ctx.err("UNKNOWN_ENTITY", format!("unknown entity `{entity}`"), loc);
+                    *ok = false;
+                    continue;
+                };
+                let id_expr = ctx.expr(id);
+                let mut failed = id_expr.is_none();
+                if let Some(e) = &id_expr
+                    && e.ty != Type::Id(entity.clone())
+                {
+                    let msg = format!(
+                        "the identity of a created `{entity}` must be `Id<{entity}>`, found `{}`",
+                        e.ty
+                    );
+                    ctx.err("TYPE_MISMATCH", msg, loc);
+                    failed = true;
+                }
+                let mut values = Vec::new();
+                for (name, value) in fields {
+                    if name == "id" {
+                        let msg = "the identity is given by `id`, not as a field";
+                        ctx.err("RESERVED_NAME", msg, loc);
+                        failed = true;
+                        continue;
+                    }
+                    let Some(fty) = item.field_type(name).cloned() else {
+                        ctx.err(
+                            "UNKNOWN_FIELD",
+                            format!("`{entity}` has no field `{name}`"),
+                            loc,
+                        );
+                        failed = true;
+                        continue;
+                    };
+                    let Some(v) = ctx.expr(value) else {
+                        failed = true;
+                        continue;
+                    };
+                    match store_value(v, &fty, &format!("{entity}.{name}")) {
+                        Ok(v) => values.push((name.clone(), v)),
+                        Err((code, msg)) => {
+                            ctx.err(code, msg, loc);
+                            failed = true;
+                        }
+                    }
+                }
+                let missing: Vec<&str> = item
+                    .fields
+                    .iter()
+                    .skip(1)
+                    .map(|(n, _)| n.as_str())
+                    .filter(|n| !fields.iter().any(|(f, _)| f == n))
+                    .collect();
+                if !missing.is_empty() {
+                    let msg = format!(
+                        "creating `{entity}` needs a complete initial value; missing: {}",
+                        missing.join(", ")
+                    );
+                    ctx.err("CREATE_INCOMPLETE", msg, loc);
+                    failed = true;
+                }
+                let Some(id_expr) = id_expr.filter(|_| !failed) else {
+                    *ok = false;
+                    continue;
+                };
+                if creates
+                    .iter()
+                    .any(|c| c.entity == *entity && c.id.hash == id_expr.hash)
+                {
+                    let msg = format!(
+                        "`{entity}` is created twice with the same identity `{}`",
+                        crate::pretty::text(&id_expr)
+                    );
+                    ctx.err("LIFECYCLE_CONFLICT", msg, loc);
+                    *ok = false;
+                    continue;
+                }
+                // Declaration order, whatever the order in the document.
+                let ordered: Vec<(String, Expr)> = item
+                    .fields
+                    .iter()
+                    .skip(1)
+                    .filter_map(|(n, _)| values.iter().find(|(f, _)| f == n).cloned())
+                    .collect();
+                let field_hashes: Vec<_> =
+                    ordered.iter().map(|(n, e)| (n.clone(), e.hash)).collect();
+                let h = hash::create(entity, &id_expr.hash, &field_hashes);
+                creates.push(CreateEffect {
+                    entity: entity.clone(),
+                    id: id_expr,
+                    fields: ordered,
+                    hash: h,
+                    loc: loc.clone(),
+                });
+            }
+            WLifecycle::Remove { param, loc } => {
+                let Some(p) = ps.iter().find(|p| p.name == *param) else {
+                    ctx.err("UNKNOWN_PARAM", format!("unknown parameter `{param}`"), loc);
+                    *ok = false;
+                    continue;
+                };
+                let problem = match (&p.ty, p.role) {
+                    (Type::Entity(_), ParamRole::State) => None,
+                    (Type::Entity(_), _) => Some((
+                        "EFFECT_ON_READONLY",
+                        format!("`{param}` is read-only; only state parameters can be removed"),
+                    )),
+                    _ => Some((
+                        "TYPE_MISMATCH",
+                        format!("`{param}` is not an entity; `remove` takes a state parameter"),
+                    )),
+                };
+                if let Some((code, msg)) = problem {
+                    ctx.err(code, msg, loc);
+                    *ok = false;
+                    continue;
+                }
+                if removes.iter().any(|r| r.param == *param) {
+                    ctx.err(
+                        "LIFECYCLE_CONFLICT",
+                        format!("`{param}` is removed twice"),
+                        loc,
+                    );
+                    *ok = false;
+                    continue;
+                }
+                if effects.iter().any(|e| e.param == *param) {
+                    let msg = format!(
+                        "`{param}` is both updated and removed; a transition performs at most one \
+                         lifecycle operation per identity and a removed entity has no new value"
+                    );
+                    ctx.err("LIFECYCLE_CONFLICT", msg, loc);
+                    *ok = false;
+                    continue;
+                }
+                removes.push(RemoveEffect {
+                    param: param.clone(),
+                    hash: hash::remove(param),
+                    loc: loc.clone(),
+                });
+            }
+        }
+    }
+    (creates, removes)
 }
 
 /// Type-checks one wire expression in a scope; used by the builder for each new node, with

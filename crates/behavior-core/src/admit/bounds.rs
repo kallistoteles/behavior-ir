@@ -273,7 +273,12 @@ pub(crate) fn facts(
             }
             NON_NUMERIC
         }
-        ExprKind::Not(a) | ExprKind::In(a, _) | ExprKind::IsNone(a) | ExprKind::IsSome(a) => {
+        ExprKind::Not(a)
+        | ExprKind::In(a, _)
+        | ExprKind::IsNone(a)
+        | ExprKind::IsSome(a)
+        | ExprKind::Exists(a)
+        | ExprKind::Referenced(a) => {
             let _ = facts(a, derived, err);
             NON_NUMERIC
         }

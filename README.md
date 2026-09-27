@@ -116,7 +116,7 @@ requires(a.amount / a.budget <= Decimal("0.25"))                  # exact compar
 
 Admission also bounds every exact intermediate to the runtime's 512-bit representation
 (`EXACT_BOUND_EXCEEDED` otherwise), so whatever the verifier assumes the evaluator can represent.
-Only wire IR 0.4 is accepted; records carry `record_version "0.4"`. Details:
+Wire IR 0.4 (and 0.5 with entity lifecycle) is accepted; records carry `record_version "0.4"`. Details:
 `specs/004-exact-arithmetic-closure/`.
 
 ### Persistence contract (feature 005)
@@ -134,8 +134,35 @@ replay_data(store).ok, replay_behavior(store, [model]).ok
 ```
 
 State identity is pure content, and history position and entity revisions are kept apart from it.
-A host implements seven storage methods, including one atomic compare-and-set, and checks them
+A host implements ten storage methods, including one atomic compare-and-set, and checks them
 with `run_conformance`. See `docs/persistence.md` and `python -m examples.ledger.run`.
+
+### Entity lifecycle (feature 006)
+
+Actions create and remove entities; identities are host-supplied inputs and name one lifetime:
+
+```python
+@entity
+class Account:
+    owner = field(Ref[Customer])   # Id[Customer] + constraint exists(owner)
+    balance = field(Money)
+
+@action
+def open_account(owner: Customer, *, account_id: Input[Id[Account]], initial: Input[Money]):
+    create(Account, id=account_id, owner=owner.id, balance=initial)
+
+@action
+def remove_customer(customer: Customer):
+    requires(not_(referenced(customer.id)))
+    remove(customer)
+```
+
+Removal keeps history, a removed identity is never reused (`ENTITY_ID_ALREADY_USED`), and
+referential integrity is checked on the resulting state (`DANGLING_REFERENCE`). Evaluation observes
+existence, identity and reference *facts*: a store answers them as of the evaluated position,
+plain `evaluate(..., facts={...})` takes them from the request, and records keep the observed ones
+for replay. Any lifecycle form needs wire IR 0.5. See `docs/persistence.md`,
+`python -m examples.accounts.run` and `specs/006-entity-lifecycle/`.
 
 The output is a canonical, content-addressed **verification attestation** bound to the
 behavior version. Results are cached by check key (`--cache .behavior/verify-cache`), so

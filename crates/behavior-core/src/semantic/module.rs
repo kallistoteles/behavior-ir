@@ -80,9 +80,30 @@ pub struct EntityItem {
     /// Source metadata (outside the hash): the entity and each declared field (not `id`).
     pub(crate) loc: Loc,
     pub(crate) field_locs: Vec<Loc>,
+    /// Fields declared `Ref<T>` (feature 006): `Id<T>` fields whose target must exist.
+    pub(crate) references: Vec<String>,
 }
 
 impl EntityItem {
+    /// Whether `field` is a reference (`Ref<T>`), not a plain identity.
+    pub fn is_reference(&self, field: &str) -> bool {
+        self.references.iter().any(|f| f == field)
+    }
+    /// Reference fields with their target entity type, in declaration order.
+    pub fn reference_fields(&self) -> impl Iterator<Item = (&str, &str)> {
+        self.fields.iter().filter_map(|(n, t)| {
+            let target = match t {
+                Type::Id(e) => e,
+                Type::Option(inner) => match inner.as_ref() {
+                    Type::Id(e) => e,
+                    _ => return None,
+                },
+                _ => return None,
+            };
+            self.is_reference(n)
+                .then_some((n.as_str(), target.as_str()))
+        })
+    }
     pub fn name(&self) -> &str {
         &self.name
     }
@@ -158,9 +179,16 @@ pub struct ConstraintItem {
     pub(crate) body: Expr,
     pub(crate) hash: Hash,
     pub(crate) loc: Loc,
+    /// The reference field of a constraint synthesized from `Ref<T>` (feature 006); such
+    /// constraints are carried by the entity's hash and never serialized.
+    pub(crate) reference: Option<String>,
 }
 
 impl ConstraintItem {
+    /// The field of a synthesized reference constraint (`exists(field)`), if this is one.
+    pub fn reference(&self) -> Option<&str> {
+        self.reference.as_deref()
+    }
     pub fn entity(&self) -> &str {
         &self.entity
     }
@@ -185,6 +213,55 @@ pub struct Effect {
     pub(crate) value: Expr,
     pub(crate) hash: Hash,
     pub(crate) loc: Loc,
+}
+
+/// `create(T, id, {fields})` (feature 006): a new entity with a complete initial value.
+#[derive(Debug, Clone)]
+pub struct CreateEffect {
+    pub(crate) entity: String,
+    pub(crate) id: Expr,
+    /// Every declared field except `id`, in declaration order, converted to the field's type.
+    pub(crate) fields: Vec<(String, Expr)>,
+    pub(crate) hash: Hash,
+    pub(crate) loc: Loc,
+}
+
+impl CreateEffect {
+    pub fn entity(&self) -> &str {
+        &self.entity
+    }
+    pub fn id(&self) -> &Expr {
+        &self.id
+    }
+    pub fn fields(&self) -> &[(String, Expr)] {
+        &self.fields
+    }
+    pub fn hash(&self) -> &Hash {
+        &self.hash
+    }
+    pub fn loc(&self) -> &Loc {
+        &self.loc
+    }
+}
+
+/// `remove(p)` (feature 006): the entity bound to state parameter `p` is absent from S'.
+#[derive(Debug, Clone)]
+pub struct RemoveEffect {
+    pub(crate) param: String,
+    pub(crate) hash: Hash,
+    pub(crate) loc: Loc,
+}
+
+impl RemoveEffect {
+    pub fn param(&self) -> &str {
+        &self.param
+    }
+    pub fn hash(&self) -> &Hash {
+        &self.hash
+    }
+    pub fn loc(&self) -> &Loc {
+        &self.loc
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -225,6 +302,8 @@ pub struct ActionItem {
     pub(crate) params: Vec<Param>,
     pub(crate) preconditions: Vec<Condition>,
     pub(crate) effects: Vec<Effect>,
+    pub(crate) creates: Vec<CreateEffect>,
+    pub(crate) removes: Vec<RemoveEffect>,
     pub(crate) postconditions: Vec<Condition>,
     pub(crate) hash: Hash,
     pub(crate) loc: Loc,
@@ -242,6 +321,16 @@ impl ActionItem {
     }
     pub fn postconditions(&self) -> &[Condition] {
         &self.postconditions
+    }
+    pub fn creates(&self) -> &[CreateEffect] {
+        &self.creates
+    }
+    pub fn removes(&self) -> &[RemoveEffect] {
+        &self.removes
+    }
+    /// Whether the action changes the entity universe (feature 006).
+    pub fn has_lifecycle(&self) -> bool {
+        !self.creates.is_empty() || !self.removes.is_empty()
     }
     pub fn hash(&self) -> &Hash {
         &self.hash
@@ -320,6 +409,18 @@ impl Module {
         self.constraints
             .iter()
             .filter(move |(_, c)| c.entity == entity)
+    }
+    /// Reference fields of every entity that point at `target`: `(entity, field)`, sorted.
+    pub fn references_to(&self, target: &str) -> Vec<(String, String)> {
+        let mut out = Vec::new();
+        for (name, e) in &self.entities {
+            for (field, t) in e.reference_fields() {
+                if t == target {
+                    out.push((name.clone(), field.to_string()));
+                }
+            }
+        }
+        out
     }
     /// Invariants that constrain the given entity, in name order.
     pub fn invariants_for<'a>(

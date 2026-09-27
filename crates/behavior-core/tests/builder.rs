@@ -142,6 +142,7 @@ fn build_invoice() -> Builder {
             ("invoice".into(), "status".into(), approved, l(15)),
             ("invoice".into(), "approved_by".into(), actor_id, l(16)),
         ],
+        Vec::new(),
         vec![(post, l(17))],
         l(11),
     )
@@ -171,6 +172,7 @@ fn build_invoice() -> Builder {
         params,
         vec![(c, l(21))],
         vec![("invoice".into(), "amount".into(), new_amount, l(22))],
+        Vec::new(),
         vec![],
         l(20),
     )
@@ -278,6 +280,7 @@ fn project_margin_matches_wire_fixture() {
             ap,
             vec![(cond, l(11))],
             vec![("project".into(), "flagged".into(), t, l(12))],
+            Vec::new(),
             vec![],
             l(10),
         )
@@ -481,6 +484,7 @@ fn constraints_built_through_the_builder_match_the_wire_fixture() {
             ("from_".into(), "balance".into(), e1, l(9)),
             ("to".into(), "balance".into(), e2, l(10)),
         ],
+        Vec::new(),
         vec![],
         l(7),
     )
@@ -495,8 +499,16 @@ fn constraints_built_through_the_builder_match_the_wire_fixture() {
     let mgr = b.lit(WType::String, json!("manager"), l(12)).unwrap();
     let pre = b.op("eq", vec![role, mgr], l(12)).unwrap();
     b.pop_scope();
-    b.add_action("review", rp, vec![(pre, l(12))], vec![], vec![], l(11))
-        .unwrap();
+    b.add_action(
+        "review",
+        rp,
+        vec![(pre, l(12))],
+        vec![],
+        Vec::new(),
+        vec![],
+        l(11),
+    )
+    .unwrap();
     // assign
     let ap = vec![
         p("account", Some(Role::State), "Account"),
@@ -507,8 +519,16 @@ fn constraints_built_through_the_builder_match_the_wire_fixture() {
     let bal = b.field("account", "balance", l(14)).unwrap();
     let pre = b.op("ge", vec![lim, bal], l(14)).unwrap();
     b.pop_scope();
-    b.add_action("assign", ap, vec![(pre, l(14))], vec![], vec![], l(13))
-        .unwrap();
+    b.add_action(
+        "assign",
+        ap,
+        vec![(pre, l(14))],
+        vec![],
+        Vec::new(),
+        vec![],
+        l(13),
+    )
+    .unwrap();
 
     let module = b.finish(None).unwrap();
     let wire = common::read(&common::fixtures().join("wire/valid/constraints.json"));

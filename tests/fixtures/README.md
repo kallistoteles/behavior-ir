@@ -49,3 +49,12 @@ Golden files are generated from the implementation, reviewed by a human, and the
 |------|---------|
 | `wire/valid/ledger.json` | Accounts (`active`, two-decimal `balance`) with `transfer`, the no-op `touch`, and `freeze`: the persistence fixture module |
 | `store/hash_vectors.json` | Frozen hashes of the persistence documents (entity content and version, state, evidence policy, genesis, commit bundle, transition record) |
+
+## Feature 006
+
+| Path | Content |
+|------|---------|
+| `wire/valid/accounts.json` | Wire IR 0.5: customers, accounts with `owner: Ref<Customer>`, audit notes with a plain `Id<Customer>`; creation, removal, `exists`, `referenced` (invalid 0.5 cases in `wire/invalid/`: `create_*`, `remove_*`, `lifecycle_in_0_4`) |
+| `requests/006/` | Plain-evaluation requests with `facts` sections (existence, identities, references) and expectations in the 004 subset format |
+| `frozen_versions_006.json` | Behavior versions and item hashes of every fixture module before feature 006; modules without 006 forms must keep them (SC-006) |
+| `verify/lifecycle.expected.json` | Verification expectations for `wire/valid/accounts.json`: seeded defects (negative initial balance, unguarded removal of a referenced customer), proven guarded actions, and the real `switch_and_remove` counterexample |

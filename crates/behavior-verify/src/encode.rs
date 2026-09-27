@@ -8,7 +8,7 @@
 //! `q` with `q·d = n` under `d ≠ 0`. What can fail is integer overflow, a fixed-scale range, and
 //! division by zero; admission proves every implicit decimal store representable.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use behavior_core::decimal::Dec;
 use behavior_core::exact::Rounding;
@@ -150,6 +150,51 @@ fn is_int_sort(t: &Type) -> bool {
     }
 }
 
+/// An evaluation fact (feature 006, research R12).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum FactKind {
+    /// `ex_T(x)`: `x` exists in S.
+    Exists,
+    /// `used_T(x)`: the store has used `x` (`ex_T(x) → used_T(x)`).
+    Used,
+    /// `refd_T(x)`: some entity not bound by the action holds a `Ref` to `x` in S
+    /// (`refd_T(x) → ex_T(x)`).
+    Refd,
+}
+
+impl FactKind {
+    fn function(self, entity: &str) -> String {
+        match self {
+            FactKind::Exists => format!("ex!{entity}"),
+            FactKind::Used => format!("used!{entity}"),
+            FactKind::Refd => format!("refd!{entity}"),
+        }
+    }
+}
+
+/// A fact application whose value a counterexample must supply: its identity and truth value
+/// symbols (read back from the model).
+#[derive(Debug, Clone)]
+pub struct FactVar {
+    pub kind: FactKind,
+    pub entity: String,
+    pub id: String,
+    pub value: String,
+}
+
+/// The entity universe of the encoded transition (feature 006).
+#[derive(Debug, Clone, Default)]
+pub struct World {
+    /// State parameters and their entity types (they exist in S by binding).
+    pub bound: Vec<(String, String)>,
+    pub env_s: Env,
+    pub env_post: Env,
+    /// Created entities: type, identity term, and their bindings (label `create[i]`).
+    pub creates: Vec<(String, String)>,
+    /// Removed state parameters: type, identity term, parameter.
+    pub removes: Vec<(String, String, String)>,
+}
+
 pub struct Encoder<'m> {
     pub module: &'m Module,
     decls: Vec<String>,
@@ -159,6 +204,13 @@ pub struct Encoder<'m> {
     fresh: usize,
     memo: BTreeMap<String, Encoded>,
     pub inputs: Vec<InputVar>,
+    /// Entity types whose fact functions are declared.
+    ufs: BTreeSet<String>,
+    pub facts: Vec<FactVar>,
+    fact_index: BTreeMap<(FactKind, String, String), String>,
+    pub world: World,
+    /// Encoding facts on S' (postconditions and outgoing rules) instead of S.
+    post: bool,
 }
 
 impl<'m> Encoder<'m> {
@@ -172,7 +224,159 @@ impl<'m> Encoder<'m> {
             fresh: 0,
             memo: BTreeMap::new(),
             inputs: Vec::new(),
+            ufs: BTreeSet::new(),
+            facts: Vec::new(),
+            fact_index: BTreeMap::new(),
+            world: World::default(),
+            post: false,
         }
+    }
+
+    /// Declares `ex_T`, `used_T`, `refd_T` once, with the facts every bound entity of `T`
+    /// satisfies (it exists, so it is used).
+    fn ensure_facts(&mut self, entity: &str) {
+        if !self.ufs.insert(entity.to_string()) {
+            return;
+        }
+        for k in [FactKind::Exists, FactKind::Used, FactKind::Refd] {
+            self.decls.push(format!(
+                "(declare-fun {} (String) Bool)",
+                k.function(entity)
+            ));
+        }
+        let bound: Vec<String> = self
+            .world
+            .bound
+            .iter()
+            .filter(|(_, e)| e == entity)
+            .filter_map(|(p, _)| match self.world.env_s.get(p) {
+                Some(Binding::Entity { fields, .. }) => fields
+                    .get("id")
+                    .and_then(|t| t.plain().ok().map(str::to_string)),
+                _ => None,
+            })
+            .collect();
+        for id in bound {
+            self.axioms.push(format!("(ex!{entity} {id})"));
+            self.axioms.push(format!("(used!{entity} {id})"));
+        }
+    }
+
+    /// The truth value of fact `kind` of `entity` at identity term `t`, registered for the
+    /// counterexample's facts section. The relations the runtime guarantees hold at `t`.
+    fn fact(&mut self, kind: FactKind, entity: &str, t: &str) -> String {
+        let key = (kind, entity.to_string(), t.to_string());
+        if let Some(v) = self.fact_index.get(&key) {
+            return v.clone();
+        }
+        self.ensure_facts(entity);
+        self.fresh += 1;
+        let (id, value) = (
+            format!("fact!{}!id", self.fresh),
+            format!("fact!{}", self.fresh),
+        );
+        self.decls.push(format!("(declare-const {id} String)"));
+        self.decls.push(format!("(declare-const {value} Bool)"));
+        self.axioms.push(format!("(= {id} {t})"));
+        self.axioms
+            .push(format!("(= {value} ({} {t}))", kind.function(entity)));
+        self.axioms
+            .push(format!("(=> (ex!{entity} {t}) (used!{entity} {t}))"));
+        self.axioms
+            .push(format!("(=> (refd!{entity} {t}) (ex!{entity} {t}))"));
+        self.facts.push(FactVar {
+            kind,
+            entity: entity.to_string(),
+            id,
+            value: value.clone(),
+        });
+        self.fact_index.insert(key, value.clone());
+        value
+    }
+
+    /// `ex_T(t)` without registering a counterexample fact (axioms about bound entities).
+    fn fact_free_exists(&mut self, entity: &str, t: &str) -> String {
+        self.ensure_facts(entity);
+        format!("(ex!{entity} {t})")
+    }
+
+    /// `exists(t)`: `ex_T(t)` on S; `(ex_T(t) ∨ created) ∧ ¬removed` on S'.
+    fn exists_term(&mut self, entity: &str, t: &str) -> String {
+        let ex = self.fact(FactKind::Exists, entity, t);
+        if !self.post {
+            return ex;
+        }
+        let eq = |(e, id): (&String, &String)| (e == entity).then(|| format!("(= {t} {id})"));
+        let created: Vec<String> = self
+            .world
+            .creates
+            .iter()
+            .filter_map(|(e, id)| eq((e, id)))
+            .collect();
+        let removed: Vec<String> = self
+            .world
+            .removes
+            .iter()
+            .filter_map(|(e, id, _)| eq((e, id)))
+            .collect();
+        let mut alive = vec![ex];
+        alive.extend(created);
+        and_all(&[or_all(&alive), not(&or_all(&removed))])
+    }
+
+    /// Reference fields of `fields` (an entity of type `source`) that point at `t`, as terms.
+    fn refs_to(
+        &self,
+        source: &str,
+        fields: &BTreeMap<String, Term>,
+        target: &str,
+        t: &str,
+    ) -> Vec<String> {
+        let Some(item) = self.module.entity(source) else {
+            return Vec::new();
+        };
+        item.reference_fields()
+            .filter(|(_, tt)| *tt == target)
+            .filter_map(|(f, _)| match fields.get(f)? {
+                Term::Plain(v) => Some(format!("(= {v} {t})")),
+                Term::Opt { some, val } => Some(format!("(and {some} (= {val} {t}))")),
+            })
+            .collect()
+    }
+
+    /// `referenced(t)`: an unbound referrer (`refd_T`), or a bound (on S') or created entity's
+    /// reference field equal to `t`.
+    fn referenced_term(&mut self, entity: &str, t: &str) -> String {
+        let mut alts = vec![self.fact(FactKind::Refd, entity, t)];
+        let removed: BTreeSet<&str> = self
+            .world
+            .removes
+            .iter()
+            .map(|(_, _, p)| p.as_str())
+            .collect();
+        let env = if self.post {
+            &self.world.env_post
+        } else {
+            &self.world.env_s
+        };
+        for (p, source) in &self.world.bound {
+            if self.post && removed.contains(p.as_str()) {
+                continue;
+            }
+            if let Some(Binding::Entity { fields, .. }) = env.get(p) {
+                alts.extend(self.refs_to(source, fields, entity, t));
+            }
+        }
+        if self.post {
+            for (i, (source, _)) in self.world.creates.iter().enumerate() {
+                if let Some(Binding::Entity { fields, .. }) =
+                    self.world.env_post.get(&format!("create[{i}]"))
+                {
+                    alts.extend(self.refs_to(source, fields, entity, t));
+                }
+            }
+        }
+        or_all(&alts)
     }
 
     fn sort(t: &Type) -> R<&'static str> {
@@ -387,7 +591,7 @@ impl<'m> Encoder<'m> {
     /// Encodes an expression; obligation guards are relative to the start of `e`. The same
     /// expression under the same bindings is encoded once.
     pub fn encode(&mut self, e: &Expr, env: &Env) -> R<Encoded> {
-        let key = format!("{:?}{env:?}", e.hash());
+        let key = format!("{}{:?}{env:?}", self.post, e.hash());
         if let Some(hit) = self.memo.get(&key) {
             return Ok(hit.clone());
         }
@@ -430,7 +634,7 @@ impl<'m> Encoder<'m> {
                         .ok_or_else(|| EncodeError::Unsupported(a.clone()))?;
                     inner.insert(p.name().to_string(), b);
                 }
-                let key = format!("{name}{inner:?}");
+                let key = format!("{}{name}{inner:?}", self.post);
                 if let Some(hit) = self.memo.get(&key) {
                     return Ok(hit.clone());
                 }
@@ -616,6 +820,28 @@ impl<'m> Encoder<'m> {
                     obligations,
                 })
             }
+            ExprKind::Exists(a) | ExprKind::Referenced(a) => {
+                let r = self.encode(a, env)?;
+                let entity = id_entity(a.ty())
+                    .ok_or_else(|| EncodeError::Unsupported("exists on a non-identity".into()))?
+                    .to_string();
+                let exists = matches!(e.kind(), ExprKind::Exists(_));
+                let term = match (&r.term, exists) {
+                    (Term::Plain(t), true) => self.exists_term(&entity, t),
+                    (Term::Plain(t), false) => self.referenced_term(&entity, t),
+                    (Term::Opt { some, val }, true) => {
+                        let ex = self.exists_term(&entity, val);
+                        format!("(and {some} {ex})")
+                    }
+                    (Term::Opt { .. }, false) => {
+                        return Err(EncodeError::Unsupported("referenced on an option".into()));
+                    }
+                };
+                Ok(Encoded {
+                    term: Term::Plain(term),
+                    obligations: r.obligations,
+                })
+            }
         }
     }
 
@@ -623,7 +849,7 @@ impl<'m> Encoder<'m> {
     /// non-integer arithmetic recurses without rounding or range checks (nothing is stored),
     /// conversions pass through, anything else is encoded normally.
     fn encode_exact(&mut self, e: &Expr, env: &Env) -> R<Encoded> {
-        let key = format!("exact:{:?}{env:?}", e.hash());
+        let key = format!("exact:{}{:?}{env:?}", self.post, e.hash());
         if let Some(hit) = self.memo.get(&key) {
             return Ok(hit.clone());
         }
@@ -704,9 +930,13 @@ impl<'m> Encoder<'m> {
         s
     }
 
-    /// The symbols whose values reconstruct the inputs.
+    /// The symbols whose values reconstruct the inputs and the evaluation facts.
     pub fn input_symbols(&self) -> Vec<String> {
         let mut out = Vec::new();
+        for f in &self.facts {
+            out.push(f.id.clone());
+            out.push(f.value.clone());
+        }
         for v in &self.inputs {
             match &v.term {
                 Term::Plain(t) => out.push(t.clone()),
@@ -717,6 +947,15 @@ impl<'m> Encoder<'m> {
             }
         }
         out
+    }
+}
+
+/// The entity type of an `Id<T>` or `Option<Id<T>>`.
+fn id_entity(t: &Type) -> Option<&str> {
+    match t {
+        Type::Id(e) => Some(e),
+        Type::Option(inner) => id_entity(inner),
+        _ => None,
     }
 }
 
@@ -777,6 +1016,11 @@ pub enum StepKind {
     Postcondition,
     InvariantPost,
     ConstraintPost,
+    /// A creation's identity conditions: identities distinct within the transition and never
+    /// used (feature 006; the runtime refuses otherwise).
+    Lifecycle,
+    /// No surviving reference to a removed identity on S' (feature 006).
+    Integrity,
 }
 
 /// One step of an action's runtime path (research R6).
@@ -840,6 +1084,36 @@ impl<'m> ActionEncoding<'m> {
                 }
             }
         }
+        // The universe (feature 006): state entities exist by binding, and their references
+        // point at existing entities (the store keeps referential integrity in S).
+        enc.world.bound = states
+            .iter()
+            .filter_map(|p| match p.ty() {
+                Type::Entity(e) => Some((p.name().to_string(), e.clone())),
+                _ => None,
+            })
+            .collect();
+        enc.world.env_s = env.clone();
+        for (param, entity) in enc.world.bound.clone() {
+            let (Some(item), Some(Binding::Entity { fields, .. })) =
+                (module.entity(&entity), env.get(&param))
+            else {
+                continue;
+            };
+            for (f, target) in item.reference_fields() {
+                match fields.get(f) {
+                    Some(Term::Plain(v)) => {
+                        let ex = enc.fact_free_exists(target, v);
+                        enc.assert_axiom(ex);
+                    }
+                    Some(Term::Opt { some, val }) => {
+                        let ex = enc.fact_free_exists(target, val);
+                        enc.assert_axiom(format!("(=> {some} {ex})"));
+                    }
+                    None => {}
+                }
+            }
+        }
 
         let mut steps = Vec::new();
         let rule = |enc: &mut Encoder<'m>,
@@ -871,10 +1145,14 @@ impl<'m> ActionEncoding<'m> {
             _ => None,
         };
 
-        // Incoming entity constraints (any role), then state invariants on S.
+        // Incoming entity constraints (any role), then state invariants on S. A reference
+        // constraint of a state entity holds in S (asserted above), as at runtime.
         for p in action.params() {
             let Some(entity) = entity_of(p) else { continue };
             for (name, c) in module.constraints_for(&entity) {
+                if p.role() == ParamRole::State && c.reference().is_some() {
+                    continue;
+                }
                 steps.push(rule(
                     &mut enc,
                     StepKind::Constraint,
@@ -943,6 +1221,103 @@ impl<'m> ActionEncoding<'m> {
                 loc: e.loc().clone(),
             });
         }
+        // Creations (feature 006): identity and complete value against S.
+        let mut created: Vec<(String, String)> = Vec::new();
+        for (i, c) in action.creates().iter().enumerate() {
+            let id = enc.encode(c.id(), &env)?;
+            let id_term = id.term.plain()?.to_string();
+            let mut obligations = id.obligations;
+            let item = module
+                .entity(c.entity())
+                .ok_or_else(|| EncodeError::Unsupported(format!("entity {}", c.entity())))?;
+            let mut fields = BTreeMap::from([("id".to_string(), id.term.clone())]);
+            for (f, v) in c.fields() {
+                let mut r = enc.encode(v, &env)?;
+                if let Type::Exact(Unit::Nominal(n)) = v.ty()
+                    && let Some(s) = n.scale
+                {
+                    let t = r.term.plain()?.to_string();
+                    r.obligations.push(Encoder::obligation(
+                        v,
+                        ErrKind::Overflow,
+                        out_of_range(&t, s),
+                    ));
+                }
+                obligations.extend(r.obligations);
+                // A field term of the declared (possibly optional) type.
+                let term = match (item.field_type(f), r.term) {
+                    (Some(Type::Option(_)), Term::Plain(t)) => Term::Opt {
+                        some: "true".into(),
+                        val: t,
+                    },
+                    (_, t) => t,
+                };
+                fields.insert(f.clone(), term);
+            }
+            env_post.insert(
+                format!("create[{i}]"),
+                Binding::Entity {
+                    entity: c.entity().to_string(),
+                    fields,
+                },
+            );
+            steps.push(Step {
+                kind: StepKind::Effect,
+                name: format!("create[{i}]"),
+                hash: *c.hash(),
+                bound: None,
+                cond: None,
+                obligations,
+                loc: c.loc().clone(),
+            });
+            created.push((c.entity().to_string(), id_term));
+        }
+        let mut removed: Vec<(String, String, String)> = Vec::new();
+        for r in action.removes() {
+            if let Some(Binding::Entity { entity, fields }) = env.get(r.param())
+                && let Some(id) = fields.get("id")
+            {
+                removed.push((
+                    entity.clone(),
+                    id.plain()?.to_string(),
+                    r.param().to_string(),
+                ));
+            }
+        }
+        if !created.is_empty() {
+            // At most one lifecycle operation per identity, and a never-used identity.
+            let mut conds = Vec::new();
+            for (i, (e, id)) in created.iter().enumerate() {
+                for (e2, id2) in &created[i + 1..] {
+                    if e == e2 {
+                        conds.push(not(&format!("(= {id} {id2})")));
+                    }
+                }
+                for (e2, id2, _) in &removed {
+                    if e == e2 {
+                        conds.push(not(&format!("(= {id} {id2})")));
+                    }
+                }
+            }
+            for (e, id) in &created {
+                let used = enc.fact(FactKind::Used, e, id);
+                conds.push(not(&used));
+            }
+            steps.push(Step {
+                kind: StepKind::Lifecycle,
+                name: "identities".into(),
+                hash: *action.hash(),
+                bound: None,
+                cond: Some(and_all(&conds)),
+                obligations: Vec::new(),
+                loc: action.loc().clone(),
+            });
+        }
+        enc.world.creates = created;
+        enc.world.removes = removed.clone();
+        enc.world.env_post = env_post.clone();
+        enc.post = true;
+
         for c in action.postconditions() {
             let r = enc.encode(c.expr(), &env_post)?;
             steps.push(Step {
@@ -955,7 +1330,15 @@ impl<'m> ActionEncoding<'m> {
                 loc: c.loc().clone(),
             });
         }
-        for p in &states {
+        // Outgoing rules: surviving state entities, then created entities (runtime order). A
+        // survivor's reference constraint is checked only if an effect assigns its field.
+        let removed_params: BTreeSet<&str> = removed.iter().map(|(_, _, p)| p.as_str()).collect();
+        let survivors: Vec<&&Param> = states
+            .iter()
+            .filter(|p| !removed_params.contains(p.name()))
+            .collect();
+        let creates = action.creates();
+        for p in &survivors {
             let Some(entity) = entity_of(p) else { continue };
             for (name, i) in module.invariants_for(&entity) {
                 steps.push(rule(
@@ -970,9 +1353,31 @@ impl<'m> ActionEncoding<'m> {
                 )?);
             }
         }
-        for p in &states {
+        for (k, c) in creates.iter().enumerate() {
+            for (name, i) in module.invariants_for(c.entity()) {
+                steps.push(rule(
+                    &mut enc,
+                    StepKind::InvariantPost,
+                    name,
+                    *i.hash(),
+                    i.param(),
+                    i.body(),
+                    &format!("create[{k}]"),
+                    &env_post,
+                )?);
+            }
+        }
+        for p in &survivors {
             let Some(entity) = entity_of(p) else { continue };
             for (name, c) in module.constraints_for(&entity) {
+                if let Some(f) = c.reference()
+                    && !action
+                        .effects()
+                        .iter()
+                        .any(|e| e.param() == p.name() && e.field() == f)
+                {
+                    continue;
+                }
                 steps.push(rule(
                     &mut enc,
                     StepKind::ConstraintPost,
@@ -984,6 +1389,36 @@ impl<'m> ActionEncoding<'m> {
                     &env_post,
                 )?);
             }
+        }
+        for (k, cr) in creates.iter().enumerate() {
+            for (name, c) in module.constraints_for(cr.entity()) {
+                steps.push(rule(
+                    &mut enc,
+                    StepKind::ConstraintPost,
+                    name,
+                    *c.hash(),
+                    c.param(),
+                    c.body(),
+                    &format!("create[{k}]"),
+                    &env_post,
+                )?);
+            }
+        }
+        // Referential integrity on S' (research R6, R12).
+        for (r, (entity, id, param)) in action.removes().iter().zip(&removed) {
+            if module.references_to(entity).is_empty() {
+                continue;
+            }
+            let violated = enc.referenced_term(entity, id);
+            steps.push(Step {
+                kind: StepKind::Integrity,
+                name: format!("remove {param}"),
+                hash: *r.hash(),
+                bound: Some(param.clone()),
+                cond: Some(not(&violated)),
+                obligations: Vec::new(),
+                loc: r.loc().clone(),
+            });
         }
         Ok(ActionEncoding {
             enc,

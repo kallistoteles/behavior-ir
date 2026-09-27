@@ -3,8 +3,18 @@
 
 use std::collections::BTreeMap;
 
-use crate::documents::{EntityKey, EntityVersion, Genesis, Head, TransitionRecord};
-use crate::{Backend, BackendError, CasOutcome};
+use crate::documents::{EntityKey, EntityVersion, Genesis, Head, RefChange, TransitionRecord};
+use crate::{Backend, BackendError, CasOutcome, RefEdge};
+
+/// One edge event of the derived reverse-reference index (feature 006): `dropped_at` is set at
+/// most once, by the commit that drops the edge.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct IndexEdge {
+    source: EntityKey,
+    field: String,
+    added_at: u64,
+    dropped_at: Option<u64>,
+}
 
 #[derive(Debug, Clone, Default)]
 pub struct InMemoryBackend {
@@ -14,11 +24,34 @@ pub struct InMemoryBackend {
     versions: BTreeMap<EntityKey, Vec<EntityVersion>>,
     /// Records by position (index = position - 1).
     records: Vec<TransitionRecord>,
+    /// Removal positions (feature 006).
+    removed: BTreeMap<EntityKey, u64>,
+    /// Index edge events per target (feature 006).
+    edges: BTreeMap<EntityKey, Vec<IndexEdge>>,
 }
 
 impl InMemoryBackend {
     pub fn new() -> Self {
         InMemoryBackend::default()
+    }
+
+    fn apply_refs(&mut self, changes: &[RefChange], position: u64) {
+        for c in changes {
+            let edges = self.edges.entry(c.target.clone()).or_default();
+            if c.op == "add" {
+                edges.push(IndexEdge {
+                    source: c.source.clone(),
+                    field: c.field.clone(),
+                    added_at: position,
+                    dropped_at: None,
+                });
+            } else if let Some(e) = edges
+                .iter_mut()
+                .find(|e| e.source == c.source && e.field == c.field && e.dropped_at.is_none())
+            {
+                e.dropped_at = Some(position);
+            }
+        }
     }
 }
 
@@ -36,6 +69,7 @@ impl Backend for InMemoryBackend {
         genesis: &Genesis,
         head: &Head,
         seed: &[EntityVersion],
+        seed_refs: &[RefChange],
     ) -> Result<(), BackendError> {
         if self.genesis.is_some() {
             return Err(BackendError("store already created".into()));
@@ -47,6 +81,7 @@ impl Backend for InMemoryBackend {
         self.genesis = Some(genesis.clone());
         self.head = Some(head.clone());
         self.versions = versions;
+        self.apply_refs(seed_refs, 0);
         Ok(())
     }
 
@@ -84,10 +119,33 @@ impl Backend for InMemoryBackend {
             .cloned())
     }
 
+    fn removed_at(&self, key: &EntityKey) -> Result<Option<u64>, BackendError> {
+        Ok(self.removed.get(key).copied())
+    }
+
+    fn incoming_at(&self, target: &EntityKey, position: u64) -> Result<Vec<RefEdge>, BackendError> {
+        let mut out: Vec<RefEdge> = self
+            .edges
+            .get(target)
+            .into_iter()
+            .flatten()
+            .filter(|e| e.added_at <= position && e.dropped_at.is_none_or(|d| d > position))
+            .map(|e| RefEdge {
+                entity: e.source.entity.clone(),
+                id: e.source.id.clone(),
+                field: e.field.clone(),
+            })
+            .collect();
+        out.sort();
+        Ok(out)
+    }
+
     fn commit(
         &mut self,
         expected_last_record: &str,
         versions: &[EntityVersion],
+        removals: &[EntityKey],
+        ref_changes: &[RefChange],
         record: &TransitionRecord,
         new_head: &Head,
     ) -> Result<CasOutcome, BackendError> {
@@ -98,9 +156,14 @@ impl Backend for InMemoryBackend {
             return Ok(CasOutcome::HeadMoved);
         }
         // All-or-nothing: nothing below can fail.
+        let position = new_head.state_ref.position;
         for v in versions {
             self.versions.entry(v.key()).or_default().push(v.clone());
         }
+        for k in removals {
+            self.removed.entry(k.clone()).or_insert(position);
+        }
+        self.apply_refs(ref_changes, position);
         self.records.push(record.clone());
         self.head = Some(new_head.clone());
         Ok(CasOutcome::Applied)

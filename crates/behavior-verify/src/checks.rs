@@ -253,7 +253,12 @@ fn decide(
 }
 
 fn counterexample_json(c: &Confirmed) -> Json {
-    json!({"state": c.state, "input": c.input, "context": c.context, "record": c.record})
+    let mut j =
+        json!({"state": c.state, "input": c.input, "context": c.context, "record": c.record});
+    if let (Some(f), Json::Object(m)) = (&c.facts, &mut j) {
+        m.insert("facts".into(), f.clone());
+    }
+    j
 }
 
 /// One property to decide for an action.
@@ -465,6 +470,10 @@ pub fn preservation(ctx: &Ctx<'_>, action: &str) -> Vec<CheckResult> {
         let mut counts: BTreeMap<&'static str, usize> = BTreeMap::new();
         let mut out = Vec::new();
         for (k, step) in a.ae.steps.iter().enumerate() {
+            if step.kind == StepKind::Integrity {
+                out.push(integrity(ctx, a, &deps, k, action));
+                continue;
+            }
             let (phase, subject_kind) = match step.kind {
                 StepKind::InvariantPost => ("invariant_post", "invariant"),
                 StepKind::ConstraintPost => ("constraint_post", "constraint"),
@@ -507,6 +516,47 @@ pub fn preservation(ctx: &Ctx<'_>, action: &str) -> Vec<CheckResult> {
         }
         out
     })
+}
+
+/// Referential integrity (feature 006, research R12): can an allowed run remove an identity that
+/// a surviving `Ref` field still points at? Part of preservation: it preserves the invariant "no
+/// surviving reference to an absent entity".
+fn integrity(
+    ctx: &Ctx<'_>,
+    a: &ActionCtx<'_, '_>,
+    deps: &[String],
+    k: usize,
+    action: &str,
+) -> CheckResult {
+    let step = &a.ae.steps[k];
+    let param = step.bound.clone().unwrap_or_default();
+    let hash = hash_display(&step.hash);
+    let cond = step.cond.clone().unwrap_or_else(|| "true".into());
+    let assertions = [a.ae.path(k), a.ae.noerr(k), format!("(not {cond})")];
+    let spec = Spec {
+        kind: CheckKind::Preservation,
+        check: "referential_integrity",
+        subject: Subject {
+            kind: "removal".into(),
+            name: step.name.clone(),
+            hash: hash.clone(),
+            loc: step.loc.clone(),
+            param: Some(param.clone()),
+        },
+        depends: deps.to_vec(),
+        cites: vec![("removal", hash)],
+        locs: vec![a.loc.clone(), step.loc.clone()],
+    };
+    run_safety(
+        ctx,
+        a,
+        spec,
+        &assertions,
+        &Expect::Reason {
+            code: "DANGLING_REFERENCE",
+        },
+        format!("{action} can remove {param} while a reference to it survives"),
+    )
 }
 
 /// Postconditions (FR-002): can an allowed run reach S' where `ensures` fails? Rules checked

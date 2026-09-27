@@ -1,0 +1,13 @@
+{
+ "action": "check_exists",
+ "context": {},
+ "data_version": "1",
+ "input": {},
+ "state": {
+  "note": {
+   "about": "c1",
+   "id": "n1",
+   "text": "hi"
+  }
+ }
+}

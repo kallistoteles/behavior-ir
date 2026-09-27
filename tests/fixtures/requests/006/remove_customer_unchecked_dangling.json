@@ -1,0 +1,27 @@
+{
+ "action": "remove_customer_unchecked",
+ "context": {},
+ "data_version": "1",
+ "facts": {
+  "references": [
+   {
+    "entity": "Customer",
+    "id": "c1",
+    "incoming": [
+     {
+      "entity": "Account",
+      "field": "owner",
+      "id": "a1"
+     }
+    ]
+   }
+  ]
+ },
+ "input": {},
+ "state": {
+  "customer": {
+   "id": "c1",
+   "name": "Ada"
+  }
+ }
+}

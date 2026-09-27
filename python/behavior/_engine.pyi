@@ -26,6 +26,8 @@ class Type:
     @staticmethod
     def id(entity: str) -> Type: ...
     @staticmethod
+    def ref(entity: str) -> Type: ...
+    @staticmethod
     def entity(name: str) -> Type: ...
     def is_option(self) -> builtins.bool: ...
     def inner(self) -> Type | None: ...
@@ -80,6 +82,7 @@ class Module:
         context: dict[str, Any],
         data_version: str,
         git_revision: str | None = None,
+        facts: dict[str, Any] | None = None,
     ) -> Record: ...
     def evaluate_intent(
         self,
@@ -158,6 +161,7 @@ class Builder:
         params: list[Param],
         preconditions: list[tuple[Node, str, int]],
         effects: list[tuple[str, str, Node, str, int]],
+        lifecycle: list[tuple[str, str, Node | None, list[tuple[str, Node]], str, int]],
         postconditions: list[tuple[Node, str, int]],
         file: str,
         line: int,

@@ -129,5 +129,7 @@ pub fn text(e: &Expr) -> String {
         ExprKind::Rescale { arg, rounding } => {
             format!("rescale({}, {}, {})", text(arg), e.ty, rounding.as_str())
         }
+        ExprKind::Exists(a) => format!("exists({})", text(a)),
+        ExprKind::Referenced(a) => format!("referenced({})", text(a)),
     }
 }

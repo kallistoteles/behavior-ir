@@ -10,6 +10,7 @@ use serde_json::{Map, Value as Json, json};
 
 use crate::decimal::{Dec, NumError, fixed_text};
 use crate::exact::Exact;
+use crate::facts::{BoundEntity, EvaluationFacts, FactError, Facts, RefEdge, check_snapshot};
 use crate::pretty;
 use crate::record::DecisionRecord;
 use crate::semantic::expr::{Expr, ExprKind};
@@ -20,6 +21,9 @@ use crate::wire::Loc;
 
 /// Version of the decision record format (0.4: exact arithmetic closure, feature 004).
 pub const RECORD_VERSION: &str = "0.4";
+/// The record format with evaluation facts and lifecycle entries (feature 006); records without
+/// either stay `0.4`, byte for byte.
+pub const RECORD_VERSION_LIFECYCLE: &str = "0.5";
 
 /// Checks a decoded fixed-scale value against its grid and range (FR-004).
 fn check_fixed(ty: &Type, v: &Value, path: &str, problems: &mut Vec<InputProblem>) -> bool {
@@ -256,8 +260,51 @@ struct ReadFrame {
 
 type ObservedReads = BTreeSet<(String, String)>;
 
+/// What an evaluation observed: the bound entities' fields (feature 005) and the evaluation facts
+/// (feature 006: existence, identity and reference reads).
+#[derive(Debug, Clone, Default)]
+pub struct Observed {
+    pub fields: ObservedReads,
+    pub facts: Facts,
+}
+
+type Key = (String, String);
+
+/// The entity universe as the transition sees it: the state-bound entities, and after the
+/// effects, the created and removed identities and the bound entities' S' values.
+#[derive(Default)]
+struct World {
+    /// State parameters by bound identity (they exist in S by binding).
+    bound: BTreeMap<Key, String>,
+    created: BTreeMap<Key, Value>,
+    removed: BTreeSet<Key>,
+    s_prime: Vals,
+}
+
+/// The entity type of an `Id<T>` or `Option<Id<T>>` expression.
+fn id_entity(t: &Type) -> Option<&str> {
+    match t {
+        Type::Id(e) => Some(e),
+        Type::Option(inner) => id_entity(inner),
+        _ => None,
+    }
+}
+
+fn id_text(v: &Value) -> Option<String> {
+    match v {
+        Value::Str(s) => Some(s.clone()),
+        _ => None,
+    }
+}
+
 struct Evaluator<'a> {
     module: &'a Module,
+    facts: &'a dyn EvaluationFacts,
+    /// Facts obtained so far (each question is asked at most once).
+    observed: Facts,
+    /// Set when a fact could not be obtained: the evaluation error is `UNKNOWN_FACT`.
+    fact_error: Option<String>,
+    world: World,
     /// Derived values by (name, argument values, phase), with the reads their body made, in the
     /// derived value's own parameter names (re-attributed on every hit).
     memo: BTreeMap<(String, String, Phase), (Value, ObservedReads)>,
@@ -269,6 +316,130 @@ struct Evaluator<'a> {
 }
 
 impl Evaluator<'_> {
+    fn fact_failed(&mut self, e: FactError) -> String {
+        self.fact_error.get_or_insert_with(|| e.0.clone());
+        e.0
+    }
+
+    /// `exists` on S: bound entities exist by binding; anything else is an observed fact.
+    fn exists_s(&mut self, entity: &str, id: &str) -> Result<bool, String> {
+        let k = (entity.to_string(), id.to_string());
+        if self.world.bound.contains_key(&k) {
+            return Ok(true);
+        }
+        if let Some(b) = self.observed.existence.get(&k) {
+            return Ok(*b);
+        }
+        match self.facts.exists(entity, id) {
+            Ok(b) => {
+                self.observed.existence.insert(k, b);
+                Ok(b)
+            }
+            Err(e) => Err(self.fact_failed(e)),
+        }
+    }
+
+    /// `exists` on the given state: on S' it is `(exists ∨ created) ∧ ¬removed` (research R4).
+    fn exists_at(&mut self, phase: Phase, entity: &str, id: &str) -> Result<bool, String> {
+        let k = (entity.to_string(), id.to_string());
+        if phase == Phase::SPrime {
+            if self.world.created.contains_key(&k) {
+                return Ok(true);
+            }
+            if self.world.removed.contains(&k) {
+                return Ok(false);
+            }
+        }
+        self.exists_s(entity, id)
+    }
+
+    /// `used` (a history fact): bound entities are used by binding.
+    fn used_s(&mut self, entity: &str, id: &str) -> Result<bool, String> {
+        let k = (entity.to_string(), id.to_string());
+        if self.world.bound.contains_key(&k) {
+            return Ok(true);
+        }
+        if let Some(b) = self.observed.identities.get(&k) {
+            return Ok(*b);
+        }
+        match self.facts.used(entity, id) {
+            Ok(b) => {
+                self.observed.identities.insert(k, b);
+                Ok(b)
+            }
+            Err(e) => Err(self.fact_failed(e)),
+        }
+    }
+
+    fn incoming_s(&mut self, entity: &str, id: &str) -> Result<Vec<RefEdge>, String> {
+        let k = (entity.to_string(), id.to_string());
+        if let Some(edges) = self.observed.references.get(&k) {
+            return Ok(edges.clone());
+        }
+        match self.facts.incoming(entity, id) {
+            Ok(mut edges) => {
+                edges.sort();
+                edges.dedup();
+                self.observed.references.insert(k, edges.clone());
+                Ok(edges)
+            }
+            Err(e) => Err(self.fact_failed(e)),
+        }
+    }
+
+    /// `incoming'`: S's incoming references without removed sources and without the bound
+    /// entities' old values, plus the bound entities' S' references and the created entities'.
+    fn incoming_prime(&mut self, entity: &str, id: &str) -> Result<Vec<RefEdge>, String> {
+        let base = self.incoming_s(entity, id)?;
+        let mut out: BTreeSet<RefEdge> = base
+            .into_iter()
+            .filter(|e| {
+                let k = (e.entity.clone(), e.id.clone());
+                !self.world.removed.contains(&k) && !self.world.bound.contains_key(&k)
+            })
+            .collect();
+        let points = |source_type: &str, fields: &BTreeMap<String, Value>| -> Vec<String> {
+            self.module
+                .entity(source_type)
+                .map(|item| {
+                    item.reference_fields()
+                        .filter(|(f, t)| {
+                            *t == entity && fields.get(*f) == Some(&Value::Str(id.to_string()))
+                        })
+                        .map(|(f, _)| f.to_string())
+                        .collect()
+                })
+                .unwrap_or_default()
+        };
+        for ((source_type, source_id), param) in &self.world.bound {
+            let k = (source_type.clone(), source_id.clone());
+            if self.world.removed.contains(&k) {
+                continue;
+            }
+            if let Some(Value::Entity(fields)) = self.world.s_prime.get(param) {
+                for field in points(source_type, fields) {
+                    out.insert(RefEdge {
+                        entity: source_type.clone(),
+                        id: source_id.clone(),
+                        field,
+                    });
+                }
+            }
+        }
+        for ((source_type, source_id), v) in &self.world.created {
+            if let Value::Entity(fields) = v {
+                for field in points(source_type, fields) {
+                    out.insert(RefEdge {
+                        entity: source_type.clone(),
+                        id: source_id.clone(),
+                        field,
+                    });
+                }
+            }
+        }
+        Ok(out.into_iter().collect())
+    }
+
     fn observe(&mut self, param: &str, field: &str) {
         if let Some(f) = self.frames.last_mut() {
             f.reads.insert((param.to_string(), field.to_string()));
@@ -584,6 +755,27 @@ impl Evaluator<'_> {
                 Value::Int(i) => Ok(Value::Dec(Dec::from_i64(i))),
                 _ => Err(bad()),
             },
+            ExprKind::Exists(a) | ExprKind::Referenced(a) => {
+                let v = self.eval(a, vals, phase, reads)?;
+                let entity = id_entity(&a.ty).ok_or_else(bad)?.to_string();
+                let b = match (&e.kind, v) {
+                    (ExprKind::Exists(_), Value::None) => false,
+                    (ExprKind::Exists(_), Value::Str(id)) => self.exists_at(phase, &entity, &id)?,
+                    (ExprKind::Referenced(_), Value::Str(id)) => {
+                        let edges = if phase == Phase::SPrime {
+                            self.incoming_prime(&entity, &id)?
+                        } else {
+                            self.incoming_s(&entity, &id)?
+                        };
+                        !edges.is_empty()
+                    }
+                    _ => return Err(bad()),
+                };
+                if let Some(r) = reads.as_deref_mut() {
+                    r.insert(pretty::text(e), json!(b));
+                }
+                Ok(Value::Bool(b))
+            }
         }
     }
 
@@ -637,6 +829,37 @@ struct Request {
     data_version: String,
     git_revision: Option<String>,
     sections: BTreeMap<&'static str, Map<String, Json>>,
+    /// The supplied `facts` section (feature 006), as given.
+    facts: Option<Json>,
+}
+
+impl<'a> Evaluator<'a> {
+    fn new(module: &'a Module, facts: &'a dyn EvaluationFacts) -> Self {
+        Evaluator {
+            module,
+            facts,
+            observed: Facts::default(),
+            fact_error: None,
+            world: World::default(),
+            memo: BTreeMap::new(),
+            frames: vec![ReadFrame::default()],
+            derived: Vec::new(),
+            rescales: Vec::new(),
+        }
+    }
+
+    /// The reason for a failed step: `UNKNOWN_FACT` when a fact was missing, otherwise
+    /// `EVALUATION_ERROR`.
+    fn error_reason(&mut self, msg: String, loc: &Loc) -> Json {
+        match self.fact_error.take() {
+            Some(m) => reason(
+                "UNKNOWN_FACT",
+                format!("{m}: the evaluation needs this fact"),
+                Some(loc),
+            ),
+            None => reason("EVALUATION_ERROR", msg, Some(loc)),
+        }
+    }
 }
 
 fn parse_request(text: &str, problems: &mut Vec<InputProblem>) -> Request {
@@ -645,6 +868,7 @@ fn parse_request(text: &str, problems: &mut Vec<InputProblem>) -> Request {
         data_version: String::new(),
         git_revision: None,
         sections: BTreeMap::new(),
+        facts: None,
     };
     let root: Json = match serde_json::from_str(text) {
         Ok(v) => v,
@@ -670,6 +894,7 @@ fn parse_request(text: &str, problems: &mut Vec<InputProblem>) -> Request {
             ("action", Json::String(s)) => req.action = s.clone(),
             ("data_version", Json::String(s)) => req.data_version = s.clone(),
             ("git_revision", Json::String(s)) => req.git_revision = Some(s.clone()),
+            ("facts", v) => req.facts = Some(v.clone()),
             (section @ ("state" | "input" | "context"), Json::Object(m)) => {
                 let name = match section {
                     "state" => "state",
@@ -720,33 +945,63 @@ struct Outcome {
     reasons: Vec<Json>,
     trace: Vec<Json>,
     changes: Vec<Json>,
+    /// Creations and removals of an allowed transition, in effect order (feature 006).
+    lifecycle: Vec<Json>,
 }
 
 /// Decodes `raw` as an entity of type `entity` (field set, field types, fixed-scale grid and
 /// range), checks the entity's constraints, and returns its canonical encoding as decision
-/// records show it; otherwise the problems (feature 005: store genesis seeds).
+/// records show it; otherwise the problems (feature 005: store genesis seeds). Constraints that
+/// use `exists` or `referenced` need facts: see [`decode_entity`] and [`check_entity`].
 pub fn canonical_entity(module: &Module, entity: &str, raw: &Json) -> Result<Json, Vec<String>> {
-    let ty = Type::Entity(entity.into());
+    let value = decode_entity(module, entity, raw)?;
+    check_entity(module, entity, &value, &Facts::default())?;
+    Ok(value)
+}
+
+fn decode_value(module: &Module, entity: &str, raw: &Json) -> Result<Value, Vec<String>> {
     if module.entity(entity).is_none() {
         return Err(vec![format!("unknown entity `{entity}`")]);
     }
     let mut problems = Vec::new();
-    let value = decode_param(module, &ty, raw, entity, &mut problems);
-    let Some(value) = value.filter(|_| problems.is_empty()) else {
-        return Err(problems
+    let value = decode_param(
+        module,
+        &Type::Entity(entity.into()),
+        raw,
+        entity,
+        &mut problems,
+    );
+    value.filter(|_| problems.is_empty()).ok_or_else(|| {
+        problems
             .into_iter()
             .map(|p| format!("{}: {}", p.path, p.message))
-            .collect());
-    };
-    let mut ev = Evaluator {
-        module,
-        memo: BTreeMap::new(),
-        frames: vec![ReadFrame::default()],
-        derived: Vec::new(),
-        rescales: Vec::new(),
-    };
+            .collect()
+    })
+}
+
+/// Decodes `raw` as an entity of type `entity` (field set, field types, fixed-scale grid and
+/// range) and returns its canonical encoding, without checking constraints.
+pub fn decode_entity(module: &Module, entity: &str, raw: &Json) -> Result<Json, Vec<String>> {
+    let value = decode_value(module, entity, raw)?;
+    Ok(encode_param(module, &Type::Entity(entity.into()), &value))
+}
+
+/// Checks the entity constraints of a decoded entity value, answering `exists` and `referenced`
+/// from `facts` (feature 006: a genesis answers them from its seed). Synthesized reference
+/// constraints concern the universe, not one value: a genesis checks them over the whole seed.
+pub fn check_entity(
+    module: &Module,
+    entity: &str,
+    value: &Json,
+    facts: &dyn EvaluationFacts,
+) -> Result<(), Vec<String>> {
+    let value = decode_value(module, entity, value)?;
+    let mut ev = Evaluator::new(module, facts);
     let mut failed = Vec::new();
-    for (name, c) in module.constraints_for(entity) {
+    for (name, c) in module
+        .constraints_for(entity)
+        .filter(|(_, c)| c.reference().is_none())
+    {
         let vals = Vals::from([(c.param().to_string(), value.clone())]);
         match ev.predicate(c.body(), &vals, Phase::S).0 {
             Ok(true) => {}
@@ -755,7 +1010,7 @@ pub fn canonical_entity(module: &Module, entity: &str, raw: &Json) -> Result<Jso
         }
     }
     if failed.is_empty() {
-        Ok(encode_param(module, &ty, &value))
+        Ok(())
     } else {
         Err(failed)
     }
@@ -771,6 +1026,55 @@ pub fn evaluate(module: &Module, request: &str) -> DecisionRecord {
 /// rules, invariants and constraints; operands skipped by short-circuiting are not read
 /// (feature 005, research R7). The decision record is identical to [`evaluate`]'s.
 pub fn evaluate_observed(module: &Module, request: &str) -> (DecisionRecord, ObservedReads) {
+    let (record, observed) = evaluate_inner(module, request, None);
+    (record, observed.fields)
+}
+
+/// Evaluates a request whose evaluation facts come from `facts` (feature 006: a store answering
+/// as of the evaluated position, research R3) instead of a `facts` section, which the request must
+/// not have. Returns the record and everything the evaluation observed.
+pub fn evaluate_with(
+    module: &Module,
+    request: &str,
+    facts: &dyn EvaluationFacts,
+) -> (DecisionRecord, Observed) {
+    evaluate_inner(module, request, Some(facts))
+}
+
+/// The bound state entities of an action with their reference-field values.
+fn bound_entities(module: &Module, action: &ActionItem, vals: &Vals) -> Vec<BoundEntity> {
+    action
+        .params()
+        .iter()
+        .filter(|p| p.role() == ParamRole::State)
+        .filter_map(|p| {
+            let (Type::Entity(entity), Some(Value::Entity(fields))) = (p.ty(), vals.get(p.name()))
+            else {
+                return None;
+            };
+            let id = fields.get("id").and_then(id_text)?;
+            let references = module
+                .entity(entity)
+                .map(|item| {
+                    item.reference_fields()
+                        .map(|(f, _)| (f.to_string(), fields.get(f).and_then(id_text)))
+                        .collect()
+                })
+                .unwrap_or_default();
+            Some(BoundEntity {
+                entity: entity.clone(),
+                id,
+                references,
+            })
+        })
+        .collect()
+}
+
+fn evaluate_inner(
+    module: &Module,
+    request: &str,
+    provider: Option<&dyn EvaluationFacts>,
+) -> (DecisionRecord, Observed) {
     let mut problems = Vec::new();
     let req = parse_request(request, &mut problems);
     let action = module.action(&req.action);
@@ -785,6 +1089,29 @@ pub fn evaluate_observed(module: &Module, request: &str) -> (DecisionRecord, Obs
         Some(a) if problems.is_empty() => decode_sections(module, a, &req.sections, &mut problems),
         _ => None,
     };
+    // Supplied facts (plain evaluation) must parse and form a valid snapshot (FR-010g).
+    let mut supplied = Facts::default();
+    match (&req.facts, provider, action, &vals) {
+        (Some(_), Some(_), _, _) => problems.push(InputProblem {
+            code: "DECODE_ERROR",
+            path: "facts".into(),
+            message: "facts come from the evaluation's provider; the request cannot supply them"
+                .into(),
+        }),
+        (Some(raw), None, Some(a), Some(v)) => {
+            match Facts::from_json(raw)
+                .and_then(|f| check_snapshot(module, &f, &bound_entities(module, a, v)).map(|_| f))
+            {
+                Ok(f) => supplied = f,
+                Err(p) => problems.push(InputProblem {
+                    code: p.code,
+                    path: "facts".into(),
+                    message: p.message,
+                }),
+            }
+        }
+        _ => {}
+    }
 
     let mut record = Map::new();
     record.insert("record_version".into(), json!(RECORD_VERSION));
@@ -799,12 +1126,17 @@ pub fn evaluate_observed(module: &Module, request: &str) -> (DecisionRecord, Obs
     }
     record.insert("action".into(), action_json);
 
-    let (Some(action), Some(vals)) = (action, vals) else {
+    let (Some(action), Some(vals), true) = (action, vals, problems.is_empty()) else {
         problems.sort_by(|a, b| a.path.cmp(&b.path));
         let (s, i, c) = echo_sections(&req);
         record.insert("state".into(), s);
         record.insert("input".into(), i);
         record.insert("context".into(), c);
+        // A refused request keeps its facts section, so replay refuses it the same way.
+        if let Some(f) = &req.facts {
+            record.insert("facts".into(), sanitize_floats(f));
+            record.insert("record_version".into(), json!(RECORD_VERSION_LIFECYCLE));
+        }
         record.insert("result".into(), json!("INVALID_INPUT"));
         let reasons: Vec<Json> = problems
             .iter()
@@ -814,7 +1146,10 @@ pub fn evaluate_observed(module: &Module, request: &str) -> (DecisionRecord, Obs
         record.insert("trace".into(), json!([]));
         record.insert("derived".into(), json!([]));
         record.insert("changes".into(), json!([]));
-        return (DecisionRecord::new(Json::Object(record)), BTreeSet::new());
+        return (
+            DecisionRecord::new(Json::Object(record)),
+            Observed::default(),
+        );
     };
 
     // Normalized echo of the decoded request.
@@ -844,16 +1179,13 @@ pub fn evaluate_observed(module: &Module, request: &str) -> (DecisionRecord, Obs
         record.insert("trace".into(), json!([]));
         record.insert("derived".into(), json!([]));
         record.insert("changes".into(), json!([]));
-        return (DecisionRecord::new(Json::Object(record)), BTreeSet::new());
+        return (
+            DecisionRecord::new(Json::Object(record)),
+            Observed::default(),
+        );
     }
 
-    let mut ev = Evaluator {
-        module,
-        memo: BTreeMap::new(),
-        frames: vec![ReadFrame::default()],
-        derived: Vec::new(),
-        rescales: Vec::new(),
-    };
+    let mut ev = Evaluator::new(module, provider.unwrap_or(&supplied));
     let outcome = run_transition(&mut ev, action, vals);
 
     let mut derived = std::mem::take(&mut ev.derived);
@@ -871,8 +1203,51 @@ pub fn evaluate_observed(module: &Module, request: &str) -> (DecisionRecord, Obs
     record.insert("trace".into(), Json::Array(outcome.trace));
     record.insert("derived".into(), Json::Array(derived_json));
     record.insert("changes".into(), Json::Array(outcome.changes));
-    let observed = ev.frames.pop().map(|f| f.reads).unwrap_or_default();
-    (DecisionRecord::new(Json::Object(record)), observed)
+    let facts = std::mem::take(&mut ev.observed);
+    if !facts.is_empty() || !outcome.lifecycle.is_empty() {
+        record.insert("record_version".into(), json!(RECORD_VERSION_LIFECYCLE));
+    }
+    if !facts.is_empty() {
+        record.insert("facts".into(), facts.to_json());
+    }
+    if !outcome.lifecycle.is_empty() {
+        record.insert("lifecycle".into(), Json::Array(outcome.lifecycle));
+    }
+    let fields = ev.frames.pop().map(|f| f.reads).unwrap_or_default();
+    (
+        DecisionRecord::new(Json::Object(record)),
+        Observed { fields, facts },
+    )
+}
+
+/// Converts an evaluated value for storage in a field of type `field_ty`: an `Exact<F>` stored
+/// into `F` is on the grid by admission, converted and range-checked here.
+fn stored_value(v: Value, field_ty: &Type, expr: &Expr) -> Result<Value, String> {
+    match (&v, fixed_scale(field_ty)) {
+        (Value::Exact(x), Some(n)) => fixed_value(x, n).map_err(|err| num_err(err, expr)),
+        (Value::Exact(x), None) => x.to_dec().map(Value::Dec).map_err(|err| num_err(err, expr)),
+        _ => Ok(v),
+    }
+}
+
+fn entity_of(p: &crate::semantic::module::Param) -> Option<String> {
+    match p.ty() {
+        Type::Entity(e) => Some(e.clone()),
+        _ => None,
+    }
+}
+
+fn param_id(vals: &Vals, param: &str) -> Option<String> {
+    match vals.get(param) {
+        Some(Value::Entity(fields)) => fields.get("id").and_then(id_text),
+        _ => None,
+    }
+}
+
+/// Stops the transition with a lifecycle result (`ENTITY_ID_ALREADY_USED`, `LIFECYCLE_CONFLICT`).
+fn refuse(out: &mut Outcome, code: &'static str, message: String, loc: &Loc) {
+    out.result = code;
+    out.reasons.push(reason(code, message, Some(loc)));
 }
 
 fn run_transition(ev: &mut Evaluator<'_>, action: &ActionItem, s: Vals) -> Outcome {
@@ -882,47 +1257,37 @@ fn run_transition(ev: &mut Evaluator<'_>, action: &ActionItem, s: Vals) -> Outco
         reasons: Vec::new(),
         trace: Vec::new(),
         changes: Vec::new(),
+        lifecycle: Vec::new(),
     };
     let mut stopped = false;
 
+    // State parameters exist in S by binding (feature 006).
+    for p in action.params() {
+        if p.role() != ParamRole::State {
+            continue;
+        }
+        if let (Some(entity), Some(id)) = (entity_of(p), param_id(&s, p.name())) {
+            ev.world.bound.insert((entity, id), p.name().to_string());
+        }
+    }
+
     // Single-entity rules in runtime order (research R11): entity constraints on every incoming
     // entity, then state invariants on S; after the effects, state invariants and entity
-    // constraints on S'.
-    let entity_of = |p: &crate::semantic::module::Param| match p.ty() {
-        Type::Entity(e) => Some(e.clone()),
-        _ => None,
-    };
+    // constraints on S'. A reference constraint holds in S for state entities (the store keeps
+    // referential integrity), so it is checked only where S' can break it (feature 006).
     let mut incoming = Vec::new();
     let mut state_invariants = Vec::new();
-    let mut state_constraints = Vec::new();
     for p in action.params() {
         let Some(entity) = entity_of(p) else { continue };
         for (name, c) in module.constraints_for(&entity) {
-            let check = RuleCheck {
-                name: name.clone(),
-                hash: *c.hash(),
-                body: c.body().clone(),
-                rule_param: c.param().to_string(),
-                bound: p.name().to_string(),
-                role: p.role(),
-                constraint: true,
-            };
-            if p.role() == ParamRole::State {
-                state_constraints.push(check.clone());
+            if p.role() == ParamRole::State && c.reference().is_some() {
+                continue;
             }
-            incoming.push(check);
+            incoming.push(RuleCheck::constraint(name, c, p.name(), p.role()));
         }
         if p.role() == ParamRole::State {
             for (name, i) in module.invariants_for(&entity) {
-                state_invariants.push(RuleCheck {
-                    name: name.clone(),
-                    hash: *i.hash(),
-                    body: i.body().clone(),
-                    rule_param: i.param().to_string(),
-                    bound: p.name().to_string(),
-                    role: p.role(),
-                    constraint: false,
-                });
+                state_invariants.push(RuleCheck::invariant(name, i, p.name()));
             }
         }
     }
@@ -1006,8 +1371,8 @@ fn run_transition(ev: &mut Evaluator<'_>, action: &ActionItem, s: Vals) -> Outco
                 Err(msg) => {
                     *stopped = true;
                     out.result = "ERROR";
-                    out.reasons
-                        .push(reason("EVALUATION_ERROR", msg, Some(&c.loc)));
+                    let r = ev.error_reason(msg, &c.loc);
+                    out.reasons.push(r);
                 }
             }
         }
@@ -1043,16 +1408,7 @@ fn run_transition(ev: &mut Evaluator<'_>, action: &ActionItem, s: Vals) -> Outco
         let mut reads = Reads::new();
         let result = ev
             .eval(&e.value, &s, Phase::S, &mut Some(&mut reads))
-            .and_then(|v| match (&v, fixed_scale(&field_ty)) {
-                (Value::Exact(x), Some(n)) => {
-                    fixed_value(x, n).map_err(|err| num_err(err, &e.value))
-                }
-                (Value::Exact(x), None) => x
-                    .to_dec()
-                    .map(Value::Dec)
-                    .map_err(|err| num_err(err, &e.value)),
-                _ => Ok(v),
-            });
+            .and_then(|v| stored_value(v, &field_ty, &e.value));
         match result {
             Ok(v) => {
                 let new = encode(&field_ty, &v);
@@ -1087,8 +1443,133 @@ fn run_transition(ev: &mut Evaluator<'_>, action: &ActionItem, s: Vals) -> Outco
                 ));
                 attach_rescales(ev, &mut out.trace);
                 out.result = "ERROR";
-                out.reasons
-                    .push(reason("EVALUATION_ERROR", msg, Some(&e.loc)));
+                let r = ev.error_reason(msg, &e.loc);
+                out.reasons.push(r);
+                return out;
+            }
+        }
+    }
+
+    // Creations (feature 006): the identity and the complete initial value, against S.
+    let mut created: Vec<(Key, Value, &crate::semantic::module::CreateEffect)> = Vec::new();
+    for c in &action.creates {
+        let args: Vec<String> = std::iter::once(format!("id={}", pretty::text(&c.id)))
+            .chain(
+                c.fields
+                    .iter()
+                    .map(|(f, v)| format!("{f}={}", pretty::text(v))),
+            )
+            .collect();
+        let text = format!("create {}({})", c.entity, args.join(", "));
+        let mut reads = Reads::new();
+        let mut value = || -> Result<(String, Value), String> {
+            let id = ev.eval(&c.id, &s, Phase::S, &mut Some(&mut reads))?;
+            let id =
+                id_text(&id).ok_or_else(|| "internal: identity is not a string".to_string())?;
+            let item = ev
+                .module
+                .entity(&c.entity)
+                .ok_or_else(|| "internal: unknown entity".to_string())?;
+            let mut fields = BTreeMap::from([("id".to_string(), Value::Str(id.clone()))]);
+            for (f, e) in &c.fields {
+                let fty = item
+                    .field_type(f)
+                    .cloned()
+                    .unwrap_or_else(|| e.ty().clone());
+                let v = ev.eval(e, &s, Phase::S, &mut Some(&mut reads))?;
+                fields.insert(f.clone(), stored_value(v, &fty, e)?);
+            }
+            Ok((id, Value::Entity(fields)))
+        };
+        match value() {
+            Ok((id, v)) => {
+                out.trace.push(step(
+                    "create",
+                    None,
+                    &c.hash,
+                    text,
+                    reads,
+                    json!({"created": {"entity": c.entity, "id": id}}),
+                    &c.loc,
+                ));
+                attach_rescales(ev, &mut out.trace);
+                created.push(((c.entity.clone(), id), v, c));
+            }
+            Err(msg) => {
+                out.trace.push(step(
+                    "create",
+                    None,
+                    &c.hash,
+                    text,
+                    reads,
+                    json!({"error": msg}),
+                    &c.loc,
+                ));
+                attach_rescales(ev, &mut out.trace);
+                out.result = "ERROR";
+                let r = ev.error_reason(msg, &c.loc);
+                out.reasons.push(r);
+                return out;
+            }
+        }
+    }
+    let mut removed: Vec<(Key, &str, &crate::semantic::module::RemoveEffect)> = Vec::new();
+    for r in &action.removes {
+        let entity = action
+            .params()
+            .iter()
+            .find(|p| p.name() == r.param)
+            .and_then(entity_of)
+            .unwrap_or_default();
+        let id = param_id(&s, &r.param).unwrap_or_default();
+        out.trace.push(step(
+            "remove",
+            None,
+            &r.hash,
+            format!("remove {}", r.param),
+            Reads::new(),
+            json!({"removed": {"entity": entity, "id": id}}),
+            &r.loc,
+        ));
+        removed.push(((entity, id), &r.param, r));
+    }
+
+    // At most one lifecycle operation per typed identity (FR-005, research R2).
+    let mut touched: BTreeSet<&Key> = removed.iter().map(|(k, _, _)| k).collect();
+    for (k, _, c) in &created {
+        if !touched.insert(k) {
+            refuse(
+                &mut out,
+                "LIFECYCLE_CONFLICT",
+                format!(
+                    "{} {} has more than one lifecycle operation in this transition",
+                    k.0, k.1
+                ),
+                &c.loc,
+            );
+            return out;
+        }
+    }
+    // An identity names one lifetime: a creation needs an identity the store never used (FR-007).
+    for (k, _, c) in &created {
+        match ev.used_s(&k.0, &k.1) {
+            Ok(false) => {}
+            Ok(true) => {
+                refuse(
+                    &mut out,
+                    "ENTITY_ID_ALREADY_USED",
+                    format!(
+                        "{} {} was already used; an identity names one lifetime, create a new one",
+                        k.0, k.1
+                    ),
+                    &c.loc,
+                );
+                return out;
+            }
+            Err(msg) => {
+                out.result = "ERROR";
+                let r = ev.error_reason(msg, &c.loc);
+                out.reasons.push(r);
                 return out;
             }
         }
@@ -1099,6 +1580,56 @@ fn run_transition(ev: &mut Evaluator<'_>, action: &ActionItem, s: Vals) -> Outco
     for (param, field, v, _, _) in &delta {
         if let Some(Value::Entity(fields)) = s_prime.get_mut(param) {
             fields.insert(field.clone(), v.clone());
+        }
+    }
+    ev.world.s_prime = s_prime.clone();
+    ev.world.removed = removed.iter().map(|(k, _, _)| k.clone()).collect();
+    ev.world.created = created
+        .iter()
+        .map(|(k, v, _)| (k.clone(), v.clone()))
+        .collect();
+
+    // Outgoing single-entity rules: bound entities that survive, then created entities. A
+    // reference constraint of a bound entity is checked only if an effect assigns its field
+    // (statically known, so the verifier follows the same steps).
+    let removed_params: BTreeSet<&str> = removed.iter().map(|(_, p, _)| *p).collect();
+    let changed: BTreeSet<(&str, &str)> = action
+        .effects
+        .iter()
+        .map(|e| (e.param.as_str(), e.field.as_str()))
+        .collect();
+    let mut post_invariants: Vec<RuleCheck> = state_invariants
+        .iter()
+        .filter(|c| !removed_params.contains(c.bound.as_str()))
+        .cloned()
+        .collect();
+    let mut post_constraints = Vec::new();
+    for p in action.params() {
+        if p.role() != ParamRole::State || removed_params.contains(p.name()) {
+            continue;
+        }
+        let Some(entity) = entity_of(p) else { continue };
+        for (name, c) in module.constraints_for(&entity) {
+            if let Some(f) = c.reference()
+                && !changed.contains(&(p.name(), f))
+            {
+                continue;
+            }
+            post_constraints.push(RuleCheck::constraint(name, c, p.name(), p.role()));
+        }
+    }
+    for ((entity, id), v, _) in &created {
+        let label = format!("{entity}#{id}");
+        s_prime.insert(label.clone(), v.clone());
+        for (name, i) in module.invariants_for(entity) {
+            let mut check = RuleCheck::invariant(name, i, &label);
+            check.created = true;
+            post_invariants.push(check);
+        }
+        for (name, c) in module.constraints_for(entity) {
+            let mut check = RuleCheck::constraint(name, c, &label, ParamRole::State);
+            check.created = true;
+            post_constraints.push(check);
         }
     }
 
@@ -1114,7 +1645,7 @@ fn run_transition(ev: &mut Evaluator<'_>, action: &ActionItem, s: Vals) -> Outco
         ev,
         &mut out,
         &mut stopped,
-        &state_invariants,
+        &post_invariants,
         &s_prime,
         Phase::SPrime,
         "invariant_post",
@@ -1123,7 +1654,7 @@ fn run_transition(ev: &mut Evaluator<'_>, action: &ActionItem, s: Vals) -> Outco
         ev,
         &mut out,
         &mut stopped,
-        &state_constraints,
+        &post_constraints,
         &s_prime,
         Phase::SPrime,
         "constraint_post",
@@ -1131,6 +1662,46 @@ fn run_transition(ev: &mut Evaluator<'_>, action: &ActionItem, s: Vals) -> Outco
     if stopped {
         return out;
     }
+
+    // Referential integrity on S' (research R6): no surviving `Ref` to a removed identity.
+    for ((entity, id), _, r) in &removed {
+        if module.references_to(entity).is_empty() {
+            continue;
+        }
+        match ev.incoming_prime(entity, id) {
+            Ok(edges) if edges.is_empty() => {}
+            Ok(edges) => {
+                out.result = "DENY";
+                let list: Vec<String> = edges
+                    .iter()
+                    .map(|e| format!("{}.{} of {} {}", e.entity, e.field, e.entity, e.id))
+                    .collect();
+                let mut why = reason(
+                    "DANGLING_REFERENCE",
+                    format!(
+                        "removing {entity} {id} leaves references to it: {}",
+                        list.join(", ")
+                    ),
+                    Some(&r.loc),
+                );
+                if let Json::Object(m) = &mut why {
+                    m.insert(
+                        "references".into(),
+                        Json::Array(edges.iter().map(RefEdge::to_json).collect()),
+                    );
+                }
+                out.reasons.push(why);
+                return out;
+            }
+            Err(msg) => {
+                out.result = "ERROR";
+                let why = ev.error_reason(msg, &r.loc);
+                out.reasons.push(why);
+                return out;
+            }
+        }
+    }
+
     out.changes = delta
         .into_iter()
         .map(|(param, field, _, old, new)| {
@@ -1138,10 +1709,7 @@ fn run_transition(ev: &mut Evaluator<'_>, action: &ActionItem, s: Vals) -> Outco
                 .params()
                 .iter()
                 .find(|p| p.name() == param)
-                .and_then(|p| match p.ty() {
-                    Type::Entity(e) => Some(e.clone()),
-                    _ => None,
-                })
+                .and_then(entity_of)
                 .unwrap_or_default();
             let id = match s.get(&param) {
                 Some(Value::Entity(fields)) => fields
@@ -1153,10 +1721,25 @@ fn run_transition(ev: &mut Evaluator<'_>, action: &ActionItem, s: Vals) -> Outco
             json!({"param": param, "entity": entity, "id": id, "field": field, "old": old, "new": new})
         })
         .collect();
+    let ty = |entity: &str| Type::Entity(entity.to_string());
+    for ((entity, id), v, _) in &created {
+        out.lifecycle
+            .push(json!({"op": "create", "entity": entity, "id": id,
+                                  "value": encode_param(module, &ty(entity), v)}));
+    }
+    for ((entity, id), param, _) in &removed {
+        let value = s
+            .get(*param)
+            .map(|v| encode_param(module, &ty(entity), v))
+            .unwrap_or(Json::Null);
+        out.lifecycle
+            .push(json!({"op": "remove", "entity": entity, "id": id, "value": value}));
+    }
     out
 }
 
-/// One single-entity rule (entity constraint or state invariant) bound to an action parameter.
+/// One single-entity rule (entity constraint or state invariant) bound to an action parameter,
+/// or to an entity created by the transition.
 #[derive(Clone)]
 struct RuleCheck {
     name: String,
@@ -1166,6 +1749,41 @@ struct RuleCheck {
     bound: String,
     role: ParamRole,
     constraint: bool,
+    /// Bound to a created entity: its field reads are not state reads.
+    created: bool,
+}
+
+impl RuleCheck {
+    fn constraint(
+        name: &str,
+        c: &crate::semantic::module::ConstraintItem,
+        bound: &str,
+        role: ParamRole,
+    ) -> Self {
+        RuleCheck {
+            name: name.to_string(),
+            hash: *c.hash(),
+            body: c.body().clone(),
+            rule_param: c.param().to_string(),
+            bound: bound.to_string(),
+            role,
+            constraint: true,
+            created: false,
+        }
+    }
+
+    fn invariant(name: &str, i: &crate::semantic::module::InvariantItem, bound: &str) -> Self {
+        RuleCheck {
+            name: name.to_string(),
+            hash: *i.hash(),
+            body: i.body().clone(),
+            rule_param: i.param().to_string(),
+            bound: bound.to_string(),
+            role: ParamRole::State,
+            constraint: false,
+            created: false,
+        }
+    }
 }
 
 fn role_name(role: ParamRole) -> &'static str {
@@ -1218,7 +1836,12 @@ fn run_rules(
         if let Some(v) = state.get(&c.bound) {
             vals.insert(c.rule_param.clone(), v.clone());
         }
-        ev.push_frame(BTreeMap::from([(c.rule_param.clone(), c.bound.clone())]));
+        let to_outer = if c.created {
+            BTreeMap::new()
+        } else {
+            BTreeMap::from([(c.rule_param.clone(), c.bound.clone())])
+        };
+        ev.push_frame(to_outer);
         let (r, reads) = ev.predicate(&c.body, &vals, phase);
         ev.pop_frame();
         let outcome = match &r {
@@ -1259,8 +1882,8 @@ fn run_rules(
             Err(msg) => {
                 *stopped = true;
                 out.result = "ERROR";
-                out.reasons
-                    .push(reason("EVALUATION_ERROR", msg, Some(&loc)));
+                let r = ev.error_reason(msg, &loc);
+                out.reasons.push(r);
             }
         }
     }

@@ -1,7 +1,7 @@
 //! `behavior` command-line interface over the engine API (contracts/engine-api.md).
 //!
-//! Exit codes: 0 admitted / ALLOW / replay match / verified / authorized; 1 DENY / not verified /
-//! refused; 2 admission failure, INVALID_INPUT, INVALID_STATE, intent rejected, replay mismatch,
+//! Exit codes: 0 admitted / ALLOW / replay match / verified / authorized; 1 DENY /
+//! ENTITY_ID_ALREADY_USED / LIFECYCLE_CONFLICT / not verified / refused; 2 admission failure, INVALID_INPUT, INVALID_STATE, intent rejected, replay mismatch,
 //! or invalid governance input; 3 ERROR or solver unavailable; 64 usage error.
 #![forbid(unsafe_code)]
 
@@ -76,7 +76,8 @@ const USAGE: u8 = 64;
 fn result_code(result: &str) -> u8 {
     match result {
         "ALLOW" => 0,
-        "DENY" => 1,
+        // Lifecycle refusals (feature 006) are decisions, like DENY.
+        "DENY" | "ENTITY_ID_ALREADY_USED" | "LIFECYCLE_CONFLICT" => 1,
         "ERROR" => 3,
         _ => 2,
     }

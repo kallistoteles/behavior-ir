@@ -1,0 +1,126 @@
+{
+ "_comment": "Feature 006 lifecycle verification over wire/valid/accounts.json. switch_and_remove has a real counterexample: an account not bound by the action may still reference `old`.",
+ "wire": "../wire/valid/accounts.json",
+ "profile": [
+  "postcondition",
+  "preservation"
+ ],
+ "checks": [
+  {
+   "kind": "preservation",
+   "action": "open_account",
+   "subject": "non_negative_balance",
+   "outcome": "proven",
+   "param": "create[0]"
+  },
+  {
+   "kind": "preservation",
+   "action": "open_account",
+   "subject": "ref(Account.owner)",
+   "outcome": "proven",
+   "param": "create[0]"
+  },
+  {
+   "kind": "postcondition",
+   "action": "open_account",
+   "subject": "exists(account_id)",
+   "outcome": "proven"
+  },
+  {
+   "kind": "preservation",
+   "action": "open_account_unchecked",
+   "subject": "non_negative_balance",
+   "outcome": "counterexample",
+   "param": "create[0]"
+  },
+  {
+   "kind": "preservation",
+   "action": "open_account_unchecked",
+   "subject": "ref(Account.owner)",
+   "outcome": "proven",
+   "param": "create[0]"
+  },
+  {
+   "kind": "postcondition",
+   "action": "open_account_unchecked",
+   "subject": "exists(account_id)",
+   "outcome": "proven"
+  },
+  {
+   "kind": "preservation",
+   "action": "create_twice",
+   "subject": "non_negative_balance",
+   "outcome": "proven",
+   "param": "create[0]"
+  },
+  {
+   "kind": "preservation",
+   "action": "create_twice",
+   "subject": "ref(Account.owner)",
+   "outcome": "proven",
+   "param": "create[0]"
+  },
+  {
+   "kind": "preservation",
+   "action": "create_twice",
+   "subject": "non_negative_balance",
+   "outcome": "proven",
+   "param": "create[1]"
+  },
+  {
+   "kind": "preservation",
+   "action": "create_twice",
+   "subject": "ref(Account.owner)",
+   "outcome": "proven",
+   "param": "create[1]"
+  },
+  {
+   "kind": "preservation",
+   "action": "deposit",
+   "subject": "non_negative_balance",
+   "outcome": "proven",
+   "param": "account"
+  },
+  {
+   "kind": "preservation",
+   "action": "switch_and_remove",
+   "subject": "non_negative_balance",
+   "outcome": "proven",
+   "param": "account"
+  },
+  {
+   "kind": "preservation",
+   "action": "switch_and_remove",
+   "subject": "ref(Account.owner)",
+   "outcome": "proven",
+   "param": "account"
+  },
+  {
+   "kind": "referential_integrity",
+   "action": "switch_and_remove",
+   "subject": "remove old",
+   "outcome": "counterexample",
+   "param": "old"
+  },
+  {
+   "kind": "postcondition",
+   "action": "close_account",
+   "subject": "not exists(account.id)",
+   "outcome": "proven"
+  },
+  {
+   "kind": "referential_integrity",
+   "action": "remove_customer",
+   "subject": "remove customer",
+   "outcome": "proven",
+   "param": "customer"
+  },
+  {
+   "kind": "referential_integrity",
+   "action": "remove_customer_unchecked",
+   "subject": "remove customer",
+   "outcome": "counterexample",
+   "param": "customer"
+  }
+ ]
+}

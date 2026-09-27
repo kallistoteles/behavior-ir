@@ -1,4 +1,4 @@
-# The persistence contract (feature 005)
+# The persistence contract (features 005–006)
 
 > **The engine defines the canonical state-transition and persistence contract; hosts choose how
 > that contract is stored.**
@@ -30,7 +30,7 @@ Equal content gives an equal state identity, even at different positions: positi
 Store (engine semantics) over a Backend (host storage)
         │  read the head once (state S at position n), every bound entity *as of n*
         ▼
-S + input + context ──► evaluator ──► decision + ΔS + observed read set / write set
+S + input + context + facts as of n ──► evaluator ──► decision + ΔS + observed reads and facts
         │  only ALLOW produces a commit bundle, bound to store and state:
         │  data_version = store:<genesis>;state:<S>;position:<n>
         ▼
@@ -38,18 +38,22 @@ commit(expected_parent = S, bundle)
    1. idempotency: a transition evaluated at n can only be record n+1
    2. whole-state concurrency: S must still be the head, otherwise STATE_CONFLICT
    3. validation: the record reproduces; read and write sets are re-derived by the engine;
-      revisions, old values and declarations match; the entity universe is unchanged
+      revisions, old values, declarations and facts match; creations use unused identities,
+      removals exist, and no reference to a removed entity survives (feature 006)
    4. evidence policy (cited by every record)
-   5. the backend's atomic compare-and-set: versions + record + head as one unit
+   5. the backend's atomic compare-and-set: versions, removals, index changes, record and head
+      as one unit
         ▼
 new state identity + transition record (evaluated_against == committed_on) + new head
 ```
 
 ## What a host implements
 
-A `Backend` has seven methods: `genesis`, `head`, `create`, `version_at(key, position)`,
-`version(key, revision)`, `record(position)`, and `commit(expected_last_record, versions, record,
-new_head)`.
+A `Backend` has ten methods: `genesis`, `head`, `create(genesis, head, seed, seed_refs)`,
+`version_at(key, position)`, `version(key, revision)`, `record(position)`, `removed_at(key)`,
+`incoming_at(target, position)`, `used_at(key, position)` (with a default), and
+`commit(expected_last_record, versions, removals, ref_changes, record, new_head)`. Only `create`
+and `commit` write.
 - **The compare-and-set:** `commit` is the only concurrency primitive, and it must be atomic and
   crash-safe.
 - **As-of reads:** stored versions never change and are tagged with the position that created them,
@@ -58,8 +62,8 @@ new_head)`.
   replay.
 
 `InMemoryBackend` is the reference backend. `behavior_store::conformance::run(factory)` (Python:
-`run_conformance(factory)`) runs 17 named cases against any backend. Faults and interleavings are
-injected around the backend, so no hooks are needed. Six deliberately broken backends each fail
+`run_conformance(factory)`) runs 24 named cases against any backend. Faults and interleavings are
+injected around the backend, so no hooks are needed. Ten deliberately broken backends each fail
 their designated case.
 
 ## Replay
@@ -67,11 +71,55 @@ their designated case.
 - **Data replay:** re-applies each write set, recomputes every entity version and state identity,
   and checks the record chain, the parents, and `evaluated_against == committed_on`.
 - **Behavior replay:** re-evaluates every transition under its recorded behavior version, and checks
-  the decision, the changes and the observed reads.
+  the decision, the changes, the observed reads and the observed facts.
+- **Reference replay** (`replay_index(store, module, …)`, feature 006): rebuilds the reverse-reference
+  index from entity content and checks it against the backend's `incoming_at`, and each record's
+  `ref_changes` against the content changes. It needs the module, because `Ref` fields are part of
+  the entity declarations.
 
-Both report the first divergence: its position and kind (`state`, `parent`, `chain`, `record`,
-`changes`, `decision`, `invariant`). Snapshots are a cache: `verify_snapshot` confirms them, and
-they never override the history.
+All three report the first divergence: its position and kind (`state`, `parent`, `chain`, `record`,
+`changes`, `decision`, `invariant`, and since 006 `lifecycle` and `references`). Snapshots are a
+cache: `verify_snapshot` confirms them, and they never override the history.
+
+## Universe transitions (feature 006)
+
+> Identity is permanent; existence is state.
+
+The entity universe is part of state. Actions create entities (`create(T, id, {complete value})`)
+and remove them (`remove(p)`) as ordinary effects, evaluated and committed atomically with field
+updates. Details: `specs/006-entity-lifecycle/`.
+
+- **Identities are host-supplied inputs;** the engine never generates them.
+- **The identity registry:** an identity is *used* once any version of it exists, keyed by the
+  entity type's name and the id (never the declaration hash). A removed identity is never created
+  again: `ENTITY_ID_ALREADY_USED`.
+- **Removal is logical:** `removed_at(key)` is set once, inside the commit; versions are kept, so
+  `load` at earlier states and both replays still see the removed entity. A removal removes the
+  last content hash from the state accumulator; a creation inserts the new one (revision 1).
+- **Referential integrity is explicit:** `Ref<T>` is `Id<T>` plus the constraint `exists(field)`.
+  Plain `Id<T>` fields never block anything. Integrity is checked on the resulting state S', so
+  retarget-and-remove in one transition is valid, and a removal with a surviving reference is
+  `DANGLING_REFERENCE`.
+- **The derived reverse-reference index** answers `incoming_at(target, position)`. It is stored as
+  edge events (`added_at`, a set-once `dropped_at`), written in the same atomic commit, never part
+  of the state identity, and always reconstructible from entity content (conformance case
+  `reference_index_consistency`, `replay_index`).
+
+**The evaluation snapshot.** Evaluation observes *facts*: existence and incoming references
+(current state) and whether an identity was used (history). Two positions with the same state
+identity can differ in history facts, so the deterministic input is the state *plus* the observed
+facts, named by `data_version` (store, state, position). The store answers facts as of the
+evaluated position; only facts actually observed are recorded, in the decision record's `facts`
+section and the bundle's `read_facts`; the commit re-derives them at the parent and refuses a
+bundle whose facts differ. Plain evaluation takes facts from the request (`UNKNOWN_FACT` if one is
+missing, `INCONSISTENT_FACTS` if they cannot describe one valid state); replay uses the recorded
+facts.
+
+**Trust boundary.** A recorded existence or reference fact is *what the store answered* at that
+position, checked again at commit and by replay against the same store. It is **not** a standalone
+cryptographic proof: MuHash commits to the state's content, but a fact about absence or about
+incoming references cannot be verified without the store (no membership or non-membership proofs).
+A reader who does not trust the store must replay against it.
 
 ## Evidence
 
@@ -93,8 +141,10 @@ This ties into the open feature-002 risks (unsigned attestations, trusted cache)
   and `evaluated_against` / `committed_on`, so a later entity-level rule can accept a transition
   evaluated at S42 onto S45 when nothing it observed or wrote changed, without reinterpreting old
   records.
-- **Fixed entity universe:** no entity is created or removed after the genesis. Import, create and
-  delete belong in later *universe transitions* recorded in history, not backend CRUD.
+- **Entity universe:** since feature 006, creations and removals are recorded transitions. Bulk
+  import, identity reuse and garbage collection of history remain out of scope.
+- **Verifiable facts:** proofs of (non-)membership or incoming references (for example an
+  authenticated index) would let a reader check recorded facts without the store.
 - **Signed authorizations** with trusted keys in the evidence policy would raise evidence trust from
   structural to cryptographic (`evidence_trust: "cryptographic"`).
 - **Resolve behavior by content hash:** `store.commit(bundle)` with a behavior resolver

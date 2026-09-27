@@ -85,7 +85,7 @@ fn ty(env: &Env, t: &WType) -> Result<Type, String> {
         WType::Exact(Some(n)) => Type::Exact(crate::semantic::types::Unit::Nominal(
             env.nominals.get(n).ok_or("unknown nominal")?.clone(),
         )),
-        WType::Id(e) => Type::Id(e.clone()),
+        WType::Id(e) | WType::Ref(e) => Type::Id(e.clone()),
         WType::Entity(e) => Type::Entity(e.clone()),
     })
 }

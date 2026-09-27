@@ -78,6 +78,8 @@ fn bundle() -> CommitBundle {
             old: json!("100.00"),
             new: json!("90.00"),
         }],
+        read_facts: serde_json::Value::Null,
+        write_lifecycle: Vec::new(),
         commit_time: "2026-09-27T12:00:00Z".into(),
         evidence: None,
     }
@@ -99,6 +101,9 @@ fn record() -> TransitionRecord {
         new_versions: vec![version(2, 4)],
         evidence_policy: EvidencePolicy::none().hash().unwrap(),
         authorization: None,
+        created: Vec::new(),
+        removed: Vec::new(),
+        ref_changes: Vec::new(),
     }
 }
 

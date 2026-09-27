@@ -1,0 +1,36 @@
+{
+ "action": "switch_and_remove",
+ "context": {},
+ "data_version": "1",
+ "facts": {
+  "references": [
+   {
+    "entity": "Customer",
+    "id": "c1",
+    "incoming": [
+     {
+      "entity": "Account",
+      "field": "owner",
+      "id": "a1"
+     }
+    ]
+   }
+  ]
+ },
+ "input": {},
+ "state": {
+  "account": {
+   "balance": "0.00",
+   "id": "a1",
+   "owner": "c1"
+  },
+  "new": {
+   "id": "c2",
+   "name": "Bo"
+  },
+  "old": {
+   "id": "c1",
+   "name": "Ada"
+  }
+ }
+}

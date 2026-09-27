@@ -17,6 +17,10 @@ pub const IR_VERSION_FIXED_SCALE: &str = "0.3";
 /// accepts. Earlier versions had rounded decimal arithmetic; the same document text must not
 /// silently change meaning, so they are rejected.
 pub const IR_VERSION_EXACT: &str = "0.4";
+/// The IR version with entity lifecycle (feature 006): creation and removal effects, `exists`,
+/// `referenced`, and `ref` field types. Any use of one of these forms needs 0.5; 0.4 documents
+/// without them are still accepted (the extension changes no existing meaning).
+pub const IR_VERSION_LIFECYCLE: &str = "0.5";
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 pub struct Loc {
@@ -36,6 +40,8 @@ pub enum WType {
     /// An exact value: of a decimal nominal (`Some(name)`) or dimensionless (`None`).
     Exact(Option<String>),
     Id(String),
+    /// A reference field (wire 0.5): an `Id` whose target must exist (feature 006).
+    Ref(String),
     Entity(String),
 }
 
@@ -133,12 +139,38 @@ pub struct WEffect {
     pub loc: Loc,
 }
 
+/// A lifecycle effect (wire 0.5): creation with a complete initial value, or removal of the
+/// entity bound to a state parameter.
+#[derive(Debug, Clone)]
+pub enum WLifecycle {
+    Create {
+        entity: String,
+        id: WExpr,
+        fields: Vec<(String, WExpr)>,
+        loc: Loc,
+    },
+    Remove {
+        param: String,
+        loc: Loc,
+    },
+}
+
+impl WLifecycle {
+    pub fn loc(&self) -> &Loc {
+        match self {
+            WLifecycle::Create { loc, .. } | WLifecycle::Remove { loc, .. } => loc,
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct WAction {
     pub name: String,
     pub params: Vec<WParam>,
     pub preconditions: Vec<WCond>,
     pub effects: Vec<WEffect>,
+    /// Lifecycle effects, in document order (serialized after the field effects).
+    pub lifecycle: Vec<WLifecycle>,
     pub postconditions: Vec<WCond>,
     pub loc: Loc,
 }
@@ -175,6 +207,10 @@ pub enum OpName {
     ToDecimal,
     Unwrap,
     ValueOr,
+    /// `exists(id)` (wire 0.5).
+    Exists,
+    /// `referenced(id)` (wire 0.5).
+    Referenced,
 }
 
 #[derive(Debug, Clone)]
@@ -221,8 +257,13 @@ pub struct WExpr {
 /// A failed decode: either a structural problem or an unsupported format version.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DecodeError {
-    Structure { path: String, message: String },
+    Structure {
+        path: String,
+        message: String,
+    },
     UnsupportedVersion(String),
+    /// A 0.4 document uses a form introduced by wire 0.5 (named).
+    NeedsLifecycleVersion(String),
 }
 
 type R<T> = Result<T, DecodeError>;
@@ -359,6 +400,7 @@ pub fn decode_type(v: &Value, path: &str) -> R<WType> {
             }
         }
         "id" => WType::Id(o.ident("entity")?),
+        "ref" => WType::Ref(o.ident("entity")?),
         "entity" => WType::Entity(o.ident("name")?),
         other => return fail(&tag_path, format!("unknown type `{other}`")),
     };
@@ -425,6 +467,8 @@ pub(crate) fn op_name(s: &str) -> Option<OpName> {
         "to_decimal" => OpName::ToDecimal,
         "unwrap" => OpName::Unwrap,
         "value_or" => OpName::ValueOr,
+        "exists" => OpName::Exists,
+        "referenced" => OpName::Referenced,
         _ => return None,
     })
 }
@@ -433,7 +477,7 @@ pub(crate) fn arity_ok(op: OpName, n: usize) -> bool {
     use OpName::*;
     match op {
         And | Or => n >= 2,
-        Not | IsNone | IsSome | Some | ToDecimal | Unwrap => n == 1,
+        Not | IsNone | IsSome | Some | ToDecimal | Unwrap | Exists | Referenced => n == 1,
         _ => n == 2,
     }
 }
@@ -533,7 +577,50 @@ fn decode_cond(v: &Value, path: &str) -> R<WCond> {
     Ok(WCond { expr, loc })
 }
 
-fn decode_effect(v: &Value, path: &str) -> R<WEffect> {
+/// A decoded entry of an action's `effects` array.
+enum Decoded {
+    Set(WEffect),
+    Lifecycle(WLifecycle),
+}
+
+fn decode_effect(v: &Value, path: &str) -> R<Decoded> {
+    if let Value::Object(map) = v {
+        if map.contains_key("create") {
+            let mut o = Obj::new(v, path)?;
+            let entity = o.ident("create")?;
+            let id_path = o.sub("id");
+            let id = decode_expr(o.get("id")?, &id_path)?;
+            let fields_path = o.sub("fields");
+            let fields = match o.get("fields")? {
+                Value::Object(m) => m
+                    .iter()
+                    .map(|(k, fv)| {
+                        let fp = format!("{fields_path}.{k}");
+                        if !is_identifier(k) {
+                            return fail(&fp, format!("`{k}` is not an identifier"));
+                        }
+                        Ok((k.clone(), decode_expr(fv, &fp)?))
+                    })
+                    .collect::<R<Vec<_>>>()?,
+                _ => return fail(&fields_path, "expected an object"),
+            };
+            let loc = o.loc()?;
+            o.finish()?;
+            return Ok(Decoded::Lifecycle(WLifecycle::Create {
+                entity,
+                id,
+                fields,
+                loc,
+            }));
+        }
+        if map.contains_key("remove") {
+            let mut o = Obj::new(v, path)?;
+            let param = o.ident("remove")?;
+            let loc = o.loc()?;
+            o.finish()?;
+            return Ok(Decoded::Lifecycle(WLifecycle::Remove { param, loc }));
+        }
+    }
     let mut o = Obj::new(v, path)?;
     let target_path = o.sub("target");
     let mut t = Obj::new(o.get("target")?, &target_path)?;
@@ -544,12 +631,12 @@ fn decode_effect(v: &Value, path: &str) -> R<WEffect> {
     let value = decode_expr(o.get("value")?, &value_path)?;
     let loc = o.loc()?;
     o.finish()?;
-    Ok(WEffect {
+    Ok(Decoded::Set(WEffect {
         param,
         field,
         value,
         loc,
-    })
+    }))
 }
 
 /// Decodes a wire IR document. The version is checked before anything else.
@@ -559,8 +646,9 @@ pub fn decode_module(text: &str) -> R<WModule> {
         Err(e) => return fail("$", format!("invalid JSON: {e}")),
     };
     let mut o = Obj::new(&root, "$")?;
-    let (with_constraints, fixed_scale) = match o.get("ir_version")? {
-        Value::String(v) if v == IR_VERSION_EXACT => (true, true),
+    let (with_constraints, fixed_scale, lifecycle) = match o.get("ir_version")? {
+        Value::String(v) if v == IR_VERSION_EXACT => (true, true, false),
+        Value::String(v) if v == IR_VERSION_LIFECYCLE => (true, true, true),
         Value::String(v) => return Err(DecodeError::UnsupportedVersion(v.clone())),
         _ => return fail("$.ir_version", "expected a string"),
     };
@@ -695,7 +783,14 @@ pub fn decode_module(text: &str) -> R<WModule> {
         let pre_path = a.sub("preconditions");
         let preconditions = decode_list(a.arr("preconditions")?, &pre_path, decode_cond)?;
         let eff_path = a.sub("effects");
-        let effects = decode_list(a.arr("effects")?, &eff_path, decode_effect)?;
+        let mut effects = Vec::new();
+        let mut lifecycle = Vec::new();
+        for d in decode_list(a.arr("effects")?, &eff_path, decode_effect)? {
+            match d {
+                Decoded::Set(e) => effects.push(e),
+                Decoded::Lifecycle(l) => lifecycle.push(l),
+            }
+        }
         let post_path = a.sub("postconditions");
         let postconditions = decode_list(a.arr("postconditions")?, &post_path, decode_cond)?;
         let loc = a.loc()?;
@@ -705,6 +800,7 @@ pub fn decode_module(text: &str) -> R<WModule> {
             params,
             preconditions,
             effects,
+            lifecycle,
             postconditions,
             loc,
         })
@@ -726,7 +822,79 @@ pub fn decode_module(text: &str) -> R<WModule> {
             "fixed-scale nominals, exact types, rescale, and declared derived types need ir_version \"0.3\"",
         );
     }
+    if !lifecycle && let Some(form) = lifecycle_form(&module) {
+        return Err(DecodeError::NeedsLifecycleVersion(form.to_string()));
+    }
     Ok(module)
+}
+
+fn type_lifecycle_form(t: &WType) -> Option<&'static str> {
+    match t {
+        WType::Ref(_) => Some("ref"),
+        WType::Option(inner) => type_lifecycle_form(inner),
+        _ => None,
+    }
+}
+
+fn expr_lifecycle_form(e: &WExpr) -> Option<&'static str> {
+    match &e.kind {
+        WExprKind::Op {
+            op: OpName::Exists, ..
+        } => Some("exists"),
+        WExprKind::Op {
+            op: OpName::Referenced,
+            ..
+        } => Some("referenced"),
+        WExprKind::Op { args, .. } => args.iter().find_map(expr_lifecycle_form),
+        WExprKind::Lit { ty, .. } => type_lifecycle_form(ty),
+        WExprKind::In { arg, .. }
+        | WExprKind::Wrap { arg, .. }
+        | WExprKind::Rescale { arg, .. } => expr_lifecycle_form(arg),
+        WExprKind::Field { .. } | WExprKind::Param(_) | WExprKind::Derived { .. } => None,
+    }
+}
+
+/// The first form introduced by wire 0.5 (feature 006) that a module uses, if any: such a module
+/// needs, and serializes as, `"0.5"`.
+pub fn lifecycle_form(m: &WModule) -> Option<&'static str> {
+    let params = |ps: &[WParam]| ps.iter().find_map(|p| type_lifecycle_form(&p.ty));
+    fn exprs(xs: &mut dyn Iterator<Item = &WExpr>) -> Option<&'static str> {
+        xs.map(expr_lifecycle_form).find(Option::is_some).flatten()
+    }
+    m.entities
+        .iter()
+        .flat_map(|e| &e.fields)
+        .find_map(|f| type_lifecycle_form(&f.ty))
+        .or_else(|| {
+            m.derived.iter().find_map(|d| {
+                params(&d.params)
+                    .or_else(|| d.declared.as_ref().and_then(type_lifecycle_form))
+                    .or_else(|| expr_lifecycle_form(&d.body))
+            })
+        })
+        .or_else(|| exprs(&mut m.invariants.iter().map(|i| &i.body)))
+        .or_else(|| exprs(&mut m.constraints.iter().map(|c| &c.body)))
+        .or_else(|| {
+            m.actions.iter().find_map(|a| {
+                a.lifecycle
+                    .first()
+                    .map(|l| match l {
+                        WLifecycle::Create { .. } => "create",
+                        WLifecycle::Remove { .. } => "remove",
+                    })
+                    .or_else(|| params(&a.params))
+                    .or_else(|| {
+                        exprs(
+                            &mut a
+                                .preconditions
+                                .iter()
+                                .chain(&a.postconditions)
+                                .map(|c| &c.expr)
+                                .chain(a.effects.iter().map(|e| &e.value)),
+                        )
+                    })
+            })
+        })
 }
 
 fn type_uses_fixed_scale(t: &WType) -> bool {
@@ -766,5 +934,12 @@ pub fn uses_fixed_scale(m: &WModule) -> bool {
                     .chain(&a.postconditions)
                     .any(|c| expr_uses_fixed_scale(&c.expr))
                 || a.effects.iter().any(|e| expr_uses_fixed_scale(&e.value))
+                || a.lifecycle.iter().any(|l| match l {
+                    WLifecycle::Create { id, fields, .. } => {
+                        expr_uses_fixed_scale(id)
+                            || fields.iter().any(|(_, e)| expr_uses_fixed_scale(e))
+                    }
+                    WLifecycle::Remove { .. } => false,
+                })
         })
 }

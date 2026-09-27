@@ -3,8 +3,8 @@
 
 use std::cell::RefCell;
 
-use crate::documents::{EntityKey, EntityVersion, Genesis, Head, TransitionRecord};
-use crate::{Backend, BackendError, CasOutcome};
+use crate::documents::{EntityKey, EntityVersion, Genesis, Head, RefChange, TransitionRecord};
+use crate::{Backend, BackendError, CasOutcome, RefEdge};
 
 /// A fault injected into the next commit.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -39,8 +39,18 @@ impl<B: Backend> Backend for FaultInjector<B> {
         g: &Genesis,
         h: &Head,
         seed: &[EntityVersion],
+        refs: &[RefChange],
     ) -> Result<(), BackendError> {
-        self.inner.create(g, h, seed)
+        self.inner.create(g, h, seed, refs)
+    }
+    fn removed_at(&self, key: &EntityKey) -> Result<Option<u64>, BackendError> {
+        self.inner.removed_at(key)
+    }
+    fn incoming_at(&self, t: &EntityKey, pos: u64) -> Result<Vec<RefEdge>, BackendError> {
+        self.inner.incoming_at(t, pos)
+    }
+    fn used_at(&self, key: &EntityKey, pos: u64) -> Result<bool, BackendError> {
+        self.inner.used_at(key, pos)
     }
     fn version_at(&self, key: &EntityKey, pos: u64) -> Result<Option<EntityVersion>, BackendError> {
         self.inner.version_at(key, pos)
@@ -55,24 +65,61 @@ impl<B: Backend> Backend for FaultInjector<B> {
         &mut self,
         expected: &str,
         versions: &[EntityVersion],
+        removals: &[EntityKey],
+        refs: &[RefChange],
         record: &TransitionRecord,
         head: &Head,
     ) -> Result<CasOutcome, BackendError> {
         match self.next.take() {
             Some(Fault::BeforeWrite) => Err(BackendError("injected fault before the write".into())),
             Some(Fault::AfterWrite) => {
-                self.inner.commit(expected, versions, record, head)?;
+                self.inner
+                    .commit(expected, versions, removals, refs, record, head)?;
                 Err(BackendError(
                     "injected fault after the write (acknowledgement lost)".into(),
                 ))
             }
-            None => self.inner.commit(expected, versions, record, head),
+            None => self
+                .inner
+                .commit(expected, versions, removals, refs, record, head),
         }
     }
 }
 
-/// A commit prepared elsewhere, to be landed on a backend: `(expected, versions, record, head)`.
-pub type Landing = (String, Vec<EntityVersion>, TransitionRecord, Head);
+/// A commit prepared elsewhere, to be landed on a backend.
+#[derive(Debug, Clone)]
+pub struct Landing {
+    pub expected: String,
+    pub versions: Vec<EntityVersion>,
+    pub removals: Vec<EntityKey>,
+    pub ref_changes: Vec<RefChange>,
+    pub record: TransitionRecord,
+    pub head: Head,
+}
+
+impl Landing {
+    /// The commit that wrote `record` (and moved the head to `head`), replayed on another copy
+    /// whose last record is `expected`.
+    pub fn of(expected: String, record: TransitionRecord, head: Head) -> Self {
+        let mut versions = record.new_versions.clone();
+        versions.extend(record.created.iter().cloned());
+        Landing {
+            expected,
+            versions,
+            removals: record
+                .removed
+                .iter()
+                .map(|r| EntityKey {
+                    entity: r.entity.clone(),
+                    id: r.id.clone(),
+                })
+                .collect(),
+            ref_changes: record.ref_changes.clone(),
+            record,
+            head,
+        }
+    }
+}
 
 /// When an [`Interleave`] lands its prepared commit.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -106,10 +153,15 @@ impl<B> Interleave<B> {
 
 impl<B: Backend> Interleave<B> {
     fn land(&self) -> Result<(), BackendError> {
-        if let Some((expected, versions, record, head)) = self.landing.borrow_mut().take() {
-            self.inner
-                .borrow_mut()
-                .commit(&expected, &versions, &record, &head)?;
+        if let Some(l) = self.landing.borrow_mut().take() {
+            self.inner.borrow_mut().commit(
+                &l.expected,
+                &l.versions,
+                &l.removals,
+                &l.ref_changes,
+                &l.record,
+                &l.head,
+            )?;
         }
         Ok(())
     }
@@ -127,8 +179,27 @@ impl<B: Backend> Backend for Interleave<B> {
         g: &Genesis,
         h: &Head,
         seed: &[EntityVersion],
+        refs: &[RefChange],
     ) -> Result<(), BackendError> {
-        self.inner.borrow_mut().create(g, h, seed)
+        self.inner.borrow_mut().create(g, h, seed, refs)
+    }
+    fn removed_at(&self, key: &EntityKey) -> Result<Option<u64>, BackendError> {
+        if self.on == LandOn::FirstRead {
+            self.land()?;
+        }
+        self.inner.borrow().removed_at(key)
+    }
+    fn incoming_at(&self, t: &EntityKey, pos: u64) -> Result<Vec<RefEdge>, BackendError> {
+        if self.on == LandOn::FirstRead {
+            self.land()?;
+        }
+        self.inner.borrow().incoming_at(t, pos)
+    }
+    fn used_at(&self, key: &EntityKey, pos: u64) -> Result<bool, BackendError> {
+        if self.on == LandOn::FirstRead {
+            self.land()?;
+        }
+        self.inner.borrow().used_at(key, pos)
     }
     fn version_at(&self, key: &EntityKey, pos: u64) -> Result<Option<EntityVersion>, BackendError> {
         if self.on == LandOn::FirstRead {
@@ -146,6 +217,8 @@ impl<B: Backend> Backend for Interleave<B> {
         &mut self,
         expected: &str,
         versions: &[EntityVersion],
+        removals: &[EntityKey],
+        refs: &[RefChange],
         record: &TransitionRecord,
         head: &Head,
     ) -> Result<CasOutcome, BackendError> {
@@ -154,7 +227,7 @@ impl<B: Backend> Backend for Interleave<B> {
         }
         self.inner
             .borrow_mut()
-            .commit(expected, versions, record, head)
+            .commit(expected, versions, removals, refs, record, head)
     }
 }
 
@@ -388,12 +461,7 @@ fn conflict_on_outdated_parent<B: Backend>(f: &dyn Fn() -> B) -> Result<(), Stri
         .map_err(|x| x.0)?
         .ok_or("head missing")?;
     let (base, _) = create(f(), EvidencePolicy::none())?;
-    let landing = (
-        base.store_id().map_err(e)?,
-        rec.new_versions.clone(),
-        rec,
-        head,
-    );
+    let landing = Landing::of(base.store_id().map_err(e)?, rec, head);
     let mut raced =
         Store::open(Interleave::at(base.into_backend(), landing, LandOn::Commit)).map_err(e)?;
     let mine = bundle(unary(&raced, &m, "freeze", "a3")?)?;
@@ -432,7 +500,7 @@ fn no_partial_application<B: Backend>(f: &dyn Fn() -> B) -> Result<(), String> {
         .ok_or("head missing")?;
     let out = s
         .backend_mut()
-        .commit("sha256:stale", &rec.new_versions, &rec, &head)
+        .commit("sha256:stale", &rec.new_versions, &[], &[], &rec, &head)
         .map_err(|x| x.0)?;
     ensure(
         out == CasOutcome::HeadMoved,
@@ -511,12 +579,7 @@ fn snapshot_consistency<B: Backend>(f: &dyn Fn() -> B) -> Result<(), String> {
         .map_err(|x| x.0)?
         .ok_or("head missing")?;
     let (base, _) = create(f(), EvidencePolicy::none())?;
-    let landing = (
-        base.store_id().map_err(e)?,
-        rec.new_versions.clone(),
-        rec,
-        head,
-    );
+    let landing = Landing::of(base.store_id().map_err(e)?, rec, head);
     let s = Store::open(Interleave::new(base.into_backend(), landing)).map_err(e)?;
     let ev = transfer(&s, &m, "a1", "a3", "5.00")?;
     ensure(
@@ -863,8 +926,18 @@ impl<B: Backend> Backend for AlterRecord<B> {
         g: &Genesis,
         h: &Head,
         seed: &[EntityVersion],
+        refs: &[RefChange],
     ) -> Result<(), BackendError> {
-        self.inner.create(g, h, seed)
+        self.inner.create(g, h, seed, refs)
+    }
+    fn removed_at(&self, key: &EntityKey) -> Result<Option<u64>, BackendError> {
+        self.inner.removed_at(key)
+    }
+    fn incoming_at(&self, t: &EntityKey, pos: u64) -> Result<Vec<RefEdge>, BackendError> {
+        self.inner.incoming_at(t, pos)
+    }
+    fn used_at(&self, key: &EntityKey, pos: u64) -> Result<bool, BackendError> {
+        self.inner.used_at(key, pos)
     }
     fn version_at(&self, k: &EntityKey, p: u64) -> Result<Option<EntityVersion>, BackendError> {
         self.inner.version_at(k, p)
@@ -885,16 +958,377 @@ impl<B: Backend> Backend for AlterRecord<B> {
         &mut self,
         x: &str,
         v: &[EntityVersion],
+        rm: &[EntityKey],
+        refs: &[RefChange],
         r: &TransitionRecord,
         h: &Head,
     ) -> Result<CasOutcome, BackendError> {
-        self.inner.commit(x, v, r, h)
+        self.inner.commit(x, v, rm, refs, r, h)
     }
+}
+
+// --- feature 006: lifecycle cases (the accounts module) ------------------------------------------
+
+/// The lifecycle module the feature-006 cases run against (tests/fixtures/wire/valid/accounts.json).
+pub const ACCOUNTS_WIRE: &str = include_str!("../../../tests/fixtures/wire/valid/accounts.json");
+
+fn accounts() -> Result<Module, String> {
+    behavior_core::admit(ACCOUNTS_WIRE).map_err(|r| format!("{:?}", r.errors))
+}
+
+fn accounts_seed() -> Vec<SeedEntity> {
+    let c = |id: &str| SeedEntity {
+        entity: "Customer".into(),
+        value: json!({"id": id, "name": id}),
+    };
+    vec![
+        c("c1"),
+        c("c2"),
+        c("c3"),
+        SeedEntity {
+            entity: "Account".into(),
+            value: json!({"id": "a1", "owner": "c1", "balance": "0.00"}),
+        },
+        SeedEntity {
+            entity: "AuditNote".into(),
+            value: json!({"id": "n3", "about": "c3", "text": "t"}),
+        },
+    ]
+}
+
+fn create_accounts<B: Backend>(backend: B) -> Result<(Store<B>, Module), String> {
+    let m = accounts()?;
+    let s = Store::create(
+        backend,
+        &m,
+        genesis_for(&m, EvidencePolicy::none(), accounts_seed()),
+    )
+    .map_err(e)?;
+    Ok((s, m))
+}
+
+fn run_action<B: Backend>(
+    s: &Store<B>,
+    m: &Module,
+    action: &str,
+    bindings: &[(&str, &str)],
+    input: Json,
+) -> Result<Evaluation, String> {
+    s.evaluate(m, action, &bind(bindings), &input, &json!({}), T0, None)
+        .map_err(e)
+}
+
+fn open_account<B: Backend>(
+    s: &Store<B>,
+    m: &Module,
+    id: &str,
+    owner: &str,
+) -> Result<Evaluation, String> {
+    run_action(
+        s,
+        m,
+        "open_account",
+        &[("owner", owner)],
+        json!({"account_id": id, "initial": "0.00"}),
+    )
+}
+
+fn apply<B: Backend>(s: &mut Store<B>, m: &Module, ev: Evaluation) -> Result<StateRef, String> {
+    let b = bundle(ev)?;
+    Ok(commit(s, m, &b)?.result_state)
+}
+
+fn akey(entity: &str, id: &str) -> EntityKey {
+    EntityKey {
+        entity: entity.into(),
+        id: id.into(),
+    }
+}
+
+/// FR-014: the universe changes only through `commit`. Every entity key the backend reports is
+/// justified by the seed or a recorded creation, every absence by a recorded removal.
+fn create_and_remove_entity<B: Backend>(f: &dyn Fn() -> B) -> Result<(), String> {
+    let (mut s, m) = create_accounts(f())?;
+    let s0 = s.current().map_err(e)?;
+    let s1 = {
+        let ev = open_account(&s, &m, "n1", "c2")?;
+        apply(&mut s, &m, ev)?
+    };
+    let created = s.load(&akey("Account", "n1"), &s1).map_err(e)?;
+    ensure(
+        created.revision == 1 && created.created_at == 1,
+        "a creation is revision 1 at its position",
+    )?;
+    ensure(
+        s.load(&akey("Account", "n1"), &s0).is_err(),
+        "absent before its creation",
+    )?;
+    let s2 = {
+        let ev = run_action(&s, &m, "close_account", &[("account", "n1")], json!({}))?;
+        apply(&mut s, &m, ev)?
+    };
+    ensure(
+        s.load(&akey("Account", "n1"), &s2).is_err(),
+        "absent after its removal",
+    )?;
+    ensure(
+        s.load(&akey("Account", "n1"), &s1).is_ok(),
+        "present in between",
+    )?;
+    // Every key the history names, at every position: existence as the records say.
+    let mut keys: Vec<(EntityKey, Option<u64>, Option<u64>)> = accounts_seed()
+        .iter()
+        .map(|x| {
+            (
+                akey(&x.entity, x.value["id"].as_str().unwrap_or_default()),
+                Some(0),
+                None,
+            )
+        })
+        .collect();
+    keys.push((akey("Account", "zz"), None, None));
+    for pos in 1..=s2.position {
+        let r = s
+            .backend()
+            .record(pos)
+            .map_err(|x| x.0)?
+            .ok_or("record missing")?;
+        for v in &r.created {
+            keys.push((v.key(), Some(pos), None));
+        }
+        for x in &r.removed {
+            for k in keys
+                .iter_mut()
+                .filter(|k| k.0.entity == x.entity && k.0.id == x.id)
+            {
+                k.2 = Some(pos);
+            }
+        }
+    }
+    for (k, born, died) in &keys {
+        let removed_at = s.backend().removed_at(k).map_err(|x| x.0)?;
+        ensure(
+            removed_at == *died,
+            format!("{k}: removed_at {removed_at:?}, records say {died:?}"),
+        )?;
+        for pos in 0..=s2.position {
+            let expect = born.is_some_and(|b| b <= pos) && died.is_none_or(|d| d > pos);
+            let got = crate::store::exists_at(s.backend(), k, pos).map_err(|x| x.0)?;
+            ensure(
+                got == expect,
+                format!("{k} at {pos}: exists {got}, history says {expect}"),
+            )?;
+        }
+    }
+    Ok(())
+}
+
+fn identity_never_reused<B: Backend>(f: &dyn Fn() -> B) -> Result<(), String> {
+    let (mut s, m) = create_accounts(f())?;
+    {
+        let ev = open_account(&s, &m, "n1", "c2")?;
+        apply(&mut s, &m, ev)?
+    };
+    {
+        let ev = run_action(&s, &m, "close_account", &[("account", "n1")], json!({}))?;
+        apply(&mut s, &m, ev)?
+    };
+    let at = s.current().map_err(e)?.position;
+    ensure(
+        s.backend()
+            .used_at(&akey("Account", "n1"), at)
+            .map_err(|x| x.0)?,
+        "a removed identity stays used",
+    )?;
+    let again = open_account(&s, &m, "n1", "c2")?;
+    ensure(
+        again.record["result"] == "ENTITY_ID_ALREADY_USED",
+        format!("re-creating a removed identity: {}", again.record["result"]),
+    )
+}
+
+fn removed_entity_history<B: Backend>(f: &dyn Fn() -> B) -> Result<(), String> {
+    let (mut s, m) = create_accounts(f())?;
+    let s0 = s.current().map_err(e)?;
+    let before = s.load(&akey("Account", "a1"), &s0).map_err(e)?;
+    let s1 = {
+        let ev = run_action(&s, &m, "close_account", &[("account", "a1")], json!({}))?;
+        apply(&mut s, &m, ev)?
+    };
+    ensure(
+        s.load(&akey("Account", "a1"), &s0).map_err(e)? == before,
+        "the removed entity's last version is still loadable at earlier states",
+    )?;
+    ensure(
+        s.backend()
+            .version(&akey("Account", "a1"), 1)
+            .map_err(|x| x.0)?
+            == Some(before),
+        "removal keeps the versions",
+    )?;
+    let d = replay_data(&s, &s0, &s1);
+    ensure(d.ok, format!("data replay: {:?}", d.divergence))?;
+    let mods = BTreeMap::from([(m.behavior_version(), m.clone())]);
+    let b = replay_behavior(&s, &mods, &s0, &s1);
+    ensure(b.ok, format!("behavior replay: {:?}", b.divergence))
+}
+
+fn referential_integrity_on_resulting_state<B: Backend>(f: &dyn Fn() -> B) -> Result<(), String> {
+    let (mut s, m) = create_accounts(f())?;
+    let refused = run_action(
+        &s,
+        &m,
+        "remove_customer_unchecked",
+        &[("customer", "c1")],
+        json!({}),
+    )?;
+    ensure(
+        refused.record["reasons"][0]["code"] == "DANGLING_REFERENCE",
+        format!(
+            "removing a referenced customer: {}",
+            refused.record["result"]
+        ),
+    )?;
+    let ev = run_action(
+        &s,
+        &m,
+        "switch_and_remove",
+        &[("account", "a1"), ("old", "c1"), ("new", "c2")],
+        json!({}),
+    )?;
+    let s1 = apply(&mut s, &m, ev)?;
+    ensure(
+        s.backend()
+            .removed_at(&akey("Customer", "c1"))
+            .map_err(|x| x.0)?
+            == Some(s1.position),
+        "retarget and remove commit together",
+    )
+}
+
+fn reference_index_consistency<B: Backend>(f: &dyn Fn() -> B) -> Result<(), String> {
+    let (mut s, m) = create_accounts(f())?;
+    let s0 = s.current().map_err(e)?;
+    {
+        let ev = open_account(&s, &m, "n1", "c2")?;
+        apply(&mut s, &m, ev)?
+    };
+    {
+        let ev = open_account(&s, &m, "n2", "c3")?;
+        apply(&mut s, &m, ev)?
+    };
+    let ev = run_action(
+        &s,
+        &m,
+        "switch_and_remove",
+        &[("account", "a1"), ("old", "c1"), ("new", "c3")],
+        json!({}),
+    )?;
+    apply(&mut s, &m, ev)?;
+    {
+        let ev = run_action(&s, &m, "close_account", &[("account", "n1")], json!({}))?;
+        apply(&mut s, &m, ev)?
+    };
+    {
+        let ev = run_action(&s, &m, "remove_customer", &[("customer", "c2")], json!({}))?;
+        apply(&mut s, &m, ev)?
+    };
+    let end = s.current().map_err(e)?;
+    let r = crate::replay::replay_index(&s, &m, &s0, &end);
+    ensure(
+        r.ok,
+        format!(
+            "the index diverges from the entity content: {:?}",
+            r.divergence
+        ),
+    )
+}
+
+fn concurrent_creation_same_identity<B: Backend>(f: &dyn Fn() -> B) -> Result<(), String> {
+    let (mut s, m) = create_accounts(f())?;
+    let first = bundle(open_account(&s, &m, "n1", "c1")?)?;
+    let second = bundle(open_account(&s, &m, "n1", "c2")?)?;
+    commit(&mut s, &m, &first)?;
+    match s.commit(&m, &second.evaluated_state.clone(), &second) {
+        Err(StoreError::StateConflict { .. }) => {}
+        other => {
+            return Err(format!(
+                "the second creation of n1 must conflict: {other:?}"
+            ));
+        }
+    }
+    let again = open_account(&s, &m, "n1", "c2")?;
+    ensure(
+        again.record["result"] == "ENTITY_ID_ALREADY_USED",
+        "re-evaluation sees the creation",
+    )?;
+    // A creation landing between the store's checks and the compare-and-set.
+    let (mut other, _) = create_accounts(f())?;
+    {
+        let ev = open_account(&other, &m, "n7", "c1")?;
+        apply(&mut other, &m, ev)?
+    };
+    let rec = other
+        .backend()
+        .record(1)
+        .map_err(|x| x.0)?
+        .ok_or("record missing")?;
+    let head = other
+        .backend()
+        .head()
+        .map_err(|x| x.0)?
+        .ok_or("head missing")?;
+    let (base, _) = create_accounts(f())?;
+    let landing = Landing::of(base.store_id().map_err(e)?, rec, head);
+    let mut raced =
+        Store::open(Interleave::at(base.into_backend(), landing, LandOn::Commit)).map_err(e)?;
+    let mine = bundle(open_account(&raced, &m, "n7", "c2")?)?;
+    match raced.commit(&m, &mine.evaluated_state.clone(), &mine) {
+        Err(StoreError::StateConflict { .. }) => Ok(()),
+        other => Err(format!("a racing creation must conflict: {other:?}")),
+    }
+}
+
+/// Evaluation facts come from the evaluated position even while commits land (FR-018).
+fn existence_snapshot<B: Backend>(f: &dyn Fn() -> B) -> Result<(), String> {
+    let m = accounts()?;
+    // Prepared elsewhere: an account referencing c3 (adds an index edge at position 1).
+    let (mut other, _) = create_accounts(f())?;
+    {
+        let ev = open_account(&other, &m, "n9", "c3")?;
+        apply(&mut other, &m, ev)?
+    };
+    let rec = other
+        .backend()
+        .record(1)
+        .map_err(|x| x.0)?
+        .ok_or("record missing")?;
+    let head = other
+        .backend()
+        .head()
+        .map_err(|x| x.0)?
+        .ok_or("head missing")?;
+    let (base, _) = create_accounts(f())?;
+    let landing = Landing::of(base.store_id().map_err(e)?, rec, head);
+    let s = Store::open(Interleave::new(base.into_backend(), landing)).map_err(e)?;
+    // The landing happens at the first entity read, after the head was read at position 0.
+    let ev = run_action(&s, &m, "remove_customer", &[("customer", "c3")], json!({}))?;
+    ensure(
+        ev.record["result"] == "ALLOW",
+        format!(
+            "`referenced(c3)` must be answered at position 0: {}",
+            ev.record["result"]
+        ),
+    )?;
+    ensure(
+        ev.record["facts"]["references"][0]["incoming"] == json!([]),
+        "the observed incoming references are those of position 0",
+    )
 }
 
 /// Runs every named case against backends from `factory`.
 pub fn run<B: Backend>(factory: impl Fn() -> B) -> ConformanceReport {
-    let cases: [(&'static str, Case<B>); 17] = [
+    let cases: [(&'static str, Case<B>); 24] = [
         ("create_and_open", create_and_open),
         ("commit_new_state", commit_new_state),
         ("conflict_on_outdated_parent", conflict_on_outdated_parent),
@@ -912,6 +1346,19 @@ pub fn run<B: Backend>(factory: impl Fn() -> B) -> ConformanceReport {
         ("evidence_atomicity", evidence_atomicity),
         ("replay_detects_tamper", replay_detects_tamper),
         ("observed_read_set", observed_read_set),
+        ("create_and_remove_entity", create_and_remove_entity),
+        ("identity_never_reused", identity_never_reused),
+        ("removed_entity_history", removed_entity_history),
+        (
+            "referential_integrity_on_resulting_state",
+            referential_integrity_on_resulting_state,
+        ),
+        ("reference_index_consistency", reference_index_consistency),
+        (
+            "concurrent_creation_same_identity",
+            concurrent_creation_same_identity,
+        ),
+        ("existence_snapshot", existence_snapshot),
     ];
     let cases = cases
         .into_iter()

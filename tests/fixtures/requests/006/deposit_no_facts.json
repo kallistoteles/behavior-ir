@@ -1,0 +1,15 @@
+{
+ "action": "deposit",
+ "context": {},
+ "data_version": "1",
+ "input": {
+  "amount": "5.00"
+ },
+ "state": {
+  "account": {
+   "balance": "0.00",
+   "id": "a1",
+   "owner": "c1"
+  }
+ }
+}

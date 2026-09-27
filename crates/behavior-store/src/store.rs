@@ -7,13 +7,15 @@ use serde_json::{Map, Value as Json, json};
 
 use behavior_core::semantic::module::{Kind, Module, ParamRole};
 use behavior_core::semantic::types::{Type, hash_display};
-use behavior_core::{canonical_entity, evaluate_observed};
+use behavior_core::{
+    EvaluationFacts, FactError, RefEdge, check_entity, decode_entity, evaluate_with,
+};
 use behavior_verify::hashing::{TAG_TRANSITION, document_hash};
 
 use crate::documents::{
-    CommitBundle, EntityKey, EntityVersion, Evidence, Genesis, Head, R, ReadEntry, Require,
-    StateRef, StoreError, TAG_COMMIT_BUNDLE, TAG_GENESIS, TAG_TRANSITION_RECORD, TransitionRecord,
-    WriteEntry, data_version, valid_timestamp,
+    CommitBundle, EntityKey, EntityVersion, Evidence, Genesis, Head, LifecycleWrite, R, ReadEntry,
+    RefChange, RemovedEntity, Require, StateRef, StoreError, TAG_COMMIT_BUNDLE, TAG_GENESIS,
+    TAG_TRANSITION_RECORD, TransitionRecord, WriteEntry, data_version, valid_timestamp,
 };
 use crate::muhash::Accumulator;
 use crate::{Backend, BackendError, CasOutcome};
@@ -78,6 +80,138 @@ pub fn genesis_for(
     }
 }
 
+/// Whether `key` exists at `position`: some version at or before it, and not removed at or
+/// before it (feature 006, research R9).
+pub fn exists_at<B: Backend + ?Sized>(
+    backend: &B,
+    key: &EntityKey,
+    position: u64,
+) -> Result<bool, BackendError> {
+    Ok(backend.version_at(key, position)?.is_some()
+        && backend.removed_at(key)?.is_none_or(|r| r > position))
+}
+
+/// Evaluation facts answered by the backend as of one position: the same snapshot as the bound
+/// entities' `version_at` reads (feature 006, research R3).
+pub struct StoreFacts<'a, B: Backend + ?Sized> {
+    pub backend: &'a B,
+    pub position: u64,
+}
+
+fn key(entity: &str, id: &str) -> EntityKey {
+    EntityKey {
+        entity: entity.to_string(),
+        id: id.to_string(),
+    }
+}
+
+impl<B: Backend + ?Sized> EvaluationFacts for StoreFacts<'_, B> {
+    fn exists(&self, entity: &str, id: &str) -> Result<bool, FactError> {
+        exists_at(self.backend, &key(entity, id), self.position).map_err(|e| FactError(e.0))
+    }
+    fn used(&self, entity: &str, id: &str) -> Result<bool, FactError> {
+        self.backend
+            .used_at(&key(entity, id), self.position)
+            .map_err(|e| FactError(e.0))
+    }
+    fn incoming(&self, entity: &str, id: &str) -> Result<Vec<RefEdge>, FactError> {
+        self.backend
+            .incoming_at(&key(entity, id), self.position)
+            .map_err(|e| FactError(e.0))
+    }
+}
+
+/// Evaluation facts of a genesis: the seed is the whole universe and the whole history.
+struct SeedFacts {
+    keys: BTreeSet<EntityKey>,
+    incoming: BTreeMap<EntityKey, Vec<RefEdge>>,
+}
+
+impl SeedFacts {
+    fn new(keys: &BTreeSet<EntityKey>, refs: &[RefChange]) -> Self {
+        let mut incoming: BTreeMap<EntityKey, Vec<RefEdge>> = BTreeMap::new();
+        for r in refs {
+            incoming.entry(r.target.clone()).or_default().push(RefEdge {
+                entity: r.source.entity.clone(),
+                id: r.source.id.clone(),
+                field: r.field.clone(),
+            });
+        }
+        SeedFacts {
+            keys: keys.clone(),
+            incoming,
+        }
+    }
+}
+
+impl EvaluationFacts for SeedFacts {
+    fn exists(&self, entity: &str, id: &str) -> Result<bool, FactError> {
+        Ok(self.keys.contains(&key(entity, id)))
+    }
+    fn used(&self, entity: &str, id: &str) -> Result<bool, FactError> {
+        Ok(self.keys.contains(&key(entity, id)))
+    }
+    fn incoming(&self, entity: &str, id: &str) -> Result<Vec<RefEdge>, FactError> {
+        Ok(self
+            .incoming
+            .get(&key(entity, id))
+            .cloned()
+            .unwrap_or_default())
+    }
+}
+
+/// The reference-field values of an entity value: `(field, target type, target id)` for every
+/// `Ref` field that holds an identity.
+pub fn references_of(module: &Module, entity: &str, value: &Json) -> Vec<(String, EntityKey)> {
+    module
+        .entity(entity)
+        .map(|item| {
+            item.reference_fields()
+                .filter_map(|(f, target)| {
+                    value[f].as_str().map(|id| (f.to_string(), key(target, id)))
+                })
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+/// The entity types an action touches: its state entities and the types it creates.
+fn touched_types(
+    module: &Module,
+    action: &behavior_core::semantic::module::ActionItem,
+) -> BTreeSet<String> {
+    let mut out: BTreeSet<String> = action
+        .params()
+        .iter()
+        .filter(|p| matches!(p.role(), ParamRole::State | ParamRole::Read))
+        .filter_map(|p| match p.ty() {
+            Type::Entity(e) => Some(e.clone()),
+            _ => None,
+        })
+        .collect();
+    out.extend(action.creates().iter().map(|c| c.entity().to_string()));
+    let _ = module;
+    out
+}
+
+/// The lifecycle writes of a decision record (feature 006), in record order.
+fn lifecycle_writes(record: &Json) -> R<Vec<LifecycleWrite>> {
+    let mut out = Vec::new();
+    for l in record["lifecycle"].as_array().into_iter().flatten() {
+        let field = |k: &str| {
+            l[k].as_str()
+                .map(str::to_string)
+                .ok_or_else(|| invalid(format!("lifecycle entry without `{k}`")))
+        };
+        out.push(LifecycleWrite {
+            op: field("op")?,
+            entity: field("entity")?,
+            id: field("id")?,
+        });
+    }
+    Ok(out)
+}
+
 fn id_of(value: &Json) -> R<String> {
     value["id"]
         .as_str()
@@ -110,7 +244,7 @@ impl<B: Backend> Store<B> {
                 .entity_declarations
                 .get(&s.entity)
                 .ok_or_else(|| bad(format!("no declaration for seed entity `{}`", s.entity)))?;
-            let value = canonical_entity(module, &s.entity, &s.value)
+            let value = decode_entity(module, &s.entity, &s.value)
                 .map_err(|p| bad(format!("seed `{}`: {}", s.entity, p.join("; "))))?;
             let id = id_of(&value)?;
             let key = EntityKey {
@@ -132,6 +266,31 @@ impl<B: Backend> Store<B> {
             acc.insert(&v.content_hash)?;
             versions.push(v);
         }
+        // Seed references must point at seed entities; the initial index is derived from the seed.
+        let mut seed_refs = Vec::new();
+        for v in &versions {
+            for (field, target) in references_of(module, &v.entity, &v.value) {
+                if !seen.contains(&target) {
+                    return Err(bad(format!(
+                        "{}.{field} refers to {target}, which is not a seed entity",
+                        v.key()
+                    )));
+                }
+                seed_refs.push(RefChange {
+                    target,
+                    source: v.key(),
+                    field,
+                    op: "add".into(),
+                });
+            }
+        }
+        seed_refs.sort();
+        // Entity constraints, with `exists` and `referenced` answered by the seed itself.
+        let facts = SeedFacts::new(&seen, &seed_refs);
+        for v in &versions {
+            check_entity(module, &v.entity, &v.value, &facts)
+                .map_err(|p| bad(format!("seed {}: {}", v.key(), p.join("; "))))?;
+        }
         let state = acc.state_id()?;
         let (n, d) = acc.normalize()?.to_hex();
         let head = Head {
@@ -141,7 +300,7 @@ impl<B: Backend> Store<B> {
             last_record: genesis.hash()?,
         };
         backend
-            .create(&genesis, &head, &versions)
+            .create(&genesis, &head, &versions, &seed_refs)
             .map_err(backend_err)?;
         let store_id = genesis.hash()?;
         Ok(Store {
@@ -225,6 +384,9 @@ impl<B: Backend> Store<B> {
                 at.state, at.position
             )));
         }
+        if !exists_at(&self.backend, key, at.position).map_err(backend_err)? {
+            return Err(StoreError::EntityNotFound(key.to_string()));
+        }
         self.backend
             .version_at(key, at.position)
             .map_err(backend_err)?
@@ -280,6 +442,9 @@ impl<B: Backend> Store<B> {
                 entity: entity.clone(),
                 id: id.clone(),
             };
+            if !exists_at(&self.backend, &key, at.position).map_err(backend_err)? {
+                return Err(StoreError::EntityNotFound(key.to_string()));
+            }
             let v = self
                 .backend
                 .version_at(&key, at.position)
@@ -302,7 +467,11 @@ impl<B: Backend> Store<B> {
             "input": input,
             "context": context,
         });
-        let (record, observed) = evaluate_observed(module, &request.to_string());
+        let facts = StoreFacts {
+            backend: &self.backend,
+            position: at.position,
+        };
+        let (record, observed) = evaluate_with(module, &request.to_string(), &facts);
         let record = record.as_json().clone();
         if record["result"] != "ALLOW" {
             return Ok(Evaluation {
@@ -310,15 +479,18 @@ impl<B: Backend> Store<B> {
                 bundle: None,
             });
         }
-        let touched: BTreeMap<String, String> = loaded
-            .values()
-            .filter_map(|v| {
-                genesis
-                    .entity_declarations
-                    .get(&v.entity)
-                    .map(|d| (v.entity.clone(), d.clone()))
-            })
-            .collect();
+        let mut touched = BTreeMap::new();
+        for entity in touched_types(module, a) {
+            if decls.get(&entity) != genesis.entity_declarations.get(&entity) {
+                return Err(StoreError::EntityDeclarationMismatch(format!(
+                    "`{entity}` is declared differently in behavior {} than in the store",
+                    module.behavior_version()
+                )));
+            }
+            if let Some(d) = genesis.entity_declarations.get(&entity) {
+                touched.insert(entity, d.clone());
+            }
+        }
         let bundle = CommitBundle {
             format: TAG_COMMIT_BUNDLE.into(),
             evaluated_state: at,
@@ -326,8 +498,10 @@ impl<B: Backend> Store<B> {
             store,
             transition_hash: transition_hash(&record)?,
             entity_declarations: touched,
-            read_set: read_set(&observed, &loaded),
+            read_set: read_set(&observed.fields, &loaded),
             write_set: write_set(&record)?,
+            read_facts: facts_json(&observed.facts),
+            write_lifecycle: lifecycle_writes(&record)?,
             record,
             commit_time: commit_time.into(),
             evidence,
@@ -418,13 +592,8 @@ impl<B: Backend> Store<B> {
             .action(action_name)
             .ok_or_else(|| invalid(format!("unknown action `{action_name}`")))?;
         let mut touched = BTreeMap::new();
-        for p in action.params() {
-            if !matches!(p.role(), ParamRole::State | ParamRole::Read) {
-                continue;
-            }
-            let Type::Entity(entity) = p.ty() else {
-                continue;
-            };
+        for entity in touched_types(module, action) {
+            let entity = &entity;
             let in_store = genesis.entity_declarations.get(entity);
             if in_store.is_none() || decls.get(entity) != in_store {
                 return Err(StoreError::EntityDeclarationMismatch(format!(
@@ -441,8 +610,16 @@ impl<B: Backend> Store<B> {
                 "the bundle's entity declarations are not the action's",
             ));
         }
-        let (parent_versions, derived_reads, derived_writes) =
+        let (parent_versions, derived_reads, derived_writes, derived_facts) =
             self.rederive(module, &genesis, parent, &bundle.record)?;
+        if derived_facts != bundle.read_facts {
+            return Err(invalid(
+                "the read facts are not the ones the evaluation observed at the parent",
+            ));
+        }
+        if lifecycle_writes(&bundle.record)? != bundle.write_lifecycle {
+            return Err(invalid("the lifecycle writes are not the evaluation's"));
+        }
         if derived_reads != bundle.read_set {
             return Err(invalid(
                 "the read set is not the one the evaluation observed",
@@ -491,10 +668,30 @@ impl<B: Backend> Store<B> {
         }
         let mut acc = Accumulator::from_hex(&head.acc_num, &head.acc_den)?;
         let mut new_versions = Vec::new();
+        let mut ref_changes: Vec<RefChange> = Vec::new();
+        let edge = |target: EntityKey, source: &EntityKey, field: &str, op: &str| RefChange {
+            target,
+            source: source.clone(),
+            field: field.to_string(),
+            op: op.to_string(),
+        };
         for (key, value) in new_values {
             let old = &parent_versions[&key];
             if old.value == value {
                 continue;
+            }
+            // Retargeted references change the derived index.
+            let before = references_of(module, &key.entity, &old.value);
+            let after = references_of(module, &key.entity, &value);
+            for (f, t) in &before {
+                if !after.contains(&(f.clone(), t.clone())) {
+                    ref_changes.push(edge(t.clone(), &key, f, "drop"));
+                }
+            }
+            for (f, t) in &after {
+                if !before.contains(&(f.clone(), t.clone())) {
+                    ref_changes.push(edge(t.clone(), &key, f, "add"));
+                }
             }
             let decl = &genesis.entity_declarations[&key.entity];
             let mut v = EntityVersion {
@@ -510,6 +707,77 @@ impl<B: Backend> Store<B> {
             acc.insert(&v.content_hash)?;
             new_versions.push(v);
         }
+        // Lifecycle (feature 006): creations and removals, in record order.
+        let mut created = Vec::new();
+        let mut removed = Vec::new();
+        let mut removals = Vec::new();
+        for l in bundle.record["lifecycle"].as_array().into_iter().flatten() {
+            let (Some(op), Some(entity), Some(id)) =
+                (l["op"].as_str(), l["entity"].as_str(), l["id"].as_str())
+            else {
+                return Err(invalid("malformed lifecycle entry"));
+            };
+            let k = key(entity, id);
+            let decl = genesis
+                .entity_declarations
+                .get(entity)
+                .ok_or_else(|| StoreError::EntityDeclarationMismatch(format!("`{entity}`")))?;
+            match op {
+                "create" => {
+                    if self
+                        .backend
+                        .used_at(&k, parent.position)
+                        .map_err(backend_err)?
+                    {
+                        return Err(StoreError::EntityIdAlreadyUsed(format!(
+                            "{k} was already used; an identity names one lifetime"
+                        )));
+                    }
+                    let mut v = EntityVersion {
+                        content_hash: String::new(),
+                        entity: entity.to_string(),
+                        id: id.to_string(),
+                        revision: 1,
+                        created_at: position,
+                        value: l["value"].clone(),
+                    };
+                    v.content_hash = v.content(decl).hash()?;
+                    acc.insert(&v.content_hash)?;
+                    for (f, t) in references_of(module, entity, &v.value) {
+                        ref_changes.push(edge(t, &k, &f, "add"));
+                    }
+                    created.push(v);
+                }
+                "remove" => {
+                    if !exists_at(&self.backend, &k, parent.position).map_err(backend_err)? {
+                        return Err(StoreError::EntityNotFound(format!(
+                            "{k} does not exist at the parent"
+                        )));
+                    }
+                    let old = parent_versions
+                        .get(&k)
+                        .cloned()
+                        .ok_or_else(|| invalid(format!("{k} is not bound by the action")))?;
+                    if old.value != l["value"] {
+                        return Err(invalid(format!("{k}: removed value does not match")));
+                    }
+                    acc.remove(&old.content_hash)?;
+                    for (f, t) in references_of(module, entity, &old.value) {
+                        ref_changes.push(edge(t, &k, &f, "drop"));
+                    }
+                    removed.push(RemovedEntity {
+                        entity: entity.to_string(),
+                        id: id.to_string(),
+                        last_revision: old.revision,
+                        last_content_hash: old.content_hash.clone(),
+                    });
+                    removals.push(k);
+                }
+                other => return Err(invalid(format!("unknown lifecycle op `{other}`"))),
+            }
+        }
+        ref_changes.sort();
+        self.check_integrity(parent.position, &removals, &created, &ref_changes)?;
         let result_state = StateRef {
             state: acc.state_id()?,
             position,
@@ -526,6 +794,9 @@ impl<B: Backend> Store<B> {
             new_versions: new_versions.clone(),
             evidence_policy,
             authorization,
+            created: created.clone(),
+            removed,
+            ref_changes: ref_changes.clone(),
         };
         let record_id = record.hash()?;
         let (n, d) = acc.normalize()?.to_hex();
@@ -536,9 +807,18 @@ impl<B: Backend> Store<B> {
             last_record: record_id.clone(),
         };
         // 5. The atomic compare-and-set.
+        let mut versions = new_versions;
+        versions.extend(created);
         match self
             .backend
-            .commit(&head.last_record, &new_versions, &record, &new_head)
+            .commit(
+                &head.last_record,
+                &versions,
+                &removals,
+                &ref_changes,
+                &record,
+                &new_head,
+            )
             .map_err(backend_err)?
         {
             CasOutcome::Applied => Ok(Committed {
@@ -554,6 +834,61 @@ impl<B: Backend> Store<B> {
         }
     }
 
+    /// Referential integrity on S' (feature 006, research R6): no surviving reference to a removed
+    /// identity, and every added reference points at an entity that exists in S'.
+    fn check_integrity(
+        &self,
+        parent: u64,
+        removals: &[EntityKey],
+        created: &[EntityVersion],
+        changes: &[RefChange],
+    ) -> R<()> {
+        let removed: BTreeSet<&EntityKey> = removals.iter().collect();
+        for t in removals {
+            let mut incoming: BTreeSet<(String, String, String)> = self
+                .backend
+                .incoming_at(t, parent)
+                .map_err(backend_err)?
+                .into_iter()
+                .map(|e| (e.entity, e.id, e.field))
+                .collect();
+            for c in changes.iter().filter(|c| c.target == *t) {
+                let e = (
+                    c.source.entity.clone(),
+                    c.source.id.clone(),
+                    c.field.clone(),
+                );
+                if c.op == "add" {
+                    incoming.insert(e);
+                } else {
+                    incoming.remove(&e);
+                }
+            }
+            if !incoming.is_empty() {
+                let list: Vec<String> = incoming
+                    .iter()
+                    .map(|(e, id, f)| format!("{e}#{id}.{f}"))
+                    .collect();
+                return Err(StoreError::DanglingReference(format!(
+                    "removing {t} leaves references to it: {}",
+                    list.join(", ")
+                )));
+            }
+        }
+        for c in changes.iter().filter(|c| c.op == "add") {
+            let alive = created.iter().any(|v| v.key() == c.target)
+                || (!removed.contains(&c.target)
+                    && exists_at(&self.backend, &c.target, parent).map_err(backend_err)?);
+            if !alive {
+                return Err(StoreError::DanglingReference(format!(
+                    "{}.{} refers to {}, which does not exist",
+                    c.source, c.field, c.target
+                )));
+            }
+        }
+        Ok(())
+    }
+
     /// `STATE_CONFLICT` with the entities written since `parent`.
     fn conflict(&self, head: &Head, parent: &StateRef) -> StoreError {
         let mut changed = BTreeSet::new();
@@ -564,6 +899,9 @@ impl<B: Backend> Store<B> {
                         entity: w.entity.clone(),
                         id: w.id.clone(),
                     });
+                }
+                for l in &r.bundle.write_lifecycle {
+                    changed.insert(key(&l.entity, &l.id));
                 }
             }
         }
@@ -587,6 +925,7 @@ impl<B: Backend> Store<B> {
         BTreeMap<EntityKey, EntityVersion>,
         Vec<ReadEntry>,
         Vec<WriteEntry>,
+        Json,
     )> {
         let action_name = record["action"]["name"]
             .as_str()
@@ -613,6 +952,11 @@ impl<B: Backend> Store<B> {
                 entity: entity.clone(),
                 id: id_of(value)?,
             };
+            if !exists_at(&self.backend, &key, parent.position).map_err(backend_err)? {
+                return Err(StoreError::EntityUniverseChanged(format!(
+                    "{key} is not in the parent state"
+                )));
+            }
             let v = self
                 .backend
                 .version_at(&key, parent.position)
@@ -636,7 +980,12 @@ impl<B: Backend> Store<B> {
         if let Some(g) = record.get("git_revision") {
             request.insert("git_revision".into(), g.clone());
         }
-        let (again, observed) = evaluate_observed(module, &Json::Object(request).to_string());
+        // Facts are re-derived at the parent: a record whose facts differ does not reproduce.
+        let facts = StoreFacts {
+            backend: &self.backend,
+            position: parent.position,
+        };
+        let (again, observed) = evaluate_with(module, &Json::Object(request).to_string(), &facts);
         if again.as_json() != record {
             return Err(invalid(
                 "the record does not reproduce under its behavior version",
@@ -644,8 +993,9 @@ impl<B: Backend> Store<B> {
         }
         Ok((
             parent_versions,
-            read_set(&observed, &loaded),
+            read_set(&observed.fields, &loaded),
             write_set(record)?,
+            facts_json(&observed.facts),
         ))
     }
 }
@@ -654,6 +1004,15 @@ impl<B: Backend> Store<B> {
 /// (excludes commit time and evidence).
 pub fn transition_hash(record: &Json) -> R<String> {
     document_hash(TAG_TRANSITION, record).map_err(|e| invalid(e.to_string()))
+}
+
+/// The observed facts as a bundle's `read_facts` (absent when empty).
+fn facts_json(f: &behavior_core::Facts) -> Json {
+    if f.is_empty() {
+        Json::Null
+    } else {
+        f.to_json()
+    }
 }
 
 /// Observed reads of state parameters, grouped per entity with its revision at the evaluated state.

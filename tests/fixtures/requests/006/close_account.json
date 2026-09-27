@@ -1,0 +1,13 @@
+{
+ "action": "close_account",
+ "context": {},
+ "data_version": "1",
+ "input": {},
+ "state": {
+  "account": {
+   "balance": "0.00",
+   "id": "a1",
+   "owner": "c1"
+  }
+ }
+}

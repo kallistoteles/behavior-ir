@@ -12,11 +12,11 @@ from .errors import (
     BehaviorDefinitionError, BehaviorError, BehaviorInvalid, BehaviorTypeError, CommitRefused,
     IntentRejected, StateConflict,
 )
-from .expr import and_, none, not_, or_, rescale, underlying
+from .expr import and_, exists, none, not_, or_, referenced, rescale, underlying
 from .module import BehaviorModule
 from .results import AdmissionError, AdmissionResult, Change, Decision, ReplayResult, TraceStep
-from .statements import ensures, requires, set_
-from .types import Context, Exact, Id, Input, Option, Rounding, nominal
+from .statements import create, ensures, remove, requires, set_
+from .types import Context, Exact, Id, Input, Option, Ref, Rounding, nominal
 from .governance import Authorization, authorize, sign_waiver, waiver_hash
 from .verify import Attestation, Profile, verify
 from .store import (
@@ -39,14 +39,18 @@ def evaluate(
     context: dict[str, Any] | None = None,
     data_version: str,
     git_revision: str | None = None,
+    facts: dict[str, Any] | None = None,
 ) -> Decision:
     """Evaluates `action` as a transition over state, input, and context (engine-side).
 
     Values are passed as Python objects (`Decimal`, `Enum` members, `None`, ...); floats raise
-    `TypeError` at the engine boundary.
+    `TypeError` at the engine boundary. `facts` supplies the evaluation facts a lifecycle
+    decision needs (feature 006): `{"existence": [...], "identities": [...], "references":
+    [...]}`. A needed fact that is missing gives the result `ERROR` with `UNKNOWN_FACT`; facts
+    that cannot describe one valid state give `INVALID_INPUT` with `INCONSISTENT_FACTS`.
     """
     record = model.engine.evaluate(
-        action, state, input or {}, context or {}, data_version, git_revision
+        action, state, input or {}, context or {}, data_version, git_revision, facts
     )
     return Decision.from_record(record)
 
@@ -90,5 +94,5 @@ __all__ = [
     "BehaviorInvalid", "BehaviorModule", "BehaviorTypeError", "Context", "Id", "Input",
     "IntentRejected", "Option", "action", "admit", "constraint", "and_", "derived", "ensures", "entity",
     "field", "invariant", "nominal", "none", "not_", "or_", "requires", "rule", "set_",
-    "underlying",
+    "underlying", "Ref", "create", "remove", "exists", "referenced",
 ]

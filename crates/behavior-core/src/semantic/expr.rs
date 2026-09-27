@@ -37,6 +37,11 @@ pub enum ExprKind {
         arg: Box<Expr>,
         rounding: crate::exact::Rounding,
     },
+    /// `exists(id)`: `Id<T>` or `Option<Id<T>>` (an absent value gives false); on S before the
+    /// effects, on S' after them (feature 006).
+    Exists(Box<Expr>),
+    /// `referenced(id)`: some surviving `Ref` field points at the identity (feature 006).
+    Referenced(Box<Expr>),
 }
 
 #[derive(Debug, Clone)]

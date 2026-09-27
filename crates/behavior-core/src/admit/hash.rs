@@ -17,6 +17,8 @@ pub const TAG_NOMINAL_FIXED: &str = "behavior.nominal.fixed.v1";
 pub const TAG_ENTITY: &str = "behavior.entity.v1";
 pub const TAG_EXPR: &str = "behavior.expr.v1";
 pub const TAG_EFFECT: &str = "behavior.effect.v1";
+pub const TAG_EFFECT_CREATE: &str = "behavior.effect.create.v1";
+pub const TAG_EFFECT_REMOVE: &str = "behavior.effect.remove.v1";
 pub const TAG_DERIVED: &str = "behavior.derived.v1";
 pub const TAG_INVARIANT: &str = "behavior.invariant.v1";
 pub const TAG_ACTION: &str = "behavior.action.v1";
@@ -130,12 +132,26 @@ pub fn nominal_fixed_decl(name: &str, underlying: Prim, ops: u8, scale: u8) -> H
         .finish(TAG_NOMINAL_FIXED)
 }
 
-/// `fields` includes the implicit `id` field first.
-pub fn entity(name: &str, fields: &[(String, Type)]) -> Hash {
+/// `fields` includes the implicit `id` field first. A reference field (`Ref<T>`, feature 006)
+/// encodes its `Id<T>` with the code `0x25`; entities without references hash as before.
+pub fn entity(name: &str, fields: &[(String, Type)], references: &[String]) -> Hash {
     let mut e = Enc::default();
     e.str(name).u32(fields.len());
     for (f, t) in fields {
-        e.str(f).ty(t);
+        e.str(f);
+        match t {
+            Type::Id(target) if references.contains(f) => {
+                e.u8(0x25).str(target);
+            }
+            Type::Option(inner) if references.contains(f) => {
+                if let Type::Id(target) = inner.as_ref() {
+                    e.u8(0x10).u8(0x25).str(target);
+                }
+            }
+            t => {
+                e.ty(t);
+            }
+        }
     }
     e.finish(TAG_ENTITY)
 }
@@ -259,6 +275,14 @@ pub fn expr(kind: &ExprKind, ty: &Type) -> Hash {
             op(&mut e, 0x60);
             e.href(&arg.hash).u8(rounding.code());
         }
+        ExprKind::Exists(a) => {
+            op(&mut e, 0x70);
+            e.href(&a.hash);
+        }
+        ExprKind::Referenced(a) => {
+            op(&mut e, 0x71);
+            e.href(&a.hash);
+        }
     }
     e.finish(TAG_EXPR)
 }
@@ -269,6 +293,21 @@ pub fn effect(param: &str, field: &str, value: &Hash) -> Hash {
         .str(field)
         .href(value)
         .finish(TAG_EFFECT)
+}
+
+/// A creation: entity name, identity expression, and every field's value (declaration order).
+pub fn create(entity: &str, id: &Hash, fields: &[(String, Hash)]) -> Hash {
+    let mut e = Enc::default();
+    e.str(entity).href(id).u32(fields.len());
+    for (f, h) in fields {
+        e.str(f).href(h);
+    }
+    e.finish(TAG_EFFECT_CREATE)
+}
+
+/// A removal of the entity bound to a state parameter.
+pub fn remove(param: &str) -> Hash {
+    Enc::default().str(param).finish(TAG_EFFECT_REMOVE)
 }
 
 pub fn derived(kind: DerivedKind, ps: &[(String, ParamRole, Type)], body: &Hash) -> Hash {

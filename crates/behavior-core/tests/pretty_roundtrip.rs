@@ -361,6 +361,8 @@ fn tree(e: &Expr) -> String {
             format!("{n}({})", tree(a))
         }
         ExprKind::Unwrap(a) => format!("underlying({})", tree(a)),
+        ExprKind::Exists(a) => format!("exists({})", tree(a)),
+        ExprKind::Referenced(a) => format!("referenced({})", tree(a)),
         ExprKind::Rescale { arg, rounding } => {
             format!("rescale({}, {}, {})", tree(arg), e.ty(), rounding.as_str())
         }
@@ -381,7 +383,9 @@ fn children(e: &Expr) -> Vec<&Expr> {
         | ExprKind::ToDecimal(a)
         | ExprKind::Wrap(a)
         | ExprKind::Unwrap(a)
-        | ExprKind::Rescale { arg: a, .. } => vec![a],
+        | ExprKind::Rescale { arg: a, .. }
+        | ExprKind::Exists(a)
+        | ExprKind::Referenced(a) => vec![a],
         _ => vec![],
     }
 }
@@ -410,6 +414,10 @@ fn module_exprs(m: &Module) -> Vec<&Expr> {
         xs.extend(a.preconditions().iter().map(|c| c.expr()));
         xs.extend(a.postconditions().iter().map(|c| c.expr()));
         xs.extend(a.effects().iter().map(|e| e.value()));
+        for c in a.creates() {
+            xs.push(c.id());
+            xs.extend(c.fields().iter().map(|(_, v)| v));
+        }
     }
     xs
 }

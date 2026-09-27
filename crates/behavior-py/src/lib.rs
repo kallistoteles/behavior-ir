@@ -7,7 +7,17 @@
 
 use behavior_core::builder::{BuildError, Builder, Node, ScopeSite};
 use behavior_core::semantic::Module;
-use behavior_core::wire::{DerivedKind, Loc, Role, WField, WParam, WType};
+use behavior_core::wire::{DerivedKind, Loc, Role, WField, WLifecycle, WParam, WType};
+
+/// A lifecycle effect from Python: `(kind, entity or param, id node, fields, file, line)`.
+type LifecycleArg = (
+    String,
+    String,
+    Option<PyNode>,
+    Vec<(String, PyNode)>,
+    String,
+    u64,
+);
 use pyo3::IntoPyObjectExt;
 use pyo3::create_exception;
 use pyo3::exceptions::{PyException, PyTypeError, PyValueError};
@@ -197,6 +207,14 @@ impl PyType_ {
     fn id(entity: String) -> Self {
         PyType_ {
             inner: WType::Id(entity),
+        }
+    }
+    /// A reference field type (feature 006): an `Id` whose target must exist.
+    #[staticmethod]
+    #[pyo3(name = "ref")]
+    fn ref_(entity: String) -> Self {
+        PyType_ {
+            inner: WType::Ref(entity),
         }
     }
     #[staticmethod]
@@ -491,7 +509,10 @@ impl EngineModule {
         })
     }
 
-    #[pyo3(signature = (action, state, input, context, data_version, git_revision=None))]
+    /// `facts`: the evaluation facts section (feature 006: existence, identities, references),
+    /// or None.
+    #[pyo3(signature = (action, state, input, context, data_version, git_revision=None, facts=None))]
+    #[allow(clippy::too_many_arguments)]
     fn evaluate(
         &self,
         action: String,
@@ -500,6 +521,7 @@ impl EngineModule {
         context: &Bound<'_, PyAny>,
         data_version: String,
         git_revision: Option<String>,
+        facts: Option<&Bound<'_, PyAny>>,
     ) -> PyResult<PyRecord> {
         let mut request = json!({
             "action": action,
@@ -510,6 +532,9 @@ impl EngineModule {
         });
         if let (Some(g), Value::Object(m)) = (git_revision, &mut request) {
             m.insert("git_revision".into(), json!(g));
+        }
+        if let (Some(f), Value::Object(m)) = (facts, &mut request) {
+            m.insert("facts".into(), to_value(f)?);
         }
         Ok(record(behavior_core::evaluate(
             &self.inner,
@@ -806,11 +831,33 @@ impl PyBuilder {
         ps: Vec<(String, Option<String>, PyType_)>,
         preconditions: Vec<(PyNode, String, u64)>,
         effects: Vec<(String, String, PyNode, String, u64)>,
+        lifecycle: Vec<LifecycleArg>,
         postconditions: Vec<(PyNode, String, u64)>,
         file: String,
         line: u64,
     ) -> PyResult<()> {
         let cond = |(n, f, l): (PyNode, String, u64)| (n.inner, loc(f, l));
+        let lifecycle = lifecycle
+            .into_iter()
+            .map(|(kind, name, id, fields, f, l)| match (kind.as_str(), id) {
+                ("create", Some(id)) => Ok(WLifecycle::Create {
+                    entity: name,
+                    id: id.inner.into_wire(),
+                    fields: fields
+                        .into_iter()
+                        .map(|(k, v)| (k, v.inner.into_wire()))
+                        .collect(),
+                    loc: loc(f, l),
+                }),
+                ("remove", None) => Ok(WLifecycle::Remove {
+                    param: name,
+                    loc: loc(f, l),
+                }),
+                _ => Err(PyValueError::new_err(format!(
+                    "bad lifecycle effect `{kind}`"
+                ))),
+            })
+            .collect::<PyResult<Vec<_>>>()?;
         self.inner
             .add_action(
                 name,
@@ -820,6 +867,7 @@ impl PyBuilder {
                     .into_iter()
                     .map(|(p, fld, n, f, l)| (p, fld, n.inner, loc(f, l)))
                     .collect(),
+                lifecycle,
                 postconditions.into_iter().map(cond).collect(),
                 loc(file, line),
             )
@@ -846,11 +894,11 @@ impl PyBuilder {
 
 use behavior_store::conformance::run as run_store_conformance;
 use behavior_store::documents::{
-    CommitBundle, EntityKey, EntityVersion, Evidence, EvidencePolicy, Genesis, Head, SeedEntity,
-    StateRef, StoreError, TransitionRecord, decode,
+    CommitBundle, EntityKey, EntityVersion, Evidence, EvidencePolicy, Genesis, Head, RefChange,
+    SeedEntity, StateRef, StoreError, TransitionRecord, decode,
 };
 use behavior_store::replay::{replay_behavior, replay_data};
-use behavior_store::{Backend, BackendError, CasOutcome, InMemoryBackend, Store};
+use behavior_store::{Backend, BackendError, CasOutcome, InMemoryBackend, RefEdge, Store};
 
 fn to_json<T: serde::Serialize>(t: &T) -> Value {
     serde_json::to_value(t).unwrap_or(Value::Null)
@@ -919,9 +967,44 @@ impl Backend for PyBackend {
         g: &Genesis,
         h: &Head,
         seed: &[EntityVersion],
+        seed_refs: &[RefChange],
     ) -> Result<(), BackendError> {
-        self.call::<Value>("create", vec![to_json(g), to_json(h), to_json(&seed)])
-            .map(|_| ())
+        self.call::<Value>(
+            "create",
+            vec![to_json(g), to_json(h), to_json(&seed), to_json(&seed_refs)],
+        )
+        .map(|_| ())
+    }
+    fn removed_at(&self, k: &EntityKey) -> Result<Option<u64>, BackendError> {
+        self.call("removed_at", vec![to_json(k)])
+    }
+    fn incoming_at(&self, t: &EntityKey, p: u64) -> Result<Vec<RefEdge>, BackendError> {
+        let edges: Option<Vec<Value>> = self.call("incoming_at", vec![to_json(t), json!(p)])?;
+        edges
+            .unwrap_or_default()
+            .into_iter()
+            .map(|e| {
+                let field = |k: &str| {
+                    e[k].as_str()
+                        .map(str::to_string)
+                        .ok_or_else(|| BackendError(format!("incoming_at: edge without `{k}`")))
+                };
+                Ok(RefEdge {
+                    entity: field("entity")?,
+                    id: field("id")?,
+                    field: field("field")?,
+                })
+            })
+            .collect()
+    }
+    fn used_at(&self, k: &EntityKey, p: u64) -> Result<bool, BackendError> {
+        // Optional in Python backends: the contract's default otherwise.
+        let has = Python::attach(|py| self.obj.bind(py).hasattr("used_at").unwrap_or(false));
+        if has {
+            let used: Option<bool> = self.call("used_at", vec![to_json(k), json!(p)])?;
+            return Ok(used.unwrap_or(false));
+        }
+        Ok(self.version_at(k, p)?.is_some())
     }
     fn version_at(&self, k: &EntityKey, p: u64) -> Result<Option<EntityVersion>, BackendError> {
         self.call("version_at", vec![to_json(k), json!(p)])
@@ -936,6 +1019,8 @@ impl Backend for PyBackend {
         &mut self,
         expected: &str,
         versions: &[EntityVersion],
+        removals: &[EntityKey],
+        ref_changes: &[RefChange],
         record: &TransitionRecord,
         head: &Head,
     ) -> Result<CasOutcome, BackendError> {
@@ -944,6 +1029,8 @@ impl Backend for PyBackend {
             vec![
                 json!(expected),
                 to_json(&versions),
+                to_json(&removals),
+                to_json(&ref_changes),
                 to_json(record),
                 to_json(head),
             ],
@@ -980,8 +1067,23 @@ impl Backend for AnyBackend {
     fn head(&self) -> Result<Option<Head>, BackendError> {
         delegate!(self, b => b.head())
     }
-    fn create(&mut self, g: &Genesis, h: &Head, s: &[EntityVersion]) -> Result<(), BackendError> {
-        delegate!(self, b => b.create(g, h, s))
+    fn create(
+        &mut self,
+        g: &Genesis,
+        h: &Head,
+        s: &[EntityVersion],
+        r: &[RefChange],
+    ) -> Result<(), BackendError> {
+        delegate!(self, b => b.create(g, h, s, r))
+    }
+    fn removed_at(&self, k: &EntityKey) -> Result<Option<u64>, BackendError> {
+        delegate!(self, b => b.removed_at(k))
+    }
+    fn incoming_at(&self, t: &EntityKey, p: u64) -> Result<Vec<RefEdge>, BackendError> {
+        delegate!(self, b => b.incoming_at(t, p))
+    }
+    fn used_at(&self, k: &EntityKey, p: u64) -> Result<bool, BackendError> {
+        delegate!(self, b => b.used_at(k, p))
     }
     fn version_at(&self, k: &EntityKey, p: u64) -> Result<Option<EntityVersion>, BackendError> {
         delegate!(self, b => b.version_at(k, p))
@@ -996,10 +1098,12 @@ impl Backend for AnyBackend {
         &mut self,
         x: &str,
         v: &[EntityVersion],
+        rm: &[EntityKey],
+        refs: &[RefChange],
         r: &TransitionRecord,
         h: &Head,
     ) -> Result<CasOutcome, BackendError> {
-        delegate!(self, b => b.commit(x, v, r, h))
+        delegate!(self, b => b.commit(x, v, rm, refs, r, h))
     }
 }
 

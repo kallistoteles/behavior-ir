@@ -66,8 +66,24 @@ impl Backend for Tamper<'_> {
     fn head(&self) -> Result<Option<Head>, BackendError> {
         self.inner.head()
     }
-    fn create(&mut self, _: &Genesis, _: &Head, _: &[EntityVersion]) -> Result<(), BackendError> {
+    fn create(
+        &mut self,
+        _: &Genesis,
+        _: &Head,
+        _: &[EntityVersion],
+        _: &[behavior_store::documents::RefChange],
+    ) -> Result<(), BackendError> {
         Err(BackendError("read-only".into()))
+    }
+    fn removed_at(&self, k: &EntityKey) -> Result<Option<u64>, BackendError> {
+        self.inner.removed_at(k)
+    }
+    fn incoming_at(
+        &self,
+        t: &EntityKey,
+        p: u64,
+    ) -> Result<Vec<behavior_store::RefEdge>, BackendError> {
+        self.inner.incoming_at(t, p)
     }
     fn version_at(&self, k: &EntityKey, p: u64) -> Result<Option<EntityVersion>, BackendError> {
         self.inner.version_at(k, p)
@@ -85,6 +101,8 @@ impl Backend for Tamper<'_> {
         &mut self,
         _: &str,
         _: &[EntityVersion],
+        _: &[EntityKey],
+        _: &[behavior_store::documents::RefChange],
         _: &TransitionRecord,
         _: &Head,
     ) -> Result<CasOutcome, BackendError> {
@@ -306,8 +324,24 @@ impl Backend for AlteredValue<'_> {
     fn head(&self) -> Result<Option<Head>, BackendError> {
         self.inner.head()
     }
-    fn create(&mut self, _: &Genesis, _: &Head, _: &[EntityVersion]) -> Result<(), BackendError> {
+    fn create(
+        &mut self,
+        _: &Genesis,
+        _: &Head,
+        _: &[EntityVersion],
+        _: &[behavior_store::documents::RefChange],
+    ) -> Result<(), BackendError> {
         Err(BackendError("read-only".into()))
+    }
+    fn removed_at(&self, k: &EntityKey) -> Result<Option<u64>, BackendError> {
+        self.inner.removed_at(k)
+    }
+    fn incoming_at(
+        &self,
+        t: &EntityKey,
+        p: u64,
+    ) -> Result<Vec<behavior_store::RefEdge>, BackendError> {
+        self.inner.incoming_at(t, p)
     }
     fn version_at(&self, k: &EntityKey, p: u64) -> Result<Option<EntityVersion>, BackendError> {
         let mut v = self.inner.version_at(k, p)?;
@@ -328,6 +362,8 @@ impl Backend for AlteredValue<'_> {
         &mut self,
         _: &str,
         _: &[EntityVersion],
+        _: &[EntityKey],
+        _: &[behavior_store::documents::RefChange],
         _: &TransitionRecord,
         _: &Head,
     ) -> Result<CasOutcome, BackendError> {

@@ -42,6 +42,10 @@ pub enum StoreError {
     EntityUniverseChanged(String),
     #[error("GENESIS_INVALID: {0}")]
     GenesisInvalid(String),
+    #[error("ENTITY_ID_ALREADY_USED: {0}")]
+    EntityIdAlreadyUsed(String),
+    #[error("DANGLING_REFERENCE: {0}")]
+    DanglingReference(String),
     #[error("BACKEND_ERROR: {0}")]
     Backend(String),
 }
@@ -59,6 +63,8 @@ impl StoreError {
             StoreError::EvidenceMismatch(_) => "EVIDENCE_MISMATCH",
             StoreError::EntityUniverseChanged(_) => "ENTITY_UNIVERSE_CHANGED",
             StoreError::GenesisInvalid(_) => "GENESIS_INVALID",
+            StoreError::EntityIdAlreadyUsed(_) => "ENTITY_ID_ALREADY_USED",
+            StoreError::DanglingReference(_) => "DANGLING_REFERENCE",
             StoreError::Backend(_) => "BACKEND_ERROR",
         }
     }
@@ -248,6 +254,41 @@ pub struct WriteEntry {
     pub new: Json,
 }
 
+/// A lifecycle write (feature 006): the existence of `entity#id` changes (`create` also writes
+/// every field).
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct LifecycleWrite {
+    pub op: String,
+    pub entity: String,
+    pub id: String,
+}
+
+/// A removal in a transition record: the last version the entity had.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RemovedEntity {
+    pub entity: String,
+    pub id: String,
+    pub last_revision: u64,
+    pub last_content_hash: String,
+}
+
+/// A change of the derived reverse-reference index (feature 006): `source.field` starts (`add`)
+/// or stops (`drop`) pointing at `target`.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RefChange {
+    pub target: EntityKey,
+    pub source: EntityKey,
+    pub field: String,
+    pub op: String,
+}
+
+fn is_null(v: &Json) -> bool {
+    v.is_null()
+}
+
 /// Governance evidence for one commit (feature 002 documents).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -274,6 +315,13 @@ pub struct CommitBundle {
     pub entity_declarations: BTreeMap<String, String>,
     pub read_set: Vec<ReadEntry>,
     pub write_set: Vec<WriteEntry>,
+    /// The evaluation facts the decision observed (feature 006; the record's `facts` section):
+    /// existence, identity and reference reads. Omitted when there are none.
+    #[serde(default, skip_serializing_if = "is_null")]
+    pub read_facts: Json,
+    /// Creations and removals (feature 006), omitted when there are none.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub write_lifecycle: Vec<LifecycleWrite>,
     pub commit_time: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub evidence: Option<Evidence>,
@@ -307,6 +355,15 @@ pub struct TransitionRecord {
     pub new_versions: Vec<EntityVersion>,
     pub evidence_policy: String,
     pub authorization: Option<String>,
+    /// Entities created by this transition, at revision 1 (feature 006).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub created: Vec<EntityVersion>,
+    /// Entities removed by this transition; their versions are kept (feature 006).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub removed: Vec<RemovedEntity>,
+    /// Changes of the derived reverse-reference index (feature 006).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub ref_changes: Vec<RefChange>,
 }
 
 impl TransitionRecord {

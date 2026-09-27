@@ -64,6 +64,10 @@ class Decision:
     derived: list[dict[str, Any]]
     behavior_version: str
     record_json: str  # the canonical decision record, the audit artifact
+    #: Creations and removals of an allowed decision (feature 006), in effect order.
+    lifecycle: list[dict[str, Any]] = field(default_factory=list)
+    #: The evaluation facts the decision observed (feature 006), or an empty dict.
+    facts: dict[str, Any] = field(default_factory=dict)
 
     @staticmethod
     def from_record(record: Any) -> Decision:
@@ -80,6 +84,8 @@ class Decision:
             derived=v["derived"],
             behavior_version=v["behavior_version"],
             record_json=record.json,
+            lifecycle=v.get("lifecycle", []),
+            facts=v.get("facts", {}),
         )
 
 

@@ -67,6 +67,7 @@ impl CheckKind {
             "redundant_precondition" => Some(("redundant_precondition", CheckKind::Redundancy)),
             "always_true" => Some(("always_true", CheckKind::Vacuity)),
             "always_false" => Some(("always_false", CheckKind::Vacuity)),
+            "referential_integrity" => Some(("referential_integrity", CheckKind::Preservation)),
             other => CheckKind::parse(other).map(|k| (k.as_str(), k)),
         }
     }

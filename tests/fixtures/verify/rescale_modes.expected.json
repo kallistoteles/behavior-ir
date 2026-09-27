@@ -1,0 +1,31 @@
+{
+ "profile": [
+  "postcondition"
+ ],
+ "checks": [
+  {
+   "kind": "postcondition",
+   "action": "split_floor",
+   "subject": "split.y * 3 <= split.x",
+   "outcome": "proven"
+  },
+  {
+   "kind": "postcondition",
+   "action": "split_ceiling",
+   "subject": "split.y * 3 <= split.x",
+   "outcome": "counterexample"
+  },
+  {
+   "kind": "postcondition",
+   "action": "split_half_even",
+   "subject": "split.y * 3 <= split.x + Money(0.02)",
+   "outcome": "proven"
+  },
+  {
+   "kind": "postcondition",
+   "action": "split_half_even",
+   "subject": "split.y * 3 >= split.x - Money(0.02)",
+   "outcome": "proven"
+  }
+ ]
+}

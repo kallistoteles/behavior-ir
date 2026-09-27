@@ -11,6 +11,8 @@ use serde_json::{Map, Value};
 pub const IR_VERSION: &str = "0.1";
 /// The IR version with entity constraints (feature 002).
 pub const IR_VERSION_CONSTRAINTS: &str = "0.2";
+/// The IR version with fixed-scale decimals, exact quantities, and rescale (feature 003).
+pub const IR_VERSION_FIXED_SCALE: &str = "0.3";
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 pub struct Loc {
@@ -27,6 +29,8 @@ pub enum WType {
     Option(Box<WType>),
     Enum(String),
     Nominal(String),
+    /// `Exact<T>` of a fixed-scale nominal (wire 0.3).
+    Exact(String),
     Id(String),
     Entity(String),
 }
@@ -56,6 +60,8 @@ pub struct WNominal {
     pub name: String,
     pub underlying: WType,
     pub ops: Vec<String>,
+    /// Fixed scale (wire 0.3); range-checked at admission.
+    pub scale: Option<u64>,
     pub loc: Loc,
 }
 
@@ -86,6 +92,8 @@ pub struct WDerived {
     pub kind: DerivedKind,
     pub params: Vec<WParam>,
     pub body: WExpr,
+    /// Declared type (wire 0.3); checked against the inferred type, never hashed.
+    pub declared: Option<WType>,
     pub loc: Loc,
 }
 
@@ -167,13 +175,37 @@ pub enum OpName {
 
 #[derive(Debug, Clone)]
 pub enum WExprKind {
-    Lit { ty: WType, value: Value },
-    Field { param: String, field: String },
+    Lit {
+        ty: WType,
+        value: Value,
+    },
+    Field {
+        param: String,
+        field: String,
+    },
     Param(String),
-    Derived { name: String, args: Vec<String> },
-    Op { op: OpName, args: Vec<WExpr> },
-    In { arg: Box<WExpr>, values: Vec<Value> },
-    Wrap { nominal: String, arg: Box<WExpr> },
+    Derived {
+        name: String,
+        args: Vec<String>,
+    },
+    Op {
+        op: OpName,
+        args: Vec<WExpr>,
+    },
+    In {
+        arg: Box<WExpr>,
+        values: Vec<Value>,
+    },
+    Wrap {
+        nominal: String,
+        arg: Box<WExpr>,
+    },
+    /// `rescale(arg, nominal, rounding)` (wire 0.3); the rounding name is checked at admission.
+    Rescale {
+        nominal: String,
+        rounding: String,
+        arg: Box<WExpr>,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -314,6 +346,7 @@ pub fn decode_type(v: &Value, path: &str) -> R<WType> {
         }
         "enum" => WType::Enum(o.ident("name")?),
         "nominal" => WType::Nominal(o.ident("name")?),
+        "exact" => WType::Exact(o.ident("name")?),
         "id" => WType::Id(o.ident("entity")?),
         "entity" => WType::Entity(o.ident("name")?),
         other => return fail(&tag_path, format!("unknown type `{other}`")),
@@ -449,6 +482,19 @@ fn decode_expr(v: &Value, path: &str) -> R<WExpr> {
                 arg: Box::new(args.remove(0)),
             }
         }
+        "rescale" => {
+            let nominal = o.ident("nominal")?;
+            let rounding = o.str("rounding")?;
+            let mut args = args_of(&mut o, path)?;
+            if args.len() != 1 {
+                return fail(&o.sub("args"), "`rescale` takes exactly one argument");
+            }
+            WExprKind::Rescale {
+                nominal,
+                rounding,
+                arg: Box::new(args.remove(0)),
+            }
+        }
         other => {
             let Some(name) = op_name(other) else {
                 return fail(&op_path, format!("unknown operator `{other}`"));
@@ -502,9 +548,10 @@ pub fn decode_module(text: &str) -> R<WModule> {
         Err(e) => return fail("$", format!("invalid JSON: {e}")),
     };
     let mut o = Obj::new(&root, "$")?;
-    let with_constraints = match o.get("ir_version")? {
-        Value::String(v) if v == IR_VERSION => false,
-        Value::String(v) if v == IR_VERSION_CONSTRAINTS => true,
+    let (with_constraints, fixed_scale) = match o.get("ir_version")? {
+        Value::String(v) if v == IR_VERSION => (false, false),
+        Value::String(v) if v == IR_VERSION_CONSTRAINTS => (true, false),
+        Value::String(v) if v == IR_VERSION_FIXED_SCALE => (true, true),
         Value::String(v) => return Err(DecodeError::UnsupportedVersion(v.clone())),
         _ => return fail("$.ir_version", "expected a string"),
     };
@@ -526,12 +573,19 @@ pub fn decode_module(text: &str) -> R<WModule> {
         let underlying = decode_type(n.get("underlying")?, &u_path)?;
         let ops_path = n.sub("ops");
         let ops = decode_strings(n.get("ops")?, &ops_path, true)?;
+        let scale_path = n.sub("scale");
+        let scale = match n.opt("scale") {
+            None => None,
+            Some(Value::Number(x)) if x.as_u64().is_some() => x.as_u64(),
+            Some(_) => return fail(&scale_path, "expected a non-negative integer"),
+        };
         let loc = n.loc()?;
         n.finish()?;
         Ok(WNominal {
             name,
             underlying,
             ops,
+            scale,
             loc,
         })
     })?;
@@ -567,6 +621,11 @@ pub fn decode_module(text: &str) -> R<WModule> {
         let params = decode_list(d.arr("params")?, &params_path, decode_param)?;
         let body_path = d.sub("body");
         let body = decode_expr(d.get("body")?, &body_path)?;
+        let declared_path = d.sub("type");
+        let declared = match d.opt("type") {
+            None => None,
+            Some(t) => Some(decode_type(t, &declared_path)?),
+        };
         let loc = d.loc()?;
         d.finish()?;
         Ok(WDerived {
@@ -574,6 +633,7 @@ pub fn decode_module(text: &str) -> R<WModule> {
             kind,
             params,
             body,
+            declared,
             loc,
         })
     })?;
@@ -642,7 +702,7 @@ pub fn decode_module(text: &str) -> R<WModule> {
     })?;
 
     o.finish()?;
-    Ok(WModule {
+    let module = WModule {
         enums,
         nominals,
         entities,
@@ -650,5 +710,52 @@ pub fn decode_module(text: &str) -> R<WModule> {
         invariants,
         constraints,
         actions,
-    })
+    };
+    if !fixed_scale && uses_fixed_scale(&module) {
+        return fail(
+            "$.ir_version",
+            "fixed-scale nominals, exact types, rescale, and declared derived types need ir_version \"0.3\"",
+        );
+    }
+    Ok(module)
+}
+
+fn type_uses_fixed_scale(t: &WType) -> bool {
+    match t {
+        WType::Exact(_) => true,
+        WType::Option(inner) => type_uses_fixed_scale(inner),
+        _ => false,
+    }
+}
+
+fn expr_uses_fixed_scale(e: &WExpr) -> bool {
+    match &e.kind {
+        WExprKind::Rescale { .. } => true,
+        WExprKind::Lit { ty, .. } => type_uses_fixed_scale(ty),
+        WExprKind::Op { args, .. } => args.iter().any(expr_uses_fixed_scale),
+        WExprKind::In { arg, .. } | WExprKind::Wrap { arg, .. } => expr_uses_fixed_scale(arg),
+        WExprKind::Field { .. } | WExprKind::Param(_) | WExprKind::Derived { .. } => false,
+    }
+}
+
+/// Whether a module uses any wire 0.3 feature (it then needs, and serializes as, `"0.3"`).
+pub fn uses_fixed_scale(m: &WModule) -> bool {
+    let params = |ps: &[WParam]| ps.iter().any(|p| type_uses_fixed_scale(&p.ty));
+    m.nominals.iter().any(|n| n.scale.is_some())
+        || m.entities
+            .iter()
+            .any(|e| e.fields.iter().any(|f| type_uses_fixed_scale(&f.ty)))
+        || m.derived
+            .iter()
+            .any(|d| d.declared.is_some() || params(&d.params) || expr_uses_fixed_scale(&d.body))
+        || m.invariants.iter().any(|i| expr_uses_fixed_scale(&i.body))
+        || m.constraints.iter().any(|c| expr_uses_fixed_scale(&c.body))
+        || m.actions.iter().any(|a| {
+            params(&a.params)
+                || a.preconditions
+                    .iter()
+                    .chain(&a.postconditions)
+                    .any(|c| expr_uses_fixed_scale(&c.expr))
+                || a.effects.iter().any(|e| expr_uses_fixed_scale(&e.value))
+        })
 }

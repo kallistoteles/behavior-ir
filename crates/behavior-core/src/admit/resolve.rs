@@ -30,6 +30,14 @@ fn prim_of(t: &WType) -> Option<Prim> {
     })
 }
 
+fn contains_exact(t: &Type) -> bool {
+    match t {
+        Type::Exact(_) => true,
+        Type::Option(inner) => contains_exact(inner),
+        _ => false,
+    }
+}
+
 /// Resolves a wire type against the declarations. `entities` is the set of entity names.
 pub(crate) fn resolve_type(
     t: &WType,
@@ -56,6 +64,27 @@ pub(crate) fn resolve_type(
         },
         WType::Nominal(name) => match nominals.get(name) {
             Some(n) => Type::Nominal(n.clone()),
+            None => {
+                err(
+                    errs,
+                    "UNKNOWN_TYPE",
+                    format!("unknown nominal type `{name}`"),
+                    loc,
+                );
+                return None;
+            }
+        },
+        WType::Exact(name) => match nominals.get(name) {
+            Some(n) if n.scale.is_some() => Type::Exact(n.clone()),
+            Some(_) => {
+                err(
+                    errs,
+                    "EXACT_NOT_FIXED_SCALE",
+                    format!("`exact` needs a fixed-scale nominal; `{name}` has no scale"),
+                    loc,
+                );
+                return None;
+            }
             None => {
                 err(
                     errs,
@@ -188,16 +217,48 @@ pub(crate) fn declarations(w: &WModule, errs: &mut Vec<AdmissionError>) -> Decls
             );
             ok = false;
         }
+        let scale = match n.scale {
+            None => None,
+            Some(_) if underlying != Prim::Decimal => {
+                err(
+                    errs,
+                    "SCALE_NOT_DECIMAL",
+                    format!(
+                        "only decimal-based nominals can have a scale (`{}`)",
+                        n.name
+                    ),
+                    &n.loc,
+                );
+                // Still declared (without a scale) to avoid follow-on errors.
+                None
+            }
+            Some(x) => match u8::try_from(x) {
+                Ok(x) if x <= 28 => Some(x),
+                _ => {
+                    err(
+                        errs,
+                        "SCALE_OUT_OF_RANGE",
+                        format!("the scale of `{}` must be 0–28, not {x}", n.name),
+                        &n.loc,
+                    );
+                    None
+                }
+            },
+        };
         if !ok {
             continue;
         }
-        let h = hash::nominal_decl(&n.name, underlying, bits);
+        let h = match scale {
+            None => hash::nominal_decl(&n.name, underlying, bits),
+            Some(sc) => hash::nominal_fixed_decl(&n.name, underlying, bits, sc),
+        };
         nominals.insert(
             n.name.clone(),
             Arc::new(NominalInfo {
                 name: n.name.clone(),
                 underlying,
                 ops: bits,
+                scale,
                 hash: h,
             }),
         );
@@ -241,6 +302,15 @@ pub(crate) fn declarations(w: &WModule, errs: &mut Vec<AdmissionError>) -> Decls
             match resolve_type(&f.ty, &enums, &nominals, &entity_names, &f.loc, errs) {
                 Some(Type::Entity(_)) => {
                     err(errs, "TYPE_MISMATCH", "fields cannot hold entities", &f.loc);
+                    ok = false;
+                }
+                Some(t) if contains_exact(&t) => {
+                    err(
+                        errs,
+                        "EXACT_FIELD",
+                        "fields hold fixed-scale values, never exact quantities; store a rescale",
+                        &f.loc,
+                    );
                     ok = false;
                 }
                 Some(t) => fields.push((f.name.clone(), t)),
@@ -358,6 +428,19 @@ pub(crate) fn params(
             ok = false;
             continue;
         };
+        if contains_exact(&ty) {
+            err(
+                errs,
+                "TYPE_MISMATCH",
+                format!(
+                    "parameter `{}` cannot be an exact quantity; pass a fixed-scale value",
+                    p.name
+                ),
+                loc,
+            );
+            ok = false;
+            continue;
+        }
         let role = match (site, p.role) {
             (ParamSite::Derived, None) => ParamRole::Read,
             (ParamSite::Derived, Some(_)) => {

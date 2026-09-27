@@ -1,0 +1,13 @@
+{
+ "action": "triple",
+ "context": {},
+ "data_version": "1",
+ "input": {},
+ "state": {
+  "budget": {
+   "id": "b1",
+   "limit": "1000",
+   "spent": "10.10"
+  }
+ }
+}

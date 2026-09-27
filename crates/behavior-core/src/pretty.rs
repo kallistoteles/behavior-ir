@@ -30,12 +30,20 @@ pub fn value_text(t: &Type, v: &Value) -> String {
         (Type::Option(_), Value::None) => "none".to_string(),
         (Type::Option(inner), v) => format!("some({})", value_text(inner, v)),
         (Type::Enum(e), Value::Str(s)) => format!("{}.{s}", e.name),
+        (Type::Nominal(n), Value::Dec(d)) if n.scale.is_some() => {
+            format!(
+                "{}({})",
+                n.name,
+                crate::decimal::fixed_text(d, n.scale.unwrap_or(0))
+            )
+        }
         (Type::Nominal(n), v) => format!("{}({})", n.name, value_text(&n.underlying.to_type(), v)),
         (_, Value::Str(s)) => serde_json::Value::String(s.clone()).to_string(),
         (_, Value::Bool(b)) => b.to_string(),
         (_, Value::Int(i)) => i.to_string(),
         (_, Value::Dec(d)) => d.to_normalized_string(),
         (_, Value::None) => "none".to_string(),
+        (_, Value::Exact(x)) => x.to_text(),
         (_, Value::Entity(_)) => "<entity>".to_string(),
     }
 }
@@ -112,5 +120,8 @@ pub fn text(e: &Expr) -> String {
         ExprKind::ToDecimal(a) => format!("decimal({})", text(a)),
         ExprKind::Wrap(a) => format!("{}({})", e.ty, text(a)),
         ExprKind::Unwrap(a) => format!("underlying({})", text(a)),
+        ExprKind::Rescale { arg, rounding } => {
+            format!("rescale({}, {}, {})", text(arg), e.ty, rounding.as_str())
+        }
     }
 }

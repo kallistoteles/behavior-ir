@@ -1,0 +1,13 @@
+{
+ "action": "third_via_derived",
+ "context": {},
+ "data_version": "1",
+ "input": {},
+ "state": {
+  "invoice": {
+   "amount": "0.03",
+   "fee": "0",
+   "id": "i1"
+  }
+ }
+}

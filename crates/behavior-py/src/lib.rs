@@ -188,6 +188,12 @@ impl PyType_ {
         }
     }
     #[staticmethod]
+    fn exact(name: String) -> Self {
+        PyType_ {
+            inner: WType::Exact(name),
+        }
+    }
+    #[staticmethod]
     fn entity(name: String) -> Self {
         PyType_ {
             inner: WType::Entity(name),
@@ -562,6 +568,7 @@ impl PyBuilder {
             .map_err(build_err)
     }
 
+    #[pyo3(signature = (name, underlying, ops, file, line, scale=None))]
     fn declare_nominal(
         &mut self,
         name: &str,
@@ -569,9 +576,10 @@ impl PyBuilder {
         ops: Vec<String>,
         file: String,
         line: u64,
+        scale: Option<u64>,
     ) -> PyResult<()> {
         self.inner
-            .declare_nominal(name, underlying.inner, ops, loc(file, line))
+            .declare_nominal(name, underlying.inner, ops, scale, loc(file, line))
             .map_err(build_err)
     }
 
@@ -706,6 +714,8 @@ impl PyBuilder {
             .map_err(build_err)
     }
 
+    #[pyo3(signature = (name, kind, ps, body, file, line, declared=None))]
+    #[allow(clippy::too_many_arguments)]
     fn add_derived(
         &mut self,
         name: &str,
@@ -714,6 +724,7 @@ impl PyBuilder {
         body: PyNode,
         file: String,
         line: u64,
+        declared: Option<PyType_>,
     ) -> PyResult<()> {
         let kind = if kind == "rule" {
             DerivedKind::Rule
@@ -721,8 +732,30 @@ impl PyBuilder {
             DerivedKind::Derived
         };
         self.inner
-            .add_derived(name, kind, params(ps)?, body.inner, loc(file, line))
+            .add_derived(
+                name,
+                kind,
+                params(ps)?,
+                body.inner,
+                declared.map(|t| t.inner),
+                loc(file, line),
+            )
             .map_err(build_err)
+    }
+
+    fn rescale(
+        &mut self,
+        arg: PyNode,
+        nominal: &str,
+        rounding: &str,
+        file: String,
+        line: u64,
+    ) -> PyResult<PyNode> {
+        let inner = self
+            .inner
+            .rescale(arg.inner, nominal, rounding, loc(file, line))
+            .map_err(build_err)?;
+        Ok(PyNode { inner })
     }
 
     fn add_invariant(

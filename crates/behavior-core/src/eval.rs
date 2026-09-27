@@ -8,17 +8,72 @@ use std::collections::BTreeMap;
 
 use serde_json::{Map, Value as Json, json};
 
-use crate::decimal::{Dec, NumError};
+use crate::decimal::{Dec, NumError, fixed_text};
+use crate::exact::Exact;
 use crate::pretty;
 use crate::record::DecisionRecord;
 use crate::semantic::expr::{Expr, ExprKind};
 use crate::semantic::module::{ActionItem, Module, ParamRole};
-use crate::semantic::types::{ArithOp, CmpOp, Hash, Type, hash_display};
+use crate::semantic::types::{ArithOp, CmpOp, Hash, Type, fixed_scale, hash_display};
 use crate::semantic::value::{Value, decode_scalar, encode};
 use crate::wire::Loc;
 
 /// Version of the decision record format.
 pub const RECORD_VERSION: &str = "0.2";
+/// Record version for modules that use fixed-scale features (feature 003).
+pub const RECORD_VERSION_FIXED_SCALE: &str = "0.3";
+
+/// Checks a decoded fixed-scale value against its grid and range (FR-004).
+fn check_fixed(ty: &Type, v: &Value, path: &str, problems: &mut Vec<InputProblem>) -> bool {
+    let n = match ty {
+        Type::Option(inner) => fixed_scale(inner),
+        t => fixed_scale(t),
+    };
+    let (Some(n), Value::Dec(d)) = (n, v) else {
+        return true;
+    };
+    let scale = n.scale.unwrap_or(0);
+    if !d.on_grid(scale) {
+        problems.push(InputProblem {
+            code: "OFF_GRID",
+            path: path.into(),
+            message: format!("`{d}` has more than {scale} decimal places (`{}`)", n.name),
+        });
+        return false;
+    }
+    if !d.in_fixed_range(scale) {
+        problems.push(InputProblem {
+            code: "OUT_OF_RANGE",
+            path: path.into(),
+            message: format!(
+                "`{d}` is outside the range of `{}` (at most {} integer digits)",
+                n.name,
+                28 - scale
+            ),
+        });
+        return false;
+    }
+    true
+}
+
+/// JSON of a parameter value with its type, including the field types of entities.
+fn encode_param(module: &Module, ty: &Type, v: &Value) -> Json {
+    match (ty, v) {
+        (Type::Entity(entity), Value::Entity(fields)) => match module.entity(entity) {
+            Some(item) => Json::Object(
+                fields
+                    .iter()
+                    .map(|(k, fv)| {
+                        let fty = item.field_type(k).cloned().unwrap_or(Type::Bool);
+                        (k.clone(), encode(&fty, fv))
+                    })
+                    .collect(),
+            ),
+            None => encode(ty, v),
+        },
+        _ => encode(ty, v),
+    }
+}
 
 type Vals = BTreeMap<String, Value>;
 type Reads = BTreeMap<String, Json>;
@@ -77,6 +132,7 @@ pub(crate) fn decode_param(
 ) -> Option<Value> {
     let Type::Entity(entity) = ty else {
         return match decode_scalar(ty, raw) {
+            Ok(v) if !check_fixed(ty, &v, path, problems) => None,
             Ok(v) => Some(v),
             Err(msg) => {
                 problems.push(InputProblem {
@@ -111,6 +167,9 @@ pub(crate) fn decode_param(
                 ok = false;
             }
             Some(v) => match decode_scalar(fty, v) {
+                Ok(val) if !check_fixed(fty, &val, &fpath, problems) => {
+                    ok = false;
+                }
                 Ok(val) => {
                     fields.insert(name.clone(), val);
                 }
@@ -193,6 +252,40 @@ struct Evaluator<'a> {
     module: &'a Module,
     memo: BTreeMap<(String, String, Phase), Value>,
     derived: Vec<DerivedEntry>,
+    /// Rescale entries of the step being evaluated (attached to its trace step).
+    rescales: Vec<Json>,
+}
+
+/// Moves the pending rescale entries onto the last trace step.
+fn attach_rescales(ev: &mut Evaluator<'_>, trace: &mut [Json]) {
+    let pending = std::mem::take(&mut ev.rescales);
+    if pending.is_empty() {
+        return;
+    }
+    if let Some(Json::Object(m)) = trace.last_mut() {
+        m.insert("rescales".into(), Json::Array(pending));
+    }
+}
+
+/// The exact value of a numeric runtime value.
+fn to_exact(v: &Value) -> Option<Exact> {
+    match v {
+        Value::Dec(d) => Some(Exact::from_dec(d)),
+        Value::Int(i) => Some(Exact::from_i64(*i)),
+        Value::Exact(x) => Some(x.clone()),
+        _ => None,
+    }
+}
+
+/// A fixed-scale result of lossless arithmetic: on the grid by typing, range-checked here.
+fn fixed_value(x: &Exact, n: &crate::semantic::types::NominalInfo) -> Result<Value, NumError> {
+    let scale = n.scale.unwrap_or(0);
+    // The value is on the grid, so any rounding mode returns it unchanged.
+    let d = x.round_to_scale(scale, crate::exact::Rounding::Down)?;
+    if Exact::from_dec(&d) != *x || !d.in_fixed_range(scale) {
+        return Err(NumError::Overflow);
+    }
+    Ok(Value::Dec(d))
 }
 
 fn num_err(e: NumError, expr: &Expr) -> String {
@@ -208,6 +301,41 @@ fn as_dec(v: &Value) -> Option<Dec> {
 }
 
 impl Evaluator<'_> {
+    /// Evaluates a numeric expression in the exact domain: decimal arithmetic nodes recurse
+    /// exactly (research R5); other nodes (fields, derived values, integer arithmetic, rescale)
+    /// are evaluated normally and lifted.
+    fn eval_exact(
+        &mut self,
+        e: &Expr,
+        vals: &Vals,
+        phase: Phase,
+        reads: &mut Option<&mut Reads>,
+    ) -> Result<Exact, String> {
+        let bad = || format!("internal: ill-typed value in {}", pretty::text(e));
+        match &e.kind {
+            ExprKind::Arith(op, a, b) if e.ty != Type::Int => {
+                let x = self.eval_exact(a, vals, phase, reads)?;
+                let y = self.eval_exact(b, vals, phase, reads)?;
+                let r = match op {
+                    ArithOp::Add => x.add(&y),
+                    ArithOp::Sub => x.sub(&y),
+                    ArithOp::Mul => x.mul(&y),
+                    ArithOp::Div => x.div(&y),
+                };
+                r.map_err(|err| num_err(err, e))
+            }
+            ExprKind::ToDecimal(a) | ExprKind::Wrap(a) | ExprKind::Unwrap(a)
+                if !matches!(e.ty, Type::Nominal(_)) || fixed_scale(&e.ty).is_none() =>
+            {
+                self.eval_exact(a, vals, phase, reads)
+            }
+            _ => {
+                let v = self.eval(e, vals, phase, reads)?;
+                to_exact(&v).ok_or_else(bad)
+            }
+        }
+    }
+
     fn eval(
         &mut self,
         e: &Expr,
@@ -277,12 +405,16 @@ impl Evaluator<'_> {
             ExprKind::Cmp(op, a, b) => {
                 let x = self.eval(a, vals, phase, reads)?;
                 let y = self.eval(b, vals, phase, reads)?;
+                let exact = matches!(x, Value::Exact(_)) || matches!(y, Value::Exact(_));
                 let ord = || match (&x, &y) {
                     (Value::Int(p), Value::Int(q)) => Some(p.cmp(q)),
                     (Value::Dec(p), Value::Dec(q)) => Some(p.cmp(q)),
+                    _ if exact => Some(to_exact(&x)?.cmp(&to_exact(&y)?)),
                     _ => None,
                 };
                 let r = match op {
+                    CmpOp::Eq if exact => ord().ok_or_else(bad)?.is_eq(),
+                    CmpOp::Ne if exact => !ord().ok_or_else(bad)?.is_eq(),
                     CmpOp::Eq => x == y,
                     CmpOp::Ne => x != y,
                     CmpOp::Lt => ord().ok_or_else(bad)?.is_lt(),
@@ -291,6 +423,39 @@ impl Evaluator<'_> {
                     CmpOp::Ge => ord().ok_or_else(bad)?.is_ge(),
                 };
                 Ok(Value::Bool(r))
+            }
+            ExprKind::Arith(..) if matches!(e.ty, Type::Exact(_)) => {
+                Ok(Value::Exact(self.eval_exact(e, vals, phase, reads)?))
+            }
+            ExprKind::Arith(..) if fixed_scale(&e.ty).is_some() => {
+                let x = self.eval_exact(e, vals, phase, reads)?;
+                let n = fixed_scale(&e.ty).ok_or_else(bad)?;
+                fixed_value(&x, n).map_err(|err| num_err(err, e))
+            }
+            ExprKind::Rescale { arg, rounding } => {
+                let n = fixed_scale(&e.ty).ok_or_else(bad)?;
+                let scale = n.scale.unwrap_or(0);
+                let x = self.eval_exact(arg, vals, phase, reads)?;
+                let d = x
+                    .round_to_scale(scale, *rounding)
+                    .map_err(|err| num_err(err, e))?;
+                if !d.in_fixed_range(scale) {
+                    return Err(num_err(NumError::Overflow, e));
+                }
+                self.rescales.push(json!({
+                    "rescale": pretty::text(arg),
+                    "exact": x.to_text(),
+                    "rounding": rounding.as_str(),
+                    "scale": scale,
+                    "result": fixed_text(&d, scale),
+                }));
+                Ok(Value::Dec(d))
+            }
+            ExprKind::Wrap(a) if fixed_scale(&e.ty).is_some() => {
+                let v = self.eval(a, vals, phase, reads)?;
+                let n = fixed_scale(&e.ty).ok_or_else(bad)?;
+                let x = to_exact(&v).ok_or_else(bad)?;
+                fixed_value(&x, n).map_err(|err| num_err(err, e))
             }
             ExprKind::Arith(op, a, b) => {
                 let x = self.eval(a, vals, phase, reads)?;
@@ -529,7 +694,12 @@ pub fn evaluate(module: &Module, request: &str) -> DecisionRecord {
     };
 
     let mut record = Map::new();
-    record.insert("record_version".into(), json!(RECORD_VERSION));
+    let record_version = if crate::serialize::uses_fixed_scale(module) {
+        RECORD_VERSION_FIXED_SCALE
+    } else {
+        RECORD_VERSION
+    };
+    record.insert("record_version".into(), json!(record_version));
     record.insert("behavior_version".into(), json!(module.behavior_version()));
     record.insert("data_version".into(), json!(req.data_version));
     if let Some(g) = &req.git_revision {
@@ -569,7 +739,7 @@ pub fn evaluate(module: &Module, request: &str) -> DecisionRecord {
     for p in action.params() {
         if let (Some(v), Some(sec)) = (vals.get(p.name()), sections.get_mut(section_name(p.role())))
         {
-            sec.insert(p.name().to_string(), encode(p.ty(), v));
+            sec.insert(p.name().to_string(), encode_param(module, p.ty(), v));
         }
     }
     for (k, v) in sections {
@@ -593,6 +763,7 @@ pub fn evaluate(module: &Module, request: &str) -> DecisionRecord {
         module,
         memo: BTreeMap::new(),
         derived: Vec::new(),
+        rescales: Vec::new(),
     };
     let outcome = run_transition(&mut ev, action, vals);
 
@@ -730,6 +901,7 @@ fn run_transition(ev: &mut Evaluator<'_>, action: &ActionItem, s: Vals) -> Outco
                 outcome,
                 &c.loc,
             ));
+            attach_rescales(ev, &mut out.trace);
             match r {
                 Ok(true) => {}
                 Ok(false) => {
@@ -776,7 +948,7 @@ fn run_transition(ev: &mut Evaluator<'_>, action: &ActionItem, s: Vals) -> Outco
                 let old = match s.get(&e.param) {
                     Some(Value::Entity(f)) => f
                         .get(&e.field)
-                        .map(crate::semantic::value::encode_untyped)
+                        .map(|v| encode(&field_ty, v))
                         .unwrap_or(Json::Null),
                     _ => Json::Null,
                 };
@@ -789,6 +961,7 @@ fn run_transition(ev: &mut Evaluator<'_>, action: &ActionItem, s: Vals) -> Outco
                     json!({"assigned": new}),
                     &e.loc,
                 ));
+                attach_rescales(ev, &mut out.trace);
                 delta.push((e.param.clone(), e.field.clone(), v, old, new));
             }
             Err(msg) => {
@@ -801,6 +974,7 @@ fn run_transition(ev: &mut Evaluator<'_>, action: &ActionItem, s: Vals) -> Outco
                     json!({"error": msg}),
                     &e.loc,
                 ));
+                attach_rescales(ev, &mut out.trace);
                 out.result = "ERROR";
                 out.reasons
                     .push(reason("EVALUATION_ERROR", msg, Some(&e.loc)));
@@ -947,6 +1121,7 @@ fn run_rules(
             outcome,
             &loc,
         )));
+        attach_rescales(ev, &mut out.trace);
         match r {
             Ok(true) => {}
             Ok(false) => {

@@ -1,0 +1,35 @@
+{
+ "profile": [
+  "evaluation_error",
+  "postcondition",
+  "preservation"
+ ],
+ "checks": [
+  {
+   "kind": "preservation",
+   "action": "apply_discount",
+   "subject": "non_negative_amount",
+   "outcome": "counterexample",
+   "param": "invoice"
+  },
+  {
+   "kind": "evaluation_error",
+   "action": "apply_discount",
+   "subject": "invoice.amount - discount (numeric overflow)",
+   "outcome": "counterexample"
+  },
+  {
+   "kind": "preservation",
+   "action": "approve_invoice",
+   "subject": "non_negative_amount",
+   "outcome": "proven",
+   "param": "invoice"
+  },
+  {
+   "kind": "postcondition",
+   "action": "approve_invoice",
+   "subject": "invoice.approved_by == some(actor.id)",
+   "outcome": "proven"
+  }
+ ]
+}

@@ -7,7 +7,8 @@ use std::collections::BTreeMap;
 
 use serde_json::{Value as Json, json};
 
-use crate::decimal::Dec;
+use crate::decimal::{Dec, fixed_text};
+use crate::exact::Exact;
 use crate::semantic::types::{Prim, Type};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -18,6 +19,8 @@ pub enum Value {
     Str(String),
     None,
     Entity(BTreeMap<String, Value>),
+    /// An exact quantity; exists only while an expression is evaluated, never in state.
+    Exact(Exact),
 }
 
 fn describe(t: &Type) -> String {
@@ -28,7 +31,11 @@ fn describe(t: &Type) -> String {
         Type::String => "a string".to_string(),
         Type::Id(e) => format!("an id of {e} (string)"),
         Type::Enum(e) => format!("one of {:?}", e.values),
-        Type::Nominal(n) => format!("{} ({})", n.name, describe(&n.underlying.to_type())),
+        Type::Nominal(n) => match n.scale {
+            Some(s) => format!("{} (a decimal with at most {s} decimal places)", n.name),
+            None => format!("{} ({})", n.name, describe(&n.underlying.to_type())),
+        },
+        Type::Exact(n) => format!("an exact {} quantity (never an input)", n.name),
         Type::Option(inner) => format!("null or {}", describe(inner)),
         Type::Entity(e) => format!("a {e} object"),
     }
@@ -63,7 +70,7 @@ pub fn decode_scalar(t: &Type, v: &Json) -> Result<Value, String> {
             Json::Null => Ok(Value::None),
             _ => decode_scalar(inner, v).or_else(|_| wrong()),
         },
-        Type::Entity(_) => wrong(),
+        Type::Entity(_) | Type::Exact(_) => wrong(),
     }
 }
 
@@ -71,12 +78,25 @@ fn prim_type(p: Prim) -> Type {
     p.to_type()
 }
 
-/// Encodes a value of type `t` as JSON (decimals as normalized strings).
+/// Encodes a value of type `t` as JSON (decimals as normalized strings; fixed-scale values with
+/// exactly `scale` fractional digits; exact quantities as decimal or `n/d` text).
 pub fn encode(t: &Type, v: &Value) -> Json {
+    let fixed = match t {
+        Type::Nominal(n) => n.scale,
+        Type::Option(inner) => match &**inner {
+            Type::Nominal(n) => n.scale,
+            _ => None,
+        },
+        _ => None,
+    };
     match v {
         Value::Bool(b) => json!(b),
         Value::Int(i) => json!(i),
-        Value::Dec(d) => json!(d.to_normalized_string()),
+        Value::Dec(d) => match fixed {
+            Some(s) => json!(fixed_text(d, s)),
+            None => json!(d.to_normalized_string()),
+        },
+        Value::Exact(x) => json!(x.to_text()),
         Value::Str(s) => json!(s),
         Value::None => Json::Null,
         Value::Entity(fields) => {

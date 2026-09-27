@@ -45,6 +45,19 @@ if [ -f tests/fixtures/requests/expectations.json ]; then
   done < <(python3 -c 'import json,sys; [print(k, v["wire"]) for k, v in sorted(json.load(open(sys.argv[1])).items())]' tests/fixtures/requests/expectations.json)
 fi
 
+# Evaluation and replay of the feature 002 and 003 requests (constraints, fixed-scale values).
+for pair in "002:constraints" "003:fixed_scale"; do
+  dir="tests/fixtures/requests/${pair%%:*}"
+  w="tests/fixtures/wire/valid/${pair##*:}.json"
+  for r in "$dir"/*.json; do
+    case "$r" in */expectations.json) continue ;; esac
+    run_twice "eval $r" "$BIN" eval "$w" "$r"
+    "$BIN" eval "$w" "$r" >"$tmp/record.json" 2>/dev/null || true
+    rc=0; "$BIN" replay "$w" "$tmp/record.json" >/dev/null 2>&1 || rc=$?
+    if [ "$rc" -ne 0 ]; then echo "REPLAY MISMATCH: $r" >&2; fail=1; fi
+  done
+done
+
 # Verification attestations (feature 002): every verify fixture and every valid wire file,
 # without a cache so the solver runs both times.
 if command -v "${BEHAVIOR_Z3:-z3}" >/dev/null 2>&1; then

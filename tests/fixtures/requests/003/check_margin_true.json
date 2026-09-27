@@ -1,0 +1,18 @@
+{
+ "action": "check_margin",
+ "context": {},
+ "data_version": "1",
+ "input": {},
+ "state": {
+  "budget": {
+   "id": "b1",
+   "limit": "25.02",
+   "spent": "0"
+  },
+  "invoice": {
+   "amount": "20.01",
+   "fee": "0",
+   "id": "i1"
+  }
+ }
+}

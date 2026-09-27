@@ -1,0 +1,13 @@
+{
+ "action": "split3_nested",
+ "context": {},
+ "data_version": "1",
+ "input": {},
+ "state": {
+  "invoice": {
+   "amount": "20.00",
+   "fee": "0",
+   "id": "i1"
+  }
+ }
+}

@@ -1,10 +1,10 @@
-# How verification works (feature 002)
+# How verification works (features 002–003)
 
 A behavior module is no longer only a program that can run: its central safety and correctness
 properties are turned into mathematical questions automatically, proven or refuted, and kept as
 evidence bound to the behavior version.
 
-Details: `specs/002-smt-verification/` (spec, research, contracts, quickstart,
+Details: `specs/002-smt-verification/` and `specs/003-fixed-scale-decimals/` (spec, research, contracts, quickstart,
 `checklists/implementation-review.md`).
 
 ## Pipeline
@@ -15,7 +15,9 @@ Details: `specs/002-smt-verification/` (spec, research, contracts, quickstart,
                                    ▼
             Semantic assumptions = exactly what the runtime guarantees
    (type domains, entity constraints on incoming entities, invariants on S,
-    distinct state identities, evaluation order, decimal rounding intervals)
+    distinct state identities, evaluation order; fixed-scale values as integers on their grid,
+    exact quantities as rationals, each rescale as its rounding function; general decimals
+    with rounding intervals)
                                    │
           ┌────────────────────────┼────────────────────────┐
           ▼                        ▼                        ▼
@@ -81,8 +83,8 @@ Two consequences:
 |---|---|---|---|
 | Unsigned attestations | trust / provenance | Content is tamper-evident (hash), but not *who* produced it; anyone can compute a self-consistent "verified" attestation | Verifier-signed attestations, or `authorize` re-verifying (cheap with the cache) |
 | Trusted cache | integrity | Keys are already content-addressed from all inputs, but the stored *result* is not verifiable: a planted entry under the right key is accepted | Authenticated entries (signature/MAC) or checkable proof certificates; keep the cache writable only by the verifier |
-| Decimal without fixed scale | semantics / expressiveness | Proofs through derived differences (e.g. `amount <= remaining(project)`) are often inconclusive, because the interval model cannot track scale | Fixed-scale decimals (e.g. `Money<scale=2>`), enforced at input and in arithmetic |
+| General decimals (no fixed scale) | semantics / expressiveness | **Addressed for money by feature 003**: fixed-scale types (`nominal(Decimal, scale=2)`) are exact on input and in lossless arithmetic, every narrowing is an explicit `rescale` with one of six rounding modes, and the verifier reasons about them exactly (`amount <= remaining(project)` is proven). General decimals keep the interval model and may still be inconclusive | Use fixed-scale types for quantities with a known number of decimals. Remaining: the ratio `T ÷ T` is a general decimal (28-digit rounding) — an exact ratio type is a follow-up; exact quantities have a 512-bit limit the verifier does not model |
 
-Suggested order: fixed-scale decimals first, since they directly increase what can be proven.
+Fixed-scale decimals (feature 003) came first, since they directly increase what can be proven.
 Signed attestations and a hardened cache matter once results are trusted across trust
 boundaries.

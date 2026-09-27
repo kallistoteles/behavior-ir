@@ -13,6 +13,7 @@ use crate::wire::DerivedKind;
 
 pub const TAG_ENUM: &str = "behavior.enum.v1";
 pub const TAG_NOMINAL: &str = "behavior.nominal.v1";
+pub const TAG_NOMINAL_FIXED: &str = "behavior.nominal.fixed.v1";
 pub const TAG_ENTITY: &str = "behavior.entity.v1";
 pub const TAG_EXPR: &str = "behavior.expr.v1";
 pub const TAG_EFFECT: &str = "behavior.effect.v1";
@@ -74,6 +75,7 @@ impl Enc {
             Type::Enum(e) => self.u8(0x20).href(&e.hash),
             Type::Id(entity) => self.u8(0x21).str(entity),
             Type::Nominal(n) => self.u8(0x22).href(&n.hash),
+            Type::Exact(n) => self.u8(0x23).href(&n.hash),
             Type::Entity(entity) => self.u8(0x30).str(entity),
         }
     }
@@ -88,6 +90,8 @@ impl Enc {
             // Entities and bare `None` never appear as literals in admitted IR.
             (_, Value::None) => self.u8(0),
             (_, Value::Entity(_)) => self,
+            // Exact quantities are never literals either.
+            (_, Value::Exact(x)) => self.str(&x.to_text()),
         }
     }
     fn finish(&self, tag: &str) -> Hash {
@@ -113,6 +117,16 @@ pub fn nominal_decl(name: &str, underlying: Prim, ops: u8) -> Hash {
         .ty(&prim_type(underlying))
         .u8(ops)
         .finish(TAG_NOMINAL)
+}
+
+/// A fixed-scale nominal: its own tag, so nominals without scale keep their v1 hashes.
+pub fn nominal_fixed_decl(name: &str, underlying: Prim, ops: u8, scale: u8) -> Hash {
+    Enc::default()
+        .str(name)
+        .ty(&prim_type(underlying))
+        .u8(ops)
+        .u8(scale)
+        .finish(TAG_NOMINAL_FIXED)
 }
 
 /// `fields` includes the implicit `id` field first.
@@ -238,6 +252,11 @@ pub fn expr(kind: &ExprKind, ty: &Type) -> Hash {
         ExprKind::Unwrap(a) => {
             op(&mut e, 0x53);
             e.href(&a.hash);
+        }
+        ExprKind::Rescale { arg, rounding } => {
+            // The target type (and so its declaration hash) is `ty`.
+            op(&mut e, 0x60);
+            e.href(&arg.hash).u8(rounding.code());
         }
     }
     e.finish(TAG_EXPR)

@@ -133,11 +133,13 @@ impl Builder {
     }
 
     /// Declares a nominal type; declaring the same nominal type again is a no-op.
+    /// Declares a nominal type; `scale` makes a decimal-based nominal fixed-scale (0–28).
     pub fn declare_nominal(
         &mut self,
         name: &str,
         underlying: WType,
         mut ops: Vec<String>,
+        scale: Option<u64>,
         loc: Loc,
     ) -> R<()> {
         ops.sort();
@@ -156,6 +158,7 @@ impl Builder {
             name: name.into(),
             underlying,
             ops,
+            scale,
             loc,
         });
         self.decls = None;
@@ -356,6 +359,19 @@ impl Builder {
         self.make(w, &[&arg], None)
     }
 
+    /// `rescale(arg, nominal, rounding)`: the explicit narrowing to a fixed-scale type.
+    pub fn rescale(&mut self, arg: Node, nominal: &str, rounding: &str, loc: Loc) -> R<Node> {
+        let w = WExpr {
+            kind: WExprKind::Rescale {
+                nominal: nominal.into(),
+                rounding: rounding.into(),
+                arg: Box::new(arg.w.clone()),
+            },
+            loc,
+        };
+        self.make(w, &[&arg], None)
+    }
+
     // --- statements ----------------------------------------------------------------------
 
     /// A pre/postcondition, invariant, or rule body must be Bool.
@@ -380,10 +396,22 @@ impl Builder {
         if let Some(t) = &value.ty
             && coerce(&target, t).is_none()
         {
-            return Err(err(
-                "TYPE_MISMATCH",
-                format!("cannot assign `{t}` to `{param}.{field}: {target}`"),
-            ));
+            let lossy = crate::semantic::types::fixed_scale(&target).is_some()
+                && matches!(t, Type::Exact(_) | Type::Decimal);
+            return Err(if lossy {
+                err(
+                    "LOSSY_CONVERSION",
+                    format!(
+                        "assigning `{t}` to `{param}.{field}: {target}` would lose information; \
+                         use `rescale(value, {target}, rounding)`"
+                    ),
+                )
+            } else {
+                err(
+                    "TYPE_MISMATCH",
+                    format!("cannot assign `{t}` to `{param}.{field}: {target}`"),
+                )
+            });
         }
         Ok(())
     }
@@ -408,6 +436,7 @@ impl Builder {
         kind: DerivedKind,
         ps: Vec<WParam>,
         body: Node,
+        declared: Option<WType>,
         loc: Loc,
     ) -> R<()> {
         self.claim(name)?;
@@ -416,6 +445,7 @@ impl Builder {
             kind,
             params: ps,
             body: body.w.clone(),
+            declared,
             loc,
         };
         if body.ty.is_some() {

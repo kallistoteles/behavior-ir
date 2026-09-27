@@ -1,0 +1,18 @@
+{
+ "action": "add_spent",
+ "context": {},
+ "data_version": "1",
+ "input": {},
+ "state": {
+  "budget": {
+   "id": "b1",
+   "limit": "1000",
+   "spent": "0"
+  },
+  "invoice": {
+   "amount": "100000000000000000000000000",
+   "fee": "0",
+   "id": "i1"
+  }
+ }
+}

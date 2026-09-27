@@ -15,7 +15,9 @@ pub(crate) fn references(e: &WExpr, out: &mut BTreeSet<String>) {
             out.insert(name.clone());
         }
         WExprKind::Op { args, .. } => args.iter().for_each(|a| references(a, out)),
-        WExprKind::In { arg, .. } | WExprKind::Wrap { arg, .. } => references(arg, out),
+        WExprKind::In { arg, .. }
+        | WExprKind::Wrap { arg, .. }
+        | WExprKind::Rescale { arg, .. } => references(arg, out),
         WExprKind::Lit { .. } | WExprKind::Field { .. } | WExprKind::Param(_) => {}
     }
 }

@@ -6,12 +6,15 @@ use std::collections::{BTreeMap, BTreeSet};
 use crate::admit::resolve::{Decls, ParamSite, params, resolve_type};
 use crate::admit::{AdmissionError, hash};
 use crate::decimal::Dec;
+use crate::exact::Rounding;
 use crate::semantic::expr::{Expr, ExprKind};
 use crate::semantic::module::{
     ActionItem, Condition, ConstraintItem, DerivedItem, Effect, InvariantItem, Kind, Module, Param,
     ParamRole,
 };
-use crate::semantic::types::{ArithOp, CmpOp, Conv, OpSig, Type, TypeCode, coerce, type_of_op};
+use crate::semantic::types::{
+    ArithOp, CmpOp, Conv, OpSig, Type, TypeCode, coerce, fixed_scale, type_of_op,
+};
 use crate::semantic::value::{Value, decode_scalar};
 use crate::wire::{DerivedKind, Loc, OpName, WExpr, WExprKind, WModule};
 
@@ -110,8 +113,15 @@ impl Ctx<'_> {
             self.err("TYPE_MISMATCH", "entities cannot be literals", loc);
             return None;
         }
+        if matches!(ty, Type::Exact(_)) {
+            self.err("TYPE_MISMATCH", "exact quantities cannot be literals", loc);
+            return None;
+        }
         match decode_scalar(ty, v) {
-            Ok(val) => Some(val),
+            Ok(val) => {
+                self.check_grid(ty, &val, loc)?;
+                Some(val)
+            }
             Err(msg) => {
                 self.err(
                     "INVALID_LITERAL",
@@ -123,6 +133,27 @@ impl Ctx<'_> {
         }
     }
 
+    /// A fixed-scale literal must lie on its grid and within its range.
+    fn check_grid(&mut self, ty: &Type, v: &Value, loc: &Loc) -> Option<()> {
+        let (Some(n), Value::Dec(d)) = (fixed_scale(ty), v) else {
+            return Some(());
+        };
+        let scale = n.scale.unwrap_or(0);
+        if !d.on_grid(scale) || !d.in_fixed_range(scale) {
+            self.err(
+                "OFF_GRID_LITERAL",
+                format!(
+                    "`{d}` is not a `{}` value (scale {scale}, at most {} integer digits)",
+                    n.name,
+                    28 - scale
+                ),
+                loc,
+            );
+            return None;
+        }
+        Some(())
+    }
+
     fn type_error(&mut self, code: TypeCode, what: &str, operands: &[Type], loc: &Loc) {
         let list: Vec<String> = operands.iter().map(|t| format!("`{t}`")).collect();
         let msg = match code {
@@ -132,6 +163,11 @@ impl Ctx<'_> {
             TypeCode::EmptyIn => "`in` needs at least one value".to_string(),
             TypeCode::NestedOption => "options cannot be nested".to_string(),
             TypeCode::TypeMismatch => format!("cannot apply `{what}` to {}", list.join(" and ")),
+            TypeCode::LossyConversion => format!(
+                "`{what}` on {} would lose information; narrow explicitly with \
+                 `rescale(value, Type, rounding)`",
+                list.join(" and ")
+            ),
         };
         self.err(code.as_str(), msg, loc);
     }
@@ -261,7 +297,10 @@ impl Ctx<'_> {
                         let inner = convert(a, convs[0]);
                         // Fold literals: `Money(0)` is a nominal literal.
                         match inner.kind {
-                            ExprKind::Lit(v) => Some(Expr::new(ExprKind::Lit(v), ty, loc.clone())),
+                            ExprKind::Lit(v) => {
+                                self.check_grid(&ty, &v, loc)?;
+                                Some(Expr::new(ExprKind::Lit(v), ty, loc.clone()))
+                            }
                             _ => Some(Expr::new(ExprKind::Wrap(Box::new(inner)), ty, loc.clone())),
                         }
                     }
@@ -270,6 +309,52 @@ impl Ctx<'_> {
                         None
                     }
                 }
+            }
+            WExprKind::Rescale {
+                nominal,
+                rounding,
+                arg,
+            } => {
+                let Some(n) = self.decls.nominals.get(nominal).cloned() else {
+                    self.err(
+                        "UNKNOWN_TYPE",
+                        format!("unknown nominal type `{nominal}`"),
+                        loc,
+                    );
+                    return None;
+                };
+                let Some(mode) = Rounding::parse(rounding) else {
+                    self.err(
+                        "UNKNOWN_ROUNDING",
+                        format!(
+                            "unknown rounding `{rounding}` (half_even, half_up, down, up, floor, ceiling)"
+                        ),
+                        loc,
+                    );
+                    return None;
+                };
+                let a = self.expr(arg)?;
+                if n.scale.is_none() {
+                    let msg =
+                        format!("`rescale` needs a fixed-scale target; `{nominal}` has no scale");
+                    self.err("EXACT_NOT_FIXED_SCALE", msg, loc);
+                    return None;
+                }
+                let ok = match &a.ty {
+                    Type::Int | Type::Decimal => true,
+                    Type::Nominal(m) | Type::Exact(m) => *m == n,
+                    _ => false,
+                };
+                if !ok {
+                    let msg = format!("cannot rescale `{}` to `{nominal}`", a.ty);
+                    self.err("TYPE_MISMATCH", msg, loc);
+                    return None;
+                }
+                let kind = ExprKind::Rescale {
+                    arg: Box::new(a),
+                    rounding: mode,
+                };
+                Some(Expr::new(kind, Type::Nominal(n), loc.clone()))
             }
             WExprKind::Op { op, args } => {
                 let mut typed = Vec::new();
@@ -495,11 +580,27 @@ pub(crate) fn build_module(
                 continue;
             };
             let Some(c) = coerce(&fty, &value.ty) else {
-                let msg = format!(
-                    "cannot assign `{}` to `{}.{}: {fty}`",
-                    value.ty, e.param, e.field
-                );
-                ctx.err("TYPE_MISMATCH", msg, &e.loc);
+                let lossy = fixed_scale(&fty).is_some()
+                    && matches!(value.ty, Type::Exact(_) | Type::Decimal);
+                let (code, msg) = if lossy {
+                    (
+                        "LOSSY_CONVERSION",
+                        format!(
+                            "assigning `{}` to `{}.{}: {fty}` would lose information; \
+                             use `rescale(value, {fty}, rounding)`",
+                            value.ty, e.param, e.field
+                        ),
+                    )
+                } else {
+                    (
+                        "TYPE_MISMATCH",
+                        format!(
+                            "cannot assign `{}` to `{}.{}: {fty}`",
+                            value.ty, e.param, e.field
+                        ),
+                    )
+                };
+                ctx.err(code, msg, &e.loc);
                 ok = false;
                 continue;
             };
@@ -681,6 +782,35 @@ pub(crate) fn derived_item(
             ctx.expr(&d.body)
         }
     }?;
+    let mut declared_type = None;
+    if let Some(declared) = &d.declared {
+        let entities: BTreeSet<String> = decls.entities.keys().cloned().collect();
+        let declared = resolve_type(
+            declared,
+            &decls.enums,
+            &decls.nominals,
+            &entities,
+            &d.loc,
+            errs,
+        )?;
+        if declared != body.ty {
+            let hint = if matches!(body.ty, Type::Exact(_)) && fixed_scale(&declared).is_some() {
+                format!("; narrow explicitly with `rescale(value, {declared}, rounding)`")
+            } else {
+                String::new()
+            };
+            errs.push(AdmissionError::new(
+                "DECLARED_TYPE_MISMATCH",
+                format!(
+                    "`{}` is declared `{declared}` but is `{}`{hint}",
+                    d.name, body.ty
+                ),
+                Some(&d.loc),
+            ));
+            return None;
+        }
+        declared_type = Some(declared);
+    }
     let h = hash::derived(d.kind, &param_triples(&ps), &body.hash);
     Some(DerivedItem {
         kind: d.kind,
@@ -688,5 +818,6 @@ pub(crate) fn derived_item(
         body,
         hash: h,
         loc: d.loc.clone(),
+        declared: declared_type,
     })
 }

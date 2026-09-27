@@ -64,6 +64,7 @@ fn env(v: &Value) -> Result<Env, String> {
                 name,
                 underlying,
                 ops: bits,
+                scale: None,
                 hash: h,
             }),
         );
@@ -80,6 +81,7 @@ fn ty(env: &Env, t: &WType) -> Result<Type, String> {
         WType::Option(inner) => Type::Option(Box::new(ty(env, inner)?)),
         WType::Enum(n) => Type::Enum(env.enums.get(n).ok_or("unknown enum")?.clone()),
         WType::Nominal(n) => Type::Nominal(env.nominals.get(n).ok_or("unknown nominal")?.clone()),
+        WType::Exact(n) => Type::Exact(env.nominals.get(n).ok_or("unknown nominal")?.clone()),
         WType::Id(e) => Type::Id(e.clone()),
         WType::Entity(e) => Type::Entity(e.clone()),
     })

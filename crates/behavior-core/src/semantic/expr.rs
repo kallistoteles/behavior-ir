@@ -32,6 +32,11 @@ pub enum ExprKind {
     ToDecimal(Box<Expr>),
     Wrap(Box<Expr>),
     Unwrap(Box<Expr>),
+    /// Narrows an exact value to the fixed-scale type `ty` with an explicit rounding.
+    Rescale {
+        arg: Box<Expr>,
+        rounding: crate::exact::Rounding,
+    },
 }
 
 #[derive(Debug, Clone)]

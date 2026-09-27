@@ -1,0 +1,34 @@
+{
+ "profile": [
+  "evaluation_error",
+  "preservation"
+ ],
+ "checks": [
+  {
+   "kind": "preservation",
+   "action": "discount",
+   "subject": "non_negative_bill",
+   "outcome": "proven",
+   "param": "bill"
+  },
+  {
+   "kind": "evaluation_error",
+   "action": "discount",
+   "subject": "rescale(bill.amount * (1 - rate), Money, floor) (numeric overflow)",
+   "outcome": "proven"
+  },
+  {
+   "kind": "preservation",
+   "action": "discount_over",
+   "subject": "non_negative_bill",
+   "outcome": "counterexample",
+   "param": "bill"
+  },
+  {
+   "kind": "evaluation_error",
+   "action": "discount_over",
+   "subject": "rescale(bill.amount * (1 - rate), Money, floor) (numeric overflow)",
+   "outcome": "proven"
+  }
+ ]
+}

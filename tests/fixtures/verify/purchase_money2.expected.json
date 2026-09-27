@@ -1,0 +1,28 @@
+{
+ "profile": [
+  "preservation"
+ ],
+ "checks": [
+  {
+   "kind": "preservation",
+   "action": "approve",
+   "subject": "within_budget",
+   "param": "project",
+   "outcome": "counterexample"
+  },
+  {
+   "kind": "preservation",
+   "action": "approve",
+   "subject": "non_negative_project",
+   "param": "project",
+   "outcome": "proven"
+  },
+  {
+   "kind": "preservation",
+   "action": "approve",
+   "subject": "non_negative_purchase",
+   "param": "purchase",
+   "outcome": "proven"
+  }
+ ]
+}

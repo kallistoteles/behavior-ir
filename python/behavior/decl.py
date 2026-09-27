@@ -142,6 +142,15 @@ class BehaviorFn:
     def params(self) -> list[ParamInfo]:
         return _resolve_params(self.fn, "action" if self.kind == "action" else "derived")
 
+    def declared_type(self) -> BType | None:
+        """The return annotation of a derived value or rule, if any (checked by the engine)."""
+        try:
+            hints = inspect.get_annotations(self.fn, eval_str=True)
+        except NameError as e:
+            raise BehaviorDefinitionError(f"cannot resolve annotation: {e}", *self.loc) from e
+        spec = hints.get("return")
+        return None if spec is None else to_type(spec)
+
     def call_symbolic(self, params: list[ParamInfo]) -> Any:
         args = [_symbol(p) for p in params if not p.keyword]
         kwargs = {p.name: _symbol(p) for p in params if p.keyword}

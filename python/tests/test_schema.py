@@ -11,7 +11,7 @@ from .conftest import FIXTURES, REPO_ROOT
 
 SCHEMAS = {
     v: json.loads((REPO_ROOT / "schema" / f"wire-ir-{v}.schema.json").read_text())
-    for v in ("0.1", "0.2")
+    for v in ("0.1", "0.2", "0.3")
 }
 SCHEMA = SCHEMAS["0.1"]
 FILES = sorted((FIXTURES / "wire" / "valid").glob("*.json")) + sorted(

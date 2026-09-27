@@ -1,0 +1,386 @@
+{
+ "add_overflow": {
+  "reasons": [
+   {
+    "code": "EVALUATION_ERROR",
+    "message": "numeric overflow in budget.spent + invoice.amount"
+   }
+  ],
+  "result": "ERROR"
+ },
+ "charge": {
+  "changes": [
+   {
+    "field": "fee",
+    "new": "2.50"
+   }
+  ],
+  "result": "ALLOW",
+  "trace": [
+   {
+    "phase": "effect",
+    "rescales": [
+     {
+      "exact": "2.5025",
+      "rescale": "invoice.amount * 0.25",
+      "result": "2.50",
+      "rounding": "half_even",
+      "scale": 2
+     }
+    ]
+   }
+  ]
+ },
+ "check_margin_false": {
+  "result": "DENY"
+ },
+ "check_margin_true": {
+  "$absent": [
+   "trace.0.rescales"
+  ],
+  "result": "ALLOW"
+ },
+ "derived_values": {
+  "derived": [
+   {
+    "name": "fee_rounded",
+    "value": "2.50"
+   },
+   {
+    "name": "theoretical_fee",
+    "value": "2.5025"
+   }
+  ],
+  "result": "ALLOW"
+ },
+ "division_by_zero_in_rescale": {
+  "reasons": [
+   {
+    "code": "EVALUATION_ERROR",
+    "message": "division by zero in invoice.amount / count"
+   }
+  ],
+  "result": "ERROR"
+ },
+ "off_grid_nested": {
+  "$contains": {
+   "reasons.0.message": [
+    "state.budget.limit"
+   ]
+  },
+  "reasons": [
+   {
+    "code": "OFF_GRID"
+   }
+  ],
+  "result": "INVALID_INPUT"
+ },
+ "off_grid_state": {
+  "$contains": {
+   "reasons.0.message": [
+    "state.invoice.amount",
+    "2 decimal places"
+   ]
+  },
+  "reasons": [
+   {
+    "code": "OFF_GRID"
+   }
+  ],
+  "result": "INVALID_INPUT",
+  "trace": []
+ },
+ "out_of_range": {
+  "reasons": [
+   {
+    "code": "OUT_OF_RANGE"
+   }
+  ],
+  "result": "INVALID_INPUT"
+ },
+ "per_unit": {
+  "changes": [
+   {
+    "field": "fee",
+    "new": "3.33"
+   }
+  ],
+  "result": "ALLOW"
+ },
+ "rescale_out_of_range": {
+  "reasons": [
+   {
+    "code": "EVALUATION_ERROR",
+    "message": "numeric overflow in rescale(invoice.amount * 1000, Money, half_even)"
+   }
+  ],
+  "result": "ERROR"
+ },
+ "round_ceiling_neg": {
+  "changes": [
+   {
+    "new": "-0.02"
+   }
+  ],
+  "result": "ALLOW"
+ },
+ "round_ceiling_pos": {
+  "changes": [
+   {
+    "new": "0.03"
+   }
+  ],
+  "result": "ALLOW",
+  "trace": [
+   {
+    "rescales": [
+     {
+      "exact": "0.025",
+      "rounding": "ceiling"
+     }
+    ]
+   }
+  ]
+ },
+ "round_down_neg": {
+  "changes": [
+   {
+    "new": "-0.02"
+   }
+  ],
+  "result": "ALLOW"
+ },
+ "round_down_pos": {
+  "changes": [
+   {
+    "new": "0.02"
+   }
+  ],
+  "result": "ALLOW",
+  "trace": [
+   {
+    "rescales": [
+     {
+      "exact": "0.025",
+      "rounding": "down"
+     }
+    ]
+   }
+  ]
+ },
+ "round_floor_neg": {
+  "changes": [
+   {
+    "new": "-0.03"
+   }
+  ],
+  "result": "ALLOW"
+ },
+ "round_floor_pos": {
+  "changes": [
+   {
+    "new": "0.02"
+   }
+  ],
+  "result": "ALLOW",
+  "trace": [
+   {
+    "rescales": [
+     {
+      "exact": "0.025",
+      "rounding": "floor"
+     }
+    ]
+   }
+  ]
+ },
+ "round_half_even_neg": {
+  "changes": [
+   {
+    "new": "-0.02"
+   }
+  ],
+  "result": "ALLOW"
+ },
+ "round_half_even_pos": {
+  "changes": [
+   {
+    "new": "0.02"
+   }
+  ],
+  "result": "ALLOW",
+  "trace": [
+   {
+    "rescales": [
+     {
+      "exact": "0.025",
+      "rounding": "half_even"
+     }
+    ]
+   }
+  ]
+ },
+ "round_half_up_neg": {
+  "changes": [
+   {
+    "new": "-0.03"
+   }
+  ],
+  "result": "ALLOW"
+ },
+ "round_half_up_pos": {
+  "changes": [
+   {
+    "new": "0.03"
+   }
+  ],
+  "result": "ALLOW",
+  "trace": [
+   {
+    "rescales": [
+     {
+      "exact": "0.025",
+      "rounding": "half_up"
+     }
+    ]
+   }
+  ]
+ },
+ "round_up_neg": {
+  "changes": [
+   {
+    "new": "-0.03"
+   }
+  ],
+  "result": "ALLOW"
+ },
+ "round_up_pos": {
+  "changes": [
+   {
+    "new": "0.03"
+   }
+  ],
+  "result": "ALLOW",
+  "trace": [
+   {
+    "rescales": [
+     {
+      "exact": "0.025",
+      "rounding": "up"
+     }
+    ]
+   }
+  ]
+ },
+ "short_scale": {
+  "changes": [
+   {
+    "field": "spent",
+    "new": "100.60",
+    "old": "0.10"
+   }
+  ],
+  "result": "ALLOW"
+ },
+ "split3": {
+  "changes": [
+   {
+    "field": "fee",
+    "new": "13.33"
+   }
+  ],
+  "result": "ALLOW",
+  "trace": [
+   {
+    "rescales": [
+     {
+      "exact": "40/3",
+      "result": "13.33"
+     }
+    ]
+   }
+  ]
+ },
+ "split3_nested": {
+  "changes": [
+   {
+    "field": "fee",
+    "new": "13.34"
+   }
+  ],
+  "result": "ALLOW",
+  "trace": [
+   {
+    "rescales": [
+     {
+      "exact": "20/3",
+      "rescale": "invoice.amount / 3",
+      "result": "6.67"
+     },
+     {
+      "exact": "13.34",
+      "rescale": "rescale(invoice.amount / 3, Money, half_even) * 2",
+      "result": "13.34"
+     }
+    ]
+   }
+  ]
+ },
+ "third_exact": {
+  "changes": [
+   {
+    "field": "fee",
+    "new": "0.01"
+   }
+  ],
+  "result": "ALLOW",
+  "trace": [
+   {
+    "rescales": [
+     {
+      "exact": "0.01"
+     }
+    ]
+   }
+  ]
+ },
+ "third_via_derived": {
+  "changes": [
+   {
+    "field": "fee",
+    "new": "0.00"
+   }
+  ],
+  "result": "ALLOW"
+ },
+ "trailing_zeros": {
+  "changes": [
+   {
+    "field": "spent",
+    "new": "100.50",
+    "old": "0.00"
+   }
+  ],
+  "result": "ALLOW",
+  "state": {
+   "budget": {
+    "limit": "1000.00",
+    "spent": "0.00"
+   },
+   "invoice": {
+    "amount": "100.50",
+    "fee": "0.00"
+   }
+  }
+ },
+ "triple": {
+  "changes": [
+   {
+    "field": "spent",
+    "new": "30.30",
+    "old": "10.10"
+   }
+  ],
+  "result": "ALLOW"
+ }
+}

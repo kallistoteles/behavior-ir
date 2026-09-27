@@ -40,7 +40,7 @@ class CompileSession:
                 self.builder.declare_enum(t.name, list(t.values), file, line)
             else:
                 self.builder.declare_nominal(
-                    t.name, t.underlying.engine(), sorted(t.ops), file, line
+                    t.name, t.underlying.engine(), sorted(t.ops), file, line, t.scale
                 )
         except _engine.EngineError as e:
             raise engine_error(e, (file, line)) from None
@@ -70,8 +70,12 @@ class CompileSession:
             self.builder.pop_scope()
         if fn.kind == "rule":
             check_condition(body, f"rule `{fn.name}`", body.loc)
+        declared = fn.declared_type()
         try:
-            self.builder.add_derived(fn.name, fn.kind, fn.engine_params(params), body.node, *fn.loc)
+            self.builder.add_derived(
+                fn.name, fn.kind, fn.engine_params(params), body.node, *fn.loc,
+                declared.engine() if declared is not None else None,
+            )
         except _engine.EngineError as e:
             raise engine_error(e, body.loc) from None
 

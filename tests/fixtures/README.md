@@ -25,3 +25,12 @@ Golden files are generated from the implementation, reviewed by a human, and the
 | `verify/` | Behavior modules with seeded defects and `<name>.expected.json` listing every expected check outcome |
 | `governance/` | Execution policies, fixed test keys (test-only, never trusted by a real policy), and notes on how waivers and signatures are generated in tests |
 | `requests/002/` | Requests and expectations for the runtime changes (entity constraints, binding check, state-cell change sets) |
+
+## Feature 003
+
+| Path | Content |
+|------|---------|
+| `numeric/rounding.json` | The six rounding modes as data (values, scales, expected results); computed with exact fractions and shared by Rust and Python tests |
+| `wire/valid/fixed_scale.json` | Wire IR 0.3 module with a two-decimal `Money`, exact quantities, and rescales (invalid 0.3 cases in `wire/invalid/`) |
+| `requests/003/` | Requests and expectations for grid/range input checks, exact arithmetic, and rescale trace entries |
+| `verify/*money2*`, `verify/discount_rescale*`, `verify/rescale_modes*` | Verification fixtures with fixed-scale Money |

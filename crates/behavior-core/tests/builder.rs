@@ -34,6 +34,7 @@ fn invoice_builder() -> Builder {
         "Money",
         WType::Decimal,
         vec!["add".into(), "order".into(), "ratio".into(), "scale".into()],
+        None,
         l(1),
     )
     .unwrap();
@@ -202,6 +203,7 @@ fn project_margin_matches_wire_fixture() {
         "Money",
         WType::Decimal,
         vec!["add".into(), "order".into(), "ratio".into(), "scale".into()],
+        None,
         l(1),
     )
     .unwrap();
@@ -235,8 +237,15 @@ fn project_margin_matches_wire_fixture() {
     let rev2 = b.field("project", "revenue", l(6)).unwrap();
     let margin = b.op("div", vec![diff, rev2], l(6)).unwrap();
     b.pop_scope();
-    b.add_derived("margin", DerivedKind::Derived, dp.clone(), margin, l(5))
-        .unwrap();
+    b.add_derived(
+        "margin",
+        DerivedKind::Derived,
+        dp.clone(),
+        margin,
+        None,
+        l(5),
+    )
+    .unwrap();
     b.push_scope(ScopeSite::Derived, dp.clone(), l(7)).unwrap();
     let m = b
         .derived_ref("margin", vec!["project".into()], l(8))
@@ -245,7 +254,7 @@ fn project_margin_matches_wire_fixture() {
     let five = b.lit(WType::Decimal, json!("0.05"), l(8)).unwrap();
     let hr = b.op("lt", vec![m, five], l(8)).unwrap();
     b.pop_scope();
-    b.add_derived("high_risk", DerivedKind::Rule, dp, hr, l(7))
+    b.add_derived("high_risk", DerivedKind::Rule, dp, hr, None, l(7))
         .unwrap();
 
     for (name, guarded) in [("flag_project", true), ("flag_project_unguarded", false)] {
@@ -341,7 +350,7 @@ fn nodes_are_checked_as_they_are_built() {
 #[test]
 fn op_not_allowed_on_nominal_without_order() {
     let mut b = Builder::new();
-    b.declare_nominal("Plain", WType::Decimal, vec![], l(1))
+    b.declare_nominal("Plain", WType::Decimal, vec![], None, l(1))
         .unwrap();
     b.declare_entity(
         "E",
@@ -385,7 +394,7 @@ fn cycles_are_reported_by_finish() {
         let one = b.lit(WType::Int, json!(1), l(3)).unwrap();
         let body = b.op("add", vec![r, one], l(3)).unwrap();
         b.pop_scope();
-        b.add_derived(name, DerivedKind::Derived, dp.clone(), body, l(2))
+        b.add_derived(name, DerivedKind::Derived, dp.clone(), body, None, l(2))
             .unwrap();
     }
     let err = b.finish(None).unwrap_err();
@@ -400,6 +409,7 @@ fn constraints_built_through_the_builder_match_the_wire_fixture() {
         "Money",
         WType::Decimal,
         vec!["add".into(), "order".into(), "ratio".into(), "scale".into()],
+        None,
         l(1),
     )
     .unwrap();

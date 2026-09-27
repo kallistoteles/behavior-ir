@@ -1,0 +1,13 @@
+{
+ "action": "round_floor",
+ "context": {},
+ "data_version": "1",
+ "input": {},
+ "state": {
+  "invoice": {
+   "amount": "-0.20",
+   "fee": "0",
+   "id": "i1"
+  }
+ }
+}

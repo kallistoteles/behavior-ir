@@ -13,9 +13,10 @@
 use std::collections::BTreeMap;
 
 use behavior_core::decimal::Dec;
+use behavior_core::exact::Rounding;
 use behavior_core::semantic::expr::{Expr, ExprKind};
 use behavior_core::semantic::module::{Module, Param, ParamRole};
-use behavior_core::semantic::types::{ArithOp, CmpOp, Hash, Prim, Type};
+use behavior_core::semantic::types::{ArithOp, CmpOp, Hash, Prim, Type, fixed_scale};
 use behavior_core::semantic::value::Value;
 use behavior_core::wire::Loc;
 
@@ -207,7 +208,20 @@ impl<'m> Encoder<'m> {
             Type::Entity(e) => {
                 return Err(EncodeError::Unsupported(format!("entity {e} as value")));
             }
+            Type::Exact(n) => {
+                return Err(EncodeError::Unsupported(format!(
+                    "exact {} (feature 003)",
+                    n.name
+                )));
+            }
         })
+    }
+
+    fn fresh_int(&mut self, prefix: &str) -> String {
+        self.fresh += 1;
+        let name = format!("{prefix}!{}", self.fresh);
+        self.decls.push(format!("(declare-const {name} Int)"));
+        name
     }
 
     fn fresh_real(&mut self, prefix: &str) -> String {
@@ -233,6 +247,23 @@ impl<'m> Encoder<'m> {
             t if is_int_sort(t) => self
                 .axioms
                 .push(format!("(and (<= {I64_MIN} {name}) (<= {name} {I64_MAX}))")),
+            t if fixed_scale(t).is_some() => {
+                // Exactly the runtime guarantee: on the grid 10^-s, |value| < 10^(28-s).
+                let s = fixed_scale(t).and_then(|n| n.scale).unwrap_or(0);
+                let g = format!("{name}!g");
+                self.decls.push(format!("(declare-const {g} Int)"));
+                self.axioms
+                    .push(format!("(= (* {name} {}) (to_real {g}))", pow10_real(s)));
+                self.axioms
+                    .push(format!("(and (< (- {GRID_MAX}) {g}) (< {g} {GRID_MAX}))"));
+                let k = format!("{name}!k");
+                self.decls.push(format!("(declare-const {k} Int)"));
+                self.nice_scale
+                    .push(format!("(= (* {name} {NICE_SCALE}) (to_real {k}))"));
+                self.nice.push(format!(
+                    "(and (<= (- {NICE_MAX}) {name}) (<= {name} {NICE_MAX}))"
+                ));
+            }
             t if is_decimal_sort(t) => {
                 self.axioms.push(format!(
                     "(and (<= (- {DEC_INPUT_MAX}) {name}) (<= {name} {DEC_INPUT_MAX}))"
@@ -494,6 +525,16 @@ impl<'m> Encoder<'m> {
                     obligations,
                 })
             }
+            ExprKind::Arith(..) if matches!(e.ty(), Type::Exact(_)) => self.encode_exact(e, env),
+            ExprKind::Arith(..) if fixed_scale(e.ty()).is_some() => {
+                // Lossless fixed-scale arithmetic: exact, plus the range check of the runtime.
+                let mut r = self.encode_exact(e, env)?;
+                let t = r.term.plain()?.to_string();
+                let s = fixed_scale(e.ty()).and_then(|n| n.scale).unwrap_or(0);
+                r.obligations
+                    .push(Self::obligation(e, ErrKind::Overflow, out_of_range(&t, s)));
+                Ok(r)
+            }
             ExprKind::Arith(op, a, b) => {
                 let x = self.encode(a, env)?;
                 let y = self.encode(b, env)?;
@@ -638,8 +679,88 @@ impl<'m> Encoder<'m> {
                     obligations: r.obligations,
                 })
             }
+            ExprKind::Wrap(a) if fixed_scale(e.ty()).is_some() => {
+                let mut r = self.encode(a, env)?;
+                let t = r.term.plain()?.to_string();
+                let s = fixed_scale(e.ty()).and_then(|n| n.scale).unwrap_or(0);
+                r.obligations
+                    .push(Self::obligation(e, ErrKind::Overflow, out_of_range(&t, s)));
+                Ok(r)
+            }
             ExprKind::Wrap(a) | ExprKind::Unwrap(a) => self.encode(a, env),
+            ExprKind::Rescale { arg, rounding } => {
+                let x = self.encode_exact(arg, env)?;
+                let xt = Self::as_real(arg, x.term.plain()?);
+                let s = fixed_scale(e.ty()).and_then(|n| n.scale).unwrap_or(0);
+                let k = self.fresh_int("rescale");
+                let y = format!("(* {xt} {})", pow10_real(s));
+                self.axioms.push(rounding_constraint(*rounding, &k, &y));
+                let mut obligations = x.obligations;
+                obligations.push(Self::obligation(
+                    e,
+                    ErrKind::Overflow,
+                    format!("(or (>= {k} {GRID_MAX}) (<= {k} (- {GRID_MAX})))"),
+                ));
+                Ok(Encoded {
+                    term: Term::Plain(format!("(/ (to_real {k}) {})", pow10_real(s))),
+                    obligations,
+                })
+            }
         }
+    }
+
+    /// Encodes a numeric expression exactly, as the runtime's exact domain does (research R5):
+    /// non-integer arithmetic recurses without rounding or range checks (nothing is stored),
+    /// conversions pass through, anything else is encoded normally.
+    fn encode_exact(&mut self, e: &Expr, env: &Env) -> R<Encoded> {
+        let key = format!("exact:{:?}{env:?}", e.hash());
+        if let Some(hit) = self.memo.get(&key) {
+            return Ok(hit.clone());
+        }
+        let r = match e.kind() {
+            ExprKind::Arith(op, a, b) if !is_int_sort(e.ty()) => {
+                let x = self.encode_exact(a, env)?;
+                let y = self.encode_exact(b, env)?;
+                let (xt, yt) = (
+                    Self::as_real(a, x.term.plain()?),
+                    Self::as_real(b, y.term.plain()?),
+                );
+                let mut obligations = x.obligations;
+                obligations.extend(y.obligations);
+                let term = match op {
+                    ArithOp::Add => format!("(+ {xt} {yt})"),
+                    ArithOp::Sub => format!("(- {xt} {yt})"),
+                    ArithOp::Mul => format!("(* {xt} {yt})"),
+                    ArithOp::Div => {
+                        obligations.push(Self::obligation(
+                            e,
+                            ErrKind::DivisionByZero,
+                            format!("(= {yt} 0.0)"),
+                        ));
+                        let q = self.fresh_real("quot");
+                        self.axioms
+                            .push(format!("(=> (not (= {yt} 0.0)) (= (* {q} {yt}) {xt}))"));
+                        q
+                    }
+                };
+                Encoded {
+                    term: Term::Plain(term),
+                    obligations,
+                }
+            }
+            ExprKind::ToDecimal(a) | ExprKind::Unwrap(a) => {
+                let r = self.encode_exact(a, env)?;
+                let t = Self::as_real(a, r.term.plain()?);
+                Encoded {
+                    term: Term::Plain(t),
+                    obligations: r.obligations,
+                }
+            }
+            ExprKind::Wrap(a) if fixed_scale(e.ty()).is_none() => self.encode_exact(a, env)?,
+            _ => self.encode(e, env)?,
+        };
+        self.memo.insert(key, r.clone());
+        Ok(r)
     }
 
     /// Declarations, axioms, the requested "nice value" restriction, and the given assertions.
@@ -680,6 +801,42 @@ impl<'m> Encoder<'m> {
             }
         }
         out
+    }
+}
+
+/// `10^s` as a real literal.
+fn pow10_real(s: u8) -> String {
+    format!("1{}.0", "0".repeat(usize::from(s)))
+}
+
+/// Bound of the integer grid index of a fixed-scale value: `|k| < 10^28`.
+const GRID_MAX: &str = "10000000000000000000000000000";
+
+/// `t` is outside the range of a fixed-scale type with scale `s` (`|t| >= 10^(28-s)`).
+fn out_of_range(t: &str, s: u8) -> String {
+    let limit = pow10_real(28u8.saturating_sub(s));
+    format!("(or (>= {t} {limit}) (<= {t} (- {limit})))")
+}
+
+/// Linear constraints making the integer `k` the result of rounding the real `y` (research R11).
+fn rounding_constraint(mode: Rounding, k: &str, y: &str) -> String {
+    let kr = format!("(to_real {k})");
+    let floor = format!("(and (<= {kr} {y}) (< {y} (+ {kr} 1.0)))");
+    let ceiling = format!("(and (< (- {kr} 1.0) {y}) (<= {y} {kr}))");
+    let nearest = format!("(and (<= (- {y} {kr}) 0.5) (<= (- {kr} {y}) 0.5))");
+    let tie_up = format!("(= (- {kr} {y}) 0.5)");
+    let tie_down = format!("(= (- {y} {kr}) 0.5)");
+    match mode {
+        Rounding::Floor => floor,
+        Rounding::Ceiling => ceiling,
+        Rounding::Down => format!("(ite (>= {y} 0.0) {floor} {ceiling})"),
+        Rounding::Up => format!("(ite (>= {y} 0.0) {ceiling} {floor})"),
+        Rounding::HalfUp => {
+            format!("(and {nearest} (=> {tie_up} (> {y} 0.0)) (=> {tie_down} (< {y} 0.0)))")
+        }
+        Rounding::HalfEven => {
+            format!("(and {nearest} (=> (or {tie_up} {tie_down}) (= (mod {k} 2) 0)))")
+        }
     }
 }
 

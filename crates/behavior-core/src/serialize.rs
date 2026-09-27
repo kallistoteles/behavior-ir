@@ -11,7 +11,7 @@ use crate::semantic::expr::{Expr, ExprKind};
 use crate::semantic::module::{Module, ParamRole};
 use crate::semantic::types::{ArithOp, CmpOp, Type, ops};
 use crate::semantic::value::encode;
-use crate::wire::{DerivedKind, IR_VERSION, IR_VERSION_CONSTRAINTS, Loc};
+use crate::wire::{DerivedKind, IR_VERSION, IR_VERSION_CONSTRAINTS, IR_VERSION_FIXED_SCALE, Loc};
 
 fn loc(l: &Loc) -> Json {
     json!({"file": l.file, "line": l.line})
@@ -71,6 +71,16 @@ fn expr(e: &Expr) -> Json {
         ExprKind::Some(a) => op_node("some", vec![expr(a)], l),
         ExprKind::ToDecimal(a) => op_node("to_decimal", vec![expr(a)], l),
         ExprKind::Unwrap(a) => op_node("unwrap", vec![expr(a)], l),
+        ExprKind::Rescale { arg, rounding } => json!({
+            "op": "rescale",
+            "nominal": match e.ty() {
+                Type::Nominal(n) => n.name.clone(),
+                other => other.to_string(),
+            },
+            "rounding": rounding.as_str(),
+            "args": [expr(arg)],
+            "loc": loc(l),
+        }),
         ExprKind::Wrap(a) => {
             let nominal = match e.ty() {
                 Type::Nominal(n) => n.name.clone(),
@@ -136,8 +146,12 @@ pub fn to_wire_value(m: &Module) -> Json {
         .values()
         .map(|n| {
             let l = m.nominal_locs.get(&n.name).unwrap_or(&unknown);
-            json!({"name": n.name, "underlying": n.underlying.to_type().to_wire_json(),
-                   "ops": op_names(n.ops), "loc": loc(l)})
+            let mut o = json!({"name": n.name, "underlying": n.underlying.to_type().to_wire_json(),
+                   "ops": op_names(n.ops), "loc": loc(l)});
+            if let (Some(sc), Json::Object(map)) = (n.scale, &mut o) {
+                map.insert("scale".into(), json!(sc));
+            }
+            o
         })
         .collect();
     let entities: Vec<Json> = m
@@ -163,8 +177,12 @@ pub fn to_wire_value(m: &Module) -> Json {
             } else {
                 "derived"
             };
-            json!({"name": name, "kind": kind, "params": params(&d.params, false),
-                   "body": expr(&d.body), "loc": loc(&d.loc)})
+            let mut o = json!({"name": name, "kind": kind, "params": params(&d.params, false),
+                   "body": expr(&d.body), "loc": loc(&d.loc)});
+            if let (Some(t), Json::Object(map)) = (&d.declared, &mut o) {
+                map.insert("type".into(), t.to_wire_json());
+            }
+            o
         })
         .collect();
     let invariants: Vec<Json> = m
@@ -213,14 +231,69 @@ pub fn to_wire_value(m: &Module) -> Json {
         "invariants": invariants,
         "actions": actions,
     });
-    // Modules without constraints keep the 0.1 form, so feature 001 documents are unchanged.
-    if !constraints.is_empty()
+    // The lowest sufficient version: modules without constraints keep the 0.1 form and modules
+    // without fixed-scale features the 0.2 form, so earlier documents are unchanged.
+    let fixed = uses_fixed_scale(m);
+    if (fixed || !constraints.is_empty())
         && let Json::Object(map) = &mut doc
     {
-        map.insert("ir_version".into(), json!(IR_VERSION_CONSTRAINTS));
+        let v = if fixed {
+            IR_VERSION_FIXED_SCALE
+        } else {
+            IR_VERSION_CONSTRAINTS
+        };
+        map.insert("ir_version".into(), json!(v));
         map.insert("constraints".into(), Json::Array(constraints));
     }
     doc
+}
+
+fn expr_uses_fixed_scale(e: &Expr) -> bool {
+    let mut found =
+        matches!(e.ty(), Type::Exact(_)) || matches!(e.kind(), ExprKind::Rescale { .. });
+    let mut visit = |x: &Expr| found |= expr_uses_fixed_scale(x);
+    match e.kind() {
+        ExprKind::Cmp(_, a, b) | ExprKind::Arith(_, a, b) | ExprKind::ValueOr(a, b) => {
+            visit(a);
+            visit(b);
+        }
+        ExprKind::And(xs) | ExprKind::Or(xs) => xs.iter().for_each(visit),
+        ExprKind::Not(a)
+        | ExprKind::In(a, _)
+        | ExprKind::IsNone(a)
+        | ExprKind::IsSome(a)
+        | ExprKind::Some(a)
+        | ExprKind::ToDecimal(a)
+        | ExprKind::Wrap(a)
+        | ExprKind::Unwrap(a)
+        | ExprKind::Rescale { arg: a, .. } => visit(a),
+        ExprKind::Lit(_)
+        | ExprKind::Field { .. }
+        | ExprKind::Param(_)
+        | ExprKind::DerivedRef { .. } => {}
+    }
+    found
+}
+
+/// Whether the module uses a wire 0.3 feature (fixed scale, exact types, rescale, declared types).
+pub fn uses_fixed_scale(m: &Module) -> bool {
+    m.nominals.values().any(|n| n.scale.is_some())
+        || m.derived
+            .values()
+            .any(|d| d.declared.is_some() || expr_uses_fixed_scale(&d.body))
+        || m.invariants
+            .values()
+            .any(|i| expr_uses_fixed_scale(&i.body))
+        || m.constraints
+            .values()
+            .any(|c| expr_uses_fixed_scale(&c.body))
+        || m.actions.values().any(|a| {
+            a.preconditions
+                .iter()
+                .chain(&a.postconditions)
+                .any(|c| expr_uses_fixed_scale(&c.expr))
+                || a.effects.iter().any(|e| expr_uses_fixed_scale(&e.value))
+        })
 }
 
 /// Canonical wire JSON of an admitted module.

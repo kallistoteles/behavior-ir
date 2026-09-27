@@ -83,6 +83,23 @@ impl Dec {
         self.0.normalize().to_string()
     }
 
+    /// The value as `mantissa / 10^scale`.
+    pub fn mantissa_scale(&self) -> (i128, u32) {
+        (self.0.mantissa(), self.0.scale())
+    }
+
+    /// Whether the value lies on the grid `10^-scale` (no non-zero digit beyond `scale`).
+    pub fn on_grid(&self, scale: u8) -> bool {
+        self.0.normalize().scale() <= u32::from(scale)
+    }
+
+    /// Whether `|v| < 10^(28 − scale)`, the range of a fixed-scale type.
+    pub fn in_fixed_range(&self, scale: u8) -> bool {
+        let digits = 28u32.saturating_sub(u32::from(scale));
+        // 10^28 < 2^96, so the limit is always representable.
+        self.0.abs() < Decimal::from_i128_with_scale(10i128.pow(digits), 0)
+    }
+
     pub fn checked_add(&self, o: &Dec) -> Result<Dec, NumError> {
         self.0.checked_add(o.0).map(Dec).ok_or(NumError::Overflow)
     }
@@ -102,6 +119,17 @@ impl Dec {
         }
         self.0.checked_div(o.0).map(Dec).ok_or(NumError::Overflow)
     }
+}
+
+/// A fixed-scale value in its canonical text form: exactly `scale` fractional digits
+/// (`100.50`, `0.00`, `-3.10`; scale 0 without a point).
+pub fn fixed_text(d: &Dec, scale: u8) -> String {
+    let mut v = d.0;
+    v.rescale(u32::from(scale));
+    if v.is_zero() {
+        v.set_sign_positive(true);
+    }
+    v.to_string()
 }
 
 impl fmt::Display for Dec {

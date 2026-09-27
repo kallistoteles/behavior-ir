@@ -1,0 +1,13 @@
+{
+ "action": "scale_up",
+ "context": {},
+ "data_version": "1",
+ "input": {},
+ "state": {
+  "invoice": {
+   "amount": "10000000000000000000000000",
+   "fee": "0",
+   "id": "i1"
+  }
+ }
+}

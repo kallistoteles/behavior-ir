@@ -1,0 +1,15 @@
+{
+ "action": "per_unit",
+ "context": {},
+ "data_version": "1",
+ "input": {
+  "count": 3
+ },
+ "state": {
+  "invoice": {
+   "amount": "10.00",
+   "fee": "0",
+   "id": "i1"
+  }
+ }
+}

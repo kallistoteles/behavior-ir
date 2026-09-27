@@ -7,6 +7,7 @@ pub mod builder;
 pub mod canonical;
 pub mod decimal;
 pub mod eval;
+pub mod exact;
 pub mod intent;
 pub mod pretty;
 pub mod record;

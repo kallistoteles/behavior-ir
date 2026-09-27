@@ -450,6 +450,194 @@ def constraint_invalid_cases() -> dict[str, tuple[dict[str, object], list[dict[s
     return cases
 
 
+# --- feature 003: fixed-scale decimals --------------------------------------------------------
+
+X = "fixed_scale.py"
+EXACT_MONEY = {"t": "exact", "name": "Money"}
+
+
+def rescale(arg: dict[str, object], rounding: str, at: dict[str, object], nominal: str = "Money") -> dict[str, object]:
+    return {"op": "rescale", "nominal": nominal, "rounding": rounding, "args": [arg], "loc": at}
+
+
+def fixed_scale_module() -> dict[str, object]:
+    amount = lambda line: fld("invoice", "amount", loc(X, line))  # noqa: E731
+    m = module(
+        nominals=[{"name": "Money", "underlying": DEC, "ops": ["add", "order", "ratio", "scale"],
+                   "scale": 2, "loc": loc(X, 3)}],
+        entities=[
+            {"name": "Invoice", "loc": loc(X, 6), "fields": [
+                field_decl("amount", MONEY, loc(X, 7)),
+                field_decl("fee", MONEY, loc(X, 8)),
+            ]},
+            {"name": "Budget", "loc": loc(X, 11), "fields": [
+                field_decl("limit", MONEY, loc(X, 12)),
+                field_decl("spent", MONEY, loc(X, 13)),
+            ]},
+        ],
+        derived=[
+            {"name": "theoretical_fee", "kind": "derived", "loc": loc(X, 16), "type": EXACT_MONEY,
+             "params": [param("invoice", ent("Invoice"))],
+             "body": op("mul", amount(17), lit(DEC, "0.25", loc(X, 17)), at=loc(X, 17))},
+            {"name": "fee_rounded", "kind": "derived", "loc": loc(X, 20), "type": MONEY,
+             "params": [param("invoice", ent("Invoice"))],
+             "body": rescale(op("mul", amount(21), lit(DEC, "0.25", loc(X, 21)), at=loc(X, 21)),
+                             "half_even", loc(X, 21))},
+        ],
+        actions=[
+            {"name": "charge", "loc": loc(X, 24), "params": [param("invoice", ent("Invoice"), "state")],
+             "preconditions": [],
+             "effects": [{"target": {"param": "invoice", "field": "fee"},
+                          "value": rescale(op("mul", amount(25), lit(DEC, "0.25", loc(X, 25)), at=loc(X, 25)),
+                                           "half_even", loc(X, 25)),
+                          "loc": loc(X, 25)}],
+             "postconditions": []},
+            {"name": "split3", "loc": loc(X, 28), "params": [param("invoice", ent("Invoice"), "state")],
+             "preconditions": [],
+             "effects": [{"target": {"param": "invoice", "field": "fee"},
+                          "value": rescale(op("mul", op("div", amount(29), lit(INT, 3, loc(X, 29)), at=loc(X, 29)),
+                                              lit(INT, 2, loc(X, 29)), at=loc(X, 29)),
+                                           "half_even", loc(X, 29)),
+                          "loc": loc(X, 29)}],
+             "postconditions": []},
+            {"name": "split3_nested", "loc": loc(X, 32), "params": [param("invoice", ent("Invoice"), "state")],
+             "preconditions": [],
+             "effects": [{"target": {"param": "invoice", "field": "fee"},
+                          "value": rescale(op("mul", rescale(op("div", amount(33), lit(INT, 3, loc(X, 33)), at=loc(X, 33)),
+                                                             "half_even", loc(X, 33)),
+                                              lit(INT, 2, loc(X, 33)), at=loc(X, 33)),
+                                           "half_even", loc(X, 33)),
+                          "loc": loc(X, 33)}],
+             "postconditions": []},
+            {"name": "check_margin", "loc": loc(X, 36),
+             "params": [param("invoice", ent("Invoice"), "state"), param("budget", ent("Budget"), "state")],
+             "preconditions": [{"expr": op("le", op("mul", amount(37), lit(DEC, "1.25", loc(X, 37)), at=loc(X, 37)),
+                                           fld("budget", "limit", loc(X, 37)), at=loc(X, 37)),
+                                "loc": loc(X, 37)}],
+             "effects": [], "postconditions": []},
+            {"name": "add_spent", "loc": loc(X, 40),
+             "params": [param("invoice", ent("Invoice"), "state"), param("budget", ent("Budget"), "state")],
+             "preconditions": [],
+             "effects": [{"target": {"param": "budget", "field": "spent"},
+                          "value": op("add", fld("budget", "spent", loc(X, 41)), amount(41), at=loc(X, 41)),
+                          "loc": loc(X, 41)}],
+             "postconditions": []},
+            {"name": "triple", "loc": loc(X, 44), "params": [param("budget", ent("Budget"), "state")],
+             "preconditions": [],
+             "effects": [{"target": {"param": "budget", "field": "spent"},
+                          "value": op("mul", fld("budget", "spent", loc(X, 45)), lit(INT, 3, loc(X, 45)), at=loc(X, 45)),
+                          "loc": loc(X, 45)}],
+             "postconditions": []},
+        ],
+    )
+    inv = [param("invoice", ent("Invoice"), "state")]
+
+    def fee_action(name: str, line: int, value: dict[str, object], extra: list[dict[str, object]] | None = None) -> dict[str, object]:
+        return {"name": name, "loc": loc(X, line), "params": inv + (extra or []), "preconditions": [],
+                "effects": [{"target": {"param": "invoice", "field": "fee"}, "value": value, "loc": loc(X, line + 1)}],
+                "postconditions": []}
+
+    m["derived"].append(  # type: ignore[attr-defined]
+        {"name": "third", "kind": "derived", "loc": loc(X, 50), "params": [param("invoice", ent("Invoice"))],
+         "body": op("div", lit(INT, 1, loc(X, 51)), lit(INT, 3, loc(X, 51)), at=loc(X, 51))})
+    m["actions"] += [  # type: ignore[operator]
+        {"name": "compare_fee", "loc": loc(X, 54), "params": inv,
+         "preconditions": [{"expr": op("ge", der("theoretical_fee", ["invoice"], loc(X, 55)),
+                                       der("fee_rounded", ["invoice"], loc(X, 55)), at=loc(X, 55)),
+                            "loc": loc(X, 55)}],
+         "effects": [], "postconditions": []},
+        fee_action("per_unit", 58, rescale(op("div", amount(59), par("count", loc(X, 59)), at=loc(X, 59)),
+                                           "half_even", loc(X, 59)),
+                   [param("count", INT, "input")]),
+        fee_action("scale_up", 62, rescale(op("mul", amount(63), lit(DEC, "1000", loc(X, 63)), at=loc(X, 63)),
+                                           "half_even", loc(X, 63))),
+        fee_action("third_exact", 66, rescale(op("mul", amount(67),
+                                                 op("div", lit(INT, 1, loc(X, 67)), lit(INT, 3, loc(X, 67)), at=loc(X, 67)),
+                                                 at=loc(X, 67)), "floor", loc(X, 67))),
+        fee_action("third_via_derived", 70, rescale(op("mul", amount(71), der("third", ["invoice"], loc(X, 71)),
+                                                       at=loc(X, 71)), "floor", loc(X, 71))),
+    ]
+    for i, mode in enumerate(["half_even", "half_up", "down", "up", "floor", "ceiling"]):
+        line = 80 + 3 * i
+        m["actions"].append(  # type: ignore[attr-defined]
+            fee_action(f"round_{mode}", line,
+                       rescale(op("div", amount(line + 1), lit(INT, 8, loc(X, line + 1)), at=loc(X, line + 1)),
+                               mode, loc(X, line + 1))))
+    m["ir_version"] = "0.3"
+    m["constraints"] = []
+    return m
+
+
+def fixed_scale_invalid_cases() -> dict[str, tuple[dict[str, object], list[dict[str, object]]]]:
+    cases: dict[str, tuple[dict[str, object], list[dict[str, object]]]] = {}
+    base = fixed_scale_module
+
+    m = base()
+    m["nominals"][0]["underlying"] = INT  # type: ignore[index]
+    cases["scale_not_decimal"] = (m, [err("SCALE_NOT_DECIMAL", X, 3)])
+    m = base()
+    m["nominals"][0]["scale"] = 29  # type: ignore[index]
+    cases["scale_out_of_range"] = (m, [err("SCALE_OUT_OF_RANGE", X, 3)])
+    m = base()
+    m["actions"][4]["effects"][0]["value"] = op(  # type: ignore[index]
+        "add", fld("budget", "spent", loc(X, 41)), lit(MONEY, "0.005", loc(X, 41)), at=loc(X, 41))
+    cases["off_grid_literal"] = (m, [err("OFF_GRID_LITERAL", X, 41)])
+    m = base()
+    m["actions"][0]["effects"][0]["value"] = {  # type: ignore[index]
+        "op": "wrap", "nominal": "Money",
+        "args": [op("mul", op("unwrap", fld("invoice", "amount", loc(X, 25)), at=loc(X, 25)),
+                    lit(DEC, "0.25", loc(X, 25)), at=loc(X, 25))], "loc": loc(X, 25)}
+    cases["lossy_wrap"] = (m, [err("LOSSY_CONVERSION", X, 25)])
+    m = base()
+    m["actions"][0]["effects"][0]["value"] = op(  # type: ignore[index]
+        "mul", fld("invoice", "amount", loc(X, 25)), lit(DEC, "0.25", loc(X, 25)), at=loc(X, 25))
+    cases["exact_stored"] = (m, [err("LOSSY_CONVERSION", X, 25)])
+    m = base()
+    m["actions"][3]["preconditions"][0]["expr"] = op(  # type: ignore[index]
+        "gt", op("unwrap", op("mul", fld("invoice", "amount", loc(X, 37)), lit(DEC, "1.25", loc(X, 37)),
+                              at=loc(X, 37)), at=loc(X, 37)),
+        lit(DEC, "0", loc(X, 37)), at=loc(X, 37))
+    cases["exact_unwrap"] = (m, [err("LOSSY_CONVERSION", X, 37)])
+    m = base()
+    m["actions"][0]["effects"][0]["value"]["rounding"] = "bankers"  # type: ignore[index]
+    cases["unknown_rounding"] = (m, [err("UNKNOWN_ROUNDING", X, 25)])
+    m = base()
+    m["nominals"].append({"name": "Plain", "underlying": DEC, "ops": ["add"], "loc": loc(X, 4)})  # type: ignore[attr-defined]
+    m["derived"][0]["type"] = {"t": "exact", "name": "Plain"}  # type: ignore[index]
+    m["actions"] = [a for a in m["actions"] if a["name"] != "compare_fee"]  # type: ignore[index,union-attr]
+    cases["exact_not_fixed_scale"] = (m, [err("EXACT_NOT_FIXED_SCALE", X, 16)])
+    m = base()
+    m["derived"][0]["type"] = MONEY  # type: ignore[index]
+    m["actions"] = [a for a in m["actions"] if a["name"] != "compare_fee"]  # type: ignore[index,union-attr]
+    cases["declared_type_mismatch"] = (m, [err("DECLARED_TYPE_MISMATCH", X, 16)])
+    m = base()
+    m["entities"][0]["fields"].append(field_decl("estimate", EXACT_MONEY, loc(X, 9)))  # type: ignore[index]
+    cases["exact_field"] = (m, [err("EXACT_FIELD", X, 9)])
+    m = base()
+    m["nominals"] = [
+        {"name": "SEK", "underlying": DEC, "ops": ["add", "order", "scale"], "scale": 2, "loc": loc(X, 3)},
+        {"name": "JPY", "underlying": DEC, "ops": ["add", "order", "scale"], "scale": 0, "loc": loc(X, 4)},
+    ]
+    m["entities"] = [{"name": "Wallet", "loc": loc(X, 6), "fields": [
+        field_decl("sek", {"t": "nominal", "name": "SEK"}, loc(X, 7)),
+        field_decl("jpy", {"t": "nominal", "name": "JPY"}, loc(X, 8)),
+    ]}]
+    m["derived"] = [
+        {"name": "mixed", "kind": "rule", "loc": loc(X, 10), "params": [param("w", ent("Wallet"))],
+         "body": op("lt", fld("w", "sek", loc(X, 11)), fld("w", "jpy", loc(X, 11)), at=loc(X, 11))},
+        {"name": "mixed_exact", "kind": "rule", "loc": loc(X, 13), "params": [param("w", ent("Wallet"))],
+         "body": op("lt", op("mul", fld("w", "sek", loc(X, 14)), lit(DEC, "0.5", loc(X, 14)), at=loc(X, 14)),
+                    op("mul", fld("w", "jpy", loc(X, 14)), lit(DEC, "0.5", loc(X, 14)), at=loc(X, 14)),
+                    at=loc(X, 14))},
+    ]
+    m["actions"] = []
+    cases["mixed_nominals"] = (m, [err("TYPE_MISMATCH", X, 11), err("TYPE_MISMATCH", X, 14)])
+    m = base()
+    m["ir_version"] = "0.2"
+    cases["fixed_scale_in_0_2"] = (m, [err("DECODE_ERROR")])
+    return cases
+
+
 def main() -> None:
     valid = ROOT / "valid"
     invalid = ROOT / "invalid"
@@ -459,7 +647,8 @@ def main() -> None:
     dump(valid / "project_margin.json", project_margin())
     dump(valid / "empty.json", module())
     dump(valid / "constraints.json", constraints_module())
-    for name, (doc, errors) in {**invalid_cases(), **constraint_invalid_cases()}.items():
+    dump(valid / "fixed_scale.json", fixed_scale_module())
+    for name, (doc, errors) in {**invalid_cases(), **constraint_invalid_cases(), **fixed_scale_invalid_cases()}.items():
         dump(invalid / f"{name}.json", doc)
         dump(invalid / f"{name}.expected.json", {"errors": errors})
 

@@ -101,6 +101,8 @@ pub struct DerivedItem {
     pub(crate) body: Expr,
     pub(crate) hash: Hash,
     pub(crate) loc: Loc,
+    /// The author's declared type (equal to the body's type; not hashed).
+    pub(crate) declared: Option<Type>,
 }
 
 impl DerivedItem {

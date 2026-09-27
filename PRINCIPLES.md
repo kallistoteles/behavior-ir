@@ -205,12 +205,24 @@ is not enough.
   primitives (`Bool`, `Int`, `Decimal`, `String`), the structural type `Option<T>`, and
   nominal types: enumerations, `Id<E>`, and user-declared types over a primitive. `Money`,
   dates, percentages and similar are declared by the domain (`Money = nominal Decimal`).
-  None of them is built into the engine.
+  None of them is built into the engine. Domain distinctions are expressed with nominal types
+  before they earn dedicated core semantics: currencies are distinct nominal types
+  (`SEK = nominal Decimal scale 2`), not a core currency concept.
 - **Operations belong to the type.** A nominal type declares which operations it supports, so
   `Money + Money` can be valid while `Money + Decimal` is rejected.
 - **Identity is typed.** `Id<User>`, `Id<Project>` and `String` are distinct types, even when
   all are stored as strings.
 - **Numbers are exact.** No floating point decides a rule.
+- **Lossless operations may be implicit; lossy conversions must be explicit.** Exactness
+  propagates implicitly; loss of information requires an explicit operation. Adding two
+  amounts of the same fixed-scale type needs no ceremony. Narrowing a value to a coarser grid
+  (a discount, a division, a general decimal becoming money) is a rescale that names its
+  rounding. That rescale is part of the behavior, its hash, its trace and its verification,
+  never a silent default of a type.
+- **Goal: all arithmetic is either exact within an admitted finite domain, or information loss
+  is represented by an explicit Behavior IR operation.** Fixed-scale values and exact
+  quantities meet this today; the ratio of two amounts and general decimal arithmetic (28-digit
+  rounding) do not yet, and are the next gaps to close.
 
 ## 10. Verification comes from semantics, not annotations
 
@@ -232,6 +244,12 @@ against a key the governing policy trusts, never by a name written in the attest
 verifier takes for granted (types, validity of incoming entities, invariants on the starting
 state) must be exactly what the runtime checks before it evaluates. Assuming more makes proofs
 unsound; assuming less produces counterexamples that could never occur.
+
+**Every value admitted by the verifier must be representable by the evaluator on every reachable
+path.** The verifier and the runtime share one finite domain. If an expression could produce a
+value the runtime cannot represent (for example an exact quantity beyond its size bound), that
+must be rejected before the behavior is admitted, not discovered during evaluation, and never
+assumed away by the verifier.
 
 ## 11. Ordinary transitions preserve validity; they do not establish it
 

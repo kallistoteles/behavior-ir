@@ -13,7 +13,7 @@ from typing import Any
 from . import _engine
 from .errors import BehaviorDefinitionError, BehaviorTypeError
 from .location import caller_loc
-from .types import BOOL, DECIMAL, INT, STRING, BType, NominalT, enum_type
+from .types import BOOL, DECIMAL, INT, STRING, BType, NominalT, Rounding, enum_type
 
 
 class _NoneLiteral:
@@ -271,6 +271,24 @@ def wrap(t: NominalT, e: Expr) -> Expr:
     loc = caller_loc()
     builder().declare(t)
     return Expr(call("wrap", t.name, e.node, loc=loc), loc, "wrap", (e,))
+
+
+def rescale(e: Any, target: NominalT, rounding: Rounding) -> Expr:
+    """Narrows an exact value to the fixed-scale type `target`, rounding once with `rounding`.
+
+    Everything inside is computed exactly; this is the only place a value is rounded.
+    """
+    loc = caller_loc()
+    if not isinstance(target, NominalT) or target.scale is None:
+        raise BehaviorDefinitionError("rescale needs a fixed-scale nominal as its target", *loc)
+    if not isinstance(rounding, Rounding):
+        raise BehaviorDefinitionError(
+            "rescale needs an explicit rounding mode, e.g. Rounding.HALF_EVEN", *loc
+        )
+    arg = lift(e)
+    builder().declare(target)
+    node = call("rescale", arg.node, target.name, rounding.value, loc=loc)
+    return Expr(node, loc, "rescale", (arg,))
 
 
 def underlying(e: Expr) -> Expr:

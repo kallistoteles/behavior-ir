@@ -107,6 +107,8 @@ class NominalT(BType):
     underlying: PrimT
     ops: frozenset[str]
     loc: tuple[str, int] | None = field(default=None, compare=False)
+    #: Fixed scale (decimal places) of a decimal-based nominal; `None` for general decimals.
+    scale: int | None = None
 
     def engine(self) -> _engine.Type:
         return _engine.Type.nominal(self.name)
@@ -123,8 +125,17 @@ class NominalT(BType):
         return lit(self, value)
 
 
-def nominal(name: str, underlying: Any, ops: set[str] | frozenset[str] = frozenset()) -> NominalT:
-    """Declares a nominal type, e.g. `Money = nominal("Money", Decimal, ops={"add", ...})`."""
+def nominal(
+    name: str,
+    underlying: Any,
+    ops: set[str] | frozenset[str] = frozenset(),
+    scale: int | None = None,
+) -> NominalT:
+    """Declares a nominal type, e.g. `Money = nominal("Money", Decimal, ops={"add", ...})`.
+
+    `scale` makes a decimal-based nominal fixed-scale: its values always have at most `scale`
+    decimal places, lossless arithmetic stays exact, and narrowing needs an explicit `rescale`.
+    """
     loc = caller_loc()
     prim = to_type(underlying)
     if not isinstance(prim, PrimT):
@@ -132,7 +143,45 @@ def nominal(name: str, underlying: Any, ops: set[str] | frozenset[str] = frozens
     unknown = set(ops) - OPS
     if unknown:
         raise BehaviorDefinitionError(f"unknown operations {sorted(unknown)}", *loc)
-    return NominalT(name, prim, frozenset(ops), loc)
+    if scale is not None:
+        if prim.name != "decimal":
+            raise BehaviorDefinitionError(f"only Decimal nominals can have a scale (`{name}`)", *loc)
+        if isinstance(scale, bool) or not isinstance(scale, int) or not 0 <= scale <= 28:
+            raise BehaviorDefinitionError(f"the scale of `{name}` must be an int in 0..28", *loc)
+    return NominalT(name, prim, frozenset(ops), loc, scale)
+
+
+@dataclass(frozen=True)
+class ExactT(BType):
+    """`Exact[T]`: an exact quantity of the fixed-scale nominal `T` (never stored)."""
+
+    of: NominalT
+
+    def engine(self) -> _engine.Type:
+        return _engine.Type.exact(self.of.name)
+
+    def display(self) -> str:
+        return f"Exact<{self.of.name}>"
+
+
+class _ExactFactory:
+    def __getitem__(self, item: Any) -> ExactT:
+        if not isinstance(item, NominalT) or item.scale is None:
+            raise BehaviorDefinitionError(
+                f"Exact[...] needs a fixed-scale nominal, got {item!r}", *caller_loc()
+            )
+        return ExactT(item)
+
+
+class Rounding(Enum):
+    """The six rounding modes of `rescale` (contracts/numeric-semantics.md); there is no default."""
+
+    HALF_EVEN = "half_even"
+    HALF_UP = "half_up"
+    DOWN = "down"
+    UP = "up"
+    FLOOR = "floor"
+    CEILING = "ceiling"
 
 
 class _OptionFactory:
@@ -154,6 +203,7 @@ class _IdFactory:
 
 Option = _OptionFactory()
 Id = _IdFactory()
+Exact = _ExactFactory()
 
 
 @dataclass(frozen=True)

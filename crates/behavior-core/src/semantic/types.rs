@@ -74,12 +74,22 @@ pub struct NominalInfo {
     pub name: String,
     pub underlying: Prim,
     pub ops: u8,
+    /// Fixed scale (0–28) of a decimal-based nominal: its values lie on the grid `10^-scale`.
+    pub scale: Option<u8>,
     pub hash: Hash,
 }
 
 impl NominalInfo {
     pub fn has(&self, op: u8) -> bool {
         self.ops & op != 0
+    }
+}
+
+/// The fixed-scale nominal of a type, if it is one.
+pub fn fixed_scale(t: &Type) -> Option<&Arc<NominalInfo>> {
+    match t {
+        Type::Nominal(n) if n.scale.is_some() => Some(n),
+        _ => None,
     }
 }
 
@@ -92,6 +102,9 @@ pub enum Type {
     Option(Box<Type>),
     Enum(Arc<EnumInfo>),
     Nominal(Arc<NominalInfo>),
+    /// An exact quantity of a fixed-scale nominal: never stored, becomes the nominal only
+    /// through `rescale`.
+    Exact(Arc<NominalInfo>),
     Id(String),
     /// Entity instances; only valid as parameter types.
     Entity(String),
@@ -113,6 +126,7 @@ impl Type {
             Type::Option(inner) => WType::Option(Box::new(inner.to_wire_type())),
             Type::Enum(e) => WType::Enum(e.name.clone()),
             Type::Nominal(n) => WType::Nominal(n.name.clone()),
+            Type::Exact(n) => WType::Exact(n.name.clone()),
             Type::Id(e) => WType::Id(e.clone()),
             Type::Entity(e) => WType::Entity(e.clone()),
         }
@@ -128,6 +142,7 @@ impl Type {
             Type::Option(inner) => json!({"t": "option", "of": inner.to_wire_json()}),
             Type::Enum(e) => json!({"t": "enum", "name": e.name}),
             Type::Nominal(n) => json!({"t": "nominal", "name": n.name}),
+            Type::Exact(n) => json!({"t": "exact", "name": n.name}),
             Type::Id(e) => json!({"t": "id", "entity": e}),
             Type::Entity(e) => json!({"t": "entity", "name": e}),
         }
@@ -144,6 +159,7 @@ impl fmt::Display for Type {
             Type::Option(inner) => write!(f, "Option<{inner}>"),
             Type::Enum(e) => f.write_str(&e.name),
             Type::Nominal(n) => f.write_str(&n.name),
+            Type::Exact(n) => write!(f, "Exact<{}>", n.name),
             Type::Id(e) => write!(f, "Id<{e}>"),
             Type::Entity(e) => f.write_str(e),
         }
@@ -200,6 +216,8 @@ pub enum TypeCode {
     OpNotAllowed,
     EmptyIn,
     NestedOption,
+    /// A lossy narrowing to a fixed-scale type without `rescale`.
+    LossyConversion,
 }
 
 impl TypeCode {
@@ -209,6 +227,7 @@ impl TypeCode {
             TypeCode::OpNotAllowed => "OP_NOT_ALLOWED",
             TypeCode::EmptyIn => "EMPTY_IN",
             TypeCode::NestedOption => "NESTED_OPTION",
+            TypeCode::LossyConversion => "LOSSY_CONVERSION",
         }
     }
 }
@@ -266,6 +285,104 @@ fn scale_conv(n: &NominalInfo, scalar: &Type) -> Conv {
     }
 }
 
+/// The fixed-scale nominal behind `T` or `Exact<T>`, and whether it is exact.
+fn fixed_or_exact(t: &Type) -> Option<(&Arc<NominalInfo>, bool)> {
+    match t {
+        Type::Nominal(n) if n.scale.is_some() => Some((n, false)),
+        Type::Exact(n) => Some((n, true)),
+        _ => None,
+    }
+}
+
+/// Typing of fixed-scale nominals and exact quantities (contracts/numeric-semantics.md → Typing);
+/// `None` when no operand is one (the general rules apply).
+fn fixed_scale_op(sig: &OpSig, operands: &[Type]) -> Option<Typed> {
+    use TypeCode::*;
+    let keep2 = || vec![Conv::Keep, Conv::Keep];
+    match (sig, operands) {
+        (OpSig::Cmp(c), [a, b]) => {
+            let (x, _) = fixed_or_exact(a)?;
+            let (y, _) = fixed_or_exact(b)?;
+            if x != y {
+                return Some(Err(TypeMismatch));
+            }
+            if !matches!(c, CmpOp::Eq | CmpOp::Ne) && !x.has(ops::ORDER) {
+                return Some(Err(OpNotAllowed));
+            }
+            Some(Ok((Type::Bool, keep2())))
+        }
+        (OpSig::Arith(ArithOp::Add | ArithOp::Sub), [a, b]) => {
+            let fa = fixed_or_exact(a);
+            let fb = fixed_or_exact(b);
+            let ((x, ea), (y, eb)) = match (fa, fb) {
+                (Some(p), Some(q)) => (p, q),
+                (None, None) => return None,
+                _ => return Some(Err(TypeMismatch)),
+            };
+            if x != y {
+                return Some(Err(TypeMismatch));
+            }
+            if !x.has(ops::ADD) {
+                return Some(Err(OpNotAllowed));
+            }
+            let t = if ea || eb {
+                Type::Exact(x.clone())
+            } else {
+                Type::Nominal(x.clone())
+            };
+            Some(Ok((t, keep2())))
+        }
+        (OpSig::Arith(ArithOp::Mul), [a, b]) => {
+            let (n, exact, scalar) = match (fixed_or_exact(a), fixed_or_exact(b)) {
+                (Some((n, e)), None) => (n, e, b),
+                (None, Some((n, e))) => (n, e, a),
+                (None, None) => return None,
+                (Some(_), Some(_)) => return Some(Err(TypeMismatch)),
+            };
+            if !scalar.is_numeric() {
+                return Some(Err(TypeMismatch));
+            }
+            if !n.has(ops::SCALE) {
+                return Some(Err(OpNotAllowed));
+            }
+            let lossless = !exact && *scalar == Type::Int;
+            let t = if lossless {
+                Type::Nominal(n.clone())
+            } else {
+                Type::Exact(n.clone())
+            };
+            Some(Ok((t, keep2())))
+        }
+        (OpSig::Arith(ArithOp::Div), [a, b]) => match (fixed_or_exact(a), fixed_or_exact(b)) {
+            (None, None) => None,
+            (Some((x, false)), Some((y, false))) => Some(if x != y {
+                Err(TypeMismatch)
+            } else if x.has(ops::RATIO) {
+                Ok((Type::Decimal, keep2()))
+            } else {
+                Err(OpNotAllowed)
+            }),
+            (Some((n, _)), None) if b.is_numeric() => Some(if n.has(ops::SCALE) {
+                Ok((Type::Exact(n.clone()), keep2()))
+            } else {
+                Err(OpNotAllowed)
+            }),
+            _ => Some(Err(TypeMismatch)),
+        },
+        (OpSig::Wrap(n), [a]) if n.scale.is_some() => Some(match a {
+            // An integer is on every grid (range-checked at runtime).
+            Type::Int => Ok((Type::Nominal(n.clone()), vec![Conv::ToDecimal])),
+            Type::Decimal | Type::Exact(_) => Err(LossyConversion),
+            _ => Err(TypeMismatch),
+        }),
+        (OpSig::Unwrap, [Type::Exact(_)]) => Some(Err(LossyConversion)),
+        (OpSig::Some, [Type::Exact(_)]) => Some(Err(LossyConversion)),
+        (OpSig::ValueOr, [_, Type::Exact(_)]) => Some(Err(LossyConversion)),
+        (_, ops) if ops.iter().any(|t| matches!(t, Type::Exact(_))) => Some(Err(TypeMismatch)),
+        _ => None,
+    }
+}
+
 /// The result type of an operation and the conversions to apply to its operands.
 pub fn type_of_op(sig: &OpSig, operands: &[Type]) -> Typed {
     use TypeCode::*;
@@ -277,6 +394,9 @@ pub fn type_of_op(sig: &OpSig, operands: &[Type]) -> Typed {
         [a] => Ok(a),
         _ => Err(TypeMismatch),
     };
+    if let Some(r) = fixed_scale_op(sig, operands) {
+        return r;
+    }
     match sig {
         OpSig::Cmp(CmpOp::Eq | CmpOp::Ne) => {
             let (a, b) = two()?;

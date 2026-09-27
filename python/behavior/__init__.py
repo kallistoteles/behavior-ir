@@ -11,11 +11,11 @@ from .decl import action, constraint, derived, entity, field, invariant, rule
 from .errors import (
     BehaviorDefinitionError, BehaviorError, BehaviorInvalid, BehaviorTypeError, IntentRejected,
 )
-from .expr import and_, none, not_, or_, underlying
+from .expr import and_, none, not_, or_, rescale, underlying
 from .module import BehaviorModule
 from .results import AdmissionError, AdmissionResult, Change, Decision, ReplayResult, TraceStep
 from .statements import ensures, requires, set_
-from .types import Context, Id, Input, Option, nominal
+from .types import Context, Exact, Id, Input, Option, Rounding, nominal
 from .governance import Authorization, authorize, sign_waiver, waiver_hash
 from .verify import Attestation, Profile, verify
 
@@ -75,6 +75,7 @@ def replay(model: BehaviorModule, record_json: str) -> ReplayResult:
 
 
 __all__ = [
+    "Exact", "Rounding", "rescale",
     "Attestation", "Authorization", "Profile", "authorize", "sign_waiver", "verify", "waiver_hash",
     "AdmissionError", "AdmissionResult", "Change", "Decision", "ReplayResult", "TraceStep",
     "evaluate", "evaluate_intent", "replay", "BehaviorDefinitionError", "BehaviorError",

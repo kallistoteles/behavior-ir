@@ -23,7 +23,7 @@ use crate::hashing::{TAG_PROFILE, TAG_VERIFICATION, document_hash};
 use crate::solver::Solver;
 
 /// Version of the verifier; part of every check key and attestation.
-pub const VERIFIER_VERSION: &str = "0.2.0";
+pub const VERIFIER_VERSION: &str = "0.3.0";
 
 /// The kinds of checks a profile can select (research R6).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]

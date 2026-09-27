@@ -34,6 +34,34 @@ fn example_modules_verify_within_ten_seconds() {
     assert!(total < Duration::from_secs(10), "{total:?}");
 }
 
+#[test]
+#[ignore]
+fn fixed_scale_money_is_not_slower_than_general_decimals() {
+    // SC-005: within 10% or 1 s (whichever is larger) of the general-decimal versions.
+    let z3 = Z3Process::from_env().unwrap();
+    let time = |files: &[&str]| {
+        let start = Instant::now();
+        for f in files {
+            let m = behavior_core::admit(&wire(f)).unwrap();
+            verify(&m, &Profile::default(), None, &z3);
+        }
+        start.elapsed()
+    };
+    let general = time(&[
+        "wire/valid/invoice.json",
+        "verify/purchase.json",
+        "verify/purchase_remaining.json",
+    ]);
+    let fixed = time(&[
+        "verify/invoice_money2.json",
+        "verify/purchase_money2.json",
+        "verify/purchase_money2_remaining.json",
+    ]);
+    eprintln!("general decimals {general:?}, fixed-scale {fixed:?}");
+    let allowed = general + std::cmp::max(general / 10, Duration::from_secs(1));
+    assert!(fixed <= allowed, "{fixed:?} > {allowed:?}");
+}
+
 /// `purchase_fixed` with `n` distinct copies of `approve`, each with its own limit; `bump`
 /// changes the limit of the first copy.
 fn many_actions(n: usize, bump: bool) -> String {

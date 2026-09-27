@@ -79,6 +79,28 @@ behavior verify /tmp/purchase.json          # exit 1: approve can break within_b
 behavior verify tests/fixtures/verify/purchase_fixed.json   # exit 0: verified
 ```
 
+### Fixed-scale money (feature 003)
+
+Principle: lossless operations may be implicit; lossy conversions must be explicit.
+
+```python
+from behavior import Exact, Rounding, nominal, rescale
+
+Money = nominal("Money", Decimal, ops={"order", "add", "scale", "ratio"}, scale=2)
+
+subtotal = a.amount + b.amount                     # Money: exact, no rounding needed
+share = a.amount / 3                               # Exact[Money]: exact rational, not storable
+set_(a.fee, rescale(a.amount * Decimal("0.25"), Money, Rounding.HALF_EVEN))  # explicit
+requires(a.amount * Decimal("1.25") <= budget.limit)                        # exact comparison
+```
+
+Requests with more decimals than declared are rejected (`OFF_GRID`), records show exactly
+`scale` digits (`"100.50"`), every rescale appears in the trace with its exact input
+(`"40/3"`), and the verifier proves money properties exactly
+(`behavior verify tests/fixtures/verify/purchase_money2_remaining.json` exits 0). Modes:
+`HALF_EVEN`, `HALF_UP`, `DOWN`, `UP`, `FLOOR`, `CEILING`; there is no default. Details:
+`specs/003-fixed-scale-decimals/`.
+
 The output is a canonical, content-addressed **verification attestation** bound to the
 behavior version. Results are cached by check key (`--cache .behavior/verify-cache`), so
 unchanged behavior is not re-verified.

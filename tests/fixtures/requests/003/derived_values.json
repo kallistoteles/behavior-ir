@@ -1,0 +1,13 @@
+{
+ "action": "compare_fee",
+ "context": {},
+ "data_version": "1",
+ "input": {},
+ "state": {
+  "invoice": {
+   "amount": "10.01",
+   "fee": "0",
+   "id": "i1"
+  }
+ }
+}

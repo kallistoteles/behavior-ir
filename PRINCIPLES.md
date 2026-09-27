@@ -219,10 +219,16 @@ is not enough.
   (a discount, a division, a general decimal becoming money) is a rescale that names its
   rounding. That rescale is part of the behavior, its hash, its trace and its verification,
   never a silent default of a type.
-- **Goal: all arithmetic is either exact within an admitted finite domain, or information loss
-  is represented by an explicit Behavior IR operation.** Fixed-scale values and exact
-  quantities meet this today; the ratio of two amounts and general decimal arithmetic (28-digit
-  rounding) do not yet, and are the next gaps to close.
+- **Numeric computation is exact by default. Bounded representation and rounding are
+  explicit.** All arithmetic is either exact within an admitted finite domain, or information
+  loss is represented by an explicit Behavior IR operation. A `Decimal` is an exact finite
+  decimal value, not a calculator that rounds after every operation. (Feature 004 makes this
+  hold for general decimals and ratios as well.)
+- **Lossless representation changes may be implicit only when statically proven; lossy
+  representation changes are always explicit.** Whether a value may be stored in a bounded type
+  depends on whether it is provably representable there, never on whether it came from a
+  literal, a copy, or a computation. What cannot be proven at admission is rejected at admission;
+  the runtime never discovers a representation problem afterwards.
 
 ## 10. Verification comes from semantics, not annotations
 
@@ -244,6 +250,14 @@ against a key the governing policy trusts, never by a name written in the attest
 verifier takes for granted (types, validity of incoming entities, invariants on the starting
 state) must be exactly what the runtime checks before it evaluates. Assuming more makes proofs
 unsound; assuming less produces counterexamples that could never occur.
+
+**Admission proves representational validity; verification proves reachable behavioral safety.**
+Admission answers structural questions from types, literals, and type-level bounds alone: is the
+behavior well typed, is every conversion lossless or explicit, does every exact value fit the
+runtime's representation? Verification answers value-dependent questions over valid, reachable
+states, inputs, and contexts: can an addition overflow, can a divisor be zero, can an invariant
+or a postcondition fail? Admission never reads entity constraints or invariants; those belong to
+verification.
 
 **Every value admitted by the verifier must be representable by the evaluator on every reachable
 path.** The verifier and the runtime share one finite domain. If an expression could produce a

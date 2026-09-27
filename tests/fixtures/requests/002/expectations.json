@@ -1,0 +1,141 @@
+{
+ "alias": {
+  "changes": [],
+  "outcomes": [],
+  "phases": [],
+  "reasons": [
+   "STATE_ALIAS_NOT_ALLOWED"
+  ],
+  "result": "INVALID_BINDING"
+ },
+ "constraint_post_violation": {
+  "changes": [],
+  "outcomes": [
+   true,
+   true,
+   true,
+   {
+    "assigned": "-40"
+   },
+   {
+    "assigned": "50"
+   },
+   false,
+   "skipped"
+  ],
+  "phases": [
+   "constraint",
+   "constraint",
+   "precondition",
+   "effect",
+   "effect",
+   "constraint_post",
+   "constraint_post"
+  ],
+  "reasons": [
+   "CONSTRAINT_VIOLATED"
+  ],
+  "result": "DENY"
+ },
+ "context_invalid": {
+  "changes": [],
+  "outcomes": [
+   true,
+   false
+  ],
+  "phases": [
+   "constraint",
+   "constraint"
+  ],
+  "reasons": [
+   "CONSTRAINT_VIOLATED"
+  ],
+  "result": "INVALID_CONTEXT",
+  "roles": [
+   "state",
+   "context"
+  ]
+ },
+ "input_invalid": {
+  "changes": [],
+  "outcomes": [
+   true,
+   false
+  ],
+  "phases": [
+   "constraint",
+   "constraint"
+  ],
+  "reasons": [
+   "CONSTRAINT_VIOLATED"
+  ],
+  "result": "INVALID_INPUT",
+  "roles": [
+   "state",
+   "input"
+  ]
+ },
+ "state_invalid": {
+  "changes": [],
+  "outcomes": [
+   false,
+   "skipped"
+  ],
+  "phases": [
+   "constraint",
+   "constraint"
+  ],
+  "reasons": [
+   "CONSTRAINT_VIOLATED"
+  ],
+  "result": "INVALID_STATE",
+  "roles": [
+   "state",
+   "state"
+  ]
+ },
+ "transfer_ok": {
+  "changes": [
+   {
+    "entity": "Account",
+    "field": "balance",
+    "id": "a1",
+    "new": "70",
+    "old": "100",
+    "param": "from_"
+   },
+   {
+    "entity": "Account",
+    "field": "balance",
+    "id": "a2",
+    "new": "30",
+    "old": "0",
+    "param": "to"
+   }
+  ],
+  "outcomes": [
+   true,
+   true,
+   true,
+   {
+    "assigned": "70"
+   },
+   {
+    "assigned": "30"
+   },
+   true,
+   true
+  ],
+  "phases": [
+   "constraint",
+   "constraint",
+   "precondition",
+   "effect",
+   "effect",
+   "constraint_post",
+   "constraint_post"
+  ],
+  "reasons": [],
+  "result": "ALLOW"
+ }
+}

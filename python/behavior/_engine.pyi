@@ -42,6 +42,27 @@ class Record:
     @property
     def json(self) -> str: ...
 
+class Attestation:
+    @property
+    def result(self) -> str: ...
+    @property
+    def hash(self) -> str: ...
+    @property
+    def data(self) -> dict[str, Any]: ...
+    @property
+    def json(self) -> str: ...
+
+class Authorization:
+    @property
+    def decision(self) -> str: ...
+    @property
+    def data(self) -> dict[str, Any]: ...
+    @property
+    def json(self) -> str: ...
+
+def waiver_hash(waiver: dict[str, Any]) -> str: ...
+def sign_waiver(waiver: dict[str, Any], seed: str) -> dict[str, Any]: ...
+
 class Module:
     @staticmethod
     def from_wire(wire: str) -> tuple[Module | None, dict[str, Any]]: ...
@@ -67,6 +88,22 @@ class Module:
         git_revision: str | None = None,
     ) -> Record: ...
     def replay(self, record_json: str) -> tuple[bool, str | None]: ...
+    def authorize(
+        self,
+        policy: dict[str, Any],
+        record_json: str,
+        attestation_json: str | None,
+        waivers: list[dict[str, Any]],
+        signatures: list[dict[str, Any]],
+        now: str,
+    ) -> Authorization: ...
+    def verify(
+        self,
+        checks: list[str] | None,
+        rlimit: int,
+        wall_clock_guard_ms: int,
+        cache: str | None = None,
+    ) -> Attestation: ...
 
 Param = tuple[str, str | None, Type]
 
@@ -94,6 +131,9 @@ class Builder:
         self, name: str, kind: str, params: list[Param], body: Node, file: str, line: int
     ) -> None: ...
     def add_invariant(
+        self, name: str, entity: str, param: str, body: Node, file: str, line: int
+    ) -> None: ...
+    def add_constraint(
         self, name: str, entity: str, param: str, body: Node, file: str, line: int
     ) -> None: ...
     def add_action(

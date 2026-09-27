@@ -1,0 +1,11 @@
+{
+ "_warning": "TEST-ONLY keys. Published in this repository; never trust them in a real policy.",
+ "A": {
+  "seed": "d4dff85579c6c8cb69d091edd8a6648a59ba133460c695ef91b8d206269f1a81",
+  "key_id": "ed25519:43a08d9e963a0e35fd9a570fa5feaeedfee14cc5f7ef8b60a7886928f3a4e5b4"
+ },
+ "B": {
+  "seed": "8f0724a6c23b7b464456698e53d2eeb65c3dccdc6a4ba6f9923367a779bfb07a",
+  "key_id": "ed25519:3df4144e0b32f375cdd255b6daea7c449ddfe779888013264bbb8040eedcab05"
+ }
+}

@@ -392,3 +392,118 @@ fn cycles_are_reported_by_finish() {
     assert_eq!(err.errors.len(), 1);
     assert_eq!(err.errors[0].code, "CYCLE");
 }
+
+#[test]
+fn constraints_built_through_the_builder_match_the_wire_fixture() {
+    let mut b = Builder::new();
+    b.declare_nominal(
+        "Money",
+        WType::Decimal,
+        vec!["add".into(), "order".into(), "ratio".into(), "scale".into()],
+        l(1),
+    )
+    .unwrap();
+    b.declare_entity(
+        "Employee",
+        vec![
+            WField {
+                name: "role".into(),
+                ty: WType::String,
+                loc: l(2),
+            },
+            WField {
+                name: "approval_limit".into(),
+                ty: money(),
+                loc: l(3),
+            },
+        ],
+        l(2),
+    )
+    .unwrap();
+    b.declare_entity(
+        "Account",
+        vec![WField {
+            name: "balance".into(),
+            ty: money(),
+            loc: l(4),
+        }],
+        l(4),
+    )
+    .unwrap();
+    for (name, entity, param, field) in [
+        ("non_negative_limit", "Employee", "e", "approval_limit"),
+        ("non_negative_balance", "Account", "a", "balance"),
+    ] {
+        b.push_scope(ScopeSite::Derived, vec![p(param, None, entity)], l(5))
+            .unwrap();
+        let f = b.field(param, field, l(6)).unwrap();
+        let zero = b.lit(money(), json!("0"), l(6)).unwrap();
+        let ge = b.op("ge", vec![f, zero], l(6)).unwrap();
+        b.pop_scope();
+        b.add_constraint(name, entity, param, ge, l(5)).unwrap();
+    }
+    // transfer
+    let tp = vec![
+        p("from_", Some(Role::State), "Account"),
+        p("to", Some(Role::State), "Account"),
+        WParam {
+            name: "amount".into(),
+            role: Some(Role::Input),
+            ty: money(),
+        },
+    ];
+    b.push_scope(ScopeSite::Action, tp.clone(), l(7)).unwrap();
+    let amt = b.param("amount", l(8)).unwrap();
+    let zero = b.lit(money(), json!("0"), l(8)).unwrap();
+    let pre = b.op("gt", vec![amt, zero], l(8)).unwrap();
+    let fb = b.field("from_", "balance", l(9)).unwrap();
+    let a1 = b.param("amount", l(9)).unwrap();
+    let e1 = b.op("sub", vec![fb, a1], l(9)).unwrap();
+    let tb = b.field("to", "balance", l(10)).unwrap();
+    let a2 = b.param("amount", l(10)).unwrap();
+    let e2 = b.op("add", vec![tb, a2], l(10)).unwrap();
+    b.pop_scope();
+    b.add_action(
+        "transfer",
+        tp,
+        vec![(pre, l(8))],
+        vec![
+            ("from_".into(), "balance".into(), e1, l(9)),
+            ("to".into(), "balance".into(), e2, l(10)),
+        ],
+        vec![],
+        l(7),
+    )
+    .unwrap();
+    // review
+    let rp = vec![
+        p("account", Some(Role::State), "Account"),
+        p("actor", Some(Role::Context), "Employee"),
+    ];
+    b.push_scope(ScopeSite::Action, rp.clone(), l(11)).unwrap();
+    let role = b.field("actor", "role", l(12)).unwrap();
+    let mgr = b.lit(WType::String, json!("manager"), l(12)).unwrap();
+    let pre = b.op("eq", vec![role, mgr], l(12)).unwrap();
+    b.pop_scope();
+    b.add_action("review", rp, vec![(pre, l(12))], vec![], vec![], l(11))
+        .unwrap();
+    // assign
+    let ap = vec![
+        p("account", Some(Role::State), "Account"),
+        p("approver", Some(Role::Input), "Employee"),
+    ];
+    b.push_scope(ScopeSite::Action, ap.clone(), l(13)).unwrap();
+    let lim = b.field("approver", "approval_limit", l(14)).unwrap();
+    let bal = b.field("account", "balance", l(14)).unwrap();
+    let pre = b.op("ge", vec![lim, bal], l(14)).unwrap();
+    b.pop_scope();
+    b.add_action("assign", ap, vec![(pre, l(14))], vec![], vec![], l(13))
+        .unwrap();
+
+    let module = b.finish(None).unwrap();
+    let wire = common::read(&common::fixtures().join("wire/valid/constraints.json"));
+    assert_eq!(
+        admission_result(&module).behavior_version,
+        admission_report(&wire).behavior_version
+    );
+}

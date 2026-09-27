@@ -1,0 +1,19 @@
+{
+ "profile": [
+  "evaluation_error"
+ ],
+ "checks": [
+  {
+   "kind": "evaluation_error",
+   "action": "scale",
+   "subject": "counter.n * factor (numeric overflow)",
+   "outcome": "counterexample"
+  },
+  {
+   "kind": "evaluation_error",
+   "action": "scale_bounded",
+   "subject": "counter.n * factor (numeric overflow)",
+   "outcome": "proven"
+  }
+ ]
+}

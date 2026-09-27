@@ -1,7 +1,8 @@
 //! `behavior` command-line interface over the engine API (contracts/engine-api.md).
 //!
-//! Exit codes: 0 admitted / ALLOW / replay match; 1 DENY; 2 admission failure, INVALID_INPUT,
-//! INVALID_STATE, intent rejected, or replay mismatch; 3 ERROR; 64 usage error.
+//! Exit codes: 0 admitted / ALLOW / replay match / verified / authorized; 1 DENY / not verified /
+//! refused; 2 admission failure, INVALID_INPUT, INVALID_STATE, intent rejected, replay mismatch,
+//! or invalid governance input; 3 ERROR or solver unavailable; 64 usage error.
 #![forbid(unsafe_code)]
 
 use std::io::Write;
@@ -34,6 +35,39 @@ enum Command {
     },
     /// Replay a decision record.
     Replay { wire: String, record: String },
+    /// Verify wire IR with the SMT solver and print the verification attestation.
+    Verify {
+        wire: String,
+        #[arg(long)]
+        profile: Option<String>,
+        #[arg(long)]
+        cache: Option<String>,
+        #[arg(long)]
+        out: Option<String>,
+    },
+    /// Print the content hash of a waiver.
+    WaiverHash { waiver: String },
+    /// Sign a waiver with an Ed25519 key (a file holding the 32-byte seed as hex).
+    SignWaiver {
+        waiver: String,
+        #[arg(long)]
+        seed: String,
+    },
+    /// Decide whether a decision record's transition may be committed under a policy.
+    Authorize {
+        wire: String,
+        record: String,
+        #[arg(long)]
+        policy: String,
+        #[arg(long)]
+        attestation: Option<String>,
+        #[arg(long = "waiver")]
+        waivers: Vec<String>,
+        #[arg(long = "signature")]
+        signatures: Vec<String>,
+        #[arg(long)]
+        now: String,
+    },
 }
 
 const USAGE: u8 = 64;
@@ -64,8 +98,111 @@ fn emit(text: &str, newline: bool) {
     let _ = out.flush();
 }
 
+fn verify(
+    wire: &str,
+    profile: Option<&str>,
+    cache: Option<&str>,
+    out: Option<&str>,
+) -> Result<ExitCode, ExitCode> {
+    let profile = match profile {
+        Some(p) => behavior_verify::Profile::from_json(&read(p)?).map_err(|e| {
+            eprintln!("behavior: {e}");
+            ExitCode::from(USAGE)
+        })?,
+        None => behavior_verify::Profile::default(),
+    };
+    let module = match behavior_core::admit(&read(wire)?) {
+        Ok(m) => m,
+        Err(r) => {
+            emit(&r.to_json_string(), false);
+            return Ok(ExitCode::from(2));
+        }
+    };
+    let solver = behavior_verify::solver::Z3Process::from_env()
+        .map_err(|e| {
+            eprintln!("behavior: {e}");
+            ExitCode::from(3)
+        })?
+        .with_guard(std::time::Duration::from_millis(
+            profile.wall_clock_guard_ms,
+        ));
+    let a = behavior_verify::verify(&module, &profile, cache.map(std::path::Path::new), &solver);
+    let text = a.to_json_string();
+    if let Some(path) = out {
+        std::fs::write(path, &text).map_err(|e| {
+            eprintln!("behavior: cannot write {path}: {e}");
+            ExitCode::from(USAGE)
+        })?;
+    }
+    emit(&text, false);
+    Ok(ExitCode::from(if a.result == "verified" { 0 } else { 1 }))
+}
+
+fn invalid(e: behavior_verify::governance::GovernanceError) -> ExitCode {
+    eprintln!("behavior: {e}");
+    ExitCode::from(2)
+}
+
 fn run(cli: Cli) -> Result<ExitCode, ExitCode> {
     match cli.command {
+        Command::WaiverHash { waiver } => {
+            let h = behavior_verify::governance::waiver_hash(&read(&waiver)?).map_err(invalid)?;
+            emit(&h, true);
+            Ok(ExitCode::SUCCESS)
+        }
+        Command::SignWaiver { waiver, seed } => {
+            let signed = behavior_verify::governance::sign_waiver(&read(&seed)?, &read(&waiver)?)
+                .map_err(invalid)?;
+            emit(
+                &behavior_core::canonical::to_canonical_string(&signed).unwrap_or_default(),
+                false,
+            );
+            Ok(ExitCode::SUCCESS)
+        }
+        Command::Authorize {
+            wire,
+            record,
+            policy,
+            attestation,
+            waivers,
+            signatures,
+            now,
+        } => {
+            let module = match behavior_core::admit(&read(&wire)?) {
+                Ok(m) => m,
+                Err(r) => {
+                    emit(&r.to_json_string(), false);
+                    return Ok(ExitCode::from(2));
+                }
+            };
+            let attestation = attestation.as_deref().map(read).transpose()?;
+            let waivers = waivers
+                .iter()
+                .map(|w| read(w))
+                .collect::<Result<Vec<_>, _>>()?;
+            let signatures = signatures
+                .iter()
+                .map(|s| read(s))
+                .collect::<Result<Vec<_>, _>>()?;
+            let a = behavior_verify::governance::authorize(
+                &read(&policy)?,
+                &module,
+                &read(&record)?,
+                attestation.as_deref(),
+                &waivers,
+                &signatures,
+                &now,
+            )
+            .map_err(invalid)?;
+            emit(&a.to_json_string(), false);
+            Ok(ExitCode::from(if a.decision == "allow" { 0 } else { 1 }))
+        }
+        Command::Verify {
+            wire,
+            profile,
+            cache,
+            out,
+        } => verify(&wire, profile.as_deref(), cache.as_deref(), out.as_deref()),
         Command::Admit { wire } => {
             let r = behavior_core::admission_report(&read(&wire)?);
             emit(&r.to_json_string(), false);

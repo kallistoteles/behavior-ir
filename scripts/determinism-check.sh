@@ -45,6 +45,41 @@ if [ -f tests/fixtures/requests/expectations.json ]; then
   done < <(python3 -c 'import json,sys; [print(k, v["wire"]) for k, v in sorted(json.load(open(sys.argv[1])).items())]' tests/fixtures/requests/expectations.json)
 fi
 
+# Verification attestations (feature 002): every verify fixture and every valid wire file,
+# without a cache so the solver runs both times.
+if command -v "${BEHAVIOR_Z3:-z3}" >/dev/null 2>&1; then
+  for f in tests/fixtures/verify/*.json tests/fixtures/wire/valid/*.json; do
+    case "$f" in *.expected.json) continue ;; esac
+    run_twice "verify $f" "$BIN" verify "$f"
+  done
+
+  # A governance decision: an inconclusive finding waived with the test key.
+  g=tests/fixtures/governance
+  w=tests/fixtures/verify/purchase_remaining.json
+  "$BIN" verify "$w" >"$tmp/att.json" || true
+  "$BIN" eval "$w" "$g/approve_request.json" >"$tmp/rec.json" || true
+  python3 - "$tmp" <<'PY'
+import json, sys
+tmp = sys.argv[1]
+a = json.load(open(f"{tmp}/att.json"))
+f = a["findings"][0]
+json.dump({"behavior_version": a["behavior_version"], "finding_hash": f["hash"],
+           "profile_hash": a["profile"]["hash"], "verifier_version": a["verifier_version"],
+           "rationale": "determinism check"}, open(f"{tmp}/waiver.json", "w"))
+open(f"{tmp}/seed", "w").write(json.load(open("tests/fixtures/governance/keys.json"))["A"]["seed"])
+PY
+  "$BIN" sign-waiver "$tmp/waiver.json" --seed "$tmp/seed" >"$tmp/signed.json"
+  run_twice "authorize (waived inconclusive)" "$BIN" authorize "$w" "$tmp/rec.json" \
+    --policy "$g/verified_or_waived.json" --attestation "$tmp/att.json" \
+    --waiver "$tmp/waiver.json" --signature "$tmp/signed.json" --now 2026-09-25T12:00:00Z
+  rc=0; "$BIN" authorize "$w" "$tmp/rec.json" --policy "$g/verified_or_waived.json" \
+    --attestation "$tmp/att.json" --waiver "$tmp/waiver.json" --signature "$tmp/signed.json" \
+    --now 2026-09-25T12:00:00Z >/dev/null || rc=$?
+  if [ "$rc" -ne 0 ]; then echo "AUTHORIZE: expected allow for the waived case" >&2; fail=1; fi
+else
+  echo "determinism-check: z3 not found; skipping verification checks" >&2
+fi
+
 # The Python examples print records; two runs must be byte-identical.
 if python3 -c "import behavior._engine" 2>/dev/null; then
   run_twice "examples.invoice.run" python3 -m examples.invoice.run

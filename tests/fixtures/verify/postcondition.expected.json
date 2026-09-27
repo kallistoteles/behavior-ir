@@ -1,0 +1,19 @@
+{
+ "profile": [
+  "postcondition"
+ ],
+ "checks": [
+  {
+   "kind": "postcondition",
+   "action": "deposit",
+   "subject": "account.balance >= Money(0)",
+   "outcome": "counterexample"
+  },
+  {
+   "kind": "postcondition",
+   "action": "deposit_checked",
+   "subject": "account.balance >= Money(0)",
+   "outcome": "proven"
+  }
+ ]
+}

@@ -26,7 +26,8 @@ pub fn authorize(policy_json: &str, module: &Module, record_json: &str,
                  signed_json: &[String], now: &str) -> Result<Authorization, GovernanceError>;
 ```
 
-`Solver` is a trait (`fn check(&self, query: &str) -> SolverAnswer`); `Z3Process` runs the
+`Solver` is a trait (`fn check(&self, query: &Query) -> SolverAnswer`, where `Query` holds the
+SMT-LIB script, the symbols to read back, and the `rlimit`); `Z3Process` runs the
 pinned `z3` binary (path from `BEHAVIOR_Z3`, else `z3` on `PATH`).
 
 ## CLI
@@ -34,12 +35,14 @@ pinned `z3` binary (path from `BEHAVIOR_Z3`, else `z3` on `PATH`).
 ```text
 behavior verify <wire.json> [--profile profile.json] [--cache DIR] [--out attestation.json]
 behavior waiver-hash <waiver.json>
+behavior sign-waiver <waiver.json> --seed <seed-hex-file>
 behavior authorize <wire.json> <record.json> --policy policy.json
                    [--attestation attestation.json] [--waiver waiver.json]...
                    [--signature signed.json]... --now 2026-09-25T12:00:00Z
 ```
 
-Exit codes: `verify` 0 verified, 1 not verified, 2 admission failure, 64 usage;
+Exit codes: `verify` 0 verified, 1 not verified, 2 admission failure, 3 solver unavailable,
+64 usage;
 `authorize` 0 allow, 1 refuse, 2 invalid input, 64 usage. Outputs are canonical JSON on stdout
 (`verify` also writes `--out` when given).
 

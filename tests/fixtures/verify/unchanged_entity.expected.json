@@ -1,0 +1,21 @@
+{
+ "profile": [
+  "preservation"
+ ],
+ "checks": [
+  {
+   "kind": "preservation",
+   "action": "approve",
+   "subject": "within_budget",
+   "param": "project",
+   "outcome": "proven"
+  },
+  {
+   "kind": "preservation",
+   "action": "reject",
+   "subject": "within_budget",
+   "param": "project",
+   "outcome": "proven"
+  }
+ ]
+}

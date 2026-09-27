@@ -1,0 +1,19 @@
+{
+ "profile": [
+  "postcondition"
+ ],
+ "checks": [
+  {
+   "kind": "postcondition",
+   "action": "third_clear",
+   "subject": "ratio.a / ratio.b < 0.3334",
+   "outcome": "proven"
+  },
+  {
+   "kind": "postcondition",
+   "action": "third_tight",
+   "subject": "ratio.a / ratio.b < 0.3333333333333333333333333334",
+   "outcome": "inconclusive"
+  }
+ ]
+}

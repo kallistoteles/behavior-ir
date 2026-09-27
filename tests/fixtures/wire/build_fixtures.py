@@ -243,8 +243,8 @@ def invalid_cases() -> dict[str, tuple[dict[str, object], list[dict[str, object]
     cases["unknown_key"] = (m, [err("DECODE_ERROR")])
 
     m = base()
-    m["ir_version"] = "0.2"
-    cases["ir_version_0_2"] = (m, [err("UNSUPPORTED_IR_VERSION")])
+    m["ir_version"] = "0.9"
+    cases["ir_version_0_9"] = (m, [err("UNSUPPORTED_IR_VERSION")])
 
     m = base()
     m["actions"][0]["params"][1]["type"] = ent("Customer")  # type: ignore[index]
@@ -369,6 +369,87 @@ def invalid_cases() -> dict[str, tuple[dict[str, object], list[dict[str, object]
     return cases
 
 
+# --- constraints (ir_version 0.2) -------------------------------------------------------------
+
+C = "constraints.py"
+
+
+def constraints_module() -> dict[str, object]:
+    m = module(
+        nominals=[{"name": "Money", "underlying": DEC, "ops": ["add", "order", "ratio", "scale"],
+                   "loc": loc(C, 3)}],
+        entities=[
+            {"name": "Employee", "loc": loc(C, 6), "fields": [
+                field_decl("role", STR, loc(C, 7)),
+                field_decl("approval_limit", MONEY, loc(C, 8)),
+            ]},
+            {"name": "Account", "loc": loc(C, 11), "fields": [
+                field_decl("balance", MONEY, loc(C, 12)),
+            ]},
+        ],
+        actions=[
+            {"name": "transfer", "loc": loc(C, 25),
+             "params": [param("from_", ent("Account"), "state"), param("to", ent("Account"), "state"),
+                        param("amount", MONEY, "input")],
+             "preconditions": [
+                 {"expr": op("gt", par("amount", loc(C, 27)), lit(MONEY, "0", loc(C, 27)), at=loc(C, 27)),
+                  "loc": loc(C, 27)},
+             ],
+             "effects": [
+                 {"target": {"param": "from_", "field": "balance"},
+                  "value": op("sub", fld("from_", "balance", loc(C, 28)), par("amount", loc(C, 28)), at=loc(C, 28)),
+                  "loc": loc(C, 28)},
+                 {"target": {"param": "to", "field": "balance"},
+                  "value": op("add", fld("to", "balance", loc(C, 29)), par("amount", loc(C, 29)), at=loc(C, 29)),
+                  "loc": loc(C, 29)},
+             ],
+             "postconditions": []},
+            {"name": "review", "loc": loc(C, 32),
+             "params": [param("account", ent("Account"), "state"), param("actor", ent("Employee"), "context")],
+             "preconditions": [
+                 {"expr": op("eq", fld("actor", "role", loc(C, 34)), lit(STR, "manager", loc(C, 34)), at=loc(C, 34)),
+                  "loc": loc(C, 34)},
+             ],
+             "effects": [], "postconditions": []},
+            {"name": "assign", "loc": loc(C, 37),
+             "params": [param("account", ent("Account"), "state"), param("approver", ent("Employee"), "input")],
+             "preconditions": [
+                 {"expr": op("ge", fld("approver", "approval_limit", loc(C, 39)),
+                             fld("account", "balance", loc(C, 39)), at=loc(C, 39)),
+                  "loc": loc(C, 39)},
+             ],
+             "effects": [], "postconditions": []},
+        ],
+    )
+    m["ir_version"] = "0.2"
+    m["constraints"] = [
+        {"name": "non_negative_limit", "entity": "Employee", "param": "e",
+         "body": op("ge", fld("e", "approval_limit", loc(C, 16)), lit(MONEY, "0", loc(C, 16)), at=loc(C, 16)),
+         "loc": loc(C, 15)},
+        {"name": "non_negative_balance", "entity": "Account", "param": "a",
+         "body": op("ge", fld("a", "balance", loc(C, 21)), lit(MONEY, "0", loc(C, 21)), at=loc(C, 21)),
+         "loc": loc(C, 20)},
+    ]
+    return m
+
+
+def constraint_invalid_cases() -> dict[str, tuple[dict[str, object], list[dict[str, object]]]]:
+    cases: dict[str, tuple[dict[str, object], list[dict[str, object]]]] = {}
+    m = constraints_module()
+    m["constraints"][0]["entity"] = "Manager"  # type: ignore[index]
+    cases["constraint_unknown_entity"] = (m, [err("UNKNOWN_ENTITY", C, 15)])
+    m = constraints_module()
+    m["constraints"][0]["body"] = fld("e", "approval_limit", loc(C, 16))  # type: ignore[index]
+    cases["constraint_not_bool"] = (m, [err("NOT_BOOLEAN", C, 16)])
+    m = constraints_module()
+    m["ir_version"] = "0.1"
+    cases["constraints_in_0_1"] = (m, [err("DECODE_ERROR")])
+    m = constraints_module()
+    m["constraints"][0]["name"] = "transfer"  # type: ignore[index]
+    cases["constraint_duplicate_name"] = (m, [err("DUPLICATE_NAME", C, 25)])
+    return cases
+
+
 def main() -> None:
     valid = ROOT / "valid"
     invalid = ROOT / "invalid"
@@ -377,7 +458,8 @@ def main() -> None:
     dump(valid / "invoice.json", invoice())
     dump(valid / "project_margin.json", project_margin())
     dump(valid / "empty.json", module())
-    for name, (doc, errors) in invalid_cases().items():
+    dump(valid / "constraints.json", constraints_module())
+    for name, (doc, errors) in {**invalid_cases(), **constraint_invalid_cases()}.items():
         dump(invalid / f"{name}.json", doc)
         dump(invalid / f"{name}.expected.json", {"errors": errors})
 

@@ -23,13 +23,14 @@
         in
         {
           default = pkgs.mkShell {
-            packages = [ rust python pkgs.maturin ];
+            packages = [ rust python pkgs.maturin pkgs.z3 ];
             shellHook = ''
               if [ ! -d .venv ]; then
                 ${python}/bin/python -m venv --system-site-packages .venv
               fi
               export VIRTUAL_ENV="$PWD/.venv"
               export PATH="$VIRTUAL_ENV/bin:$PWD/target/debug:$PATH"
+              export BEHAVIOR_Z3="${pkgs.z3}/bin/z3"
             '';
           };
         });

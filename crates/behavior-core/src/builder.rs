@@ -17,8 +17,8 @@ use crate::admit::{AdmissionError, AdmissionResult, admit_wire};
 use crate::semantic::module::{DerivedItem, Module, Param, ParamRole};
 use crate::semantic::types::{Type, coerce};
 use crate::wire::{
-    DerivedKind, Loc, WAction, WCond, WDerived, WEffect, WEntity, WEnum, WExpr, WExprKind, WField,
-    WInvariant, WModule, WNominal, WParam, WType, arity_ok, op_name,
+    DerivedKind, Loc, WAction, WCond, WConstraint, WDerived, WEffect, WEntity, WEnum, WExpr,
+    WExprKind, WField, WInvariant, WModule, WNominal, WParam, WType, arity_ok, op_name,
 };
 
 /// A construction error: the same codes as admission errors.
@@ -97,6 +97,7 @@ pub struct Builder {
     entities: Vec<WEntity>,
     derived: Vec<WDerived>,
     invariants: Vec<WInvariant>,
+    constraints: Vec<WConstraint>,
     actions: Vec<WAction>,
     decls: Option<Decls>,
     typed_derived: BTreeMap<String, DerivedItem>,
@@ -188,6 +189,7 @@ impl Builder {
             entities: self.entities.clone(),
             derived: Vec::new(),
             invariants: Vec::new(),
+            constraints: Vec::new(),
             actions: Vec::new(),
         };
         let mut errors = Vec::new();
@@ -389,6 +391,7 @@ impl Builder {
     fn claim(&self, name: &str) -> R<()> {
         let taken = self.derived.iter().any(|d| d.name == name)
             || self.invariants.iter().any(|i| i.name == name)
+            || self.constraints.iter().any(|c| c.name == name)
             || self.actions.iter().any(|a| a.name == name);
         if taken {
             return Err(err(
@@ -458,6 +461,27 @@ impl Builder {
         Ok(())
     }
 
+    /// Adds an entity constraint: a validity rule over one entity of type `entity`.
+    pub fn add_constraint(
+        &mut self,
+        name: &str,
+        entity: &str,
+        param: &str,
+        body: Node,
+        loc: Loc,
+    ) -> R<()> {
+        self.claim(name)?;
+        self.check_condition(&body, "an entity constraint")?;
+        self.constraints.push(WConstraint {
+            name: name.into(),
+            entity: entity.into(),
+            param: param.into(),
+            body: body.w,
+            loc,
+        });
+        Ok(())
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub fn add_action(
         &mut self,
@@ -498,6 +522,7 @@ impl Builder {
             entities: self.entities.clone(),
             derived: self.derived.clone(),
             invariants: self.invariants.clone(),
+            constraints: self.constraints.clone(),
             actions: self.actions.clone(),
         };
         let mut files = Vec::new();
@@ -566,6 +591,10 @@ fn for_each_loc(w: &mut WModule, f: &mut dyn FnMut(&mut Loc)) {
     for i in &mut w.invariants {
         f(&mut i.loc);
         expr_locs(&mut i.body, f);
+    }
+    for c in &mut w.constraints {
+        f(&mut c.loc);
+        expr_locs(&mut c.body, f);
     }
     for a in &mut w.actions {
         f(&mut a.loc);

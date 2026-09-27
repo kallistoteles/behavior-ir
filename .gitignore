@@ -8,3 +8,4 @@ result
 .pytest_cache/
 *.egg-info/
 dist/
+.behavior/

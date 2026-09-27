@@ -1,0 +1,36 @@
+{
+ "profile": [
+  "preservation"
+ ],
+ "wire": "../wire/valid/constraints.json",
+ "checks": [
+  {
+   "kind": "preservation",
+   "action": "assign",
+   "subject": "non_negative_balance",
+   "param": "account",
+   "outcome": "proven"
+  },
+  {
+   "kind": "preservation",
+   "action": "review",
+   "subject": "non_negative_balance",
+   "param": "account",
+   "outcome": "proven"
+  },
+  {
+   "kind": "preservation",
+   "action": "transfer",
+   "subject": "non_negative_balance",
+   "param": "from_",
+   "outcome": "counterexample"
+  },
+  {
+   "kind": "preservation",
+   "action": "transfer",
+   "subject": "non_negative_balance",
+   "param": "to",
+   "outcome": "proven"
+  }
+ ]
+}

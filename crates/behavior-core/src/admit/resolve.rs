@@ -301,6 +301,17 @@ pub(crate) fn declarations(w: &WModule, errs: &mut Vec<AdmissionError>) -> Decls
             );
         }
     }
+    for c in &w.constraints {
+        claim_behavior(&c.name, &c.loc, errs);
+        if !decls.entities.contains_key(&c.entity) {
+            err(
+                errs,
+                "UNKNOWN_ENTITY",
+                format!("unknown entity `{}`", c.entity),
+                &c.loc,
+            );
+        }
+    }
     for a in &w.actions {
         claim_behavior(&a.name, &a.loc, errs);
         let _ = params(&decls, &a.params, ParamSite::Action, &a.loc, errs);

@@ -1,0 +1,58 @@
+{
+ "profile": [
+  "dead_action",
+  "redundancy",
+  "vacuity"
+ ],
+ "result": "verified",
+ "checks": [
+  {
+   "kind": "dead_action",
+   "action": "impossible",
+   "subject": "impossible",
+   "outcome": "proven"
+  },
+  {
+   "kind": "dead_action",
+   "action": "ship",
+   "subject": "ship",
+   "outcome": "counterexample"
+  },
+  {
+   "kind": "redundant_precondition",
+   "action": "ship",
+   "subject": "order.amount >= Money(0)",
+   "outcome": "proven"
+  },
+  {
+   "kind": "redundant_precondition",
+   "action": "ship",
+   "subject": "order.amount < Money(1000)",
+   "outcome": "counterexample"
+  },
+  {
+   "kind": "always_true",
+   "action": null,
+   "subject": "has_value",
+   "outcome": "proven"
+  },
+  {
+   "kind": "always_false",
+   "action": null,
+   "subject": "has_value",
+   "outcome": "counterexample"
+  },
+  {
+   "kind": "always_true",
+   "action": null,
+   "subject": "large",
+   "outcome": "counterexample"
+  },
+  {
+   "kind": "always_false",
+   "action": null,
+   "subject": "large",
+   "outcome": "counterexample"
+  }
+ ]
+}

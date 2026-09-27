@@ -16,6 +16,7 @@ pub enum Kind {
     Derived = 4,
     Invariant = 5,
     Action = 6,
+    Constraint = 7,
 }
 
 impl Kind {
@@ -27,6 +28,7 @@ impl Kind {
             Kind::Derived => "derived",
             Kind::Invariant => "invariant",
             Kind::Action => "action",
+            Kind::Constraint => "constraint",
         }
     }
 }
@@ -146,6 +148,34 @@ impl InvariantItem {
     }
 }
 
+/// An entity constraint: what a valid instance of an entity type is (feature 002).
+#[derive(Debug, Clone)]
+pub struct ConstraintItem {
+    pub(crate) entity: String,
+    pub(crate) param: String,
+    pub(crate) body: Expr,
+    pub(crate) hash: Hash,
+    pub(crate) loc: Loc,
+}
+
+impl ConstraintItem {
+    pub fn entity(&self) -> &str {
+        &self.entity
+    }
+    pub fn param(&self) -> &str {
+        &self.param
+    }
+    pub fn body(&self) -> &Expr {
+        &self.body
+    }
+    pub fn hash(&self) -> &Hash {
+        &self.hash
+    }
+    pub fn loc(&self) -> &Loc {
+        &self.loc
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Effect {
     pub(crate) param: String,
@@ -161,6 +191,33 @@ pub struct Condition {
     pub(crate) loc: Loc,
 }
 
+impl Condition {
+    pub fn expr(&self) -> &Expr {
+        &self.expr
+    }
+    pub fn loc(&self) -> &Loc {
+        &self.loc
+    }
+}
+
+impl Effect {
+    pub fn param(&self) -> &str {
+        &self.param
+    }
+    pub fn field(&self) -> &str {
+        &self.field
+    }
+    pub fn value(&self) -> &Expr {
+        &self.value
+    }
+    pub fn hash(&self) -> &Hash {
+        &self.hash
+    }
+    pub fn loc(&self) -> &Loc {
+        &self.loc
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct ActionItem {
     pub(crate) params: Vec<Param>,
@@ -174,6 +231,15 @@ pub struct ActionItem {
 impl ActionItem {
     pub fn params(&self) -> &[Param] {
         &self.params
+    }
+    pub fn preconditions(&self) -> &[Condition] {
+        &self.preconditions
+    }
+    pub fn effects(&self) -> &[Effect] {
+        &self.effects
+    }
+    pub fn postconditions(&self) -> &[Condition] {
+        &self.postconditions
     }
     pub fn hash(&self) -> &Hash {
         &self.hash
@@ -191,6 +257,7 @@ pub struct Module {
     pub(crate) entities: BTreeMap<String, EntityItem>,
     pub(crate) derived: BTreeMap<String, DerivedItem>,
     pub(crate) invariants: BTreeMap<String, InvariantItem>,
+    pub(crate) constraints: BTreeMap<String, ConstraintItem>,
     pub(crate) actions: BTreeMap<String, ActionItem>,
     pub(crate) name_table: BTreeMap<(Kind, String), Hash>,
     pub(crate) evaluation_order: Vec<String>,
@@ -219,6 +286,21 @@ impl Module {
     pub fn nominals(&self) -> &BTreeMap<String, Arc<NominalInfo>> {
         &self.nominals
     }
+    pub fn entities(&self) -> &BTreeMap<String, EntityItem> {
+        &self.entities
+    }
+    pub fn actions(&self) -> &BTreeMap<String, ActionItem> {
+        &self.actions
+    }
+    pub fn derived_items(&self) -> &BTreeMap<String, DerivedItem> {
+        &self.derived
+    }
+    pub fn invariants(&self) -> &BTreeMap<String, InvariantItem> {
+        &self.invariants
+    }
+    pub fn constraints(&self) -> &BTreeMap<String, ConstraintItem> {
+        &self.constraints
+    }
     pub fn entity(&self, name: &str) -> Option<&EntityItem> {
         self.entities.get(name)
     }
@@ -227,6 +309,15 @@ impl Module {
     }
     pub fn derived(&self, name: &str) -> Option<&DerivedItem> {
         self.derived.get(name)
+    }
+    /// Entity constraints of the given entity type, in name order.
+    pub fn constraints_for<'a>(
+        &'a self,
+        entity: &'a str,
+    ) -> impl Iterator<Item = (&'a String, &'a ConstraintItem)> + 'a {
+        self.constraints
+            .iter()
+            .filter(move |(_, c)| c.entity == entity)
     }
     /// Invariants that constrain the given entity, in name order.
     pub fn invariants_for<'a>(

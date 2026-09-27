@@ -9,6 +9,9 @@ pub mod types;
 pub mod value;
 
 pub use expr::{Expr, ExprKind};
-pub use module::{ActionItem, DerivedItem, Effect, EntityItem, InvariantItem, Kind, Module, Param};
+pub use module::{
+    ActionItem, Condition, ConstraintItem, DerivedItem, Effect, EntityItem, InvariantItem, Kind,
+    Module, Param,
+};
 pub use types::{Hash, Type, hash_display};
 pub use value::Value;

@@ -15,6 +15,7 @@ cargo test --workspace            # includes verifier, governance, and 001 regre
 pytest python/tests
 mypy
 scripts/determinism-check.sh      # now also runs verify twice per fixture and compares bytes
+cargo test --release -p behavior-verify --test perf -- --ignored --nocapture   # SC-003, SC-004
 ```
 
 ## 2. Invariant preservation (US1)
@@ -26,13 +27,20 @@ behavior verify /tmp/purchase.json; echo "exit=$?"
 
 Expected: exit 1; a blocking `preservation` finding for `approve` × `within_budget`, whose
 counterexample evaluates to `DENY` because of `within_budget`. After adding the precondition
-`purchase.amount <= remaining(project)` to `approve`: exit 0, the pair is `proven`.
+`project.spent + purchase.amount <= project.budget` to `approve`
+(`tests/fixtures/verify/purchase_fixed.json`): exit 0, the pair is `proven`. The same check
+written as `purchase.amount <= remaining(project)` (`purchase_remaining.json`) is
+`inconclusive` (`counterexample_not_reproduced`): decimal subtraction and addition may round
+differently for values near 10^28, so the rounding interval crosses the budget boundary.
 
 ## 3. Postconditions and evaluation errors (US3)
 
 `behavior verify tests/fixtures/wire/valid/project_margin.json`: a blocking `evaluation_error`
 finding for `flag_project_unguarded` at the division in `margin`, counterexample
-`revenue = 0`, confirmed as `ERROR`; `flag_project` has no evaluation-error finding.
+`revenue = 0`, confirmed as `ERROR`; `flag_project` has no division-by-zero finding. Both
+actions have a confirmed `numeric overflow` finding at the same division (a tiny `revenue` with
+a huge `cost`), because the module has no entity constraints bounding the fields; the
+subtraction cannot overflow (request decimals have at most 28 digits).
 
 ## 4. Dead actions and vacuous rules (US4)
 
@@ -44,6 +52,8 @@ if there are no blocking findings.
 
 `tests/fixtures/verify/rounding.json`: a rule comparing `a / b` with a bound it can only miss by
 less than the rounding bound is `inconclusive`; the same rule with a clear margin is `proven`.
+`tests/fixtures/verify/sum_rounding.json`: `w := v + amount; ensures w > v` (with `amount > 0`)
+has a confirmed counterexample, because the engine rounds sums that need more than 28 digits.
 
 ## 6. Entity constraints and binding (runtime changes)
 
@@ -67,7 +77,9 @@ With the fixtures in `tests/fixtures/governance/`:
 
 - `behavior authorize … --policy require_verified.json` for an unverified module → exit 1,
   reason `not_verified`.
-- A waiver for an inconclusive finding, signed with the test key trusted by
+- A waiver for an inconclusive finding (`tests/fixtures/verify/purchase_remaining.json` has one;
+  the record comes from `behavior eval … governance/approve_request.json`), signed with the test
+  key trusted by
   `verified_or_waived.json` → exit 0, `waivers_used` records the waiver hash, key id, and
   signature; the attestation still says `not_verified`.
 - The same waiver after a semantic change to the behavior, with an untrusted key, expired at

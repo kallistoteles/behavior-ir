@@ -182,6 +182,10 @@ class InvariantFn(BehaviorFn):
     kind = "invariant"
 
 
+class ConstraintFn(BehaviorFn):
+    kind = "constraint"
+
+
 class ActionFn(BehaviorFn):
     kind = "action"
 
@@ -202,8 +206,18 @@ def invariant(fn: Callable[..., Any]) -> InvariantFn:
     return InvariantFn(fn)
 
 
+def constraint(fn: Callable[..., Any]) -> ConstraintFn:
+    """An entity constraint: what a valid instance of the parameter's entity type is. It is
+    checked on every incoming entity of that type, whatever its role, and on new state."""
+    if len(inspect.signature(fn).parameters) != 1:
+        raise BehaviorDefinitionError(
+            "an entity constraint takes exactly one entity parameter", *ConstraintFn(fn).loc
+        )
+    return ConstraintFn(fn)
+
+
 def action(fn: Callable[..., Any]) -> ActionFn:
     return ActionFn(fn)
 
 
-__all__ = ["field", "entity", "derived", "rule", "invariant", "action"]
+__all__ = ["field", "entity", "derived", "rule", "invariant", "constraint", "action"]

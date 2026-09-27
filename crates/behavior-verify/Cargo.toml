@@ -1,0 +1,19 @@
+[package]
+name = "behavior-verify"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+behavior-core.workspace = true
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+thiserror = "2"
+ed25519-dalek = { version = "2", features = ["std"] }
+
+[dev-dependencies]
+pretty_assertions = "1"
+
+[lints]
+workspace = true

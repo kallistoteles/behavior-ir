@@ -1,0 +1,14 @@
+{
+ "profile": [
+  "preservation"
+ ],
+ "checks": [
+  {
+   "kind": "preservation",
+   "action": "approve",
+   "subject": "within_budget",
+   "param": "project",
+   "outcome": "counterexample"
+  }
+ ]
+}

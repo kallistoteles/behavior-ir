@@ -19,6 +19,7 @@ pub const TAG_EFFECT: &str = "behavior.effect.v1";
 pub const TAG_DERIVED: &str = "behavior.derived.v1";
 pub const TAG_INVARIANT: &str = "behavior.invariant.v1";
 pub const TAG_ACTION: &str = "behavior.action.v1";
+pub const TAG_CONSTRAINT: &str = "behavior.constraint.v1";
 pub const TAG_MODULE: &str = "behavior.module.v1";
 
 /// Body encoder.
@@ -266,6 +267,15 @@ pub fn invariant(entity: &str, param: &str, body: &Hash) -> Hash {
         .str(param)
         .href(body)
         .finish(TAG_INVARIANT)
+}
+
+/// An entity constraint: encoded like an invariant, under its own tag.
+pub fn constraint(entity: &str, param: &str, body: &Hash) -> Hash {
+    Enc::default()
+        .str(entity)
+        .str(param)
+        .href(body)
+        .finish(TAG_CONSTRAINT)
 }
 
 pub fn action(

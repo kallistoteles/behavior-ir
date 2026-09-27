@@ -1,0 +1,13 @@
+{
+ "profile": [
+  "postcondition"
+ ],
+ "checks": [
+  {
+   "kind": "postcondition",
+   "action": "add_positive",
+   "subject": "pair.w > pair.v",
+   "outcome": "counterexample"
+  }
+ ]
+}

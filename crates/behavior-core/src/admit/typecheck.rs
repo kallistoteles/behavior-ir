@@ -8,7 +8,8 @@ use crate::admit::{AdmissionError, hash};
 use crate::decimal::Dec;
 use crate::semantic::expr::{Expr, ExprKind};
 use crate::semantic::module::{
-    ActionItem, Condition, DerivedItem, Effect, InvariantItem, Kind, Module, Param, ParamRole,
+    ActionItem, Condition, ConstraintItem, DerivedItem, Effect, InvariantItem, Kind, Module, Param,
+    ParamRole,
 };
 use crate::semantic::types::{ArithOp, CmpOp, Conv, OpSig, Type, TypeCode, coerce, type_of_op};
 use crate::semantic::value::{Value, decode_scalar};
@@ -421,6 +422,35 @@ pub(crate) fn build_module(
         );
     }
 
+    let mut constraints = BTreeMap::new();
+    for c in &w.constraints {
+        let scope = [Param {
+            name: c.param.clone(),
+            role: ParamRole::Read,
+            ty: Type::Entity(c.entity.clone()),
+        }];
+        let mut ctx = Ctx {
+            decls: &decls,
+            derived: &derived,
+            scope: &scope,
+            errs,
+        };
+        let Some(body) = ctx.boolean(&c.body, &c.body.loc, "an entity constraint") else {
+            continue;
+        };
+        let h = hash::constraint(&c.entity, &c.param, &body.hash);
+        constraints.insert(
+            c.name.clone(),
+            ConstraintItem {
+                entity: c.entity.clone(),
+                param: c.param.clone(),
+                body,
+                hash: h,
+                loc: c.loc.clone(),
+            },
+        );
+    }
+
     let mut actions = BTreeMap::new();
     for a in &w.actions {
         let Some(ps) = params(&decls, &a.params, ParamSite::Action, &a.loc, errs) else {
@@ -535,6 +565,9 @@ pub(crate) fn build_module(
     for (n, x) in &invariants {
         name_table.insert((Kind::Invariant, n.clone()), x.hash);
     }
+    for (n, x) in &constraints {
+        name_table.insert((Kind::Constraint, n.clone()), x.hash);
+    }
     for (n, x) in &actions {
         name_table.insert((Kind::Action, n.clone()), x.hash);
     }
@@ -546,6 +579,7 @@ pub(crate) fn build_module(
         entities: decls.entities,
         derived,
         invariants,
+        constraints,
         actions,
         name_table,
         evaluation_order: order,

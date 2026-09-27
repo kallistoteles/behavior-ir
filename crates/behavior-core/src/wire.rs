@@ -7,7 +7,10 @@
 use serde::Serialize;
 use serde_json::{Map, Value};
 
+/// The IR version without entity constraints (feature 001).
 pub const IR_VERSION: &str = "0.1";
+/// The IR version with entity constraints (feature 002).
+pub const IR_VERSION_CONSTRAINTS: &str = "0.2";
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 pub struct Loc {
@@ -96,6 +99,15 @@ pub struct WInvariant {
 }
 
 #[derive(Debug, Clone)]
+pub struct WConstraint {
+    pub name: String,
+    pub entity: String,
+    pub param: String,
+    pub body: WExpr,
+    pub loc: Loc,
+}
+
+#[derive(Debug, Clone)]
 pub struct WCond {
     pub expr: WExpr,
     pub loc: Loc,
@@ -126,6 +138,7 @@ pub struct WModule {
     pub entities: Vec<WEntity>,
     pub derived: Vec<WDerived>,
     pub invariants: Vec<WInvariant>,
+    pub constraints: Vec<WConstraint>,
     pub actions: Vec<WAction>,
 }
 
@@ -489,11 +502,12 @@ pub fn decode_module(text: &str) -> R<WModule> {
         Err(e) => return fail("$", format!("invalid JSON: {e}")),
     };
     let mut o = Obj::new(&root, "$")?;
-    match o.get("ir_version")? {
-        Value::String(v) if v == IR_VERSION => {}
+    let with_constraints = match o.get("ir_version")? {
+        Value::String(v) if v == IR_VERSION => false,
+        Value::String(v) if v == IR_VERSION_CONSTRAINTS => true,
         Value::String(v) => return Err(DecodeError::UnsupportedVersion(v.clone())),
         _ => return fail("$.ir_version", "expected a string"),
-    }
+    };
 
     let enums = decode_list(o.arr("enums")?, "$.enums", |v, p| {
         let mut e = Obj::new(v, p)?;
@@ -582,6 +596,28 @@ pub fn decode_module(text: &str) -> R<WModule> {
         })
     })?;
 
+    let constraints = if with_constraints {
+        decode_list(o.arr("constraints")?, "$.constraints", |v, p| {
+            let mut c = Obj::new(v, p)?;
+            let name = c.ident("name")?;
+            let entity = c.ident("entity")?;
+            let param = c.ident("param")?;
+            let body_path = c.sub("body");
+            let body = decode_expr(c.get("body")?, &body_path)?;
+            let loc = c.loc()?;
+            c.finish()?;
+            Ok(WConstraint {
+                name,
+                entity,
+                param,
+                body,
+                loc,
+            })
+        })?
+    } else {
+        Vec::new()
+    };
+
     let actions = decode_list(o.arr("actions")?, "$.actions", |v, p| {
         let mut a = Obj::new(v, p)?;
         let name = a.ident("name")?;
@@ -612,6 +648,7 @@ pub fn decode_module(text: &str) -> R<WModule> {
         entities,
         derived,
         invariants,
+        constraints,
         actions,
     })
 }

@@ -103,8 +103,9 @@ fn decode(wire_text: &str) -> Result<wire::WModule, AdmissionResult> {
             Err(AdmissionResult::failed(vec![AdmissionError::new(
                 "UNSUPPORTED_IR_VERSION",
                 format!(
-                    "unsupported ir_version `{v}`; this engine accepts `{}`",
-                    wire::IR_VERSION
+                    "unsupported ir_version `{v}`; this engine accepts `{}` and `{}`",
+                    wire::IR_VERSION,
+                    wire::IR_VERSION_CONSTRAINTS
                 ),
                 None,
             )]))

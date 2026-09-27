@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .decl import action, derived, entity, field, invariant, rule
+from .decl import action, constraint, derived, entity, field, invariant, rule
 from .errors import (
     BehaviorDefinitionError, BehaviorError, BehaviorInvalid, BehaviorTypeError, IntentRejected,
 )
@@ -16,6 +16,8 @@ from .module import BehaviorModule
 from .results import AdmissionError, AdmissionResult, Change, Decision, ReplayResult, TraceStep
 from .statements import ensures, requires, set_
 from .types import Context, Id, Input, Option, nominal
+from .governance import Authorization, authorize, sign_waiver, waiver_hash
+from .verify import Attestation, Profile, verify
 
 
 def admit(model: BehaviorModule) -> AdmissionResult:
@@ -73,10 +75,11 @@ def replay(model: BehaviorModule, record_json: str) -> ReplayResult:
 
 
 __all__ = [
+    "Attestation", "Authorization", "Profile", "authorize", "sign_waiver", "verify", "waiver_hash",
     "AdmissionError", "AdmissionResult", "Change", "Decision", "ReplayResult", "TraceStep",
     "evaluate", "evaluate_intent", "replay", "BehaviorDefinitionError", "BehaviorError",
     "BehaviorInvalid", "BehaviorModule", "BehaviorTypeError", "Context", "Id", "Input",
-    "IntentRejected", "Option", "action", "admit", "and_", "derived", "ensures", "entity",
+    "IntentRejected", "Option", "action", "admit", "constraint", "and_", "derived", "ensures", "entity",
     "field", "invariant", "nominal", "none", "not_", "or_", "requires", "rule", "set_",
     "underlying",
 ]

@@ -17,6 +17,9 @@ use crate::semantic::types::{ArithOp, CmpOp, Hash, Type, hash_display};
 use crate::semantic::value::{Value, decode_scalar, encode};
 use crate::wire::Loc;
 
+/// Version of the decision record format.
+pub const RECORD_VERSION: &str = "0.2";
+
 type Vals = BTreeMap<String, Value>;
 type Reads = BTreeMap<String, Json>;
 
@@ -526,7 +529,7 @@ pub fn evaluate(module: &Module, request: &str) -> DecisionRecord {
     };
 
     let mut record = Map::new();
-    record.insert("record_version".into(), json!("0.1"));
+    record.insert("record_version".into(), json!(RECORD_VERSION));
     record.insert("behavior_version".into(), json!(module.behavior_version()));
     record.insert("data_version".into(), json!(req.data_version));
     if let Some(g) = &req.git_revision {
@@ -573,6 +576,19 @@ pub fn evaluate(module: &Module, request: &str) -> DecisionRecord {
         record.insert(k.into(), Json::Object(v));
     }
 
+    // Binding: distinct state parameters must bind to distinct entity identities (FR-027).
+    if let Some(message) = alias(action, &vals) {
+        record.insert("result".into(), json!("INVALID_BINDING"));
+        record.insert(
+            "reasons".into(),
+            json!([reason("STATE_ALIAS_NOT_ALLOWED", message, None)]),
+        );
+        record.insert("trace".into(), json!([]));
+        record.insert("derived".into(), json!([]));
+        record.insert("changes".into(), json!([]));
+        return DecisionRecord::new(Json::Object(record));
+    }
+
     let mut ev = Evaluator {
         module,
         memo: BTreeMap::new(),
@@ -608,91 +624,69 @@ fn run_transition(ev: &mut Evaluator<'_>, action: &ActionItem, s: Vals) -> Outco
     };
     let mut stopped = false;
 
-    // Invariants that apply: every state parameter × every invariant of its entity.
-    let checks: Vec<(&String, &crate::semantic::module::InvariantItem, String)> = action
-        .params()
-        .iter()
-        .filter(|p| p.role() == ParamRole::State)
-        .flat_map(|p| {
-            let entity = match p.ty() {
-                Type::Entity(e) => e.as_str(),
-                _ => "",
+    // Single-entity rules in runtime order (research R11): entity constraints on every incoming
+    // entity, then state invariants on S; after the effects, state invariants and entity
+    // constraints on S'.
+    let entity_of = |p: &crate::semantic::module::Param| match p.ty() {
+        Type::Entity(e) => Some(e.clone()),
+        _ => None,
+    };
+    let mut incoming = Vec::new();
+    let mut state_invariants = Vec::new();
+    let mut state_constraints = Vec::new();
+    for p in action.params() {
+        let Some(entity) = entity_of(p) else { continue };
+        for (name, c) in module.constraints_for(&entity) {
+            let check = RuleCheck {
+                name: name.clone(),
+                hash: *c.hash(),
+                body: c.body().clone(),
+                rule_param: c.param().to_string(),
+                bound: p.name().to_string(),
+                role: p.role(),
+                constraint: true,
             };
-            module
-                .invariants_for(entity)
-                .map(move |(n, i)| (n, i, p.name().to_string()))
-        })
-        .collect();
-
-    let check_invariants = |ev: &mut Evaluator<'_>,
-                            out: &mut Outcome,
-                            stopped: &mut bool,
-                            state: &Vals,
-                            phase: Phase| {
-        let label = if phase == Phase::S {
-            "invariant_pre"
-        } else {
-            "invariant_post"
-        };
-        for (name, inv, param) in &checks {
-            let text = pretty::text(inv.body());
-            let loc = inv.body().loc().clone();
-            if *stopped {
-                out.trace.push(step(
-                    label,
-                    Some(name),
-                    inv.hash(),
-                    text,
-                    Reads::new(),
-                    json!("skipped"),
-                    &loc,
-                ));
-                continue;
+            if p.role() == ParamRole::State {
+                state_constraints.push(check.clone());
             }
-            let mut vals = Vals::new();
-            if let Some(v) = state.get(param) {
-                vals.insert(inv.param().to_string(), v.clone());
-            }
-            let (r, reads) = ev.predicate(inv.body(), &vals, phase);
-            let outcome = match &r {
-                Ok(b) => json!(b),
-                Err(msg) => json!({"error": msg}),
-            };
-            out.trace.push(step(
-                label,
-                Some(name),
-                inv.hash(),
-                text,
-                reads,
-                outcome,
-                &loc,
-            ));
-            match r {
-                Ok(true) => {}
-                Ok(false) => {
-                    *stopped = true;
-                    out.result = if phase == Phase::S {
-                        "INVALID_STATE"
-                    } else {
-                        "DENY"
-                    };
-                    out.reasons.push(reason(
-                        "INVARIANT_VIOLATED",
-                        format!("invariant `{name}` does not hold for `{param}`"),
-                        Some(&loc),
-                    ));
-                }
-                Err(msg) => {
-                    *stopped = true;
-                    out.result = "ERROR";
-                    out.reasons
-                        .push(reason("EVALUATION_ERROR", msg, Some(&loc)));
-                }
+            incoming.push(check);
+        }
+        if p.role() == ParamRole::State {
+            for (name, i) in module.invariants_for(&entity) {
+                state_invariants.push(RuleCheck {
+                    name: name.clone(),
+                    hash: *i.hash(),
+                    body: i.body().clone(),
+                    rule_param: i.param().to_string(),
+                    bound: p.name().to_string(),
+                    role: p.role(),
+                    constraint: false,
+                });
             }
         }
-    };
+    }
 
-    check_invariants(ev, &mut out, &mut stopped, &s, Phase::S);
+    run_rules(
+        ev,
+        &mut out,
+        &mut stopped,
+        &incoming,
+        &s,
+        Phase::S,
+        "constraint",
+    );
+    if stopped {
+        return out;
+    }
+    run_rules(
+        ev,
+        &mut out,
+        &mut stopped,
+        &state_invariants,
+        &s,
+        Phase::S,
+        "invariant_pre",
+    );
     if stopped {
         return out;
     }
@@ -831,13 +825,181 @@ fn run_transition(ev: &mut Evaluator<'_>, action: &ActionItem, s: Vals) -> Outco
         &s_prime,
         Phase::SPrime,
     );
-    check_invariants(ev, &mut out, &mut stopped, &s_prime, Phase::SPrime);
+    run_rules(
+        ev,
+        &mut out,
+        &mut stopped,
+        &state_invariants,
+        &s_prime,
+        Phase::SPrime,
+        "invariant_post",
+    );
+    run_rules(
+        ev,
+        &mut out,
+        &mut stopped,
+        &state_constraints,
+        &s_prime,
+        Phase::SPrime,
+        "constraint_post",
+    );
     if stopped {
         return out;
     }
     out.changes = delta
         .into_iter()
-        .map(|(param, field, _, old, new)| json!({"param": param, "field": field, "old": old, "new": new}))
+        .map(|(param, field, _, old, new)| {
+            let entity = action
+                .params()
+                .iter()
+                .find(|p| p.name() == param)
+                .and_then(|p| match p.ty() {
+                    Type::Entity(e) => Some(e.clone()),
+                    _ => None,
+                })
+                .unwrap_or_default();
+            let id = match s.get(&param) {
+                Some(Value::Entity(fields)) => fields
+                    .get("id")
+                    .map(crate::semantic::value::encode_untyped)
+                    .unwrap_or(Json::Null),
+                _ => Json::Null,
+            };
+            json!({"param": param, "entity": entity, "id": id, "field": field, "old": old, "new": new})
+        })
         .collect();
     out
+}
+
+/// One single-entity rule (entity constraint or state invariant) bound to an action parameter.
+#[derive(Clone)]
+struct RuleCheck {
+    name: String,
+    hash: Hash,
+    body: Expr,
+    rule_param: String,
+    bound: String,
+    role: ParamRole,
+    constraint: bool,
+}
+
+fn role_name(role: ParamRole) -> &'static str {
+    match role {
+        ParamRole::State | ParamRole::Read => "state",
+        ParamRole::Input => "input",
+        ParamRole::Context => "context",
+    }
+}
+
+/// Runs rule checks in order; the first failure stops evaluation (later checks are `skipped`).
+#[allow(clippy::too_many_arguments)]
+fn run_rules(
+    ev: &mut Evaluator<'_>,
+    out: &mut Outcome,
+    stopped: &mut bool,
+    checks: &[RuleCheck],
+    state: &Vals,
+    phase: Phase,
+    label: &str,
+) {
+    for c in checks {
+        let text = pretty::text(&c.body);
+        let loc = c.body.loc().clone();
+        let annotate = |mut step_json: Json| {
+            if let Json::Object(m) = &mut step_json {
+                if c.constraint {
+                    m.insert("param".into(), json!(c.bound));
+                }
+                if label == "constraint" {
+                    m.insert("role".into(), json!(role_name(c.role)));
+                }
+            }
+            step_json
+        };
+        if *stopped {
+            let skipped = step(
+                label,
+                Some(&c.name),
+                &c.hash,
+                text,
+                Reads::new(),
+                json!("skipped"),
+                &loc,
+            );
+            out.trace.push(annotate(skipped));
+            continue;
+        }
+        let mut vals = Vals::new();
+        if let Some(v) = state.get(&c.bound) {
+            vals.insert(c.rule_param.clone(), v.clone());
+        }
+        let (r, reads) = ev.predicate(&c.body, &vals, phase);
+        let outcome = match &r {
+            Ok(b) => json!(b),
+            Err(msg) => json!({"error": msg}),
+        };
+        out.trace.push(annotate(step(
+            label,
+            Some(&c.name),
+            &c.hash,
+            text,
+            reads,
+            outcome,
+            &loc,
+        )));
+        match r {
+            Ok(true) => {}
+            Ok(false) => {
+                *stopped = true;
+                out.result = match (label, c.role) {
+                    ("constraint", ParamRole::Input) => "INVALID_INPUT",
+                    ("constraint", ParamRole::Context) => "INVALID_CONTEXT",
+                    ("constraint", _) | ("invariant_pre", _) => "INVALID_STATE",
+                    _ => "DENY",
+                };
+                let (code, kind) = if c.constraint {
+                    ("CONSTRAINT_VIOLATED", "constraint")
+                } else {
+                    ("INVARIANT_VIOLATED", "invariant")
+                };
+                out.reasons.push(reason(
+                    code,
+                    format!("{kind} `{}` does not hold for `{}`", c.name, c.bound),
+                    Some(&loc),
+                ));
+            }
+            Err(msg) => {
+                *stopped = true;
+                out.result = "ERROR";
+                out.reasons
+                    .push(reason("EVALUATION_ERROR", msg, Some(&loc)));
+            }
+        }
+    }
+}
+
+/// The first pair of state parameters bound to the same entity (type and id), if any.
+fn alias(action: &ActionItem, vals: &Vals) -> Option<String> {
+    let states: Vec<(&str, &str, &Value)> = action
+        .params()
+        .iter()
+        .filter(|p| p.role() == ParamRole::State)
+        .filter_map(|p| match (p.ty(), vals.get(p.name())) {
+            (Type::Entity(e), Some(Value::Entity(fields))) => {
+                fields.get("id").map(|id| (p.name(), e.as_str(), id))
+            }
+            _ => None,
+        })
+        .collect();
+    for (i, (a, ea, ida)) in states.iter().enumerate() {
+        for (b, eb, idb) in &states[i + 1..] {
+            if ea == eb && ida == idb {
+                let id = crate::semantic::value::encode_untyped(ida);
+                return Some(format!(
+                    "`{a}` and `{b}` are bound to the same {ea} {id}; state parameters must be distinct"
+                ));
+            }
+        }
+    }
+    None
 }

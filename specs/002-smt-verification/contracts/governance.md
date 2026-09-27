@@ -74,3 +74,22 @@ Decision:
 `transition_hash` is `SHA-256("behavior.transition.v1" ‖ 0x00 ‖ canonical decision record)`.
 When several signatures could justify a waiver, the one with the smallest `key_id` that
 satisfies the policy is recorded, so the authorization is deterministic.
+
+## Implementation notes (decided during implementation)
+
+- `required_roles[kind]`: a signing key qualifies if it holds **at least one** of the listed
+  roles.
+- Before any policy rule, the record itself is checked: its `behavior_version` must equal the
+  module's (`behavior_mismatch`), replaying it must reproduce it (`record_not_reproducible`), and
+  its result must be `ALLOW` (`nothing_to_commit`).
+- An attestation whose `hash` does not match its content, or whose `result` contradicts its
+  findings, is invalid input (exit 2), not a refusal.
+- Reason codes per uncovered blocking finding (each carries `finding_hash`): `not_verified` (no
+  matching waiver, or the policy requires `verified`), `finding_not_waivable`, and, when matching
+  waivers exist but none is acceptable, the first of `invalid_signature`, `missing_role`,
+  `untrusted_key`, `missing_signature`, `waiver_expired` that applies. `waivers_used` is empty
+  when the decision is `refuse`.
+- A waiver expires when `expires_at <= now`. Times are `YYYY-MM-DDTHH:MM:SSZ`.
+- `behavior sign-waiver <waiver.json> --seed <file>` (Rust `governance::sign_waiver`, Python
+  `sign_waiver`) produces a signed attestation from a 32-byte hex seed; `key_id` is
+  `ed25519:<public key hex>`.

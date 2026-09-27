@@ -1,0 +1,25 @@
+{
+ "policy_version": "1",
+ "require": "verified_or_waived",
+ "waivable": [
+  "inconclusive"
+ ],
+ "forbidden": [
+  "evaluation_error"
+ ],
+ "trusted_keys": [
+  {
+   "key_id": "ed25519:43a08d9e963a0e35fd9a570fa5feaeedfee14cc5f7ef8b60a7886928f3a4e5b4",
+   "principal": "test-reviewer-a",
+   "roles": [
+    "risk_reviewer"
+   ]
+  }
+ ],
+ "required_roles": {
+  "inconclusive": [
+   "risk_reviewer"
+  ]
+ },
+ "accept_expired": false
+}

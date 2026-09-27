@@ -10,7 +10,9 @@ from contextvars import ContextVar
 from typing import Any, Sequence
 
 from . import _engine
-from .decl import ActionFn, BehaviorFn, DerivedFn, EntityDecl, InvariantFn, ParamInfo, entity_decl
+from .decl import (
+    ActionFn, BehaviorFn, ConstraintFn, DerivedFn, EntityDecl, InvariantFn, ParamInfo, entity_decl,
+)
 from .errors import BehaviorDefinitionError, BehaviorInvalid
 from .expr import engine_error, lift
 from .statements import CURRENT, Frame, check_condition
@@ -90,6 +92,7 @@ class BehaviorModule:
         derived: Sequence[DerivedFn] = (),
         invariants: Sequence[InvariantFn] = (),
         actions: Sequence[ActionFn] = (),
+        constraints: Sequence[ConstraintFn] = (),
         enums: Sequence[Any] = (),
         nominals: Sequence[NominalT] = (),
         root: str | None = None,
@@ -124,6 +127,8 @@ class BehaviorModule:
                 session.trace_derived(fn)
             for inv in invariants:
                 self._trace_invariant(session, inv)
+            for con in constraints:
+                self._trace_invariant(session, con)
             for act in actions:
                 self._trace_action(session, act)
         finally:
@@ -132,7 +137,7 @@ class BehaviorModule:
         self._module, self._admission = session.builder.finish(root)
 
     @staticmethod
-    def _trace_invariant(session: CompileSession, fn: InvariantFn) -> None:
+    def _trace_invariant(session: CompileSession, fn: InvariantFn | ConstraintFn) -> None:
         params = fn.params()
         session.push_scope(fn, params)
         token = CURRENT.set(Frame("invariant"))
@@ -142,8 +147,10 @@ class BehaviorModule:
             CURRENT.reset(token)
             session.builder.pop_scope()
         p = params[0]
+        add = (session.builder.add_constraint if fn.kind == "constraint"
+               else session.builder.add_invariant)
         try:
-            session.builder.add_invariant(fn.name, p.type.display(), p.name, body.node, *fn.loc)
+            add(fn.name, p.type.display(), p.name, body.node, *fn.loc)
         except _engine.EngineError as e:
             raise engine_error(e, body.loc) from None
 

@@ -54,3 +54,8 @@ and without per-check `cached` flags, so cached and fresh runs produce the same 
   byte-identical attestations, except that `wall_clock_guard` outcomes are marked
   `"reproducible": false` and make the attestation non-canonical (never cached, never attested
   as verified).
+- Every inconclusive check yields a blocking finding with `"kind": "inconclusive"`, `"check"`
+  naming the check kind, no counterexample, and a hash over `check`, the action, the subject, and
+  the parameter position (FR-009). This is the finding a waiver refers to.
+- Findings bound to an action parameter include the parameter's position (not its name) in the
+  finding hash, so `transfer` breaking a rule for `from_` and for `to` are distinct findings.

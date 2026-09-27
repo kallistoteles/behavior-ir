@@ -17,3 +17,11 @@ tests (`python/tests`). All of them assert against the same bytes.
 | `host/` | Host contexts (state, context, data version) supplied by the trusted caller |
 
 Golden files are generated from the implementation, reviewed by a human, and then frozen.
+
+## Feature 002
+
+| Path | Content |
+|------|---------|
+| `verify/` | Behavior modules with seeded defects and `<name>.expected.json` listing every expected check outcome |
+| `governance/` | Execution policies, fixed test keys (test-only, never trusted by a real policy), and notes on how waivers and signatures are generated in tests |
+| `requests/002/` | Requests and expectations for the runtime changes (entity constraints, binding check, state-cell change sets) |

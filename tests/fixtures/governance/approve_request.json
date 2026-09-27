@@ -1,0 +1,10 @@
+{
+ "action": "approve",
+ "data_version": "1",
+ "state": {
+  "purchase": {"id": "p1", "amount": "100", "status": "pending", "approved_by": null},
+  "project": {"id": "pr1", "budget": "1000", "spent": "200"}
+ },
+ "input": {},
+ "context": {"actor": {"id": "u1", "role": "manager", "approval_limit": "500"}}
+}

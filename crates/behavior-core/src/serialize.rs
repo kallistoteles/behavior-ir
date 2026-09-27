@@ -11,7 +11,7 @@ use crate::semantic::expr::{Expr, ExprKind};
 use crate::semantic::module::{Module, ParamRole};
 use crate::semantic::types::{ArithOp, CmpOp, Type, ops};
 use crate::semantic::value::encode;
-use crate::wire::{DerivedKind, IR_VERSION, Loc};
+use crate::wire::{DerivedKind, IR_VERSION, IR_VERSION_CONSTRAINTS, Loc};
 
 fn loc(l: &Loc) -> Json {
     json!({"file": l.file, "line": l.line})
@@ -175,6 +175,14 @@ pub fn to_wire_value(m: &Module) -> Json {
                    "body": expr(&i.body), "loc": loc(&i.loc)})
         })
         .collect();
+    let constraints: Vec<Json> = m
+        .constraints
+        .iter()
+        .map(|(name, c)| {
+            json!({"name": name, "entity": c.entity, "param": c.param,
+                   "body": expr(&c.body), "loc": loc(&c.loc)})
+        })
+        .collect();
     let actions: Vec<Json> = m
         .actions
         .iter()
@@ -196,7 +204,7 @@ pub fn to_wire_value(m: &Module) -> Json {
             })
         })
         .collect();
-    json!({
+    let mut doc = json!({
         "ir_version": IR_VERSION,
         "enums": enums,
         "nominals": nominals,
@@ -204,7 +212,15 @@ pub fn to_wire_value(m: &Module) -> Json {
         "derived": derived,
         "invariants": invariants,
         "actions": actions,
-    })
+    });
+    // Modules without constraints keep the 0.1 form, so feature 001 documents are unchanged.
+    if !constraints.is_empty()
+        && let Json::Object(map) = &mut doc
+    {
+        map.insert("ir_version".into(), json!(IR_VERSION_CONSTRAINTS));
+        map.insert("constraints".into(), Json::Array(constraints));
+    }
+    doc
 }
 
 /// Canonical wire JSON of an admitted module.

@@ -1,0 +1,18 @@
+{
+ "action": "review",
+ "context": {
+  "actor": {
+   "approval_limit": "-1",
+   "id": "emp1",
+   "role": "manager"
+  }
+ },
+ "data_version": "1",
+ "input": {},
+ "state": {
+  "account": {
+   "balance": "10",
+   "id": "a1"
+  }
+ }
+}

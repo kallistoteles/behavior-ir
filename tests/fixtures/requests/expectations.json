@@ -104,13 +104,17 @@
  "invoice_allowed": {
   "changes": [
    {
+    "entity": "Invoice",
     "field": "status",
+    "id": "1042",
     "new": "approved",
     "old": "pending",
     "param": "invoice"
    },
    {
+    "entity": "Invoice",
     "field": "approved_by",
+    "id": "1042",
     "new": "anna",
     "old": null,
     "param": "invoice"
@@ -153,13 +157,17 @@
  "invoice_exact_boundary": {
   "changes": [
    {
+    "entity": "Invoice",
     "field": "status",
+    "id": "1042",
     "new": "approved",
     "old": "pending",
     "param": "invoice"
    },
    {
+    "entity": "Invoice",
     "field": "approved_by",
+    "id": "1042",
     "new": "anna",
     "old": null,
     "param": "invoice"
@@ -247,7 +255,9 @@
  "margin_flagged": {
   "changes": [
    {
+    "entity": "Project",
     "field": "flagged",
+    "id": "p1",
     "new": true,
     "old": false,
     "param": "project"

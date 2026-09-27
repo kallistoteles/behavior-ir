@@ -293,6 +293,80 @@ fn admission_dict(py: Python<'_>, r: &behavior_core::AdmissionResult) -> PyResul
     to_py(py, &serde_json::to_value(r).unwrap_or(Value::Null))
 }
 
+/// A verification attestation: `data` for Python, `json` as the canonical artifact.
+#[pyclass(name = "Attestation", frozen, module = "behavior._engine")]
+struct PyAttestation {
+    data: Value,
+    json: String,
+}
+
+#[pymethods]
+impl PyAttestation {
+    #[getter]
+    fn result(&self) -> String {
+        self.data["result"]
+            .as_str()
+            .unwrap_or("not_verified")
+            .to_string()
+    }
+    #[getter]
+    fn hash(&self) -> String {
+        self.data["hash"].as_str().unwrap_or_default().to_string()
+    }
+    #[getter]
+    fn data(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        to_py(py, &self.data)
+    }
+    #[getter]
+    fn json(&self) -> String {
+        self.json.clone()
+    }
+}
+
+/// A commit authorization: `data` for Python, `json` as the canonical artifact.
+#[pyclass(name = "Authorization", frozen, module = "behavior._engine")]
+struct PyAuthorization {
+    data: Value,
+    json: String,
+}
+
+#[pymethods]
+impl PyAuthorization {
+    #[getter]
+    fn decision(&self) -> String {
+        self.data["decision"]
+            .as_str()
+            .unwrap_or("refuse")
+            .to_string()
+    }
+    #[getter]
+    fn data(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        to_py(py, &self.data)
+    }
+    #[getter]
+    fn json(&self) -> String {
+        self.json.clone()
+    }
+}
+
+fn governance_err(e: behavior_verify::governance::GovernanceError) -> PyErr {
+    EngineError::new_err(("INVALID_GOVERNANCE_INPUT", e.to_string()))
+}
+
+/// The content hash of a waiver.
+#[pyfunction]
+fn waiver_hash(waiver: &Bound<'_, PyAny>) -> PyResult<String> {
+    behavior_verify::governance::waiver_hash(&object(waiver)?.to_string()).map_err(governance_err)
+}
+
+/// A detached Ed25519 signed attestation over a waiver's hash (seed: 32 bytes as hex).
+#[pyfunction]
+fn sign_waiver(py: Python<'_>, waiver: &Bound<'_, PyAny>, seed: &str) -> PyResult<Py<PyAny>> {
+    let signed = behavior_verify::governance::sign_waiver(seed, &object(waiver)?.to_string())
+        .map_err(governance_err)?;
+    to_py(py, &signed)
+}
+
 /// An admitted behavior module.
 #[pyclass(name = "Module", frozen, module = "behavior._engine")]
 struct EngineModule {
@@ -325,6 +399,77 @@ impl EngineModule {
     /// Canonical wire JSON serialized from the admitted module.
     fn wire_json(&self) -> String {
         behavior_core::serialize::to_wire_json(&self.inner)
+    }
+
+    /// Decides whether the transition in a decision record may be committed under a policy.
+    #[pyo3(signature = (policy, record_json, attestation_json, waivers, signatures, now))]
+    fn authorize(
+        &self,
+        policy: &Bound<'_, PyAny>,
+        record_json: &str,
+        attestation_json: Option<&str>,
+        waivers: Vec<Bound<'_, PyAny>>,
+        signatures: Vec<Bound<'_, PyAny>>,
+        now: &str,
+    ) -> PyResult<PyAuthorization> {
+        let texts = |items: &[Bound<'_, PyAny>]| -> PyResult<Vec<String>> {
+            items
+                .iter()
+                .map(|i| object(i).map(|v| v.to_string()))
+                .collect()
+        };
+        let a = behavior_verify::governance::authorize(
+            &object(policy)?.to_string(),
+            &self.inner,
+            record_json,
+            attestation_json,
+            &texts(&waivers)?,
+            &texts(&signatures)?,
+            now,
+        )
+        .map_err(governance_err)?;
+        Ok(PyAuthorization {
+            json: a.to_json_string(),
+            data: a.value,
+        })
+    }
+
+    /// Verifies the module with the pinned solver (`BEHAVIOR_Z3`, else `z3` on `PATH`).
+    #[pyo3(signature = (checks, rlimit, wall_clock_guard_ms, cache=None))]
+    fn verify(
+        &self,
+        checks: Option<Vec<String>>,
+        rlimit: u64,
+        wall_clock_guard_ms: u64,
+        cache: Option<String>,
+    ) -> PyResult<PyAttestation> {
+        let mut profile = behavior_verify::Profile {
+            rlimit,
+            wall_clock_guard_ms,
+            ..Default::default()
+        };
+        if let Some(names) = checks {
+            profile.checks = names
+                .iter()
+                .map(|n| {
+                    behavior_verify::CheckKind::parse(n)
+                        .ok_or_else(|| PyValueError::new_err(format!("unknown check `{n}`")))
+                })
+                .collect::<PyResult<_>>()?;
+        }
+        let solver = behavior_verify::solver::Z3Process::from_env()
+            .map_err(|e| EngineError::new_err(("SOLVER_UNAVAILABLE", e.to_string())))?
+            .with_guard(std::time::Duration::from_millis(wall_clock_guard_ms));
+        let a = behavior_verify::verify(
+            &self.inner,
+            &profile,
+            cache.as_deref().map(std::path::Path::new),
+            &solver,
+        );
+        Ok(PyAttestation {
+            json: a.to_json_string(),
+            data: a.value,
+        })
     }
 
     #[pyo3(signature = (action, state, input, context, data_version, git_revision=None))]
@@ -594,6 +739,20 @@ impl PyBuilder {
             .map_err(build_err)
     }
 
+    fn add_constraint(
+        &mut self,
+        name: &str,
+        entity: &str,
+        param: &str,
+        body: PyNode,
+        file: String,
+        line: u64,
+    ) -> PyResult<()> {
+        self.inner
+            .add_constraint(name, entity, param, body.inner, loc(file, line))
+            .map_err(build_err)
+    }
+
     #[allow(clippy::too_many_arguments)]
     fn add_action(
         &mut self,
@@ -644,6 +803,10 @@ fn _engine(m: &Bound<'_, pyo3::types::PyModule>) -> PyResult<()> {
     m.add_class::<PyNode>()?;
     m.add_class::<PyRecord>()?;
     m.add_class::<EngineModule>()?;
+    m.add_class::<PyAttestation>()?;
+    m.add_class::<PyAuthorization>()?;
+    m.add_function(wrap_pyfunction!(waiver_hash, m)?)?;
+    m.add_function(wrap_pyfunction!(sign_waiver, m)?)?;
     m.add("EngineError", m.py().get_type::<EngineError>())?;
     m.add(
         "EngineIntentRejected",

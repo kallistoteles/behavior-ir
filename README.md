@@ -98,7 +98,8 @@ behavior sign-waiver waiver.json --seed key.hex
 
 The same is available from Rust (`behavior_verify::{verify, governance::authorize}`) and Python
 (`verify(model)`, `authorize(model, decision, policy=..., ...)`). Details:
-`specs/002-smt-verification/` (quickstart, contracts).
+`specs/002-smt-verification/` (quickstart, contracts); overview, guarantees, and known
+limitations: `docs/verification.md`.
 
 ## Development
 

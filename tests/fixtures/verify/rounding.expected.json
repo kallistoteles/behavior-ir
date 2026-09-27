@@ -13,7 +13,7 @@
    "kind": "postcondition",
    "action": "third_tight",
    "subject": "ratio.a / ratio.b < 0.3333333333333333333333333334",
-   "outcome": "inconclusive"
+   "outcome": "proven"
   }
  ]
 }

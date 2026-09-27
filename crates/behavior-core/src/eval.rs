@@ -18,10 +18,8 @@ use crate::semantic::types::{ArithOp, CmpOp, Hash, Type, fixed_scale, hash_displ
 use crate::semantic::value::{Value, decode_scalar, encode};
 use crate::wire::Loc;
 
-/// Version of the decision record format.
-pub const RECORD_VERSION: &str = "0.2";
-/// Record version for modules that use fixed-scale features (feature 003).
-pub const RECORD_VERSION_FIXED_SCALE: &str = "0.3";
+/// Version of the decision record format (0.4: exact arithmetic closure, feature 004).
+pub const RECORD_VERSION: &str = "0.4";
 
 /// Checks a decoded fixed-scale value against its grid and range (FR-004).
 fn check_fixed(ty: &Type, v: &Value, path: &str, problems: &mut Vec<InputProblem>) -> bool {
@@ -277,6 +275,15 @@ fn to_exact(v: &Value) -> Option<Exact> {
     }
 }
 
+/// Whether values of `t` are integers (`Int` or an integer nominal).
+fn is_integer(t: &Type) -> bool {
+    match t {
+        Type::Int => true,
+        Type::Nominal(n) => n.underlying == crate::semantic::types::Prim::Int,
+        _ => false,
+    }
+}
+
 /// A fixed-scale result of lossless arithmetic: on the grid by typing, range-checked here.
 fn fixed_value(x: &Exact, n: &crate::semantic::types::NominalInfo) -> Result<Value, NumError> {
     let scale = n.scale.unwrap_or(0);
@@ -292,18 +299,10 @@ fn num_err(e: NumError, expr: &Expr) -> String {
     format!("{e} in {}", pretty::text(expr))
 }
 
-fn as_dec(v: &Value) -> Option<Dec> {
-    match v {
-        Value::Dec(d) => Some(*d),
-        Value::Int(i) => Some(Dec::from_i64(*i)),
-        _ => None,
-    }
-}
-
 impl Evaluator<'_> {
     /// Evaluates a numeric expression in the exact domain: decimal arithmetic nodes recurse
-    /// exactly (research R5); other nodes (fields, derived values, integer arithmetic, rescale)
-    /// are evaluated normally and lifted.
+    /// exactly; other nodes (fields, derived values, integer arithmetic, rescale) are evaluated
+    /// normally and lifted (feature 004: all decimal arithmetic is exact).
     fn eval_exact(
         &mut self,
         e: &Expr,
@@ -313,7 +312,7 @@ impl Evaluator<'_> {
     ) -> Result<Exact, String> {
         let bad = || format!("internal: ill-typed value in {}", pretty::text(e));
         match &e.kind {
-            ExprKind::Arith(op, a, b) if e.ty != Type::Int => {
+            ExprKind::Arith(op, a, b) if !is_integer(&e.ty) => {
                 let x = self.eval_exact(a, vals, phase, reads)?;
                 let y = self.eval_exact(b, vals, phase, reads)?;
                 let r = match op {
@@ -322,12 +321,13 @@ impl Evaluator<'_> {
                     ArithOp::Mul => x.mul(&y),
                     ArithOp::Div => x.div(&y),
                 };
-                r.map_err(|err| num_err(err, e))
-            }
-            ExprKind::ToDecimal(a) | ExprKind::Wrap(a) | ExprKind::Unwrap(a)
-                if !matches!(e.ty, Type::Nominal(_)) || fixed_scale(&e.ty).is_none() =>
-            {
-                self.eval_exact(a, vals, phase, reads)
+                let r = r.map_err(|err| num_err(err, e))?;
+                // A fixed-scale node (`F ± F`, `F × I`) is a value of `F` wherever it occurs, also
+                // inside exact arithmetic or `underlying(...)`: its range is checked.
+                if let Some(n) = fixed_scale(&e.ty) {
+                    fixed_value(&r, n).map_err(|err| num_err(err, e))?;
+                }
+                Ok(r)
             }
             _ => {
                 let v = self.eval(e, vals, phase, reads)?;
@@ -457,35 +457,21 @@ impl Evaluator<'_> {
                 let x = to_exact(&v).ok_or_else(bad)?;
                 fixed_value(&x, n).map_err(|err| num_err(err, e))
             }
+            // Integer arithmetic (plain or integer nominal); decimal arithmetic is exact above.
             ExprKind::Arith(op, a, b) => {
                 let x = self.eval(a, vals, phase, reads)?;
                 let y = self.eval(b, vals, phase, reads)?;
-                match (op, &x, &y) {
-                    (ArithOp::Div, _, _) => {
-                        let (p, q) = (as_dec(&x).ok_or_else(bad)?, as_dec(&y).ok_or_else(bad)?);
-                        p.checked_div(&q)
-                            .map(Value::Dec)
-                            .map_err(|err| num_err(err, e))
-                    }
-                    (_, Value::Int(p), Value::Int(q)) => {
-                        let r = match op {
-                            ArithOp::Add => p.checked_add(*q),
-                            ArithOp::Sub => p.checked_sub(*q),
-                            _ => p.checked_mul(*q),
-                        };
-                        r.map(Value::Int)
-                            .ok_or_else(|| num_err(NumError::Overflow, e))
-                    }
-                    _ => {
-                        let (p, q) = (as_dec(&x).ok_or_else(bad)?, as_dec(&y).ok_or_else(bad)?);
-                        let r = match op {
-                            ArithOp::Add => p.checked_add(&q),
-                            ArithOp::Sub => p.checked_sub(&q),
-                            _ => p.checked_mul(&q),
-                        };
-                        r.map(Value::Dec).map_err(|err| num_err(err, e))
-                    }
-                }
+                let (Value::Int(p), Value::Int(q)) = (&x, &y) else {
+                    return Err(bad());
+                };
+                let r = match op {
+                    ArithOp::Add => p.checked_add(*q),
+                    ArithOp::Sub => p.checked_sub(*q),
+                    ArithOp::Mul => p.checked_mul(*q),
+                    ArithOp::Div => return Err(bad()),
+                };
+                r.map(Value::Int)
+                    .ok_or_else(|| num_err(NumError::Overflow, e))
             }
             ExprKind::And(xs) => {
                 for x in xs {
@@ -694,12 +680,7 @@ pub fn evaluate(module: &Module, request: &str) -> DecisionRecord {
     };
 
     let mut record = Map::new();
-    let record_version = if crate::serialize::uses_fixed_scale(module) {
-        RECORD_VERSION_FIXED_SCALE
-    } else {
-        RECORD_VERSION
-    };
-    record.insert("record_version".into(), json!(record_version));
+    record.insert("record_version".into(), json!(RECORD_VERSION));
     record.insert("behavior_version".into(), json!(module.behavior_version()));
     record.insert("data_version".into(), json!(req.data_version));
     if let Some(g) = &req.git_revision {
@@ -938,11 +919,32 @@ fn run_transition(ev: &mut Evaluator<'_>, action: &ActionItem, s: Vals) -> Outco
     // Effects: all right-hand sides against S, giving ΔS.
     let mut delta: Vec<(String, String, Value, Json, Json)> = Vec::new();
     for e in &action.effects {
-        // After admission the value's type is the field's type (conversions are explicit).
-        let field_ty = e.value.ty().clone();
+        // The field's type: the value's type, except for an `Exact<F>` stored into `F` (on the
+        // grid by admission; converted and range-checked here).
+        let field_ty = action
+            .params
+            .iter()
+            .find(|p| p.name() == e.param)
+            .and_then(|p| match p.ty() {
+                Type::Entity(en) => ev.module.entity(en)?.field_type(&e.field).cloned(),
+                _ => None,
+            })
+            .unwrap_or_else(|| e.value.ty().clone());
         let text = format!("{}.{} := {}", e.param, e.field, pretty::text(&e.value));
         let mut reads = Reads::new();
-        match ev.eval(&e.value, &s, Phase::S, &mut Some(&mut reads)) {
+        let result = ev
+            .eval(&e.value, &s, Phase::S, &mut Some(&mut reads))
+            .and_then(|v| match (&v, fixed_scale(&field_ty)) {
+                (Value::Exact(x), Some(n)) => {
+                    fixed_value(x, n).map_err(|err| num_err(err, &e.value))
+                }
+                (Value::Exact(x), None) => x
+                    .to_dec()
+                    .map(Value::Dec)
+                    .map_err(|err| num_err(err, &e.value)),
+                _ => Ok(v),
+            });
+        match result {
             Ok(v) => {
                 let new = encode(&field_ty, &v);
                 let old = match s.get(&e.param) {

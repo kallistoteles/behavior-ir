@@ -2,9 +2,14 @@
 //!
 //! Produced from the semantic IR, not from source, so explicit conversions are visible:
 //! `invoice.approved_by == some(actor.id)`, `invoice.amount >= Money(0)`.
+//!
+//! Traces and check subjects are evidence, so the text must preserve the expression tree
+//! unambiguously: binary operators are left-associative, a right operand of equal precedence is
+//! parenthesized (`a * (b / c)`, `a - (b + c)`), and a nested `and`/`or` keeps its grouping.
+//! `tests/pretty_roundtrip.rs` re-reads every rendered expression and compares trees.
 
 use crate::semantic::expr::{Expr, ExprKind};
-use crate::semantic::types::{ArithOp, CmpOp, Type};
+use crate::semantic::types::{ArithOp, CmpOp, Type, Unit};
 use crate::semantic::value::Value;
 
 fn prec(e: &Expr) -> u8 {
@@ -68,7 +73,15 @@ fn arith_symbol(a: ArithOp) -> &'static str {
     }
 }
 
-/// Readable text of an expression with minimal parentheses.
+/// The nominal a `wrap` attaches (`Money(e)` for both `Money` and `Exact<Money>` results).
+fn wrap_name(t: &Type) -> String {
+    match t {
+        Type::Exact(Unit::Nominal(n)) => n.name.clone(),
+        t => t.to_string(),
+    }
+}
+
+/// Readable text of an expression with the fewest parentheses that keep its tree unambiguous.
 pub fn text(e: &Expr) -> String {
     let p = prec(e);
     match &e.kind {
@@ -82,30 +95,23 @@ pub fn text(e: &Expr) -> String {
             cmp_symbol(*c),
             wrap_if(b, prec(b) <= p)
         ),
-        ExprKind::Arith(op, a, b) => {
-            let right_strict = matches!(op, ArithOp::Sub | ArithOp::Div);
-            format!(
-                "{} {} {}",
-                wrap_if(a, prec(a) < p),
-                arith_symbol(*op),
-                wrap_if(
-                    b,
-                    if right_strict {
-                        prec(b) <= p
-                    } else {
-                        prec(b) < p
-                    }
-                )
-            )
-        }
+        // Left-associative: `a * b / c` is `(a * b) / c`; a right operand of equal precedence
+        // keeps its parentheses even where the value would be the same (`a * (b / c)`).
+        ExprKind::Arith(op, a, b) => format!(
+            "{} {} {}",
+            wrap_if(a, prec(a) < p),
+            arith_symbol(*op),
+            wrap_if(b, prec(b) <= p)
+        ),
+        // A nested `and` inside `and` (or `or` inside `or`) is a different tree: keep it grouped.
         ExprKind::And(xs) => xs
             .iter()
-            .map(|x| wrap_if(x, prec(x) < p))
+            .map(|x| wrap_if(x, prec(x) <= p))
             .collect::<Vec<_>>()
             .join(" and "),
         ExprKind::Or(xs) => xs
             .iter()
-            .map(|x| wrap_if(x, prec(x) < p))
+            .map(|x| wrap_if(x, prec(x) <= p))
             .collect::<Vec<_>>()
             .join(" or "),
         ExprKind::Not(a) => format!("not {}", wrap_if(a, prec(a) < p)),
@@ -118,7 +124,7 @@ pub fn text(e: &Expr) -> String {
         ExprKind::ValueOr(a, d) => format!("{}.value_or({})", wrap_if(a, prec(a) < 7), text(d)),
         ExprKind::Some(a) => format!("some({})", text(a)),
         ExprKind::ToDecimal(a) => format!("decimal({})", text(a)),
-        ExprKind::Wrap(a) => format!("{}({})", e.ty, text(a)),
+        ExprKind::Wrap(a) => format!("{}({})", wrap_name(&e.ty), text(a)),
         ExprKind::Unwrap(a) => format!("underlying({})", text(a)),
         ExprKind::Rescale { arg, rounding } => {
             format!("rescale({}, {}, {})", text(arg), e.ty, rounding.as_str())

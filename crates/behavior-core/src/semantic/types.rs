@@ -85,6 +85,24 @@ impl NominalInfo {
     }
 }
 
+/// The unit of an exact value.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Unit {
+    /// A dimensionless exact number (`Exact<Decimal>`), e.g. a ratio of two amounts.
+    Dimensionless,
+    /// An exact quantity of a decimal nominal type (`Exact<Money>`).
+    Nominal(Arc<NominalInfo>),
+}
+
+impl Unit {
+    pub fn nominal(&self) -> Option<&Arc<NominalInfo>> {
+        match self {
+            Unit::Nominal(n) => Some(n),
+            Unit::Dimensionless => None,
+        }
+    }
+}
+
 /// The fixed-scale nominal of a type, if it is one.
 pub fn fixed_scale(t: &Type) -> Option<&Arc<NominalInfo>> {
     match t {
@@ -102,9 +120,10 @@ pub enum Type {
     Option(Box<Type>),
     Enum(Arc<EnumInfo>),
     Nominal(Arc<NominalInfo>),
-    /// An exact quantity of a fixed-scale nominal: never stored, becomes the nominal only
-    /// through `rescale`.
-    Exact(Arc<NominalInfo>),
+    /// An exact value with a unit: a decimal nominal, or dimensionless (exact ratio / number).
+    /// Never an input or a field type; leaves the exact domain through `rescale` or a store
+    /// proven lossless at admission.
+    Exact(Unit),
     Id(String),
     /// Entity instances; only valid as parameter types.
     Entity(String),
@@ -126,7 +145,7 @@ impl Type {
             Type::Option(inner) => WType::Option(Box::new(inner.to_wire_type())),
             Type::Enum(e) => WType::Enum(e.name.clone()),
             Type::Nominal(n) => WType::Nominal(n.name.clone()),
-            Type::Exact(n) => WType::Exact(n.name.clone()),
+            Type::Exact(u) => WType::Exact(u.nominal().map(|n| n.name.clone())),
             Type::Id(e) => WType::Id(e.clone()),
             Type::Entity(e) => WType::Entity(e.clone()),
         }
@@ -142,7 +161,8 @@ impl Type {
             Type::Option(inner) => json!({"t": "option", "of": inner.to_wire_json()}),
             Type::Enum(e) => json!({"t": "enum", "name": e.name}),
             Type::Nominal(n) => json!({"t": "nominal", "name": n.name}),
-            Type::Exact(n) => json!({"t": "exact", "name": n.name}),
+            Type::Exact(Unit::Nominal(n)) => json!({"t": "exact", "name": n.name}),
+            Type::Exact(Unit::Dimensionless) => json!({"t": "exact"}),
             Type::Id(e) => json!({"t": "id", "entity": e}),
             Type::Entity(e) => json!({"t": "entity", "name": e}),
         }
@@ -159,7 +179,8 @@ impl fmt::Display for Type {
             Type::Option(inner) => write!(f, "Option<{inner}>"),
             Type::Enum(e) => f.write_str(&e.name),
             Type::Nominal(n) => f.write_str(&n.name),
-            Type::Exact(n) => write!(f, "Exact<{}>", n.name),
+            Type::Exact(Unit::Nominal(n)) => write!(f, "Exact<{}>", n.name),
+            Type::Exact(Unit::Dimensionless) => f.write_str("Exact<Decimal>"),
             Type::Id(e) => write!(f, "Id<{e}>"),
             Type::Entity(e) => f.write_str(e),
         }
@@ -285,100 +306,162 @@ fn scale_conv(n: &NominalInfo, scalar: &Type) -> Conv {
     }
 }
 
-/// The fixed-scale nominal behind `T` or `Exact<T>`, and whether it is exact.
-fn fixed_or_exact(t: &Type) -> Option<(&Arc<NominalInfo>, bool)> {
+/// How an operand takes part in exact arithmetic.
+enum K<'a> {
+    /// `Int` or `Decimal`: a plain number, lifted exactly.
+    Num,
+    /// `Exact<Decimal>`: a dimensionless exact ratio / number.
+    Ratio,
+    /// A decimal nominal value (`false`) or an exact quantity (`true`) of a nominal unit.
+    Unit(&'a Arc<NominalInfo>, bool),
+    Other,
+}
+
+fn kind(t: &Type) -> K<'_> {
     match t {
-        Type::Nominal(n) if n.scale.is_some() => Some((n, false)),
-        Type::Exact(n) => Some((n, true)),
-        _ => None,
+        Type::Int | Type::Decimal => K::Num,
+        Type::Exact(Unit::Dimensionless) => K::Ratio,
+        Type::Exact(Unit::Nominal(n)) => K::Unit(n, true),
+        Type::Nominal(n) if n.underlying == Prim::Decimal => K::Unit(n, false),
+        _ => K::Other,
     }
 }
 
-/// Typing of fixed-scale nominals and exact quantities (contracts/numeric-semantics.md → Typing);
-/// `None` when no operand is one (the general rules apply).
-fn fixed_scale_op(sig: &OpSig, operands: &[Type]) -> Option<Typed> {
+/// Typing of decimal arithmetic, fixed-scale values, exact quantities, and exact ratios
+/// (specs/004-exact-arithmetic-closure/contracts/numeric-semantics.md → Typing); `None` when the
+/// general rules apply (integers, comparisons without exact or fixed-scale operands, non-numeric
+/// operations).
+fn exact_op(sig: &OpSig, operands: &[Type]) -> Option<Typed> {
+    let r = exact_op_inner(sig, operands)?;
+    // Outside fixed-scale contexts (typed as in feature 003) integer operands are lifted with an
+    // explicit `ToDecimal`, so `x + 1` and `x + 1.0`, or `r < 1` and `r < 1.0`, keep one identity.
+    let fixed_context = operands.iter().any(|t| match t {
+        Type::Exact(Unit::Nominal(n)) => n.scale.is_some(),
+        t => fixed_scale(t).is_some(),
+    });
+    let lift = matches!(sig, OpSig::Arith(_) | OpSig::Cmp(_)) && !fixed_context;
+    Some(r.map(|(t, convs)| {
+        let convs = if lift {
+            operands
+                .iter()
+                .map(|o| {
+                    if *o == Type::Int {
+                        Conv::ToDecimal
+                    } else {
+                        Conv::Keep
+                    }
+                })
+                .collect()
+        } else {
+            convs
+        };
+        (t, convs)
+    }))
+}
+
+fn exact_op_inner(sig: &OpSig, operands: &[Type]) -> Option<Typed> {
     use TypeCode::*;
     let keep2 = || vec![Conv::Keep, Conv::Keep];
+    let exact_of = |n: &Arc<NominalInfo>| Type::Exact(Unit::Nominal(n.clone()));
+    let ratio = || Type::Exact(Unit::Dimensionless);
+    let any_exact = operands.iter().any(|t| matches!(t, Type::Exact(_)));
+    // Comparisons keep the general rules unless an exact or fixed-scale operand is involved.
+    let cmp_engaged = any_exact
+        || operands
+            .iter()
+            .any(|t| matches!(kind(t), K::Unit(n, _) if n.scale.is_some()));
+    // Arithmetic is exact as soon as a decimal (plain, nominal, or exact) is involved.
+    let arith_engaged = operands
+        .iter()
+        .any(|t| *t == Type::Decimal || matches!(kind(t), K::Ratio | K::Unit(..)));
     match (sig, operands) {
-        (OpSig::Cmp(c), [a, b]) => {
-            let (x, _) = fixed_or_exact(a)?;
-            let (y, _) = fixed_or_exact(b)?;
-            if x != y {
-                return Some(Err(TypeMismatch));
-            }
-            if !matches!(c, CmpOp::Eq | CmpOp::Ne) && !x.has(ops::ORDER) {
-                return Some(Err(OpNotAllowed));
-            }
-            Some(Ok((Type::Bool, keep2())))
-        }
-        (OpSig::Arith(ArithOp::Add | ArithOp::Sub), [a, b]) => {
-            let fa = fixed_or_exact(a);
-            let fb = fixed_or_exact(b);
-            let ((x, ea), (y, eb)) = match (fa, fb) {
-                (Some(p), Some(q)) => (p, q),
-                (None, None) => return None,
-                _ => return Some(Err(TypeMismatch)),
-            };
-            if x != y {
-                return Some(Err(TypeMismatch));
-            }
-            if !x.has(ops::ADD) {
-                return Some(Err(OpNotAllowed));
-            }
-            let t = if ea || eb {
-                Type::Exact(x.clone())
-            } else {
-                Type::Nominal(x.clone())
-            };
-            Some(Ok((t, keep2())))
-        }
-        (OpSig::Arith(ArithOp::Mul), [a, b]) => {
-            let (n, exact, scalar) = match (fixed_or_exact(a), fixed_or_exact(b)) {
-                (Some((n, e)), None) => (n, e, b),
-                (None, Some((n, e))) => (n, e, a),
-                (None, None) => return None,
-                (Some(_), Some(_)) => return Some(Err(TypeMismatch)),
-            };
-            if !scalar.is_numeric() {
-                return Some(Err(TypeMismatch));
-            }
-            if !n.has(ops::SCALE) {
-                return Some(Err(OpNotAllowed));
-            }
-            let lossless = !exact && *scalar == Type::Int;
-            let t = if lossless {
-                Type::Nominal(n.clone())
-            } else {
-                Type::Exact(n.clone())
-            };
-            Some(Ok((t, keep2())))
-        }
-        (OpSig::Arith(ArithOp::Div), [a, b]) => match (fixed_or_exact(a), fixed_or_exact(b)) {
-            (None, None) => None,
-            (Some((x, false)), Some((y, false))) => Some(if x != y {
-                Err(TypeMismatch)
-            } else if x.has(ops::RATIO) {
-                Ok((Type::Decimal, keep2()))
-            } else {
-                Err(OpNotAllowed)
-            }),
-            (Some((n, _)), None) if b.is_numeric() => Some(if n.has(ops::SCALE) {
-                Ok((Type::Exact(n.clone()), keep2()))
-            } else {
-                Err(OpNotAllowed)
-            }),
-            _ => Some(Err(TypeMismatch)),
-        },
-        (OpSig::Wrap(n), [a]) if n.scale.is_some() => Some(match a {
+        (OpSig::Wrap(n), [a]) if n.scale.is_some() => Some(match kind(a) {
             // An integer is on every grid (range-checked at runtime).
-            Type::Int => Ok((Type::Nominal(n.clone()), vec![Conv::ToDecimal])),
-            Type::Decimal | Type::Exact(_) => Err(LossyConversion),
+            _ if *a == Type::Int => Ok((Type::Nominal(n.clone()), vec![Conv::ToDecimal])),
+            // Attaching the unit to an exact ratio is lossless (the result stays exact).
+            K::Ratio => Ok((exact_of(n), vec![Conv::Keep])),
+            // A decimal or exact value may be off the grid: narrowing needs a rescale.
+            _ if matches!(a, Type::Decimal | Type::Exact(_)) => Err(LossyConversion),
             _ => Err(TypeMismatch),
         }),
+        (OpSig::Wrap(n), [Type::Exact(Unit::Dimensionless)]) if n.underlying == Prim::Decimal => {
+            Some(Ok((exact_of(n), vec![Conv::Keep])))
+        }
+        (OpSig::Cmp(_), _) if !cmp_engaged => None,
+        (OpSig::Arith(_), _) if !arith_engaged => None,
+        (OpSig::Cmp(c), [a, b]) => Some(match (kind(a), kind(b)) {
+            (K::Unit(x, _), K::Unit(y, _)) if x != y => Err(TypeMismatch),
+            (K::Unit(x, _), K::Unit(..)) => {
+                if matches!(c, CmpOp::Eq | CmpOp::Ne) || x.has(ops::ORDER) {
+                    Ok((Type::Bool, keep2()))
+                } else {
+                    Err(OpNotAllowed)
+                }
+            }
+            (K::Ratio | K::Num, K::Ratio | K::Num) => Ok((Type::Bool, keep2())),
+            _ => Err(TypeMismatch),
+        }),
+        (OpSig::Arith(ArithOp::Add | ArithOp::Sub), [a, b]) => Some(match (kind(a), kind(b)) {
+            (K::Unit(x, _), K::Unit(y, _)) if x != y => Err(TypeMismatch),
+            (K::Unit(x, ea), K::Unit(_, eb)) => {
+                if !x.has(ops::ADD) {
+                    Err(OpNotAllowed)
+                } else if !ea && !eb && x.scale.is_some() {
+                    // F ± F stays on the grid.
+                    Ok((Type::Nominal(x.clone()), keep2()))
+                } else {
+                    Ok((exact_of(x), keep2()))
+                }
+            }
+            (K::Ratio | K::Num, K::Ratio | K::Num) => Ok((ratio(), keep2())),
+            _ => Err(TypeMismatch),
+        }),
+        (OpSig::Arith(ArithOp::Mul), [a, b]) => Some(match (kind(a), kind(b)) {
+            (K::Unit(n, e), K::Num) | (K::Num, K::Unit(n, e)) => {
+                let scalar = if matches!(kind(a), K::Num) { a } else { b };
+                if !n.has(ops::SCALE) {
+                    Err(OpNotAllowed)
+                } else if !e && *scalar == Type::Int && n.scale.is_some() {
+                    // F × I stays on the grid.
+                    Ok((Type::Nominal(n.clone()), keep2()))
+                } else {
+                    Ok((exact_of(n), keep2()))
+                }
+            }
+            (K::Unit(n, _), K::Ratio) | (K::Ratio, K::Unit(n, _)) => {
+                if n.has(ops::SCALE) {
+                    Ok((exact_of(n), keep2()))
+                } else {
+                    Err(OpNotAllowed)
+                }
+            }
+            (K::Ratio | K::Num, K::Ratio | K::Num) => Ok((ratio(), keep2())),
+            _ => Err(TypeMismatch),
+        }),
+        (OpSig::Arith(ArithOp::Div), [a, b]) => Some(match (kind(a), kind(b)) {
+            (K::Unit(x, _), K::Unit(y, _)) if x != y => Err(TypeMismatch),
+            (K::Unit(x, _), K::Unit(..)) => {
+                if x.has(ops::RATIO) {
+                    Ok((ratio(), keep2()))
+                } else {
+                    Err(OpNotAllowed)
+                }
+            }
+            (K::Unit(n, _), K::Num | K::Ratio) => {
+                if n.has(ops::SCALE) {
+                    Ok((exact_of(n), keep2()))
+                } else {
+                    Err(OpNotAllowed)
+                }
+            }
+            (K::Ratio | K::Num, K::Ratio | K::Num) => Ok((ratio(), keep2())),
+            _ => Err(TypeMismatch),
+        }),
+        // Erasing the nominal unit of an exact value is not an implicit coercion (research R2).
         (OpSig::Unwrap, [Type::Exact(_)]) => Some(Err(LossyConversion)),
         (OpSig::Some, [Type::Exact(_)]) => Some(Err(LossyConversion)),
         (OpSig::ValueOr, [_, Type::Exact(_)]) => Some(Err(LossyConversion)),
-        (_, ops) if ops.iter().any(|t| matches!(t, Type::Exact(_))) => Some(Err(TypeMismatch)),
+        _ if any_exact => Some(Err(TypeMismatch)),
         _ => None,
     }
 }
@@ -394,7 +477,7 @@ pub fn type_of_op(sig: &OpSig, operands: &[Type]) -> Typed {
         [a] => Ok(a),
         _ => Err(TypeMismatch),
     };
-    if let Some(r) = fixed_scale_op(sig, operands) {
+    if let Some(r) = exact_op(sig, operands) {
         return r;
     }
     match sig {
@@ -473,19 +556,16 @@ pub fn type_of_op(sig: &OpSig, operands: &[Type]) -> Typed {
         }
         OpSig::Arith(ArithOp::Div) => {
             let (a, b) = two()?;
+            // I ÷ I and integer-nominal ratios are exact ratios (decimal operands are typed by
+            // `exact_op`).
+            let ratio = Type::Exact(Unit::Dimensionless);
             if a.is_numeric() && b.is_numeric() {
-                let c = |t: &Type| {
-                    if *t == Type::Int {
-                        Conv::ToDecimal
-                    } else {
-                        Conv::Keep
-                    }
-                };
-                return Ok((Type::Decimal, vec![c(a), c(b)]));
+                // Both are integers here (decimal operands are typed by `exact_op`).
+                return Ok((ratio, vec![Conv::ToDecimal, Conv::ToDecimal]));
             }
             if let Some(n) = nominal_pair(a, b) {
                 return if n.has(ops::RATIO) {
-                    Ok((Type::Decimal, vec![Conv::Keep, Conv::Keep]))
+                    Ok((ratio, vec![Conv::Keep, Conv::Keep]))
                 } else {
                     Err(OpNotAllowed)
                 };

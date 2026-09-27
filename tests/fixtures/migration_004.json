@@ -1,0 +1,75 @@
+{
+ "_comment": "Feature 004 migration table: fixture modules whose behavior version changed, with the reason. Every other module in frozen_versions.json keeps its identity. Checked by crates/behavior-core/tests/compat_003.rs.",
+ "modules": {
+  "verify/discount_rescale.json": {
+   "frozen": "sha256:51455d4f1d9c97fe06a776720e5bfb44cf39c29745321eb58a91ea5ec15732db",
+   "reason": "`1 - rate` is typed Exact<Decimal> (was Decimal, already evaluated exactly inside the 003 exact region): meaning unchanged, typing changed"
+  },
+  "verify/postcondition.json": {
+   "frozen": "sha256:44bcfcde5f9edd0cccea3426e8598fbe080cbd02da0165b3f673eedba23edf26",
+   "reason": "Money declared with scale=2 (it stores computed amounts; research R11)"
+  },
+  "verify/purchase.json": {
+   "frozen": "sha256:96f7b70c9088a289d85bd8ac59dbce772c48d279e6653cf42d54f12aa1f7714d",
+   "reason": "Money declared with scale=2 (it stores computed amounts; research R11)"
+  },
+  "verify/purchase_fixed.json": {
+   "frozen": "sha256:57f897c19f85fc39aca284068e07c83fd88bd8bdf50faccc304bc91935652719",
+   "reason": "Money declared with scale=2 (it stores computed amounts; research R11)"
+  },
+  "verify/purchase_remaining.json": {
+   "frozen": "sha256:1d915c5f15de76d836eb82341f9b67180d134c990475857e9ac4f317eda5046d",
+   "reason": "Money declared with scale=2 (it stores computed amounts; research R11)"
+  },
+  "verify/rounding.json": {
+   "frozen": "sha256:efb6b25dd6806fd299622b987e82ef5ba436fae6709292c568c915c22dbd934a",
+   "reason": "`a / b` is an exact ratio (was a 28-digit rounded quotient)"
+  },
+  "verify/sum_rounding.json": {
+   "frozen": "sha256:2dafeda4bf3daaa4e719734a3604e2955f97afacfec7f8aa147520e8fbdd0ff2",
+   "reason": "rewritten as a representability test: fixed-scale Money sum whose range overflow verification must find (a general Decimal sum can no longer be stored implicitly)"
+  },
+  "verify/unchanged_entity.json": {
+   "frozen": "sha256:48a73cf067127049ce92b24a8a56494ee6dcb38bf9bed0fce18c1182e7371dfd",
+   "reason": "Money declared with scale=2 (it stores computed amounts; research R11)"
+  },
+  "wire/python/invoice.json": {
+   "frozen": "sha256:a368bcf3396a136bc1440ae98a68749875654c2d1e3a32764147bdef94dd1bd3",
+   "reason": "Money declared with scale=2 (it stores computed amounts; research R11)"
+  },
+  "wire/python/project_margin.json": {
+   "frozen": "sha256:450d7e633e3157ddff028ac413921af8d8b6e33b8b945c52e7b6f4276b05de0e",
+   "reason": "`margin` is an exact ratio (was a 28-digit rounded quotient); decisions unchanged"
+  },
+  "wire/valid/constraints.json": {
+   "frozen": "sha256:4c8f72615b785708f4525a2a1f8b1b60dbc7831c356679b6e58a36ce449cf7e4",
+   "reason": "Money declared with scale=2 (it stores computed amounts; research R11)"
+  },
+  "wire/valid/fixed_scale.json": {
+   "frozen": "sha256:4e44171951300cbd2b87d69471d314245d0c8e385ee3ce8fe1c2cffc24d1e95d",
+   "reason": "`1 / 3` is an exact ratio everywhere (was rounded outside the 003 exact region): `third_via_derived` stores 0.01 (was 0.00)"
+  },
+  "wire/valid/invoice.json": {
+   "frozen": "sha256:a368bcf3396a136bc1440ae98a68749875654c2d1e3a32764147bdef94dd1bd3",
+   "reason": "Money declared with scale=2 (it stores computed amounts; research R11)"
+  },
+  "wire/valid/project_margin.json": {
+   "frozen": "sha256:450d7e633e3157ddff028ac413921af8d8b6e33b8b945c52e7b6f4276b05de0e",
+   "reason": "`margin` is an exact ratio (was a 28-digit rounded quotient); decisions unchanged"
+  }
+ },
+ "hash_vectors": {
+  "expr_sub": "decimal subtraction is typed Exact<Decimal>",
+  "expr_mul": "decimal multiplication is typed Exact<Decimal>",
+  "expr_div": "decimal division is typed Exact<Decimal>"
+ },
+ "verify_expectations": {
+  "rounding": "third_tight proven (was inconclusive): 1/3 is exact, the rounding-interval model is gone",
+  "sum_rounding": "postcondition proven (was a counterexample from 28-digit rounding); new evaluation_error counterexample: the fixed-scale sum may leave Money's range",
+  "project_margin": "the two numeric-overflow checks on the margin disappear: exact arithmetic that is never stored cannot overflow; division by zero unchanged",
+  "postcondition": "subjects print Money(0.00) (Money has scale 2); outcomes unchanged",
+  "purchase_remaining": "no longer inconclusive (exact); governance tests use forced-inconclusive findings from rlimit 1 (governance/forced_inconclusive_profile.json)",
+  "purchase_fixed (CLI, full profile)": "scale-2 Money adds a genuine range-overflow evaluation error for `spent + amount`; CLI tests verify with governance/preservation_profile.json",
+  "share_bound": "check subject text now keeps the grouping: `share.total * (amount / share.budget)` (pretty-printer fix)"
+ }
+}

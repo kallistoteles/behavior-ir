@@ -188,7 +188,8 @@ impl PyType_ {
         }
     }
     #[staticmethod]
-    fn exact(name: String) -> Self {
+    #[pyo3(signature = (name=None))]
+    fn exact(name: Option<String>) -> Self {
         PyType_ {
             inner: WType::Exact(name),
         }

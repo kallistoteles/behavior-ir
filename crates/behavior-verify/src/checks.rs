@@ -180,7 +180,7 @@ fn search(ctx: &Ctx<'_>, enc: &Encoder<'_>, assertions: &[String]) -> Search {
         SolverAnswer::Unknown(r) => Search::Unknown(r),
         SolverAnswer::Sat(raw) => {
             let mut models = Vec::new();
-            for level in [Nice::FullExact, Nice::ScaleExact, Nice::Full, Nice::Scale] {
+            for level in [Nice::Full, Nice::Scale] {
                 if let SolverAnswer::Sat(m) = ctx.solver.check(&query(level)) {
                     models.push(m);
                     break;

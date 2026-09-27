@@ -1,0 +1,15 @@
+{
+ "action": "share_threshold",
+ "context": {},
+ "data_version": "1",
+ "input": {},
+ "state": {
+  "share": {
+   "amount": "25.01",
+   "budget": "100.00",
+   "id": "s1",
+   "part": "0",
+   "total": "0"
+  }
+ }
+}

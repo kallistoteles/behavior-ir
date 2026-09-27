@@ -121,7 +121,7 @@ verification, violates FR-012c).
 ## R6 — Wire IR 0.4 and old documents
 
 **Decision**: the same wire text must not silently change meaning. `ir_version "0.4"` denotes
-exact-closure semantics; documents with `"0.1"`–`"0.3"` are rejected with `UNSUPPORTED_VERSION`
+exact-closure semantics; documents with `"0.1"`–`"0.3"` are rejected with `UNSUPPORTED_IR_VERSION`
 and a message pointing to the migration (re-serialize from the DSL, declare scales where computed
 values are stored). The serializer always writes `"0.4"`. The type form `{"t": "exact"}` (no
 `name`) is the dimensionless exact type; `{"t": "exact", "name": "Money"}` is allowed for any

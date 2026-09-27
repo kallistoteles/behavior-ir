@@ -93,14 +93,15 @@ fn division_by_zero_counterexample_has_zero_revenue() {
 }
 
 #[test]
-fn tight_rounding_is_inconclusive_with_reason() {
+fn tight_bound_is_proven_under_exact_division() {
+    // Feature 004: `1 / 3 < 0.333…34` (28 digits) was inconclusive under the rounding model.
     let (a, _) = common::run("rounding");
     let tight = a.value["checks"]
         .as_array()
         .unwrap()
         .iter()
-        .find(|c| c["action"]["name"] == "third_tight")
+        .find(|c| c["action"]["name"] == "third_tight" && c["kind"] == "postcondition")
         .unwrap();
-    assert_eq!(tight["reason"], "counterexample_not_reproduced");
-    assert_eq!(a.result, "not_verified");
+    assert_eq!(tight["outcome"], "proven", "{tight}");
+    assert!(tight.get("reason").is_none(), "{tight}");
 }

@@ -50,7 +50,7 @@ fn overflow_beyond_512_bits() {
         match x.mul(&big) {
             Ok(y) => x = y,
             Err(err) => {
-                assert_eq!(err, NumError::Overflow);
+                assert_eq!(err, NumError::ExactBound);
                 overflowed = true;
                 break;
             }
@@ -65,7 +65,7 @@ fn overflow_beyond_512_bits() {
         match d.div(&three) {
             Ok(y) => d = y,
             Err(err) => {
-                assert_eq!(err, NumError::Overflow);
+                assert_eq!(err, NumError::ExactBound);
                 hit = true;
                 break;
             }

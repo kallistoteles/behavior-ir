@@ -1,0 +1,50 @@
+{
+ "scaled_share": {
+  "changes": [
+   {
+    "field": "part",
+    "new": "30.00"
+   }
+  ],
+  "result": "ALLOW",
+  "trace": [
+   {
+    "phase": "effect",
+    "rescales": [
+     {
+      "exact": "30",
+      "result": "30.00",
+      "rounding": "half_even"
+     }
+    ]
+   }
+  ]
+ },
+ "share": {
+  "derived": [
+   {
+    "name": "portion",
+    "value": "1/3"
+   }
+  ],
+  "result": "ALLOW"
+ },
+ "share_threshold_false": {
+  "result": "DENY"
+ },
+ "share_threshold_true": {
+  "$absent": [
+   "trace.0.rescales"
+  ],
+  "result": "ALLOW"
+ },
+ "share_zero_budget": {
+  "reasons": [
+   {
+    "code": "EVALUATION_ERROR",
+    "message": "division by zero in share.amount / share.budget"
+   }
+  ],
+  "result": "ERROR"
+ }
+}

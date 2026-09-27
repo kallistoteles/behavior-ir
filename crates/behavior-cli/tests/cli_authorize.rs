@@ -35,7 +35,12 @@ fn authorize_exit_codes_and_waiver_hash() {
     let record = tmp("record.json", &record);
 
     // Verified: allowed.
-    let (code, attestation) = run(&["verify", wire]);
+    let (code, attestation) = run(&[
+        "verify",
+        wire,
+        "--profile",
+        &gov("preservation_profile.json"),
+    ]);
     assert_eq!(code, 0);
     let verified = tmp("verified.json", &attestation);
     let now = ["--now", "2026-09-25T12:00:00Z"];

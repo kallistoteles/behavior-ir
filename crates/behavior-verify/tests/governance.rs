@@ -35,15 +35,21 @@ fn record(m: &Module) -> String {
     behavior_core::evaluate(m, &gov("approve_request.json")).to_json_string()
 }
 
-/// `purchase_remaining` has one inconclusive check (the rounding interval crosses the budget).
-fn inconclusive() -> (Module, Attestation) {
+/// Forced inconclusive: `purchase_remaining` is easy for the solver (every check is decided under
+/// the default budget); a resource limit of 1 makes every check inconclusive so waivers can be
+/// tested. Since feature 004 no fixture is inconclusive on its own.
+fn forced_inconclusive() -> (Module, Attestation) {
     let m = module("purchase_remaining.json");
-    let a = attest(&m, Profile::default().rlimit);
+    let a = attest(&m, 1);
     assert!(
         a.findings().iter().all(|f| f["kind"] == "inconclusive"),
         "{}",
         a.to_json_string()
     );
+    // Only the forced budget may make these checks inconclusive.
+    for c in a.value["checks"].as_array().unwrap() {
+        assert_eq!(c["reason"], "resource_limit", "{c}");
+    }
     (m, a)
 }
 
@@ -125,7 +131,7 @@ fn verified_allows_and_unverified_refuses() {
         (none.decision.as_str(), codes(&none)),
         ("refuse", vec!["unverified".to_string()])
     );
-    let (m2, pending) = inconclusive();
+    let (m2, pending) = forced_inconclusive();
     let auth = run(&gov("require_verified.json"), &m2, Some(&pending), &[], &[]);
     assert_eq!(
         (auth.decision.as_str(), codes(&auth)),
@@ -134,8 +140,8 @@ fn verified_allows_and_unverified_refuses() {
 }
 
 #[test]
-fn signed_waivers_allow_inconclusive_without_changing_verification() {
-    let (m, a) = inconclusive();
+fn signed_waivers_allow_forced_inconclusive_without_changing_verification() {
+    let (m, a) = forced_inconclusive();
     assert_eq!(a.result, "not_verified");
     let (ws, ss) = waive_all(&a, json!({}), &["A"]);
     let auth = run(&gov("verified_or_waived.json"), &m, Some(&a), &ws, &ss);
@@ -160,7 +166,7 @@ fn signed_waivers_allow_inconclusive_without_changing_verification() {
 
 #[test]
 fn waivers_for_other_versions_or_findings_are_ignored() {
-    let (m, a) = inconclusive();
+    let (m, a) = forced_inconclusive();
     let other = module("purchase.json").behavior_version();
     for patch in [
         json!({"behavior_version": other}),
@@ -187,7 +193,7 @@ fn forbidden_and_non_waivable_kinds_are_refused() {
 
 #[test]
 fn expired_untrusted_and_corrupted_waivers_are_refused() {
-    let (m, a) = inconclusive();
+    let (m, a) = forced_inconclusive();
     let policy = gov("verified_or_waived.json");
     let (ws, ss) = waive_all(&a, json!({"expires_at": "2026-01-01T00:00:00Z"}), &["A"]);
     assert_eq!(
@@ -218,7 +224,7 @@ fn expired_untrusted_and_corrupted_waivers_are_refused() {
 
 #[test]
 fn several_signatures_keep_the_waiver_hash_and_record_the_smallest_satisfying_key() {
-    let (m, a) = inconclusive();
+    let (m, a) = forced_inconclusive();
     let (ws, ss) = waive_all(&a, json!({}), &["A", "B"]);
     for s in &ss {
         let v: Value = serde_json::from_str(s).unwrap();
@@ -254,7 +260,7 @@ fn several_signatures_keep_the_waiver_hash_and_record_the_smallest_satisfying_ke
 
 #[test]
 fn authorizations_cite_their_policy_and_are_deterministic() {
-    let (m, a) = inconclusive();
+    let (m, a) = forced_inconclusive();
     let (ws, ss) = waive_all(&a, json!({}), &["A"]);
     let p1 = gov("verified_or_waived.json");
     let first = run(&p1, &m, Some(&a), &ws, &ss);
@@ -277,7 +283,7 @@ fn authorizations_cite_their_policy_and_are_deterministic() {
 
 #[test]
 fn tampered_inputs_are_rejected() {
-    let (m, a) = inconclusive();
+    let (m, a) = forced_inconclusive();
     let mut forged = a.value.clone();
     forged["result"] = json!("verified");
     let err = authorize(
@@ -303,4 +309,16 @@ fn tampered_inputs_are_rejected() {
     )
     .unwrap();
     assert_eq!(codes(&auth), vec!["record_not_reproducible".to_string()]);
+}
+
+#[test]
+fn forced_inconclusive_module_is_decided_under_the_default_budget() {
+    // The waiver tests' inconclusive findings come from the budget, not from the model.
+    let m = module("purchase_remaining.json");
+    let a = attest(&m, Profile::default().rlimit);
+    assert!(
+        a.findings().iter().all(|f| f["kind"] != "inconclusive"),
+        "{}",
+        a.to_json_string()
+    );
 }

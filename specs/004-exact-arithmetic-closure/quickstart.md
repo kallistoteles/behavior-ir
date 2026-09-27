@@ -40,7 +40,7 @@ cargo test --release -p behavior-verify --test perf -- --ignored
   decisions unchanged in outcome.
 - `wire/invalid/decimal_sum_stored.json` (`dec := x - y`) → `LOSSY_CONVERSION`;
   a constant store `10 / 2` admits.
-- `behavior admit` of a `"0.3"` document → `UNSUPPORTED_VERSION` with the migration message.
+- `behavior admit` of a `"0.3"` document → `UNSUPPORTED_IR_VERSION` with the migration message.
 
 ## 5. Verification (US3, SC-007)
 

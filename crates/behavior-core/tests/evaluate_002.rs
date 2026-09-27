@@ -27,7 +27,7 @@ fn records_meet_002_expectations() {
         };
         check(
             "record_version",
-            record["record_version"] == "0.2",
+            record["record_version"] == "0.4",
             record["record_version"].to_string(),
         );
         check(

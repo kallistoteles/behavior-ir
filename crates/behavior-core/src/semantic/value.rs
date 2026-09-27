@@ -35,7 +35,7 @@ fn describe(t: &Type) -> String {
             Some(s) => format!("{} (a decimal with at most {s} decimal places)", n.name),
             None => format!("{} ({})", n.name, describe(&n.underlying.to_type())),
         },
-        Type::Exact(n) => format!("an exact {} quantity (never an input)", n.name),
+        Type::Exact(_) => format!("an exact {t} value (never an input)"),
         Type::Option(inner) => format!("null or {}", describe(inner)),
         Type::Entity(e) => format!("a {e} object"),
     }

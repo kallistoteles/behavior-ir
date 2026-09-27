@@ -395,9 +395,10 @@ impl Builder {
             .map_err(|(code, message)| err(code, message))?;
         if let Some(t) = &value.ty
             && coerce(&target, t).is_none()
+            && !crate::admit::typecheck::exact_store(t, &target)
         {
-            let lossy = crate::semantic::types::fixed_scale(&target).is_some()
-                && matches!(t, Type::Exact(_) | Type::Decimal);
+            let lossy = matches!(t, Type::Exact(_))
+                || (crate::semantic::types::fixed_scale(&target).is_some() && *t == Type::Decimal);
             return Err(if lossy {
                 err(
                     "LOSSY_CONVERSION",

@@ -61,11 +61,11 @@ fn feature_001_identities_are_unchanged() {
 }
 
 #[test]
-fn serialization_writes_0_2_only_with_constraints() {
+fn serialization_writes_0_4_with_constraints() {
     let m = admit(&constraints().to_string()).unwrap();
     let text = to_wire_json(&m);
     let v: Value = serde_json::from_str(&text).unwrap();
-    assert_eq!(v["ir_version"], "0.2");
+    assert_eq!(v["ir_version"], "0.4");
     assert_eq!(v["constraints"].as_array().unwrap().len(), 2);
     let again = admission_report(&text);
     assert_eq!(
@@ -75,6 +75,6 @@ fn serialization_writes_0_2_only_with_constraints() {
 
     let inv = common::read(&common::fixtures().join("wire/valid/invoice.json"));
     let v: Value = serde_json::from_str(&to_wire_json(&admit(&inv).unwrap())).unwrap();
-    assert_eq!(v["ir_version"], "0.1");
-    assert!(v.get("constraints").is_none());
+    assert_eq!(v["ir_version"], "0.4");
+    assert_eq!(v["constraints"], serde_json::json!([]));
 }

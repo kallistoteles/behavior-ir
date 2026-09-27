@@ -58,7 +58,7 @@ fn counterexamples_are_on_the_grid_and_confirmed() {
                 ["DENY", "ERROR"].contains(&record["result"].as_str().unwrap()),
                 "{name}: {f}"
             );
-            assert_eq!(record["record_version"], "0.3", "{name}");
+            assert_eq!(record["record_version"], "0.4", "{name}");
             for section in ["state", "input", "context"] {
                 // Money values are on the grid; general decimals (e.g. `rate`) are not checked.
                 if section == "input" && name == "discount_rescale" {

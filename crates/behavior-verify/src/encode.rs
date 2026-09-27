@@ -4,11 +4,9 @@
 //! constraints on every incoming entity, state invariants on S, distinct state identities) and
 //! models the engine's evaluation order: incoming rules, preconditions in order with
 //! short-circuit `and`/`or`, effects against S, then postconditions and rules on S'. Decimal
-//! arithmetic is modelled as the exact value plus a bounded rounding error: multiplication and
-//! division always, addition and subtraction when the result is large enough to need more than
-//! 96 bits of mantissa at 28 fractional digits (the engine rounds silently there). The same
-//! expression over the same inputs is encoded once, so it has one rounded value — the engine is
-//! deterministic.
+//! arithmetic is exact, as at runtime (feature 004): `+ − ×` are terms, `÷` is a fresh quotient
+//! `q` with `q·d = n` under `d ≠ 0`. What can fail is integer overflow, a fixed-scale range, and
+//! division by zero; admission proves every implicit decimal store representable.
 
 use std::collections::BTreeMap;
 
@@ -16,7 +14,7 @@ use behavior_core::decimal::Dec;
 use behavior_core::exact::Rounding;
 use behavior_core::semantic::expr::{Expr, ExprKind};
 use behavior_core::semantic::module::{Module, Param, ParamRole};
-use behavior_core::semantic::types::{ArithOp, CmpOp, Hash, Prim, Type, fixed_scale};
+use behavior_core::semantic::types::{ArithOp, CmpOp, Hash, Prim, Type, Unit, fixed_scale};
 use behavior_core::semantic::value::Value;
 use behavior_core::wire::Loc;
 
@@ -24,16 +22,8 @@ use crate::smt::{int_lit, quote, real_lit};
 
 const I64_MIN: &str = "(- 9223372036854775808)";
 const I64_MAX: &str = "9223372036854775807";
-const DEC_MAX: &str = "79228162514264337593543950335.0";
 /// Largest decimal a request can carry (28 significant digits).
 const DEC_INPUT_MAX: &str = "9999999999999999999999999999.0";
-/// Below this magnitude, sums of decimals with at most 28 fractional digits are exact
-/// (2^96 / 10^28 ≈ 7.9).
-const EXACT_SUM_BELOW: &str = "7.0";
-/// Absolute rounding bound: one unit in the 28th fractional digit.
-const EPS_ABS: &str = "0.0000000000000000000000000001";
-/// Relative rounding bound for 28 significant digits.
-const EPS_REL: &str = "0.000000000000000000000000001";
 /// Readable counterexamples: at most 4 fractional digits and, preferably, magnitude ≤ 10^15
 /// (research R5).
 const NICE_SCALE: &str = "10000.0";
@@ -144,10 +134,6 @@ fn not(t: &str) -> String {
     format!("(not {t})")
 }
 
-fn abs(t: &str) -> String {
-    format!("(ite (>= {t} 0.0) {t} (- {t}))")
-}
-
 fn is_decimal_sort(t: &Type) -> bool {
     match t {
         Type::Decimal => true,
@@ -170,8 +156,6 @@ pub struct Encoder<'m> {
     axioms: Vec<String>,
     nice: Vec<String>,
     nice_scale: Vec<String>,
-    /// "No rounding happened": every rounded value equals its exact value.
-    exact: Vec<String>,
     fresh: usize,
     memo: BTreeMap<String, Encoded>,
     pub inputs: Vec<InputVar>,
@@ -185,7 +169,6 @@ impl<'m> Encoder<'m> {
             axioms: Vec::new(),
             nice: Vec::new(),
             nice_scale: Vec::new(),
-            exact: Vec::new(),
             fresh: 0,
             memo: BTreeMap::new(),
             inputs: Vec::new(),
@@ -208,12 +191,7 @@ impl<'m> Encoder<'m> {
             Type::Entity(e) => {
                 return Err(EncodeError::Unsupported(format!("entity {e} as value")));
             }
-            Type::Exact(n) => {
-                return Err(EncodeError::Unsupported(format!(
-                    "exact {} (feature 003)",
-                    n.name
-                )));
-            }
+            Type::Exact(_) => "Real",
         })
     }
 
@@ -375,13 +353,7 @@ impl<'m> Encoder<'m> {
     }
 
     fn overflow(&self, t: &Type, r: &str) -> Option<String> {
-        if is_int_sort(t) {
-            Some(format!("(or (< {r} {I64_MIN}) (> {r} {I64_MAX}))"))
-        } else if is_decimal_sort(t) {
-            Some(format!("(or (< {r} (- {DEC_MAX})) (> {r} {DEC_MAX}))"))
-        } else {
-            None
-        }
+        is_int_sort(t).then(|| format!("(or (< {r} {I64_MIN}) (> {r} {I64_MAX}))"))
     }
 
     fn obligation(e: &Expr, kind: ErrKind, cond: String) -> Obligation {
@@ -402,31 +374,6 @@ impl<'m> Encoder<'m> {
                 o
             })
             .collect()
-    }
-
-    /// A value `r` within the rounding bound of `exact` (research R5).
-    fn rounded(&mut self, exact: &str) -> String {
-        let r = self.fresh_real("round");
-        self.exact.push(format!("(= {r} {exact})"));
-        let a = abs(exact);
-        self.axioms.push(format!(
-            "(<= {} (ite (>= (* {EPS_REL} {a}) {EPS_ABS}) (* {EPS_REL} {a}) {EPS_ABS}))",
-            abs(&format!("(- {r} {exact})"))
-        ));
-        r
-    }
-
-    /// A sum or difference `r` of decimals: exact below `EXACT_SUM_BELOW`, otherwise within the
-    /// relative rounding bound.
-    fn rounded_sum(&mut self, exact: &str) -> String {
-        let r = self.fresh_real("sum");
-        self.exact.push(format!("(= {r} {exact})"));
-        let a = abs(exact);
-        self.axioms.push(format!(
-            "(<= {} (ite (< {a} {EXACT_SUM_BELOW}) 0.0 (* {EPS_REL} {a})))",
-            abs(&format!("(- {r} {exact})"))
-        ));
-        r
     }
 
     fn as_real(e: &Expr, t: &str) -> String {
@@ -526,68 +473,31 @@ impl<'m> Encoder<'m> {
                 })
             }
             ExprKind::Arith(..) if matches!(e.ty(), Type::Exact(_)) => self.encode_exact(e, env),
-            ExprKind::Arith(..) if fixed_scale(e.ty()).is_some() => {
-                // Lossless fixed-scale arithmetic: exact, plus the range check of the runtime.
-                let mut r = self.encode_exact(e, env)?;
-                let t = r.term.plain()?.to_string();
-                let s = fixed_scale(e.ty()).and_then(|n| n.scale).unwrap_or(0);
-                r.obligations
-                    .push(Self::obligation(e, ErrKind::Overflow, out_of_range(&t, s)));
-                Ok(r)
-            }
+            // Lossless fixed-scale arithmetic: exact, plus the runtime's range check (added by
+            // `encode_exact`, which checks fixed-scale nodes wherever they occur).
+            ExprKind::Arith(..) if fixed_scale(e.ty()).is_some() => self.encode_exact(e, env),
+            // Integer arithmetic (plain or integer nominal): exact, with the runtime's 64-bit
+            // overflow check. Decimal arithmetic is exact (above); `I ÷ I` is an exact ratio.
             ExprKind::Arith(op, a, b) => {
                 let x = self.encode(a, env)?;
                 let y = self.encode(b, env)?;
                 let (xt, yt) = (x.term.plain()?.to_string(), y.term.plain()?.to_string());
                 let mut obligations = x.obligations;
                 obligations.extend(y.obligations);
-                let term = match op {
+                let sym = match op {
+                    ArithOp::Add => "+",
+                    ArithOp::Sub => "-",
+                    ArithOp::Mul => "*",
                     ArithOp::Div => {
-                        let (n, d) = (Self::as_real(a, &xt), Self::as_real(b, &yt));
-                        obligations.push(Self::obligation(
-                            e,
-                            ErrKind::DivisionByZero,
-                            format!("(= {d} 0.0)"),
-                        ));
-                        let q = self.fresh_real("quot");
-                        self.axioms
-                            .push(format!("(=> (not (= {d} 0.0)) (= (* {q} {d}) {n}))"));
-                        if let Some(c) = self.overflow(e.ty(), &q) {
-                            obligations.push(Self::obligation(
-                                e,
-                                ErrKind::Overflow,
-                                format!("(and (not (= {d} 0.0)) {c})"),
-                            ));
-                        }
-                        self.rounded(&q)
-                    }
-                    ArithOp::Mul if is_decimal_sort(e.ty()) => {
-                        let exact =
-                            format!("(* {} {})", Self::as_real(a, &xt), Self::as_real(b, &yt));
-                        if let Some(c) = self.overflow(e.ty(), &exact) {
-                            obligations.push(Self::obligation(e, ErrKind::Overflow, c));
-                        }
-                        self.rounded(&exact)
-                    }
-                    _ => {
-                        let sym = match op {
-                            ArithOp::Add => "+",
-                            ArithOp::Sub => "-",
-                            _ => "*",
-                        };
-                        let t = format!("({sym} {xt} {yt})");
-                        if let Some(c) = self.overflow(e.ty(), &t) {
-                            obligations.push(Self::obligation(e, ErrKind::Overflow, c));
-                        }
-                        if is_decimal_sort(e.ty()) {
-                            self.rounded_sum(&t)
-                        } else {
-                            t
-                        }
+                        return Err(EncodeError::Unsupported("integer division".into()));
                     }
                 };
+                let t = format!("({sym} {xt} {yt})");
+                if let Some(c) = self.overflow(e.ty(), &t) {
+                    obligations.push(Self::obligation(e, ErrKind::Overflow, c));
+                }
                 Ok(Encoded {
-                    term: Term::Plain(term),
+                    term: Term::Plain(t),
                     obligations,
                 })
             }
@@ -743,6 +653,14 @@ impl<'m> Encoder<'m> {
                         q
                     }
                 };
+                // A fixed-scale node is range-checked wherever it occurs, as at runtime.
+                if let Some(s) = fixed_scale(e.ty()).and_then(|n| n.scale) {
+                    obligations.push(Self::obligation(
+                        e,
+                        ErrKind::Overflow,
+                        out_of_range(&term, s),
+                    ));
+                }
                 Encoded {
                     term: Term::Plain(term),
                     obligations,
@@ -774,8 +692,6 @@ impl<'m> Encoder<'m> {
             Nice::Raw => &[],
             Nice::Scale => &[&self.nice_scale],
             Nice::Full => &[&self.nice_scale, &self.nice],
-            Nice::ScaleExact => &[&self.nice_scale, &self.exact],
-            Nice::FullExact => &[&self.nice_scale, &self.nice, &self.exact],
         };
         for list in extra {
             for a in list.iter() {
@@ -849,10 +765,6 @@ pub enum Nice {
     Scale,
     /// At most 4 fractional digits and magnitude ≤ 10^15.
     Full,
-    /// `Scale`, and no rounding anywhere (models the engine reproduces most easily).
-    ScaleExact,
-    /// `Full`, and no rounding anywhere.
-    FullExact,
 }
 
 /// What a step of the runtime path checks.
@@ -1005,7 +917,19 @@ impl<'m> ActionEncoding<'m> {
         // Effects against S, then S'.
         let mut env_post = env.clone();
         for e in action.effects() {
-            let r = enc.encode(e.value(), &env)?;
+            let mut r = enc.encode(e.value(), &env)?;
+            // An exact value stored into a fixed-scale field: on the grid by admission, range
+            // checked by the runtime.
+            if let Type::Exact(Unit::Nominal(n)) = e.value().ty()
+                && let Some(s) = n.scale
+            {
+                let t = r.term.plain()?.to_string();
+                r.obligations.push(Encoder::obligation(
+                    e.value(),
+                    ErrKind::Overflow,
+                    out_of_range(&t, s),
+                ));
+            }
             if let Some(Binding::Entity { fields, .. }) = env_post.get_mut(e.param()) {
                 fields.insert(e.field().to_string(), r.term.clone());
             }

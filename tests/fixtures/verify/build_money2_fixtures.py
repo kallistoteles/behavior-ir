@@ -198,6 +198,44 @@ def split_half_even(split: Split):
     ensures(split.y * 3 >= split.x - Money(Decimal("0.02")))
 
 
+# --- feature 004: an exact ratio inside one rescale ----------------------------------------------
+
+
+@entity
+class Share:
+    budget = field(Money)
+    total = field(Money)
+    part = field(Money)
+
+
+@constraint
+def non_negative_share(share: Share):
+    return (share.budget >= Money(Decimal("0"))) & (share.total >= Money(Decimal("0"))) & (
+        share.part >= Money(Decimal("0")))
+
+
+@invariant
+def part_within_total(share: Share):
+    return share.part <= share.total
+
+
+@action
+def allocate(share: Share, *, amount: Input[Money]):
+    requires(amount >= Money(Decimal("0")))
+    requires(amount <= share.budget)
+    requires(share.budget > Money(Decimal("0")))
+    set_(share.part, rescale(share.total * (amount / share.budget), Money, Rounding.FLOOR))
+    ensures(share.part <= share.total)
+
+
+@action
+def allocate_unchecked(share: Share, *, amount: Input[Money]):
+    requires(amount >= Money(Decimal("0")))
+    requires(share.budget > Money(Decimal("0")))
+    set_(share.part, rescale(share.total * (amount / share.budget), Money, Rounding.FLOOR))
+    ensures(share.part <= share.total)
+
+
 def write(name: str, model: BehaviorModule) -> None:
     (OUT / f"{name}.json").write_text(model.to_wire_json())
 
@@ -214,6 +252,9 @@ def main() -> None:
         root=str(OUT)))
     write("rescale_modes", BehaviorModule(
         entities=[Split], actions=[split_floor, split_ceiling, split_half_even], root=str(OUT)))
+    write("share_bound", BehaviorModule(
+        entities=[Share], constraints=[non_negative_share], invariants=[part_within_total],
+        actions=[allocate, allocate_unchecked], root=str(OUT)))
 
 
 if __name__ == "__main__":

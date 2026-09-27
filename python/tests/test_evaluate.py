@@ -45,7 +45,7 @@ def test_above_limit() -> None:
     assert d.changes == []
     step = d.trace[3]
     assert step.outcome is False
-    assert step.reads == {"invoice.amount": "60000", "actor.approval_limit": "50000"}
+    assert step.reads == {"invoice.amount": "60000.00", "actor.approval_limit": "50000.00"}
 
 
 def test_wrong_role_skips_later_preconditions() -> None:

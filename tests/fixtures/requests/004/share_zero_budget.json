@@ -1,0 +1,15 @@
+{
+ "action": "show_portion",
+ "context": {},
+ "data_version": "1",
+ "input": {},
+ "state": {
+  "share": {
+   "amount": "10.00",
+   "budget": "0",
+   "id": "s1",
+   "part": "0",
+   "total": "0"
+  }
+ }
+}

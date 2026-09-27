@@ -12,33 +12,9 @@
   },
   {
    "kind": "evaluation_error",
-   "action": "flag_project",
-   "subject": "(project.revenue - project.cost) / project.revenue (numeric overflow)",
-   "outcome": "counterexample"
-  },
-  {
-   "kind": "evaluation_error",
-   "action": "flag_project",
-   "subject": "project.revenue - project.cost (numeric overflow)",
-   "outcome": "proven"
-  },
-  {
-   "kind": "evaluation_error",
    "action": "flag_project_unguarded",
    "subject": "(project.revenue - project.cost) / project.revenue (division by zero)",
    "outcome": "counterexample"
-  },
-  {
-   "kind": "evaluation_error",
-   "action": "flag_project_unguarded",
-   "subject": "(project.revenue - project.cost) / project.revenue (numeric overflow)",
-   "outcome": "counterexample"
-  },
-  {
-   "kind": "evaluation_error",
-   "action": "flag_project_unguarded",
-   "subject": "project.revenue - project.cost (numeric overflow)",
-   "outcome": "proven"
   }
  ]
 }

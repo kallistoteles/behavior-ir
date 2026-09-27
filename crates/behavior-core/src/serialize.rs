@@ -11,7 +11,7 @@ use crate::semantic::expr::{Expr, ExprKind};
 use crate::semantic::module::{Module, ParamRole};
 use crate::semantic::types::{ArithOp, CmpOp, Type, ops};
 use crate::semantic::value::encode;
-use crate::wire::{DerivedKind, IR_VERSION, IR_VERSION_CONSTRAINTS, IR_VERSION_FIXED_SCALE, Loc};
+use crate::wire::{DerivedKind, IR_VERSION_EXACT, Loc};
 
 fn loc(l: &Loc) -> Json {
     json!({"file": l.file, "line": l.line})
@@ -222,29 +222,16 @@ pub fn to_wire_value(m: &Module) -> Json {
             })
         })
         .collect();
-    let mut doc = json!({
-        "ir_version": IR_VERSION,
+    let doc = json!({
+        "ir_version": IR_VERSION_EXACT,
         "enums": enums,
         "nominals": nominals,
         "entities": entities,
         "derived": derived,
         "invariants": invariants,
         "actions": actions,
+        "constraints": constraints,
     });
-    // The lowest sufficient version: modules without constraints keep the 0.1 form and modules
-    // without fixed-scale features the 0.2 form, so earlier documents are unchanged.
-    let fixed = uses_fixed_scale(m);
-    if (fixed || !constraints.is_empty())
-        && let Json::Object(map) = &mut doc
-    {
-        let v = if fixed {
-            IR_VERSION_FIXED_SCALE
-        } else {
-            IR_VERSION_CONSTRAINTS
-        };
-        map.insert("ir_version".into(), json!(v));
-        map.insert("constraints".into(), Json::Array(constraints));
-    }
     doc
 }
 

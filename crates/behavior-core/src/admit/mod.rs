@@ -4,6 +4,7 @@
 //! explicit conversions → content hashes → Module`. Errors from every stage that can run are
 //! collected and sorted by (file, line, code); any error means no module and no hash.
 
+pub mod bounds;
 pub mod graph;
 pub mod hash;
 pub mod resolve;
@@ -103,9 +104,10 @@ fn decode(wire_text: &str) -> Result<wire::WModule, AdmissionResult> {
             Err(AdmissionResult::failed(vec![AdmissionError::new(
                 "UNSUPPORTED_IR_VERSION",
                 format!(
-                    "unsupported ir_version `{v}`; this engine accepts `{}` and `{}`",
-                    wire::IR_VERSION,
-                    wire::IR_VERSION_CONSTRAINTS
+                    "unsupported ir_version `{v}`; this engine accepts `{}` only. Wire IR 0.1–0.3 \
+                     used rounded decimal arithmetic, 0.4 is exact: re-serialize from the DSL and \
+                     declare a scale where computed values are stored",
+                    wire::IR_VERSION_EXACT
                 ),
                 None,
             )]))

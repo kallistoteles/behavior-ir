@@ -16,7 +16,7 @@ from .decl import (
 from .errors import BehaviorDefinitionError, BehaviorInvalid
 from .expr import engine_error, lift
 from .statements import CURRENT, Frame, check_condition
-from .types import BType, EnumT, NominalT, OptionT
+from .types import BType, EnumT, ExactT, NominalT, OptionT
 
 
 class CompileSession:
@@ -31,6 +31,10 @@ class CompileSession:
         """Declares enum and nominal types to the builder (idempotent)."""
         if isinstance(t, OptionT):
             self.declare(t.of)
+            return
+        if isinstance(t, ExactT):
+            if t.of is not None:
+                self.declare(t.of)
             return
         if not isinstance(t, (EnumT, NominalT)) or t.name in self._declared:
             return

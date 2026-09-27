@@ -1,7 +1,8 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-//! Frozen hash vectors. Run with `BLESS_HASH_VECTORS=1` once to fill in missing expectations;
-//! never re-bless existing ones (a change requires new hash tags).
+//! Frozen hash vectors. Run with `BLESS_HASH_VECTORS=1` to fill in missing expectations; changing
+//! an existing one requires a reviewed regeneration (remove its `expect`, bless, and record the
+//! change in the migration table).
 
 mod common;
 

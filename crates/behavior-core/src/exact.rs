@@ -77,7 +77,7 @@ fn pow10(n: u32) -> BigInt {
 impl Exact {
     fn checked(r: BigRational) -> Result<Exact, NumError> {
         if r.numer().bits() > MAX_BITS || r.denom().bits() > MAX_BITS {
-            return Err(NumError::Overflow);
+            return Err(NumError::ExactBound);
         }
         Ok(Exact(r))
     }
@@ -127,6 +127,11 @@ impl Exact {
         self.0.is_zero()
     }
 
+    /// Bit lengths of the reduced numerator (absolute value) and denominator.
+    pub fn bits(&self) -> (u64, u64) {
+        (self.0.numer().bits(), self.0.denom().bits())
+    }
+
     pub fn add(&self, o: &Exact) -> Result<Exact, NumError> {
         Exact::checked(&self.0 + &o.0)
     }
@@ -173,6 +178,17 @@ impl Exact {
             Some(s) => s,
             None => format!("{}/{}", self.0.numer(), self.0.denom()),
         }
+    }
+
+    /// The same value as a decimal (`c · 10^−s`, `|c| < 10^28`, `s ≤ 28`), if it is one.
+    pub fn to_dec(&self) -> Result<Dec, NumError> {
+        let text = self.finite_decimal().ok_or(NumError::NotRepresentable)?;
+        let d = Dec::parse_str(&text).map_err(|_| NumError::NotRepresentable)?;
+        let (m, scale) = d.mantissa_scale();
+        if scale > 28 || m.unsigned_abs() >= 10u128.pow(28) || Exact::from_dec(&d) != *self {
+            return Err(NumError::NotRepresentable);
+        }
+        Ok(d)
     }
 
     /// Rounds to the grid `10^-scale` with `mode`; the result must fit the engine's decimals.

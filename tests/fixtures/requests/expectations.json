@@ -5,7 +5,7 @@
    true,
    true,
    {
-    "assigned": "-50"
+    "assigned": "-50.00"
    },
    false
   ],
@@ -17,11 +17,11 @@
   ],
   "reads": {
    "2": {
-    "discount": "150",
-    "invoice.amount": "100"
+    "discount": "150.00",
+    "invoice.amount": "100.00"
    },
    "3": {
-    "invoice.amount": "-50"
+    "invoice.amount": "-50.00"
    }
   },
   "reasons": [
@@ -91,8 +91,8 @@
   ],
   "reads": {
    "3": {
-    "actor.approval_limit": "50000",
-    "invoice.amount": "60000"
+    "actor.approval_limit": "50000.00",
+    "invoice.amount": "60000.00"
    }
   },
   "reasons": [
@@ -146,8 +146,8 @@
   ],
   "reads": {
    "3": {
-    "actor.approval_limit": "50000",
-    "invoice.amount": "43200"
+    "actor.approval_limit": "50000.00",
+    "invoice.amount": "43200.00"
    }
   },
   "reasons": [],
@@ -199,8 +199,8 @@
   ],
   "reads": {
    "3": {
-    "actor.approval_limit": "50000",
-    "invoice.amount": "50000"
+    "actor.approval_limit": "50000.00",
+    "invoice.amount": "50000.00"
    }
   },
   "reasons": [],
@@ -217,7 +217,7 @@
   ],
   "reads": {
    "0": {
-    "invoice.amount": "-1"
+    "invoice.amount": "-1.00"
    }
   },
   "reasons": [

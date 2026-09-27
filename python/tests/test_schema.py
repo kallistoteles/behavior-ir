@@ -11,9 +11,9 @@ from .conftest import FIXTURES, REPO_ROOT
 
 SCHEMAS = {
     v: json.loads((REPO_ROOT / "schema" / f"wire-ir-{v}.schema.json").read_text())
-    for v in ("0.1", "0.2", "0.3")
+    for v in ("0.1", "0.2", "0.3", "0.4")
 }
-SCHEMA = SCHEMAS["0.1"]
+SCHEMA = SCHEMAS["0.4"]
 FILES = sorted((FIXTURES / "wire" / "valid").glob("*.json")) + sorted(
     (FIXTURES / "wire" / "python").glob("*.json")
 )
@@ -35,3 +35,8 @@ def test_schema_rejects_unknown_keys() -> None:
     doc["unexpected"] = True
     with pytest.raises(jsonschema.ValidationError):
         jsonschema.validate(doc, SCHEMA, cls=jsonschema.Draft202012Validator)
+
+
+def test_only_0_4_documents_remain() -> None:
+    for path in FILES:
+        assert json.loads(path.read_text())["ir_version"] == "0.4", path.name

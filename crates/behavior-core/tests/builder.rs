@@ -34,7 +34,7 @@ fn invoice_builder() -> Builder {
         "Money",
         WType::Decimal,
         vec!["add".into(), "order".into(), "ratio".into(), "scale".into()],
-        None,
+        Some(2),
         l(1),
     )
     .unwrap();
@@ -250,7 +250,7 @@ fn project_margin_matches_wire_fixture() {
     let m = b
         .derived_ref("margin", vec!["project".into()], l(8))
         .unwrap();
-    assert_eq!(m.type_wire_json(), Some(json!({"t": "decimal"})));
+    assert_eq!(m.type_wire_json(), Some(json!({"t": "exact"})));
     let five = b.lit(WType::Decimal, json!("0.05"), l(8)).unwrap();
     let hr = b.op("lt", vec![m, five], l(8)).unwrap();
     b.pop_scope();
@@ -409,7 +409,7 @@ fn constraints_built_through_the_builder_match_the_wire_fixture() {
         "Money",
         WType::Decimal,
         vec!["add".into(), "order".into(), "ratio".into(), "scale".into()],
-        None,
+        Some(2),
         l(1),
     )
     .unwrap();

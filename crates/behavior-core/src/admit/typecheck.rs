@@ -13,7 +13,7 @@ use crate::semantic::module::{
     ParamRole,
 };
 use crate::semantic::types::{
-    ArithOp, CmpOp, Conv, OpSig, Type, TypeCode, coerce, fixed_scale, type_of_op,
+    ArithOp, CmpOp, Conv, OpSig, Type, TypeCode, Unit, coerce, fixed_scale, type_of_op,
 };
 use crate::semantic::value::{Value, decode_scalar};
 use crate::wire::{DerivedKind, Loc, OpName, WExpr, WExprKind, WModule};
@@ -67,6 +67,50 @@ fn make_to_decimal(e: Expr, loc: &Loc) -> Expr {
             loc.clone(),
         ),
         _ => Expr::new(ExprKind::ToDecimal(Box::new(e)), Type::Decimal, loc.clone()),
+    }
+}
+
+/// `Exact<T>` into `T`, `Exact<Decimal>` into `Decimal`: accepted by typing, then proven
+/// representable by the bound analysis (research R3) or rejected with `LOSSY_CONVERSION`.
+pub(crate) fn exact_store(value: &Type, target: &Type) -> bool {
+    match (value, target) {
+        (Type::Exact(Unit::Nominal(m)), Type::Nominal(n)) => m == n,
+        (Type::Exact(Unit::Dimensionless), Type::Decimal) => true,
+        _ => false,
+    }
+}
+
+/// Why an implicitly stored exact value of type `ty` with bound facts `f` may not be
+/// representable in its target (research R3), or `None` if admission proves it is: a fixed-scale
+/// target needs `scale ≤ scale(F)` (its range is checked at runtime); a general decimal target
+/// needs `scale ≤ 28` and at most 28 coefficient digits.
+fn unrepresentable_store(ty: &Type, f: &crate::admit::bounds::Facts) -> Option<String> {
+    let places = || {
+        f.scale
+            .map_or("unboundedly many".to_string(), |s| format!("up to {s}"))
+    };
+    match ty {
+        Type::Exact(Unit::Nominal(n)) if n.scale.is_some() => {
+            let scale = u32::from(n.scale.unwrap_or(0));
+            f.scale.is_none_or(|s| s > scale).then(|| {
+                format!(
+                    "the exact value may have {} decimal places, `{}` has {scale}",
+                    places(),
+                    n.name
+                )
+            })
+        }
+        Type::Exact(_) => match (f.scale, f.cd) {
+            (Some(s), Some(c)) if s <= 28 && c <= 28 => None,
+            (Some(s), Some(c)) if s <= 28 => Some(format!(
+                "the exact value may need {c} significant digits, decimals have 28"
+            )),
+            _ => Some(format!(
+                "the exact value may have {} decimal places, decimals have at most 28",
+                places()
+            )),
+        },
+        _ => None,
     }
 }
 
@@ -163,6 +207,11 @@ impl Ctx<'_> {
             TypeCode::EmptyIn => "`in` needs at least one value".to_string(),
             TypeCode::NestedOption => "options cannot be nested".to_string(),
             TypeCode::TypeMismatch => format!("cannot apply `{what}` to {}", list.join(" and ")),
+            TypeCode::LossyConversion if what == "unwrap" => format!(
+                "`unwrap` on {} would erase its nominal unit; exact quantities keep their unit \
+                 until an explicit `rescale(value, Type, rounding)`",
+                list.join(" and ")
+            ),
             TypeCode::LossyConversion => format!(
                 "`{what}` on {} would lose information; narrow explicitly with \
                  `rescale(value, Type, rounding)`",
@@ -342,7 +391,8 @@ impl Ctx<'_> {
                 }
                 let ok = match &a.ty {
                     Type::Int | Type::Decimal => true,
-                    Type::Nominal(m) | Type::Exact(m) => *m == n,
+                    Type::Nominal(m) => *m == n,
+                    Type::Exact(u) => u.nominal().is_none_or(|m| *m == n),
                     _ => false,
                 };
                 if !ok {
@@ -579,9 +629,14 @@ pub(crate) fn build_module(
                 ok = false;
                 continue;
             };
-            let Some(c) = coerce(&fty, &value.ty) else {
-                let lossy = fixed_scale(&fty).is_some()
-                    && matches!(value.ty, Type::Exact(_) | Type::Decimal);
+            let coerced = if exact_store(&value.ty, &fty) {
+                Some(Conv::Keep)
+            } else {
+                coerce(&fty, &value.ty)
+            };
+            let Some(c) = coerced else {
+                let lossy = matches!(value.ty, Type::Exact(_))
+                    || (fixed_scale(&fty).is_some() && value.ty == Type::Decimal);
                 let (code, msg) = if lossy {
                     (
                         "LOSSY_CONVERSION",
@@ -645,6 +700,52 @@ pub(crate) fn build_module(
             },
         );
     }
+
+    // Every exact value must fit the runtime's representation (feature 004, research R4).
+    let mut facts = BTreeMap::new();
+    let mut lossy_stores = Vec::new();
+    let mut check = |e: &Expr, facts: &BTreeMap<String, crate::admit::bounds::Facts>| {
+        let mut err = None;
+        let f = crate::admit::bounds::facts(e, facts, &mut err);
+        if let Some(e) = err {
+            errs.push(e);
+        }
+        f
+    };
+    for name in &order {
+        if let Some(d) = derived.get(name) {
+            let f = check(&d.body, &facts);
+            facts.insert(name.clone(), f);
+        }
+    }
+    for i in invariants.values() {
+        check(&i.body, &facts);
+    }
+    for c in constraints.values() {
+        check(&c.body, &facts);
+    }
+    for a in actions.values() {
+        for c in a.preconditions.iter().chain(&a.postconditions) {
+            check(&c.expr, &facts);
+        }
+        for e in &a.effects {
+            let f = check(&e.value, &facts);
+            if let Some(problem) = unrepresentable_store(e.value.ty(), &f) {
+                lossy_stores.push(AdmissionError::new(
+                    "LOSSY_CONVERSION",
+                    format!(
+                        "assigning `{}` to `{}.{}` would lose information: {problem}; use \
+                         `rescale(value, Type, rounding)` with a fixed-scale type",
+                        e.value.ty(),
+                        e.param,
+                        e.field
+                    ),
+                    Some(&e.loc),
+                ));
+            }
+        }
+    }
+    errs.extend(lossy_stores);
 
     if !errs.is_empty() {
         return None;

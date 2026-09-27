@@ -77,7 +77,7 @@ fn records_meet_003_expectations() {
     for (name, e) in exp.as_object().unwrap() {
         let (_, rec) = record(&m, name);
         let mut out = Vec::new();
-        if rec["record_version"] != "0.3" {
+        if rec["record_version"] != "0.4" {
             out.push(format!("record_version {}", rec["record_version"]));
         }
         subset(e, &rec, "", &mut out);
@@ -120,14 +120,15 @@ fn records_replay_byte_for_byte() {
 }
 
 #[test]
-fn exact_context_differs_from_general_decimals_where_it_matters() {
-    // `amount * (1 / 3)` rounded down: exactly 0.01 inside the exact region, but 0.00 when the
-    // same 1/3 comes from a derived general decimal (0.3333333333333333333333333333).
+fn one_third_is_exact_inline_and_through_a_derived_value() {
+    // Feature 004: `amount * (1 / 3)` rounded down is exactly 0.01 whether 1/3 is written inline
+    // or comes from a derived value (all decimal arithmetic is exact; the 003 exact region is
+    // gone).
     let m = module();
     let (_, a) = record(&m, "third_exact");
     let (_, b) = record(&m, "third_via_derived");
     assert_eq!(a["changes"][0]["new"], "0.01");
-    assert_eq!(b["changes"][0]["new"], "0.00");
+    assert_eq!(b["changes"][0]["new"], "0.01");
 }
 
 fn add_spent(amount: &str) -> String {

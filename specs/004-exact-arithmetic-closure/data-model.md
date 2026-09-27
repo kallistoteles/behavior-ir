@@ -41,7 +41,7 @@ Computed from types, literals, and type-level bounds only (FR-012c).
 | `EXACT_BOUND_EXCEEDED` | an exact expression's bound exceeds 511 bits (message: required vs supported) |
 | `LOSSY_CONVERSION` | a store the rules cannot prove (also non-terminating ratios, possible digit overflow) |
 | `TYPE_MISMATCH` | `SEK ÷ JPY`, `ratio + amount`, mixed units |
-| `UNSUPPORTED_VERSION` | wire IR `0.1`–`0.3` (message: migrate to 0.4) |
+| `UNSUPPORTED_IR_VERSION` | wire IR `0.1`–`0.3` (message: migrate to 0.4) |
 
 ## Versions
 

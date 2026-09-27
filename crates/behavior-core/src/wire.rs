@@ -13,6 +13,10 @@ pub const IR_VERSION: &str = "0.1";
 pub const IR_VERSION_CONSTRAINTS: &str = "0.2";
 /// The IR version with fixed-scale decimals, exact quantities, and rescale (feature 003).
 pub const IR_VERSION_FIXED_SCALE: &str = "0.3";
+/// The IR version with exact arithmetic closure (feature 004): the only version this engine
+/// accepts. Earlier versions had rounded decimal arithmetic; the same document text must not
+/// silently change meaning, so they are rejected.
+pub const IR_VERSION_EXACT: &str = "0.4";
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 pub struct Loc {
@@ -29,8 +33,8 @@ pub enum WType {
     Option(Box<WType>),
     Enum(String),
     Nominal(String),
-    /// `Exact<T>` of a fixed-scale nominal (wire 0.3).
-    Exact(String),
+    /// An exact value: of a decimal nominal (`Some(name)`) or dimensionless (`None`).
+    Exact(Option<String>),
     Id(String),
     Entity(String),
 }
@@ -346,7 +350,14 @@ pub fn decode_type(v: &Value, path: &str) -> R<WType> {
         }
         "enum" => WType::Enum(o.ident("name")?),
         "nominal" => WType::Nominal(o.ident("name")?),
-        "exact" => WType::Exact(o.ident("name")?),
+        "exact" => {
+            let name_path = o.sub("name");
+            match o.opt("name") {
+                None => WType::Exact(None),
+                Some(Value::String(s)) if is_identifier(s) => WType::Exact(Some(s.clone())),
+                Some(_) => return fail(&name_path, "expected an identifier string"),
+            }
+        }
         "id" => WType::Id(o.ident("entity")?),
         "entity" => WType::Entity(o.ident("name")?),
         other => return fail(&tag_path, format!("unknown type `{other}`")),
@@ -549,9 +560,7 @@ pub fn decode_module(text: &str) -> R<WModule> {
     };
     let mut o = Obj::new(&root, "$")?;
     let (with_constraints, fixed_scale) = match o.get("ir_version")? {
-        Value::String(v) if v == IR_VERSION => (false, false),
-        Value::String(v) if v == IR_VERSION_CONSTRAINTS => (true, false),
-        Value::String(v) if v == IR_VERSION_FIXED_SCALE => (true, true),
+        Value::String(v) if v == IR_VERSION_EXACT => (true, true),
         Value::String(v) => return Err(DecodeError::UnsupportedVersion(v.clone())),
         _ => return fail("$.ir_version", "expected a string"),
     };

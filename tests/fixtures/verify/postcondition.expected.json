@@ -6,13 +6,13 @@
   {
    "kind": "postcondition",
    "action": "deposit",
-   "subject": "account.balance >= Money(0)",
+   "subject": "account.balance >= Money(0.00)",
    "outcome": "counterexample"
   },
   {
    "kind": "postcondition",
    "action": "deposit_checked",
-   "subject": "account.balance >= Money(0)",
+   "subject": "account.balance >= Money(0.00)",
    "outcome": "proven"
   }
  ]

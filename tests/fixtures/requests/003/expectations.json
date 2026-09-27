@@ -348,7 +348,7 @@
   "changes": [
    {
     "field": "fee",
-    "new": "0.00"
+    "new": "0.01"
    }
   ],
   "result": "ALLOW"

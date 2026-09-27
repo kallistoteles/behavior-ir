@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use crate::admit::{AdmissionError, hash};
 use crate::semantic::module::{EntityItem, Param, ParamRole};
-use crate::semantic::types::{EnumInfo, NominalInfo, Prim, Type, check_type, ops};
+use crate::semantic::types::{EnumInfo, NominalInfo, Prim, Type, Unit, check_type, ops};
 use crate::wire::{Loc, WModule, WParam, WType};
 
 /// Resolved declarations of the information model.
@@ -74,13 +74,14 @@ pub(crate) fn resolve_type(
                 return None;
             }
         },
-        WType::Exact(name) => match nominals.get(name) {
-            Some(n) if n.scale.is_some() => Type::Exact(n.clone()),
+        WType::Exact(None) => Type::Exact(Unit::Dimensionless),
+        WType::Exact(Some(name)) => match nominals.get(name) {
+            Some(n) if n.underlying == Prim::Decimal => Type::Exact(Unit::Nominal(n.clone())),
             Some(_) => {
                 err(
                     errs,
-                    "EXACT_NOT_FIXED_SCALE",
-                    format!("`exact` needs a fixed-scale nominal; `{name}` has no scale"),
+                    "TYPE_MISMATCH",
+                    format!("`exact` needs a decimal-based nominal; `{name}` is not one"),
                     loc,
                 );
                 return None;

@@ -5,7 +5,7 @@ Extends the 001–003 engine-api contracts. Semantics: [numeric-semantics.md](nu
 ## Wire IR 0.4
 
 - `ir_version` must be `"0.4"`. Documents with `"0.1"`, `"0.2"`, or `"0.3"` are rejected with
-  `UNSUPPORTED_VERSION` and a message: *"wire IR 0.1–0.3 used rounded decimal arithmetic; 0.4 is
+  `UNSUPPORTED_IR_VERSION` and a message: *"wire IR 0.1–0.3 used rounded decimal arithmetic; 0.4 is
   exact. Re-serialize from the DSL and declare a scale where computed values are stored."*
 - Everything of 0.3 is allowed (constraints list required, `scale`, `rescale`, declared derived
   types).
@@ -16,7 +16,7 @@ Extends the 001–003 engine-api contracts. Semantics: [numeric-semantics.md](nu
 ## Admission errors
 
 `EXACT_BOUND_EXCEEDED` (new), `LOSSY_CONVERSION` (extended to unprovable stores into general
-decimals), `UNSUPPORTED_VERSION` (0.1–0.3), `TYPE_MISMATCH` (mixed units, `SEK ÷ JPY`,
+decimals), `UNSUPPORTED_IR_VERSION` (0.1–0.3), `TYPE_MISMATCH` (mixed units, `SEK ÷ JPY`,
 `ratio ± amount`). `EXACT_NOT_FIXED_SCALE` is retired for declared types (any decimal nominal may
 be exact) and kept for `rescale` targets without a scale.
 

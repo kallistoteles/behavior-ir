@@ -44,7 +44,7 @@ fn large_module() -> String {
                          "loc": loc(8)}],
             "postconditions": []}));
     }
-    json!({"ir_version": "0.1", "enums": [], "nominals": [], "invariants": [],
+    json!({"ir_version": "0.4", "constraints": [], "enums": [], "nominals": [], "invariants": [],
            "entities": [{"name": "E", "loc": loc(9), "fields": [
                {"name": "x", "type": {"t": "int"}, "loc": loc(9)},
                {"name": "y", "type": {"t": "int"}, "loc": loc(9)}]}],
@@ -79,4 +79,44 @@ fn perf_admission_and_evaluation() {
         "evaluation took {eval_time:?}"
     );
     eprintln!("admission: {admit_time:?}, evaluation: {eval_time:?}");
+}
+
+/// SC-006 (feature 004): the bound analysis adds at most 10% or 50 ms to admission. Measured as
+/// the cost of re-running the analysis over the admitted example modules (the analysis runs once
+/// per admission) against the whole admission time.
+#[test]
+#[ignore]
+fn perf_bound_analysis_overhead() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/fixtures");
+    let mut wires: Vec<String> = [
+        "wire/valid/invoice.json",
+        "wire/valid/project_margin.json",
+        "wire/valid/constraints.json",
+        "wire/valid/fixed_scale.json",
+        "wire/valid/exact_closure.json",
+        "wire/valid/exact_bound_ok.json",
+    ]
+    .iter()
+    .map(|f| std::fs::read_to_string(root.join(f)).unwrap())
+    .collect();
+    wires.push(large_module());
+    const N: u32 = 50;
+    for wire in &wires {
+        let start = Instant::now();
+        for _ in 0..N {
+            admit(wire).unwrap();
+        }
+        let admission = start.elapsed() / N;
+        let m = admit(wire).unwrap();
+        let start = Instant::now();
+        for _ in 0..N {
+            std::hint::black_box(behavior_core::admit::bounds::derived_facts(&m));
+        }
+        let analysis = start.elapsed() / N;
+        eprintln!("admission {admission:?}, bound analysis {analysis:?}");
+        assert!(
+            analysis <= admission / 10 || analysis <= Duration::from_millis(50),
+            "bound analysis {analysis:?} vs admission {admission:?}"
+        );
+    }
 }

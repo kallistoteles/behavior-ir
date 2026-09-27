@@ -80,7 +80,7 @@
     }
    ],
    "expect": {
-    "t": "decimal"
+    "t": "exact"
    }
   },
   {
@@ -94,7 +94,7 @@
     }
    ],
    "expect": {
-    "t": "decimal"
+    "t": "exact"
    }
   },
   {
@@ -108,7 +108,7 @@
     }
    ],
    "expect": {
-    "t": "decimal"
+    "t": "exact"
    }
   },
   {
@@ -124,7 +124,7 @@
     }
    ],
    "expect": {
-    "t": "nominal",
+    "t": "exact",
     "name": "Money"
    }
   },
@@ -141,7 +141,7 @@
     }
    ],
    "expect": {
-    "t": "nominal",
+    "t": "exact",
     "name": "Money"
    }
   },
@@ -260,7 +260,7 @@
     }
    ],
    "expect": {
-    "t": "decimal"
+    "t": "exact"
    }
   },
   {
@@ -275,7 +275,7 @@
     }
    ],
    "expect": {
-    "t": "nominal",
+    "t": "exact",
     "name": "Money"
    }
   },
@@ -291,7 +291,7 @@
     }
    ],
    "expect": {
-    "t": "nominal",
+    "t": "exact",
     "name": "Money"
    }
   },
@@ -307,7 +307,7 @@
     }
    ],
    "expect": {
-    "t": "nominal",
+    "t": "exact",
     "name": "Money"
    }
   },
@@ -323,7 +323,7 @@
     }
    ],
    "expect": {
-    "t": "nominal",
+    "t": "exact",
     "name": "Money"
    }
   },
@@ -400,7 +400,7 @@
     }
    ],
    "expect": {
-    "t": "decimal"
+    "t": "exact"
    }
   },
   {
@@ -414,7 +414,7 @@
     }
    ],
    "expect": {
-    "t": "decimal"
+    "t": "exact"
    }
   },
   {
@@ -430,7 +430,7 @@
     }
    ],
    "expect": {
-    "t": "decimal"
+    "t": "exact"
    }
   },
   {
@@ -446,7 +446,7 @@
     }
    ],
    "expect": {
-    "t": "decimal"
+    "t": "exact"
    }
   },
   {
@@ -461,7 +461,7 @@
     }
    ],
    "expect": {
-    "t": "nominal",
+    "t": "exact",
     "name": "Money"
    }
   },
@@ -477,7 +477,7 @@
     }
    ],
    "expect": {
-    "t": "nominal",
+    "t": "exact",
     "name": "Money"
    }
   },

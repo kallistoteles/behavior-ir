@@ -1,10 +1,11 @@
-# How verification works (features 002–003)
+# How verification works (features 002–004)
 
 A behavior module is no longer only a program that can run: its central safety and correctness
 properties are turned into mathematical questions automatically, proven or refuted, and kept as
 evidence bound to the behavior version.
 
-Details: `specs/002-smt-verification/` and `specs/003-fixed-scale-decimals/` (spec, research, contracts, quickstart,
+Details: `specs/002-smt-verification/`, `specs/003-fixed-scale-decimals/`, and
+`specs/004-exact-arithmetic-closure/` (spec, research, contracts, quickstart,
 `checklists/implementation-review.md`).
 
 ## Pipeline
@@ -15,9 +16,9 @@ Details: `specs/002-smt-verification/` and `specs/003-fixed-scale-decimals/` (sp
                                    ▼
             Semantic assumptions = exactly what the runtime guarantees
    (type domains, entity constraints on incoming entities, invariants on S,
-    distinct state identities, evaluation order; fixed-scale values as integers on their grid,
-    exact quantities as rationals, each rescale as its rounding function; general decimals
-    with rounding intervals)
+    distinct state identities, evaluation order; all decimal arithmetic exact, as at runtime:
+    fixed-scale values on their grid, exact quantities and ratios as rationals, each rescale as
+    its rounding function; exact values bounded at admission to what the runtime represents)
                                    │
           ┌────────────────────────┼────────────────────────┐
           ▼                        ▼                        ▼
@@ -75,7 +76,8 @@ Two consequences:
 2. **Proofs and counterexamples rest on different trust.** Counterexamples are confirmed by the
    engine itself, so they do not depend on the encoding. Proofs depend on the SMT model matching
    the engine. (Feature 002 found and fixed one such mismatch: decimal `+`/`-` also round near
-   10^28; `tests/fixtures/verify/sum_rounding.json` guards it.)
+   10^28. Feature 004 removed the class: arithmetic is exact in both, and admission rejects any
+   exact intermediate the runtime could not represent, `EXACT_BOUND_EXCEEDED`.)
 
 ## Known limitations — three different kinds of debt
 
@@ -83,8 +85,9 @@ Two consequences:
 |---|---|---|---|
 | Unsigned attestations | trust / provenance | Content is tamper-evident (hash), but not *who* produced it; anyone can compute a self-consistent "verified" attestation | Verifier-signed attestations, or `authorize` re-verifying (cheap with the cache) |
 | Trusted cache | integrity | Keys are already content-addressed from all inputs, but the stored *result* is not verifiable: a planted entry under the right key is accepted | Authenticated entries (signature/MAC) or checkable proof certificates; keep the cache writable only by the verifier |
-| General decimals (no fixed scale) | semantics / expressiveness | **Addressed for money by feature 003**: fixed-scale types (`nominal(Decimal, scale=2)`) are exact on input and in lossless arithmetic, every narrowing is an explicit `rescale` with one of six rounding modes, and the verifier reasons about them exactly (`amount <= remaining(project)` is proven). General decimals keep the interval model and may still be inconclusive | Use fixed-scale types for quantities with a known number of decimals. Remaining: the ratio `T ÷ T` is a general decimal (28-digit rounding) — an exact ratio type is a follow-up; exact quantities have a 512-bit limit the verifier does not model |
+| General decimals and ratios | semantics / expressiveness | **Resolved by features 003–004**: fixed-scale types (`nominal(Decimal, scale=2)`) are exact on input; since 004 *all* decimal arithmetic is exact (ratios `T ÷ T` are exact dimensionless values, general decimals compute exactly), rounding happens only in an explicit `rescale` (six modes), and implicit stores are admitted only when proven representable. The verifier models exactly this; no check is inconclusive because of decimal rounding, and the runtime's 512-bit limit is enforced at admission | Declare a scale for stored quantities; use `rescale` at every lossy boundary. What remains is range: fixed-scale sums can exceed their integer digits, found as `evaluation_error` |
 
-Fixed-scale decimals (feature 003) came first, since they directly increase what can be proven.
+Fixed-scale decimals (feature 003) and exact arithmetic closure (feature 004) came first, since
+they directly increase what can be proven.
 Signed attestations and a hardened cache matter once results are trusted across trust
 boundaries.

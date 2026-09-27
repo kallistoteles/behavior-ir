@@ -54,7 +54,7 @@ fn exact() -> Value {
 /// declared with `ty`.
 fn typed(body: Value, ty: Value) -> Value {
     json!({
-        "ir_version": "0.3", "enums": [], "constraints": [], "invariants": [], "actions": [],
+        "ir_version": "0.4", "enums": [], "constraints": [], "invariants": [], "actions": [],
         "nominals": [{"name": "Money", "underlying": {"t": "decimal"},
                       "ops": ["add", "order", "ratio", "scale"], "scale": 2, "loc": l()}],
         "entities": [{"name": "Row", "loc": l(), "fields": [
@@ -106,7 +106,46 @@ fn typing_table() {
         op("le", vec![op("mul", vec![fld("a"), dec("1.25")]), fld("b")]),
         json!({"t": "bool"}),
     );
-    has_type(op("div", vec![fld("a"), fld("b")]), json!({"t": "decimal"}));
+    // Feature 004: same-type division is an exact dimensionless ratio (was a rounded Decimal).
+    let ratio = json!({"t": "exact"});
+    let div = |a: Value, b: Value| op("div", vec![a, b]);
+    has_type(div(fld("a"), fld("b")), ratio.clone());
+    has_type(
+        div(op("mul", vec![fld("a"), dec("0.5")]), fld("b")),
+        ratio.clone(),
+    );
+    has_type(
+        div(fld("a"), op("mul", vec![fld("b"), dec("0.5")])),
+        ratio.clone(),
+    );
+    has_type(
+        div(
+            op("mul", vec![fld("a"), dec("0.5")]),
+            op("mul", vec![fld("b"), dec("2")]),
+        ),
+        ratio.clone(),
+    );
+    has_type(op("mul", vec![div(fld("a"), fld("b")), fld("a")]), exact());
+    has_type(op("mul", vec![fld("a"), div(fld("a"), fld("b"))]), exact());
+    has_type(
+        op("add", vec![div(fld("a"), fld("b")), dec("1")]),
+        ratio.clone(),
+    );
+    has_type(
+        op(
+            "mul",
+            vec![div(fld("a"), fld("b")), div(fld("b"), fld("a"))],
+        ),
+        ratio.clone(),
+    );
+    has_type(
+        op("le", vec![div(fld("a"), fld("b")), dec("0.25")]),
+        json!({"t": "bool"}),
+    );
+    has_type(
+        json!({"op": "wrap", "nominal": "Money", "args": [div(fld("a"), fld("b"))], "loc": l()}),
+        exact(),
+    );
     has_type(rescale(op("mul", vec![fld("a"), dec("0.25")])), money());
     has_type(rescale(dec("1.005")), money());
     has_type(rescale(int(7)), money());
@@ -124,11 +163,24 @@ fn lossy_and_invalid_forms_are_rejected() {
     let dec = |s: &str| lit(json!({"t": "decimal"}), json!(s));
     let wrap_dec = json!({"op": "wrap", "nominal": "Money", "args": [dec("1.5")], "loc": l()});
     assert_eq!(codes(&typed(wrap_dec, money())), ["LOSSY_CONVERSION"]);
+    // A non-numeric value is not "lossy", it is the wrong type (no rescale hint).
+    let wrap_bool = json!({"op": "wrap", "nominal": "Money",
+                           "args": [lit(json!({"t": "bool"}), json!(true))], "loc": l()});
+    assert_eq!(codes(&typed(wrap_bool, money())), ["TYPE_MISMATCH"]);
     let unwrap_exact = op("unwrap", vec![op("mul", vec![fld("a"), dec("0.5")])]);
     assert_eq!(
-        codes(&typed(unwrap_exact, json!({"t": "decimal"}))),
+        codes(&typed(unwrap_exact.clone(), json!({"t": "exact"}))),
         ["LOSSY_CONVERSION"]
     );
+    let msg = admission_report(&typed(unwrap_exact, json!({"t": "exact"})).to_string()).errors[0]
+        .message
+        .clone();
+    assert!(
+        msg.contains("nominal"),
+        "unwrap of an exact value erases its unit: {msg}"
+    );
+    let ratio_plus_amount = op("add", vec![op("div", vec![fld("a"), fld("b")]), fld("a")]);
+    assert_eq!(codes(&typed(ratio_plus_amount, exact())), ["TYPE_MISMATCH"]);
     assert_eq!(
         codes(&typed(op("mul", vec![fld("a"), dec("0.5")]), money())),
         ["DECLARED_TYPE_MISMATCH"]
@@ -171,4 +223,40 @@ fn hashing_of_scale_rounding_and_declarations() {
     let a = admission_report(&base.to_string());
     let b = admission_report(&renamed.to_string());
     assert_eq!(a.items["action:charge"], b.items["action:charge_fee"]);
+}
+
+/// `fee := <value>` in the `charge` action of the fixed-scale fixture.
+fn store(value: Value) -> Value {
+    let mut m = module();
+    m["actions"][0]["effects"][0]["value"] = value;
+    m
+}
+
+#[test]
+fn exact_stores_are_admitted_only_when_provably_on_the_grid() {
+    let amount = || json!({"op": "field", "param": "invoice", "field": "amount", "loc": l()});
+    let dec = |s: &str| lit(json!({"t": "decimal"}), json!(s));
+    let int = |i: i64| lit(json!({"t": "int"}), json!(i));
+    // 2.0 normalizes to 2: scale 2 ≤ 2.
+    assert_eq!(
+        codes(&store(op("mul", vec![amount(), dec("2.0")]))),
+        Vec::<String>::new()
+    );
+    // Scale 3 or 4, or a non-terminating quotient: not provably on the two-decimal grid.
+    assert_eq!(
+        codes(&store(op("mul", vec![amount(), dec("0.5")]))),
+        ["LOSSY_CONVERSION"]
+    );
+    assert_eq!(
+        codes(&store(op("div", vec![amount(), int(4)]))),
+        ["LOSSY_CONVERSION"]
+    );
+    assert_eq!(
+        codes(&store(op("div", vec![amount(), int(3)]))),
+        ["LOSSY_CONVERSION"]
+    );
+    let msg = admission_report(&store(op("div", vec![amount(), int(3)])).to_string()).errors[0]
+        .message
+        .clone();
+    assert!(msg.contains("rescale"), "{msg}");
 }

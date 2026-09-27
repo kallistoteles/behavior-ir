@@ -45,8 +45,9 @@ if [ -f tests/fixtures/requests/expectations.json ]; then
   done < <(python3 -c 'import json,sys; [print(k, v["wire"]) for k, v in sorted(json.load(open(sys.argv[1])).items())]' tests/fixtures/requests/expectations.json)
 fi
 
-# Evaluation and replay of the feature 002 and 003 requests (constraints, fixed-scale values).
-for pair in "002:constraints" "003:fixed_scale"; do
+# Evaluation and replay of the feature 002, 003, and 004 requests (constraints, fixed-scale
+# values, exact ratios).
+for pair in "002:constraints" "003:fixed_scale" "004:exact_closure"; do
   dir="tests/fixtures/requests/${pair%%:*}"
   w="tests/fixtures/wire/valid/${pair##*:}.json"
   for r in "$dir"/*.json; do
@@ -66,10 +67,11 @@ if command -v "${BEHAVIOR_Z3:-z3}" >/dev/null 2>&1; then
     run_twice "verify $f" "$BIN" verify "$f"
   done
 
-  # A governance decision: an inconclusive finding waived with the test key.
+  # A governance decision: a forced-inconclusive finding (resource limit 1, not a hard model)
+  # waived with the test key.
   g=tests/fixtures/governance
   w=tests/fixtures/verify/purchase_remaining.json
-  "$BIN" verify "$w" >"$tmp/att.json" || true
+  "$BIN" verify "$w" --profile "$g/forced_inconclusive_profile.json" >"$tmp/att.json" || true
   "$BIN" eval "$w" "$g/approve_request.json" >"$tmp/rec.json" || true
   python3 - "$tmp" <<'PY'
 import json, sys

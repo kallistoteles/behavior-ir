@@ -11,7 +11,7 @@ from behavior import (
     field, nominal, requires,
 )
 
-Money = nominal("Money", Decimal, ops={"order", "add", "scale", "ratio"})
+Money = nominal("Money", Decimal, ops={"order", "add", "scale", "ratio"}, scale=2)
 
 
 @entity

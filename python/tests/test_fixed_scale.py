@@ -45,7 +45,7 @@ def state(amount: Decimal) -> dict[str, object]:
 
 def test_scale_is_declared_in_the_wire_ir() -> None:
     wire = json.loads(model.to_wire_json())
-    assert wire["ir_version"] == "0.3"
+    assert wire["ir_version"] == "0.4"
     (money,) = wire["nominals"]
     assert money["scale"] == 2
     fixture = json.loads((FIXTURES / "wire" / "valid" / "fixed_scale.json").read_text())
@@ -74,7 +74,7 @@ def test_off_grid_input_is_rejected_and_values_keep_their_scale() -> None:
 
 # --- US2: exact quantities and explicit rescale ------------------------------------------------
 
-from behavior import BehaviorTypeError, Exact, Rounding, derived, rescale  # noqa: E402
+from behavior import BehaviorInvalid, BehaviorTypeError, Exact, Rounding, derived, rescale  # noqa: E402
 
 
 def test_rounding_has_exactly_six_modes() -> None:
@@ -118,8 +118,12 @@ def test_rescale_matches_the_fixture_and_is_traced() -> None:
 
 
 def test_storing_an_exact_quantity_needs_rescale() -> None:
-    with pytest.raises(BehaviorTypeError, match="rescale"):
+    # Feature 004: an exact store is typed, then admission proves (or refutes) that it stays on
+    # the grid: 0.25 may add two decimal places, so it needs an explicit rescale.
+    with pytest.raises(BehaviorInvalid, match="LOSSY_CONVERSION.*rescale"):
         _fee_model(lambda inv: inv.amount * Decimal("0.25")).engine
+    # Doubling stays on the grid: stored without rescale.
+    assert _fee_model(lambda inv: inv.amount * Decimal("2.0")).engine is not None
 
 
 def test_declared_derived_types() -> None:

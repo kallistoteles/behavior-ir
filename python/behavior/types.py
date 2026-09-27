@@ -153,22 +153,26 @@ def nominal(
 
 @dataclass(frozen=True)
 class ExactT(BType):
-    """`Exact[T]`: an exact quantity of the fixed-scale nominal `T` (never stored)."""
+    """`Exact[T]`: an exact quantity of the decimal nominal `T`; `Exact[Decimal]`: an exact
+    dimensionless number or ratio (`of` is `None`). Stored only where admission proves it
+    representable, otherwise through an explicit `rescale`."""
 
-    of: NominalT
+    of: NominalT | None
 
     def engine(self) -> _engine.Type:
-        return _engine.Type.exact(self.of.name)
+        return _engine.Type.exact(self.of.name if self.of is not None else None)
 
     def display(self) -> str:
-        return f"Exact<{self.of.name}>"
+        return f"Exact<{self.of.name if self.of is not None else 'Decimal'}>"
 
 
 class _ExactFactory:
     def __getitem__(self, item: Any) -> ExactT:
-        if not isinstance(item, NominalT) or item.scale is None:
+        if item is Decimal:
+            return ExactT(None)
+        if not isinstance(item, NominalT) or item.underlying.name != "decimal":
             raise BehaviorDefinitionError(
-                f"Exact[...] needs a fixed-scale nominal, got {item!r}", *caller_loc()
+                f"Exact[...] needs Decimal or a decimal nominal, got {item!r}", *caller_loc()
             )
         return ExactT(item)
 

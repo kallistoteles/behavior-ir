@@ -31,7 +31,7 @@ def op(name: str, *args: dict, **extra: object) -> dict:
 
 def base(**parts: list) -> dict:
     m = {
-        "ir_version": "0.1",
+        "ir_version": "0.4", "constraints": [],
         "enums": [{"name": "Status", "values": ["a", "b"], "loc": L}],
         "nominals": [{"name": "Money", "underlying": D, "ops": ["add", "order", "ratio", "scale"], "loc": L}],
         "entities": [{"name": "E", "loc": L, "fields": [
@@ -87,16 +87,16 @@ def main() -> None:
     vectors.append({"name": "invariant", "wire": base(invariants=[
         {"name": "inv", "entity": "E", "param": "e", "body": op("ge", f("i"), lit(I, 0)), "loc": L}])})
     vectors.append({"name": "decl_enum_only", "wire": {
-        "ir_version": "0.1", "enums": [{"name": "Status", "values": ["a", "b"], "loc": L}],
+        "ir_version": "0.4", "constraints": [], "enums": [{"name": "Status", "values": ["a", "b"], "loc": L}],
         "nominals": [], "entities": [], "derived": [], "invariants": [], "actions": []}})
     vectors.append({"name": "decl_nominal_only", "wire": {
-        "ir_version": "0.1", "enums": [], "entities": [], "derived": [], "invariants": [], "actions": [],
+        "ir_version": "0.4", "constraints": [], "enums": [], "entities": [], "derived": [], "invariants": [], "actions": [],
         "nominals": [{"name": "Money", "underlying": D, "ops": ["add", "order", "ratio", "scale"], "loc": L}]}})
     vectors.append({"name": "decl_entity_only", "wire": {
-        "ir_version": "0.1", "enums": [], "nominals": [], "derived": [], "invariants": [], "actions": [],
+        "ir_version": "0.4", "constraints": [], "enums": [], "nominals": [], "derived": [], "invariants": [], "actions": [],
         "entities": [{"name": "U", "loc": L, "fields": [{"name": "name", "type": S, "loc": L}]}]}})
     vectors.append({"name": "empty_module", "wire": {
-        "ir_version": "0.1", "enums": [], "nominals": [], "entities": [], "derived": [], "invariants": [], "actions": []}})
+        "ir_version": "0.4", "constraints": [], "enums": [], "nominals": [], "entities": [], "derived": [], "invariants": [], "actions": []}})
     OUT.write_text(json.dumps({
         "_comment": "Frozen content-hash vectors (contracts/hashing.md). Any change requires new hash tags.",
         "vectors": vectors}, indent=1) + "\n")

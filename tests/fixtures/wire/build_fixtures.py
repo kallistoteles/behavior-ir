@@ -84,7 +84,8 @@ def field_decl(name: str, ty: dict[str, object], at: dict[str, object]) -> dict[
 
 def module(**parts: list[dict[str, object]]) -> dict[str, object]:
     m: dict[str, object] = {
-        "ir_version": "0.1",
+        "ir_version": "0.4",
+        "constraints": [],
         "enums": [],
         "nominals": [],
         "entities": [],
@@ -104,7 +105,7 @@ F = "invoice.py"
 def invoice() -> dict[str, object]:
     return module(
         nominals=[{"name": "Money", "underlying": DEC, "ops": ["add", "order", "ratio", "scale"],
-                   "loc": loc(F, 3)}],
+                   "scale": 2, "loc": loc(F, 3)}],
         enums=[{"name": "InvoiceStatus", "values": ["pending", "approved"], "loc": loc(F, 5)}],
         entities=[
             {"name": "User", "loc": loc(F, 10), "fields": [
@@ -377,7 +378,7 @@ C = "constraints.py"
 def constraints_module() -> dict[str, object]:
     m = module(
         nominals=[{"name": "Money", "underlying": DEC, "ops": ["add", "order", "ratio", "scale"],
-                   "loc": loc(C, 3)}],
+                   "scale": 2, "loc": loc(C, 3)}],
         entities=[
             {"name": "Employee", "loc": loc(C, 6), "fields": [
                 field_decl("role", STR, loc(C, 7)),
@@ -421,7 +422,6 @@ def constraints_module() -> dict[str, object]:
              "effects": [], "postconditions": []},
         ],
     )
-    m["ir_version"] = "0.2"
     m["constraints"] = [
         {"name": "non_negative_limit", "entity": "Employee", "param": "e",
          "body": op("ge", fld("e", "approval_limit", loc(C, 16)), lit(MONEY, "0", loc(C, 16)), at=loc(C, 16)),
@@ -443,7 +443,7 @@ def constraint_invalid_cases() -> dict[str, tuple[dict[str, object], list[dict[s
     cases["constraint_not_bool"] = (m, [err("NOT_BOOLEAN", C, 16)])
     m = constraints_module()
     m["ir_version"] = "0.1"
-    cases["constraints_in_0_1"] = (m, [err("DECODE_ERROR")])
+    cases["constraints_in_0_1"] = (m, [err("UNSUPPORTED_IR_VERSION")])
     m = constraints_module()
     m["constraints"][0]["name"] = "transfer"  # type: ignore[index]
     cases["constraint_duplicate_name"] = (m, [err("DUPLICATE_NAME", C, 25)])
@@ -563,8 +563,6 @@ def fixed_scale_module() -> dict[str, object]:
             fee_action(f"round_{mode}", line,
                        rescale(op("div", amount(line + 1), lit(INT, 8, loc(X, line + 1)), at=loc(X, line + 1)),
                                mode, loc(X, line + 1))))
-    m["ir_version"] = "0.3"
-    m["constraints"] = []
     return m
 
 
@@ -602,10 +600,9 @@ def fixed_scale_invalid_cases() -> dict[str, tuple[dict[str, object], list[dict[
     m["actions"][0]["effects"][0]["value"]["rounding"] = "bankers"  # type: ignore[index]
     cases["unknown_rounding"] = (m, [err("UNKNOWN_ROUNDING", X, 25)])
     m = base()
-    m["nominals"].append({"name": "Plain", "underlying": DEC, "ops": ["add"], "loc": loc(X, 4)})  # type: ignore[attr-defined]
-    m["derived"][0]["type"] = {"t": "exact", "name": "Plain"}  # type: ignore[index]
-    m["actions"] = [a for a in m["actions"] if a["name"] != "compare_fee"]  # type: ignore[index,union-attr]
-    cases["exact_not_fixed_scale"] = (m, [err("EXACT_NOT_FIXED_SCALE", X, 16)])
+    m["nominals"].append({"name": "Plain", "underlying": DEC, "ops": ["add", "scale"], "loc": loc(X, 4)})  # type: ignore[attr-defined]
+    m["actions"][0]["effects"][0]["value"]["nominal"] = "Plain"  # type: ignore[index]
+    cases["rescale_not_fixed_scale"] = (m, [err("EXACT_NOT_FIXED_SCALE", X, 25)])
     m = base()
     m["derived"][0]["type"] = MONEY  # type: ignore[index]
     m["actions"] = [a for a in m["actions"] if a["name"] != "compare_fee"]  # type: ignore[index,union-attr]
@@ -633,9 +630,130 @@ def fixed_scale_invalid_cases() -> dict[str, tuple[dict[str, object], list[dict[
     m["actions"] = []
     cases["mixed_nominals"] = (m, [err("TYPE_MISMATCH", X, 11), err("TYPE_MISMATCH", X, 14)])
     m = base()
-    m["ir_version"] = "0.2"
-    cases["fixed_scale_in_0_2"] = (m, [err("DECODE_ERROR")])
+    m["ir_version"] = "0.3"
+    cases["fixed_scale_in_0_3"] = (m, [err("UNSUPPORTED_IR_VERSION")])
     return cases
+
+
+# --- feature 004: exact bound ---------------------------------------------------------------------
+
+B = "bounds.py"
+
+
+def bound_module(divisions: int) -> dict[str, object]:
+    """`a / d / d / …` with `a` two-decimal Money and `d` a general decimal: each division adds
+    94 numerator bits, so 5 divisions need 564 bits (> 511)."""
+    body: dict[str, object] = fld("r", "a", loc(B, 10))
+    for _ in range(divisions):
+        body = op("div", body, fld("r", "d", loc(B, 10)), at=loc(B, 10))
+    return module(
+        nominals=[{"name": "Money", "underlying": DEC, "ops": ["add", "order", "ratio", "scale"],
+                   "scale": 2, "loc": loc(B, 3)}],
+        entities=[{"name": "Row", "loc": loc(B, 5), "fields": [
+            field_decl("a", MONEY, loc(B, 6)), field_decl("d", DEC, loc(B, 7))]}],
+        derived=[{"name": "shrink", "kind": "derived", "loc": loc(B, 9),
+                  "params": [param("r", ent("Row"))], "body": body}],
+        actions=[{"name": "check", "loc": loc(B, 12), "params": [param("r", ent("Row"), "state")],
+                  "preconditions": [{"expr": op("gt", der("shrink", ["r"], loc(B, 13)),
+                                                lit(MONEY, "0", loc(B, 13)), at=loc(B, 13)),
+                                     "loc": loc(B, 13)}],
+                  "effects": [], "postconditions": []}],
+    )
+
+
+# --- feature 004: exact ratios -----------------------------------------------------------------
+
+E = "exact_closure.py"
+EXACT = {"t": "exact"}
+
+
+def exact_closure_module() -> dict[str, object]:
+    sf = lambda f, line: fld("share", f, loc(E, line))  # noqa: E731
+    shr = [param("share", ent("Share"), "state")]
+    return module(
+        nominals=[{"name": "Money", "underlying": DEC, "ops": ["add", "order", "ratio", "scale"],
+                   "scale": 2, "loc": loc(E, 3)}],
+        entities=[{"name": "Share", "loc": loc(E, 5), "fields": [
+            field_decl("amount", MONEY, loc(E, 6)), field_decl("budget", MONEY, loc(E, 7)),
+            field_decl("total", MONEY, loc(E, 8)), field_decl("part", MONEY, loc(E, 9))]}],
+        derived=[{"name": "portion", "kind": "derived", "loc": loc(E, 11), "type": EXACT,
+                  "params": [param("share", ent("Share"))],
+                  "body": op("div", sf("amount", 12), sf("budget", 12), at=loc(E, 12))}],
+        actions=[
+            {"name": "show_portion", "loc": loc(E, 14), "params": shr,
+             "preconditions": [{"expr": op("ge", der("portion", ["share"], loc(E, 15)),
+                                           lit(DEC, "0", loc(E, 15)), at=loc(E, 15)), "loc": loc(E, 15)}],
+             "effects": [], "postconditions": []},
+            {"name": "scaled_share", "loc": loc(E, 17), "params": shr, "preconditions": [],
+             "effects": [{"target": {"param": "share", "field": "part"},
+                          "value": rescale(op("mul", op("div", sf("amount", 18), sf("budget", 18), at=loc(E, 18)),
+                                              sf("total", 18), at=loc(E, 18)), "half_even", loc(E, 18)),
+                          "loc": loc(E, 18)}],
+             "postconditions": []},
+            {"name": "share_threshold", "loc": loc(E, 20), "params": shr,
+             "preconditions": [{"expr": op("le", op("div", sf("amount", 21), sf("budget", 21), at=loc(E, 21)),
+                                           lit(DEC, "0.25", loc(E, 21)), at=loc(E, 21)), "loc": loc(E, 21)}],
+             "effects": [], "postconditions": []},
+        ],
+    )
+
+
+def exact_closure_invalid_cases() -> dict[str, tuple[dict[str, object], list[dict[str, object]]]]:
+    cases: dict[str, tuple[dict[str, object], list[dict[str, object]]]] = {}
+    m = exact_closure_module()
+    m["actions"][1]["effects"][0]["value"] = op(  # type: ignore[index]
+        "div", fld("share", "amount", loc(E, 18)), fld("share", "budget", loc(E, 18)), at=loc(E, 18))
+    cases["ratio_stored"] = (m, [err("LOSSY_CONVERSION", E, 18)])
+    m = exact_closure_module()
+    m["actions"][2]["preconditions"][0]["expr"] = op(  # type: ignore[index]
+        "le", op("add", op("div", fld("share", "amount", loc(E, 21)), fld("share", "budget", loc(E, 21)),
+                           at=loc(E, 21)), fld("share", "amount", loc(E, 21)), at=loc(E, 21)),
+        lit(DEC, "0.25", loc(E, 21)), at=loc(E, 21))
+    cases["ratio_plus_amount"] = (m, [err("TYPE_MISMATCH", E, 21)])
+    m = exact_closure_module()
+    m["nominals"] = [
+        {"name": "SEK", "underlying": DEC, "ops": ["add", "order", "ratio", "scale"], "scale": 2, "loc": loc(E, 3)},
+        {"name": "JPY", "underlying": DEC, "ops": ["add", "order", "ratio", "scale"], "scale": 0, "loc": loc(E, 4)},
+    ]
+    m["entities"] = [{"name": "Wallet", "loc": loc(E, 5), "fields": [
+        field_decl("sek", {"t": "nominal", "name": "SEK"}, loc(E, 6)),
+        field_decl("jpy", {"t": "nominal", "name": "JPY"}, loc(E, 7))]}]
+    m["derived"] = [{"name": "rate", "kind": "derived", "loc": loc(E, 11), "params": [param("w", ent("Wallet"))],
+                     "body": op("div", fld("w", "sek", loc(E, 12)), fld("w", "jpy", loc(E, 12)), at=loc(E, 12))}]
+    m["actions"] = []
+    cases["exchange_rate"] = (m, [err("TYPE_MISMATCH", E, 12)])
+    return cases
+
+
+G = "decimal_store.py"
+
+
+def decimal_store_module(target: str, value: dict[str, object]) -> dict[str, object]:
+    """Unscaled `Money` and general decimals stored from arithmetic (feature 004, US4)."""
+    return module(
+        nominals=[{"name": "Money", "underlying": DEC, "ops": ["add", "order", "ratio", "scale"],
+                   "loc": loc(G, 3)}],
+        entities=[{"name": "Order", "loc": loc(G, 5), "fields": [
+            field_decl("amount", MONEY, loc(G, 6)), field_decl("discount", MONEY, loc(G, 7)),
+            field_decl("net", MONEY, loc(G, 8)), field_decl("x", DEC, loc(G, 9)),
+            field_decl("y", DEC, loc(G, 10))]}],
+        actions=[{"name": "apply", "loc": loc(G, 12), "params": [param("o", ent("Order"), "state")],
+                  "preconditions": [], "postconditions": [],
+                  "effects": [{"target": {"param": "o", "field": target}, "value": value,
+                               "loc": loc(G, 13)}]}],
+    )
+
+
+def decimal_store_invalid_cases() -> dict[str, tuple[dict[str, object], list[dict[str, object]]]]:
+    o = lambda f: fld("o", f, loc(G, 13))  # noqa: E731
+    return {
+        "decimal_sum_stored": (
+            decimal_store_module("net", op("sub", o("amount"), o("discount"), at=loc(G, 13))),
+            [err("LOSSY_CONVERSION", G, 13)]),
+        "decimal_ratio_stored": (
+            decimal_store_module("y", op("div", o("x"), lit(INT, 3, loc(G, 13)), at=loc(G, 13))),
+            [err("LOSSY_CONVERSION", G, 13)]),
+    }
 
 
 def main() -> None:
@@ -648,7 +766,11 @@ def main() -> None:
     dump(valid / "empty.json", module())
     dump(valid / "constraints.json", constraints_module())
     dump(valid / "fixed_scale.json", fixed_scale_module())
-    for name, (doc, errors) in {**invalid_cases(), **constraint_invalid_cases(), **fixed_scale_invalid_cases()}.items():
+    dump(valid / "exact_bound_ok.json", bound_module(4))
+    dump(valid / "exact_closure.json", exact_closure_module())
+    for name, (doc, errors) in {**invalid_cases(), **constraint_invalid_cases(), **fixed_scale_invalid_cases(),
+                           "exact_bound_exceeded": (bound_module(5), [err("EXACT_BOUND_EXCEEDED", B, 10)]),
+                           **exact_closure_invalid_cases(), **decimal_store_invalid_cases()}.items():
         dump(invalid / f"{name}.json", doc)
         dump(invalid / f"{name}.expected.json", {"errors": errors})
 

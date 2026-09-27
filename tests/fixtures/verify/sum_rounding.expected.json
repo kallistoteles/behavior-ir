@@ -1,12 +1,19 @@
 {
  "profile": [
-  "postcondition"
+  "postcondition",
+  "evaluation_error"
  ],
  "checks": [
   {
    "kind": "postcondition",
    "action": "add_positive",
    "subject": "pair.w > pair.v",
+   "outcome": "proven"
+  },
+  {
+   "kind": "evaluation_error",
+   "action": "add_positive",
+   "subject": "pair.v + amount (numeric overflow)",
    "outcome": "counterexample"
   }
  ]

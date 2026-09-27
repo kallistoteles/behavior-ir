@@ -1,0 +1,73 @@
+{
+ "profile": [
+  "evaluation_error",
+  "postcondition",
+  "preservation"
+ ],
+ "checks": [
+  {
+   "kind": "postcondition",
+   "action": "allocate",
+   "subject": "share.part <= share.total",
+   "outcome": "proven"
+  },
+  {
+   "kind": "preservation",
+   "action": "allocate",
+   "subject": "part_within_total",
+   "outcome": "proven",
+   "param": "share"
+  },
+  {
+   "kind": "preservation",
+   "action": "allocate",
+   "subject": "non_negative_share",
+   "outcome": "proven",
+   "param": "share"
+  },
+  {
+   "kind": "evaluation_error",
+   "action": "allocate",
+   "subject": "rescale(share.total * (amount / share.budget), Money, floor) (numeric overflow)",
+   "outcome": "proven"
+  },
+  {
+   "kind": "evaluation_error",
+   "action": "allocate",
+   "subject": "amount / share.budget (division by zero)",
+   "outcome": "proven"
+  },
+  {
+   "kind": "postcondition",
+   "action": "allocate_unchecked",
+   "subject": "share.part <= share.total",
+   "outcome": "counterexample"
+  },
+  {
+   "kind": "preservation",
+   "action": "allocate_unchecked",
+   "subject": "part_within_total",
+   "outcome": "proven",
+   "param": "share"
+  },
+  {
+   "kind": "preservation",
+   "action": "allocate_unchecked",
+   "subject": "non_negative_share",
+   "outcome": "proven",
+   "param": "share"
+  },
+  {
+   "kind": "evaluation_error",
+   "action": "allocate_unchecked",
+   "subject": "rescale(share.total * (amount / share.budget), Money, floor) (numeric overflow)",
+   "outcome": "counterexample"
+  },
+  {
+   "kind": "evaluation_error",
+   "action": "allocate_unchecked",
+   "subject": "amount / share.budget (division by zero)",
+   "outcome": "proven"
+  }
+ ]
+}

@@ -14,7 +14,7 @@ AI is the interface; it reaches the system only through declared capabilities.
 from decimal import Decimal
 from behavior import BehaviorModule, Context, action, entity, field, nominal, requires, set_, evaluate
 
-Money = nominal("Money", Decimal, ops={"order", "add", "scale", "ratio"})
+Money = nominal("Money", Decimal, ops={"order", "add", "scale", "ratio"}, scale=2)
 
 @entity
 class User:
@@ -68,15 +68,13 @@ shell; `BEHAVIOR_Z3` points at it). No annotations: the checks follow from the s
   violate its `ensures` (`postcondition`), or divide by zero / overflow (`evaluation_error`).
   Every counterexample is replayed through the evaluator and ships with its decision record.
 - **Warnings**: dead actions, redundant preconditions, rules that are always true or false.
-- **Inconclusive** checks (solver budget, or a decimal rounding interval that crosses a
-  boundary) are blocking findings too: never reported as passed. Decimal `*` and `/` always
-  round, `+` and `-` round for results that need more than 28 digits; the verifier models the
-  exact value plus a bound.
+- **Inconclusive** checks (solver budget) are blocking findings too: never reported as passed.
+  Arithmetic is exact (feature 004), so the verifier and the evaluator share one numeric model.
 
 ```bash
 python -m examples.tryout.dump > /tmp/purchase.json
 behavior verify /tmp/purchase.json          # exit 1: approve can break within_budget
-behavior verify tests/fixtures/verify/purchase_fixed.json   # exit 0: verified
+behavior verify tests/fixtures/verify/purchase_money2_remaining.json   # exit 0: verified
 ```
 
 ### Fixed-scale money (feature 003)
@@ -100,6 +98,26 @@ Requests with more decimals than declared are rejected (`OFF_GRID`), records sho
 (`behavior verify tests/fixtures/verify/purchase_money2_remaining.json` exits 0). Modes:
 `HALF_EVEN`, `HALF_UP`, `DOWN`, `UP`, `FLOOR`, `CEILING`; there is no default. Details:
 `specs/003-fixed-scale-decimals/`.
+
+### Exact arithmetic closure (feature 004)
+
+Numeric computation is exact by default; bounded representation and rounding are explicit.
+Every decimal operation is exact: a ratio of two amounts is an exact dimensionless number
+(`Exact[Decimal]`), general decimals compute exactly, and values leave the exact domain only
+through `rescale` — or implicitly when admission proves, from types and literals alone, that the
+stored value is representable (`money := amount * 2` is admitted, `money := amount / 3` is
+`LOSSY_CONVERSION`).
+
+```python
+portion = a.amount / a.budget                                     # Exact[Decimal]: 1/3
+set_(a.part, rescale(portion * a.total, Money, Rounding.HALF_EVEN))  # one rounding
+requires(a.amount / a.budget <= Decimal("0.25"))                  # exact comparison
+```
+
+Admission also bounds every exact intermediate to the runtime's 512-bit representation
+(`EXACT_BOUND_EXCEEDED` otherwise), so whatever the verifier assumes the evaluator can represent.
+Only wire IR 0.4 is accepted; records carry `record_version "0.4"`. Details:
+`specs/004-exact-arithmetic-closure/`.
 
 The output is a canonical, content-addressed **verification attestation** bound to the
 behavior version. Results are cached by check key (`--cache .behavior/verify-cache`), so

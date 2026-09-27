@@ -1,10 +1,16 @@
 {
  "verify/dead_and_vacuous.json": "sha256:88a73bc09635c942ae09496eeecf3bc29505c04abf40906a7e08e2e7fd75fb16",
+ "verify/discount_rescale.json": "sha256:51455d4f1d9c97fe06a776720e5bfb44cf39c29745321eb58a91ea5ec15732db",
+ "verify/invoice_money2.json": "sha256:5f1b7be8c2b313eca58bb0fa15ab446b7ebc42a5fe416e8cac58584e3f674636",
  "verify/overflow.json": "sha256:4ef5d670eba0f6527a5b497dbe5bae65e0f441f2dd47d3bd855e5d0b03c8d8e2",
  "verify/postcondition.json": "sha256:44bcfcde5f9edd0cccea3426e8598fbe080cbd02da0165b3f673eedba23edf26",
  "verify/purchase.json": "sha256:96f7b70c9088a289d85bd8ac59dbce772c48d279e6653cf42d54f12aa1f7714d",
  "verify/purchase_fixed.json": "sha256:57f897c19f85fc39aca284068e07c83fd88bd8bdf50faccc304bc91935652719",
+ "verify/purchase_money2.json": "sha256:55524bdbbcce8d91467c882a7296ecf7b08e226cf44a46fe9b93d4691d7e8f43",
+ "verify/purchase_money2_fixed.json": "sha256:20b2500765e23b80d6d1dffbc2d10817467702e773ad8897e2145a64c3eb4605",
+ "verify/purchase_money2_remaining.json": "sha256:7c153a22a48f91fa1d3f19b44b57661fc9728a6cf6daf606ce0b71ef2986312a",
  "verify/purchase_remaining.json": "sha256:1d915c5f15de76d836eb82341f9b67180d134c990475857e9ac4f317eda5046d",
+ "verify/rescale_modes.json": "sha256:ea7514636befa84c731e7f08497ccdd08c54673b7d10a1088d3748b64f9bdf66",
  "verify/rounding.json": "sha256:efb6b25dd6806fd299622b987e82ef5ba436fae6709292c568c915c22dbd934a",
  "verify/sum_rounding.json": "sha256:2dafeda4bf3daaa4e719734a3604e2955f97afacfec7f8aa147520e8fbdd0ff2",
  "verify/unchanged_entity.json": "sha256:48a73cf067127049ce92b24a8a56494ee6dcb38bf9bed0fce18c1182e7371dfd",
@@ -12,6 +18,7 @@
  "wire/python/project_margin.json": "sha256:450d7e633e3157ddff028ac413921af8d8b6e33b8b945c52e7b6f4276b05de0e",
  "wire/valid/constraints.json": "sha256:4c8f72615b785708f4525a2a1f8b1b60dbc7831c356679b6e58a36ce449cf7e4",
  "wire/valid/empty.json": "sha256:8b290a60790c0d087f0138f7b9e3f3037b8052941c7a6ba7c918b413577d31fc",
+ "wire/valid/fixed_scale.json": "sha256:4e44171951300cbd2b87d69471d314245d0c8e385ee3ce8fe1c2cffc24d1e95d",
  "wire/valid/invoice.json": "sha256:a368bcf3396a136bc1440ae98a68749875654c2d1e3a32764147bdef94dd1bd3",
  "wire/valid/project_margin.json": "sha256:450d7e633e3157ddff028ac413921af8d8b6e33b8b945c52e7b6f4276b05de0e"
 }

@@ -15,10 +15,10 @@
    true,
    true,
    {
-    "assigned": "-40"
+    "assigned": "-40.00"
    },
    {
-    "assigned": "50"
+    "assigned": "50.00"
    },
    false,
    "skipped"
@@ -100,16 +100,16 @@
     "entity": "Account",
     "field": "balance",
     "id": "a1",
-    "new": "70",
-    "old": "100",
+    "new": "70.00",
+    "old": "100.00",
     "param": "from_"
    },
    {
     "entity": "Account",
     "field": "balance",
     "id": "a2",
-    "new": "30",
-    "old": "0",
+    "new": "30.00",
+    "old": "0.00",
     "param": "to"
    }
   ],
@@ -118,10 +118,10 @@
    true,
    true,
    {
-    "assigned": "70"
+    "assigned": "70.00"
    },
    {
-    "assigned": "30"
+    "assigned": "30.00"
    },
    true,
    true

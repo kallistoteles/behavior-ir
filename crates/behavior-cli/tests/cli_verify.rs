@@ -23,7 +23,13 @@ fn verify_exit_codes_and_out_file() {
     let fixed = fixtures().join("verify/purchase_fixed.json");
     let broken = fixtures().join("verify/purchase.json");
     let invalid = fixtures().join("wire/invalid/cycle_a_b_c.json");
-    let (code, _) = run(&["verify", fixed.to_str().unwrap()]);
+    let profile = fixtures().join("governance/preservation_profile.json");
+    let (code, _) = run(&[
+        "verify",
+        fixed.to_str().unwrap(),
+        "--profile",
+        profile.to_str().unwrap(),
+    ]);
     assert_eq!(code, 0);
     let out = std::env::temp_dir().join("behavior-cli-verify.json");
     let (code, stdout) = run(&[

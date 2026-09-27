@@ -19,7 +19,9 @@ from behavior import (
 )
 
 OUT = pathlib.Path(__file__).resolve().parent
-Money = nominal("Money", Decimal, ops={"order", "add", "scale", "ratio"})
+Money = nominal("Money", Decimal, ops={"order", "add", "scale", "ratio"}, scale=2)
+# The US4 fixture stores no computed amounts; it keeps its unscaled Money (and its identity).
+PlainMoney = nominal("Money", Decimal, ops={"order", "add", "scale", "ratio"})
 
 
 class Status(Enum):
@@ -63,10 +65,8 @@ def approve_action(check: str | None):  # type: ignore[no-untyped-def]
         requires(purchase.status == Status.PENDING)
         requires(actor.role == "manager")
         requires(purchase.amount <= actor.approval_limit)
-        # Decided when the module is built, not a behavior condition. The invariant-shaped
-        # check is proven; the `remaining` form is inconclusive, because decimal subtraction
-        # and addition may round differently near 10^28 (the rounding interval crosses the
-        # budget boundary).
+        # Decided when the module is built, not a behavior condition. Both the invariant-shaped
+        # check and the `remaining` form are proven: arithmetic is exact (feature 004).
         if check == "invariant":
             requires(project.spent + purchase.amount <= project.budget)
         elif check == "remaining":
@@ -160,14 +160,15 @@ def third_clear(ratio: Ratio):
 
 @entity
 class Pair:
-    v = field(Decimal)
-    w = field(Decimal)
+    v = field(Money)
+    w = field(Money)
 
 
 @action
-def add_positive(pair: Pair, *, amount: Input[Decimal]):
-    # Not a theorem of the engine: 1e27 + 1e-28 rounds back to 1e27 (sums round near 10^28).
-    requires(amount > Decimal("0"))
+def add_positive(pair: Pair, *, amount: Input[Money]):
+    # Exact, so the postcondition holds; what can fail is representability: the sum may leave
+    # Money's range (26 integer digits), an evaluation error found by verification.
+    requires(amount > Money(Decimal("0")))
     set_(pair.w, pair.v + amount)
     ensures(pair.w > pair.v)
 
@@ -177,36 +178,36 @@ def add_positive(pair: Pair, *, amount: Input[Decimal]):
 
 @entity
 class Order:
-    amount = field(Money)
+    amount = field(PlainMoney)
     shipped = field(bool)
 
 
 @constraint
 def non_negative_amount(order: Order):
-    return order.amount >= Money(Decimal("0"))
+    return order.amount >= PlainMoney(Decimal("0"))
 
 
 @rule
 def has_value(order: Order):
-    return order.amount >= Money(Decimal("0"))
+    return order.amount >= PlainMoney(Decimal("0"))
 
 
 @rule
 def large(order: Order):
-    return order.amount > Money(Decimal("1000"))
+    return order.amount > PlainMoney(Decimal("1000"))
 
 
 @action
 def impossible(order: Order):
-    requires(order.amount > Money(Decimal("100")))
-    requires(order.amount < Money(Decimal("50")))
+    requires(order.amount > PlainMoney(Decimal("100")))
+    requires(order.amount < PlainMoney(Decimal("50")))
     set_(order.shipped, True)
 
 
 @action
 def ship(order: Order):
-    requires(order.amount >= Money(Decimal("0")))
-    requires(order.amount < Money(Decimal("1000")))
+    requires(order.amount >= PlainMoney(Decimal("0")))
+    requires(order.amount < PlainMoney(Decimal("1000")))
     set_(order.shipped, True)
 
 

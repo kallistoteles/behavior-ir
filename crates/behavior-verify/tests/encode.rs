@@ -24,7 +24,7 @@ fn cond(e: Value) -> Value {
     json!({"expr": e, "loc": l()})
 }
 fn module(fields: Value, enums: Value, invariants: Value, actions: Value) -> String {
-    json!({"ir_version": "0.1", "enums": enums, "nominals": [], "derived": [],
+    json!({"ir_version": "0.4", "constraints": [], "enums": enums, "nominals": [], "derived": [],
            "entities": [{"name": "C", "loc": l(), "fields": fields}],
            "invariants": invariants, "actions": actions})
     .to_string()
@@ -220,26 +220,24 @@ fn rounding(bound: &str) -> String {
 }
 
 #[test]
-fn rounding_bounds_decide_only_with_margin() {
-    // 1/3 exceeds 0.333…3 (28 digits) by less than the rounding bound: neither side is proven.
-    let m = admit(&rounding("0.3333333333333333333333333333")).unwrap();
-    let enc = ActionEncoding::build(&m, "third").unwrap();
-    let k = enc
-        .steps
-        .iter()
-        .position(|s| s.kind == StepKind::Postcondition)
-        .unwrap();
-    let post = enc.steps[k].cond.clone().unwrap();
-    assert!(sat(&enc, &[enc.path(k), post.clone()]));
-    assert!(sat(&enc, &[enc.path(k), format!("(not {post})")]));
-    // With a clear margin the postcondition is proven.
-    let m = admit(&rounding("0.34")).unwrap();
-    let enc = ActionEncoding::build(&m, "third").unwrap();
-    let k = enc
-        .steps
-        .iter()
-        .position(|s| s.kind == StepKind::Postcondition)
-        .unwrap();
-    let post = enc.steps[k].cond.clone().unwrap();
-    assert!(!sat(&enc, &[enc.path(k), format!("(not {post})")]));
+fn decimal_division_is_exact() {
+    // Feature 004: 1/3 is exact, so it exceeds 0.333…3 (28 digits) on every path and stays below
+    // 0.333…34: both postconditions are decided, however small the margin.
+    // Returns (post satisfiable, negation satisfiable) on the postcondition's path.
+    let decide = |bound: &str| {
+        let m = admit(&rounding(bound)).unwrap();
+        let enc = ActionEncoding::build(&m, "third").unwrap();
+        let k = enc
+            .steps
+            .iter()
+            .position(|s| s.kind == StepKind::Postcondition)
+            .unwrap();
+        let post = enc.steps[k].cond.clone().unwrap();
+        (
+            sat(&enc, &[enc.path(k), post.clone()]),
+            sat(&enc, &[enc.path(k), format!("(not {post})")]),
+        )
+    };
+    assert_eq!(decide("0.3333333333333333333333333333"), (false, true));
+    assert_eq!(decide("0.3333333333333333333333333334"), (true, false));
 }

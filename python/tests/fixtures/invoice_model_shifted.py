@@ -15,7 +15,7 @@ from behavior import (
     nominal, requires, set_,
 )
 
-Money = nominal("Money", Decimal, ops={"order", "add", "scale", "ratio"})
+Money = nominal("Money", Decimal, ops={"order", "add", "scale", "ratio"}, scale=2)
 
 
 class InvoiceStatus(Enum):

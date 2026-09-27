@@ -56,7 +56,7 @@ def test_module_evaluates_native_values() -> None:
     )
     assert record.result == "ALLOW"
     assert isinstance(record.data, dict)
-    assert record.data["state"]["invoice"]["amount"] == "43200"
+    assert record.data["state"]["invoice"]["amount"] == "43200.00"
     assert json.loads(record.json) == record.data
 
 

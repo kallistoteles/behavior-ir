@@ -75,7 +75,8 @@ impl Enc {
             Type::Enum(e) => self.u8(0x20).href(&e.hash),
             Type::Id(entity) => self.u8(0x21).str(entity),
             Type::Nominal(n) => self.u8(0x22).href(&n.hash),
-            Type::Exact(n) => self.u8(0x23).href(&n.hash),
+            Type::Exact(crate::semantic::types::Unit::Nominal(n)) => self.u8(0x23).href(&n.hash),
+            Type::Exact(crate::semantic::types::Unit::Dimensionless) => self.u8(0x24),
             Type::Entity(entity) => self.u8(0x30).str(entity),
         }
     }

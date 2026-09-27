@@ -19,6 +19,14 @@ pub enum NumError {
     DivisionByZero,
     #[error("invalid decimal")]
     Invalid,
+    /// An exact value outgrew the runtime's representation. Admission proves this cannot happen
+    /// for admitted modules (feature 004), so reaching it is an internal consistency error.
+    #[error("internal: exact bound exceeded")]
+    ExactBound,
+    /// A stored exact value is not a 28-digit decimal. Admission proves every implicit store
+    /// representable (feature 004, research R3), so reaching it is an internal consistency error.
+    #[error("internal: exact value is not representable as a decimal")]
+    NotRepresentable,
 }
 
 /// An exact decimal value. Equality and ordering are numeric (`50000 == 50000.00`).

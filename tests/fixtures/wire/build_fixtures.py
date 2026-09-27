@@ -756,6 +756,60 @@ def decimal_store_invalid_cases() -> dict[str, tuple[dict[str, object], list[dic
     }
 
 
+L = "ledger.py"
+
+
+def ledger_module() -> dict[str, object]:
+    """Accounts with transfers, a no-op action and a freeze (feature 005 persistence fixtures)."""
+    acc = lambda p, f, line: fld(p, f, loc(L, line))  # noqa: E731
+    zero = lambda line: lit(MONEY, "0", loc(L, line))  # noqa: E731
+    m = module(
+        nominals=[{"name": "Money", "underlying": DEC, "ops": ["add", "order", "ratio", "scale"],
+                   "scale": 2, "loc": loc(L, 3)}],
+        entities=[{"name": "Account", "loc": loc(L, 6), "fields": [
+            field_decl("active", BOOL, loc(L, 7)), field_decl("balance", MONEY, loc(L, 8))]}],
+        derived=[{"name": "available", "kind": "derived", "loc": loc(L, 15),
+                  "params": [param("account", ent("Account"))],
+                  "body": acc("account", "balance", 16)}],
+        actions=[
+            {"name": "transfer", "loc": loc(L, 19),
+             "params": [param("from_", ent("Account"), "state"), param("to", ent("Account"), "state"),
+                        param("amount", MONEY, "input")],
+             "preconditions": [
+                 {"expr": op("gt", par("amount", loc(L, 21)), zero(21), at=loc(L, 21)), "loc": loc(L, 21)},
+                 {"expr": {"op": "and", "args": [
+                     acc("from_", "active", 22),
+                     op("ge", der("available", ["from_"], loc(L, 22)), par("amount", loc(L, 22)), at=loc(L, 22))],
+                     "loc": loc(L, 22)}, "loc": loc(L, 22)},
+             ],
+             "effects": [
+                 {"target": {"param": "from_", "field": "balance"},
+                  "value": op("sub", acc("from_", "balance", 23), par("amount", loc(L, 23)), at=loc(L, 23)),
+                  "loc": loc(L, 23)},
+                 {"target": {"param": "to", "field": "balance"},
+                  "value": op("add", acc("to", "balance", 24), par("amount", loc(L, 24)), at=loc(L, 24)),
+                  "loc": loc(L, 24)},
+             ],
+             "postconditions": []},
+            {"name": "touch", "loc": loc(L, 27), "params": [param("account", ent("Account"), "state")],
+             "preconditions": [],
+             "effects": [{"target": {"param": "account", "field": "active"},
+                          "value": acc("account", "active", 28), "loc": loc(L, 28)}],
+             "postconditions": []},
+            {"name": "freeze", "loc": loc(L, 31), "params": [param("account", ent("Account"), "state")],
+             "preconditions": [],
+             "effects": [{"target": {"param": "account", "field": "active"},
+                          "value": lit(BOOL, False, loc(L, 32)), "loc": loc(L, 32)}],
+             "postconditions": []},
+        ],
+    )
+    m["constraints"] = [
+        {"name": "non_negative_balance", "entity": "Account", "param": "a",
+         "body": op("ge", acc("a", "balance", 12), zero(12), at=loc(L, 12)), "loc": loc(L, 11)},
+    ]
+    return m
+
+
 def main() -> None:
     valid = ROOT / "valid"
     invalid = ROOT / "invalid"
@@ -768,6 +822,7 @@ def main() -> None:
     dump(valid / "fixed_scale.json", fixed_scale_module())
     dump(valid / "exact_bound_ok.json", bound_module(4))
     dump(valid / "exact_closure.json", exact_closure_module())
+    dump(valid / "ledger.json", ledger_module())
     for name, (doc, errors) in {**invalid_cases(), **constraint_invalid_cases(), **fixed_scale_invalid_cases(),
                            "exact_bound_exceeded": (bound_module(5), [err("EXACT_BOUND_EXCEEDED", B, 10)]),
                            **exact_closure_invalid_cases(), **decimal_store_invalid_cases()}.items():

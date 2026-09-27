@@ -1,7 +1,13 @@
 # Proposal: Persistence contract (state, transition, commit)
 
-**Status**: saved for future implementation (candidate next feature, before any concrete
-database adapter)
+**Status**: implemented by feature 005 (`specs/005-persistence-contract/`, `docs/persistence.md`).
+Deviations from this proposal:
+- The proposal's `StateStore` is split into engine-owned `Store` semantics over a seven-method host
+  `Backend`.
+- The state identity binds entity content only (no revisions), via a MuHash3072 multiset hash.
+- Concurrency is whole-state; entity-level concurrency is prepared but not implemented.
+- The entity universe is fixed after the genesis.
+- Evidence requirements come from a content-addressed evidence policy per store.
 **Recorded**: 2026-09-27
 
 Principle:

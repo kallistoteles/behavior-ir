@@ -1,0 +1,10 @@
+{
+  "commit_bundle": "sha256:f24372b324bc274f60ef20b7f3b9593e0638038cebdfe1f7a5b1614f284ad7a3",
+  "data_version": "store:sha256:dd;state:sha256:bb;position:3",
+  "entity_content": "sha256:0d0926ed72eaca99e73a1cc9af6fcd40d9a63c8656b0273435c427d891f61897",
+  "entity_version": "sha256:ef3ee4cd88b52c90355ae8af7f00118a6ff797d19c3561f23af049efd8880fb9",
+  "evidence_policy_authorization": "sha256:a4459a20773cd298c63887760b0d9c7f7ea4fa82aed0d1436366b641b488f7a7",
+  "evidence_policy_none": "sha256:1dc6d3a753ac32ab3eea766be54a21f57c53b16b31dbeb614f96084e31eb67b0",
+  "genesis": "sha256:55421294171a29c3c057fc8eef0fadb3e28cc6bd906dafff865ddffe833f41a7",
+  "transition_record": "sha256:2c892f5d040ba8e58f8af6ff4c5ed93e1777e5e09db39b54254e76c992def72d"
+}

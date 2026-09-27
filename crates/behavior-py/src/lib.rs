@@ -23,6 +23,18 @@ create_exception!(
 );
 create_exception!(
     _engine,
+    EngineStoreConflict,
+    PyException,
+    "A state conflict: args are (current, changed), the store's state and the changed entities."
+);
+create_exception!(
+    _engine,
+    EngineStoreRefused,
+    PyException,
+    "A refused store operation: args are (code, message)."
+);
+create_exception!(
+    _engine,
     EngineIntentRejected,
     PyException,
     "A rejected intent: args are (errors,), a list of {code, message, path} dicts."
@@ -830,6 +842,414 @@ impl PyBuilder {
     }
 }
 
+// --- persistence (feature 005) ------------------------------------------------------------
+
+use behavior_store::conformance::run as run_store_conformance;
+use behavior_store::documents::{
+    CommitBundle, EntityKey, EntityVersion, Evidence, EvidencePolicy, Genesis, Head, SeedEntity,
+    StateRef, StoreError, TransitionRecord, decode,
+};
+use behavior_store::replay::{replay_behavior, replay_data};
+use behavior_store::{Backend, BackendError, CasOutcome, InMemoryBackend, Store};
+
+fn to_json<T: serde::Serialize>(t: &T) -> Value {
+    serde_json::to_value(t).unwrap_or(Value::Null)
+}
+
+fn doc<T: for<'de> serde::Deserialize<'de>>(what: &str, obj: &Bound<'_, PyAny>) -> PyResult<T> {
+    decode(what, &to_value(obj)?).map_err(|e| PyValueError::new_err(e.to_string()))
+}
+
+fn store_err(py: Python<'_>, e: StoreError) -> PyErr {
+    match e {
+        StoreError::StateConflict { current, changed } => {
+            let current = to_py(py, &to_json(&current)).unwrap_or_else(|_| py.None());
+            let changed = to_py(py, &to_json(&changed)).unwrap_or_else(|_| py.None());
+            EngineStoreConflict::new_err((current, changed))
+        }
+        e => EngineStoreRefused::new_err((e.code().to_string(), e.to_string())),
+    }
+}
+
+/// A backend implemented by a Python object with the seven backend methods (dicts in and out).
+struct PyBackend {
+    obj: Py<PyAny>,
+}
+
+impl PyBackend {
+    fn call<T: for<'de> serde::Deserialize<'de>>(
+        &self,
+        method: &str,
+        args: Vec<Value>,
+    ) -> Result<Option<T>, BackendError> {
+        Python::attach(|py| {
+            let args: Vec<Py<PyAny>> = args
+                .iter()
+                .map(|a| to_py(py, a))
+                .collect::<PyResult<_>>()
+                .map_err(|e| BackendError(e.to_string()))?;
+            let out = self
+                .obj
+                .bind(py)
+                .call_method1(
+                    method,
+                    PyTuple::new(py, args).map_err(|e| BackendError(e.to_string()))?,
+                )
+                .map_err(|e| BackendError(format!("{method}: {e}")))?;
+            if out.is_none() {
+                return Ok(None);
+            }
+            let v = to_value(&out).map_err(|e| BackendError(format!("{method}: {e}")))?;
+            serde_json::from_value(v)
+                .map(Some)
+                .map_err(|e| BackendError(format!("{method} returned an invalid document: {e}")))
+        })
+    }
+}
+
+impl Backend for PyBackend {
+    fn genesis(&self) -> Result<Option<Genesis>, BackendError> {
+        self.call("genesis", vec![])
+    }
+    fn head(&self) -> Result<Option<Head>, BackendError> {
+        self.call("head", vec![])
+    }
+    fn create(
+        &mut self,
+        g: &Genesis,
+        h: &Head,
+        seed: &[EntityVersion],
+    ) -> Result<(), BackendError> {
+        self.call::<Value>("create", vec![to_json(g), to_json(h), to_json(&seed)])
+            .map(|_| ())
+    }
+    fn version_at(&self, k: &EntityKey, p: u64) -> Result<Option<EntityVersion>, BackendError> {
+        self.call("version_at", vec![to_json(k), json!(p)])
+    }
+    fn version(&self, k: &EntityKey, r: u64) -> Result<Option<EntityVersion>, BackendError> {
+        self.call("version", vec![to_json(k), json!(r)])
+    }
+    fn record(&self, p: u64) -> Result<Option<TransitionRecord>, BackendError> {
+        self.call("record", vec![json!(p)])
+    }
+    fn commit(
+        &mut self,
+        expected: &str,
+        versions: &[EntityVersion],
+        record: &TransitionRecord,
+        head: &Head,
+    ) -> Result<CasOutcome, BackendError> {
+        let out: Option<String> = self.call(
+            "commit",
+            vec![
+                json!(expected),
+                to_json(&versions),
+                to_json(record),
+                to_json(head),
+            ],
+        )?;
+        match out.as_deref() {
+            Some("applied") => Ok(CasOutcome::Applied),
+            Some("head_moved") => Ok(CasOutcome::HeadMoved),
+            other => Err(BackendError(format!(
+                "commit must return \"applied\" or \"head_moved\", got {other:?}"
+            ))),
+        }
+    }
+}
+
+/// The reference backend or a Python backend.
+enum AnyBackend {
+    Memory(Box<InMemoryBackend>),
+    Py(PyBackend),
+}
+
+macro_rules! delegate {
+    ($self:ident, $b:ident => $e:expr) => {
+        match $self {
+            AnyBackend::Memory($b) => $e,
+            AnyBackend::Py($b) => $e,
+        }
+    };
+}
+
+impl Backend for AnyBackend {
+    fn genesis(&self) -> Result<Option<Genesis>, BackendError> {
+        delegate!(self, b => b.genesis())
+    }
+    fn head(&self) -> Result<Option<Head>, BackendError> {
+        delegate!(self, b => b.head())
+    }
+    fn create(&mut self, g: &Genesis, h: &Head, s: &[EntityVersion]) -> Result<(), BackendError> {
+        delegate!(self, b => b.create(g, h, s))
+    }
+    fn version_at(&self, k: &EntityKey, p: u64) -> Result<Option<EntityVersion>, BackendError> {
+        delegate!(self, b => b.version_at(k, p))
+    }
+    fn version(&self, k: &EntityKey, r: u64) -> Result<Option<EntityVersion>, BackendError> {
+        delegate!(self, b => b.version(k, r))
+    }
+    fn record(&self, p: u64) -> Result<Option<TransitionRecord>, BackendError> {
+        delegate!(self, b => b.record(p))
+    }
+    fn commit(
+        &mut self,
+        x: &str,
+        v: &[EntityVersion],
+        r: &TransitionRecord,
+        h: &Head,
+    ) -> Result<CasOutcome, BackendError> {
+        delegate!(self, b => b.commit(x, v, r, h))
+    }
+}
+
+/// Marker for the in-memory reference backend (`Store.create(InMemoryBackend(), ...)`).
+#[pyclass(name = "InMemoryBackend", frozen, module = "behavior._engine")]
+#[derive(Clone)]
+struct PyInMemoryBackend {}
+
+#[pymethods]
+impl PyInMemoryBackend {
+    #[new]
+    fn new() -> Self {
+        PyInMemoryBackend {}
+    }
+}
+
+fn any_backend(obj: &Bound<'_, PyAny>) -> AnyBackend {
+    if obj.is_instance_of::<PyInMemoryBackend>() {
+        AnyBackend::Memory(Box::new(InMemoryBackend::new()))
+    } else {
+        AnyBackend::Py(PyBackend {
+            obj: obj.clone().unbind(),
+        })
+    }
+}
+
+fn state_ref(obj: &Bound<'_, PyAny>) -> PyResult<StateRef> {
+    doc("state reference", obj)
+}
+
+#[pyclass(name = "Store", module = "behavior._engine")]
+struct PyStore {
+    inner: Store<AnyBackend>,
+}
+
+#[pymethods]
+impl PyStore {
+    /// A genesis for the module's entity declarations: `policy` is an evidence policy dict (or
+    /// None for "no evidence required"), `seed` a list of {entity, value} dicts.
+    #[staticmethod]
+    #[pyo3(signature = (module, seed, policy=None))]
+    fn genesis_for(
+        py: Python<'_>,
+        module: &EngineModule,
+        seed: &Bound<'_, PyAny>,
+        policy: Option<&Bound<'_, PyAny>>,
+    ) -> PyResult<Py<PyAny>> {
+        let seed: Vec<SeedEntity> = doc("seed", seed)?;
+        let policy = match policy {
+            Some(p) => doc::<EvidencePolicy>("evidence policy", p)?,
+            None => EvidencePolicy::none(),
+        };
+        to_py(
+            py,
+            &to_json(&behavior_store::store::genesis_for(
+                &module.inner,
+                policy,
+                seed,
+            )),
+        )
+    }
+
+    #[staticmethod]
+    fn create(
+        py: Python<'_>,
+        backend: &Bound<'_, PyAny>,
+        module: &EngineModule,
+        genesis: &Bound<'_, PyAny>,
+    ) -> PyResult<PyStore> {
+        let genesis: Genesis = doc("genesis", genesis)?;
+        Store::create(any_backend(backend), &module.inner, genesis)
+            .map(|inner| PyStore { inner })
+            .map_err(|e| store_err(py, e))
+    }
+
+    #[staticmethod]
+    fn open(py: Python<'_>, backend: &Bound<'_, PyAny>) -> PyResult<PyStore> {
+        if backend.is_instance_of::<PyInMemoryBackend>() {
+            return Err(PyValueError::new_err(
+                "a fresh in-memory backend has no store to open",
+            ));
+        }
+        Store::open(any_backend(backend))
+            .map(|inner| PyStore { inner })
+            .map_err(|e| store_err(py, e))
+    }
+
+    fn store_id(&self, py: Python<'_>) -> PyResult<String> {
+        self.inner.store_id().map_err(|e| store_err(py, e))
+    }
+
+    fn current(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        let r = self.inner.current().map_err(|e| store_err(py, e))?;
+        to_py(py, &to_json(&r))
+    }
+
+    fn state_at(&self, py: Python<'_>, position: u64) -> PyResult<Py<PyAny>> {
+        let r = self
+            .inner
+            .state_at(position)
+            .map_err(|e| store_err(py, e))?;
+        to_py(py, &to_json(&r))
+    }
+
+    fn load(
+        &self,
+        py: Python<'_>,
+        entity: String,
+        id: String,
+        at: &Bound<'_, PyAny>,
+    ) -> PyResult<Py<PyAny>> {
+        let v = self
+            .inner
+            .load(&EntityKey { entity, id }, &state_ref(at)?)
+            .map_err(|e| store_err(py, e))?;
+        to_py(py, &to_json(&v))
+    }
+
+    /// Evaluates against one consistent snapshot; returns (record, bundle or None).
+    #[pyo3(signature = (module, action, bindings, input, context, commit_time, evidence=None))]
+    #[allow(clippy::too_many_arguments)]
+    fn evaluate(
+        &self,
+        py: Python<'_>,
+        module: &EngineModule,
+        action: String,
+        bindings: &Bound<'_, PyAny>,
+        input: &Bound<'_, PyAny>,
+        context: &Bound<'_, PyAny>,
+        commit_time: String,
+        evidence: Option<&Bound<'_, PyAny>>,
+    ) -> PyResult<(PyRecord, Py<PyAny>)> {
+        let bindings: std::collections::BTreeMap<String, String> = doc("bindings", bindings)?;
+        let evidence: Option<Evidence> = evidence.map(|e| doc("evidence", e)).transpose()?;
+        let ev = self
+            .inner
+            .evaluate(
+                &module.inner,
+                &action,
+                &bindings,
+                &object(input)?,
+                &object(context)?,
+                &commit_time,
+                evidence,
+            )
+            .map_err(|e| store_err(py, e))?;
+        let rec = PyRecord {
+            json: behavior_core::canonical::to_canonical_string(&ev.record).unwrap_or_default(),
+            data: ev.record,
+        };
+        let bundle = match &ev.bundle {
+            Some(b) => to_py(py, &to_json(b))?,
+            None => py.None(),
+        };
+        Ok((rec, bundle))
+    }
+
+    /// Commits a bundle on `expected_parent`; returns {record_id, result_state, already,
+    /// evidence_trust}. Raises EngineStoreConflict or EngineStoreRefused.
+    fn commit(
+        &mut self,
+        py: Python<'_>,
+        module: &EngineModule,
+        expected_parent: &Bound<'_, PyAny>,
+        bundle: &Bound<'_, PyAny>,
+    ) -> PyResult<Py<PyAny>> {
+        let bundle: CommitBundle = doc("commit bundle", bundle)?;
+        let c = self
+            .inner
+            .commit(&module.inner, &state_ref(expected_parent)?, &bundle)
+            .map_err(|e| store_err(py, e))?;
+        to_py(
+            py,
+            &json!({"record_id": c.record_id, "result_state": to_json(&c.result_state),
+                    "already": c.already, "evidence_trust": c.evidence_trust}),
+        )
+    }
+
+    fn transitions(
+        &self,
+        py: Python<'_>,
+        from: &Bound<'_, PyAny>,
+        to: &Bound<'_, PyAny>,
+    ) -> PyResult<Py<PyAny>> {
+        let rs = self
+            .inner
+            .transitions(&state_ref(from)?, &state_ref(to)?)
+            .map_err(|e| store_err(py, e))?;
+        to_py(py, &to_json(&rs))
+    }
+
+    fn replay_data(
+        &self,
+        py: Python<'_>,
+        from: &Bound<'_, PyAny>,
+        to: &Bound<'_, PyAny>,
+    ) -> PyResult<Py<PyAny>> {
+        to_py(
+            py,
+            &to_json(&replay_data(
+                &self.inner,
+                &state_ref(from)?,
+                &state_ref(to)?,
+            )),
+        )
+    }
+
+    fn replay_behavior(
+        &self,
+        py: Python<'_>,
+        modules: Vec<PyRef<'_, EngineModule>>,
+        from: &Bound<'_, PyAny>,
+        to: &Bound<'_, PyAny>,
+    ) -> PyResult<Py<PyAny>> {
+        let modules = modules
+            .iter()
+            .map(|m| (m.inner.behavior_version(), m.inner.clone()))
+            .collect();
+        to_py(
+            py,
+            &to_json(&replay_behavior(
+                &self.inner,
+                &modules,
+                &state_ref(from)?,
+                &state_ref(to)?,
+            )),
+        )
+    }
+}
+
+/// Runs the conformance suite against backends from `factory` (a callable returning a backend
+/// object); returns a list of (name, ok, message).
+#[pyfunction]
+fn run_conformance(factory: &Bound<'_, PyAny>) -> PyResult<Vec<(String, bool, String)>> {
+    let factory = factory.clone().unbind();
+    let report = run_store_conformance(|| {
+        Python::attach(|py| match factory.bind(py).call0() {
+            Ok(obj) => any_backend(&obj),
+            Err(e) => AnyBackend::Py(PyBackend {
+                obj: e.value(py).clone().into_any().unbind(),
+            }),
+        })
+    });
+    Ok(report
+        .cases
+        .into_iter()
+        .map(|c| (c.name.to_string(), c.ok, c.message))
+        .collect())
+}
+
 #[pymodule]
 fn _engine(m: &Bound<'_, pyo3::types::PyModule>) -> PyResult<()> {
     m.add_class::<PyType_>()?;
@@ -841,6 +1261,17 @@ fn _engine(m: &Bound<'_, pyo3::types::PyModule>) -> PyResult<()> {
     m.add_class::<PyAuthorization>()?;
     m.add_function(wrap_pyfunction!(waiver_hash, m)?)?;
     m.add_function(wrap_pyfunction!(sign_waiver, m)?)?;
+    m.add_class::<PyStore>()?;
+    m.add_class::<PyInMemoryBackend>()?;
+    m.add_function(wrap_pyfunction!(run_conformance, m)?)?;
+    m.add(
+        "EngineStoreConflict",
+        m.py().get_type::<EngineStoreConflict>(),
+    )?;
+    m.add(
+        "EngineStoreRefused",
+        m.py().get_type::<EngineStoreRefused>(),
+    )?;
     m.add("EngineError", m.py().get_type::<EngineError>())?;
     m.add(
         "EngineIntentRejected",

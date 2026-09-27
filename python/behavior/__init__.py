@@ -9,7 +9,8 @@ from typing import Any
 
 from .decl import action, constraint, derived, entity, field, invariant, rule
 from .errors import (
-    BehaviorDefinitionError, BehaviorError, BehaviorInvalid, BehaviorTypeError, IntentRejected,
+    BehaviorDefinitionError, BehaviorError, BehaviorInvalid, BehaviorTypeError, CommitRefused,
+    IntentRejected, StateConflict,
 )
 from .expr import and_, none, not_, or_, rescale, underlying
 from .module import BehaviorModule
@@ -18,6 +19,10 @@ from .statements import ensures, requires, set_
 from .types import Context, Exact, Id, Input, Option, Rounding, nominal
 from .governance import Authorization, authorize, sign_waiver, waiver_hash
 from .verify import Attestation, Profile, verify
+from .store import (
+    CommitResult, ConformanceReport, Evaluation, InMemoryBackend, ReplayReport, StateRef, Store,
+    replay_behavior, replay_data, run_conformance,
+)
 
 
 def admit(model: BehaviorModule) -> AdmissionResult:
@@ -75,6 +80,9 @@ def replay(model: BehaviorModule, record_json: str) -> ReplayResult:
 
 
 __all__ = [
+    "CommitRefused", "CommitResult", "ConformanceReport", "Evaluation", "InMemoryBackend",
+    "ReplayReport", "StateConflict", "StateRef", "Store", "replay_behavior", "replay_data",
+    "run_conformance",
     "Exact", "Rounding", "rescale",
     "Attestation", "Authorization", "Profile", "authorize", "sign_waiver", "verify", "waiver_hash",
     "AdmissionError", "AdmissionResult", "Change", "Decision", "ReplayResult", "TraceStep",

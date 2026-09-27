@@ -45,3 +45,22 @@ class IntentRejected(BehaviorError):
     def __init__(self, errors: list[dict[str, Any]]) -> None:
         self.errors = errors
         super().__init__("intent rejected: " + "; ".join(e["code"] for e in errors))
+
+
+class StateConflict(BehaviorError):
+    """A commit was refused because the store moved on since the evaluation (whole-state
+    optimistic concurrency): re-read, re-evaluate, retry."""
+
+    def __init__(self, current: dict[str, Any], changed: list[dict[str, str]]) -> None:
+        self.current = current
+        self.changed = changed
+        ids = ", ".join(f"{c['entity']}#{c['id']}" for c in changed)
+        super().__init__(f"STATE_CONFLICT: the store is at position {current['position']} ({ids})")
+
+
+class CommitRefused(BehaviorError):
+    """A store operation was refused (the code names the rule, e.g. EVIDENCE_REQUIRED)."""
+
+    def __init__(self, code: str, message: str) -> None:
+        self.code = code
+        super().__init__(message)

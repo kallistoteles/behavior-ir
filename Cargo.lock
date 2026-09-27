@@ -102,9 +102,28 @@ name = "behavior-py"
 version = "0.1.0"
 dependencies = [
  "behavior-core",
+ "behavior-store",
  "behavior-verify",
  "pyo3",
+ "serde",
  "serde_json",
+]
+
+[[package]]
+name = "behavior-store"
+version = "0.1.0"
+dependencies = [
+ "behavior-core",
+ "behavior-verify",
+ "num-bigint",
+ "num-integer",
+ "num-traits",
+ "pretty_assertions",
+ "proptest",
+ "serde",
+ "serde_json",
+ "sha2",
+ "thiserror",
 ]
 
 [[package]]

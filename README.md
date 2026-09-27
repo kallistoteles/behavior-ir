@@ -119,6 +119,24 @@ Admission also bounds every exact intermediate to the runtime's 512-bit represen
 Only wire IR 0.4 is accepted; records carry `record_version "0.4"`. Details:
 `specs/004-exact-arithmetic-closure/`.
 
+### Persistence contract (feature 005)
+
+The engine defines what must be stored for behavior to stay reproducible; the host decides where.
+A `Store` evaluates against one consistent snapshot and commits with whole-state optimistic
+concurrency, and every transition becomes a hash-chained, replayable record:
+
+```python
+store = Store.create(InMemoryBackend(), model, Store.genesis_for(model, seed))
+ev = store.evaluate(model, "transfer", bindings={"from_": "a1", "to": "a2"},
+                    input={"amount": Decimal("20.00")}, commit_time=now)
+store.commit(model, ev.bundle)          # StateConflict if the store moved on: re-evaluate
+replay_data(store).ok, replay_behavior(store, [model]).ok
+```
+
+State identity is pure content, and history position and entity revisions are kept apart from it.
+A host implements seven storage methods, including one atomic compare-and-set, and checks them
+with `run_conformance`. See `docs/persistence.md` and `python -m examples.ledger.run`.
+
 The output is a canonical, content-addressed **verification attestation** bound to the
 behavior version. Results are cached by check key (`--cache .behavior/verify-cache`), so
 unchanged behavior is not re-verified.

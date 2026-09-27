@@ -4,7 +4,7 @@
 //! Order: input check → invariants on S → preconditions → effects (ΔS against S) →
 //! `S' = apply(S, ΔS)` → postconditions and invariants on S'. Any failure returns no change.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use serde_json::{Map, Value as Json, json};
 
@@ -246,12 +246,58 @@ struct DerivedEntry {
     value: Json,
 }
 
+/// Observed reads of one scope: `(param, field)` in that scope's parameter names, and how its
+/// parameters map to the enclosing scope's names (feature 005, research R7).
+#[derive(Default)]
+struct ReadFrame {
+    to_outer: BTreeMap<String, String>,
+    reads: BTreeSet<(String, String)>,
+}
+
+type ObservedReads = BTreeSet<(String, String)>;
+
 struct Evaluator<'a> {
     module: &'a Module,
-    memo: BTreeMap<(String, String, Phase), Value>,
+    /// Derived values by (name, argument values, phase), with the reads their body made, in the
+    /// derived value's own parameter names (re-attributed on every hit).
+    memo: BTreeMap<(String, String, Phase), (Value, ObservedReads)>,
+    /// Observed-read frames; the first is the action's scope.
+    frames: Vec<ReadFrame>,
     derived: Vec<DerivedEntry>,
     /// Rescale entries of the step being evaluated (attached to its trace step).
     rescales: Vec<Json>,
+}
+
+impl Evaluator<'_> {
+    fn observe(&mut self, param: &str, field: &str) {
+        if let Some(f) = self.frames.last_mut() {
+            f.reads.insert((param.to_string(), field.to_string()));
+        }
+    }
+
+    /// Adds reads made in an inner scope, renamed to the current scope's parameters.
+    fn attribute(&mut self, reads: &ObservedReads, to_outer: &BTreeMap<String, String>) {
+        for (p, f) in reads {
+            if let Some(outer) = to_outer.get(p) {
+                self.observe(&outer.clone(), f);
+            }
+        }
+    }
+
+    fn push_frame(&mut self, to_outer: BTreeMap<String, String>) {
+        self.frames.push(ReadFrame {
+            to_outer,
+            reads: BTreeSet::new(),
+        });
+    }
+
+    /// Pops the innermost frame, attributes its reads to the enclosing one, and returns them in
+    /// the popped scope's own names.
+    fn pop_frame(&mut self) -> ObservedReads {
+        let f = self.frames.pop().unwrap_or_default();
+        self.attribute(&f.reads, &f.to_outer);
+        f.reads
+    }
 }
 
 /// Moves the pending rescale entries onto the last trace step.
@@ -354,6 +400,7 @@ impl Evaluator<'_> {
                 if let Some(r) = reads.as_deref_mut() {
                     r.insert(format!("{param}.{field}"), encode(&e.ty, &v));
                 }
+                self.observe(param, field);
                 Ok(v)
             }
             ExprKind::Param(name) => {
@@ -374,12 +421,25 @@ impl Evaluator<'_> {
                 }
                 let args_key = Json::Array(arg_values).to_string();
                 let key = (name.clone(), args_key.clone(), phase);
+                let to_outer: BTreeMap<String, String> = d
+                    .params()
+                    .iter()
+                    .zip(args)
+                    .map(|(p, a)| (p.name().to_string(), a.clone()))
+                    .collect();
                 let v = match self.memo.get(&key) {
-                    Some(v) => v.clone(),
+                    Some((v, body_reads)) => {
+                        let (v, body_reads) = (v.clone(), body_reads.clone());
+                        self.attribute(&body_reads, &to_outer);
+                        v
+                    }
                     None => {
                         let body = d.body().clone();
-                        let v = self.eval(&body, &inner, phase, &mut None)?;
-                        self.memo.insert(key, v.clone());
+                        self.push_frame(to_outer);
+                        let r = self.eval(&body, &inner, phase, &mut None);
+                        let body_reads = self.pop_frame();
+                        let v = r?;
+                        self.memo.insert(key, (v.clone(), body_reads));
                         let order = self
                             .module
                             .evaluation_order()
@@ -662,8 +722,55 @@ struct Outcome {
     changes: Vec<Json>,
 }
 
+/// Decodes `raw` as an entity of type `entity` (field set, field types, fixed-scale grid and
+/// range), checks the entity's constraints, and returns its canonical encoding as decision
+/// records show it; otherwise the problems (feature 005: store genesis seeds).
+pub fn canonical_entity(module: &Module, entity: &str, raw: &Json) -> Result<Json, Vec<String>> {
+    let ty = Type::Entity(entity.into());
+    if module.entity(entity).is_none() {
+        return Err(vec![format!("unknown entity `{entity}`")]);
+    }
+    let mut problems = Vec::new();
+    let value = decode_param(module, &ty, raw, entity, &mut problems);
+    let Some(value) = value.filter(|_| problems.is_empty()) else {
+        return Err(problems
+            .into_iter()
+            .map(|p| format!("{}: {}", p.path, p.message))
+            .collect());
+    };
+    let mut ev = Evaluator {
+        module,
+        memo: BTreeMap::new(),
+        frames: vec![ReadFrame::default()],
+        derived: Vec::new(),
+        rescales: Vec::new(),
+    };
+    let mut failed = Vec::new();
+    for (name, c) in module.constraints_for(entity) {
+        let vals = Vals::from([(c.param().to_string(), value.clone())]);
+        match ev.predicate(c.body(), &vals, Phase::S).0 {
+            Ok(true) => {}
+            Ok(false) => failed.push(format!("constraint `{name}` is violated")),
+            Err(e) => failed.push(format!("constraint `{name}`: {e}")),
+        }
+    }
+    if failed.is_empty() {
+        Ok(encode_param(module, &ty, &value))
+    } else {
+        Err(failed)
+    }
+}
+
 /// Evaluates an EvaluationRequest (JSON) against an admitted module.
 pub fn evaluate(module: &Module, request: &str) -> DecisionRecord {
+    evaluate_observed(module, request).0
+}
+
+/// [`evaluate`], plus the entity fields the evaluation actually read, named by the action's
+/// parameters: `(param, field)` for every field read, including reads inside derived values,
+/// rules, invariants and constraints; operands skipped by short-circuiting are not read
+/// (feature 005, research R7). The decision record is identical to [`evaluate`]'s.
+pub fn evaluate_observed(module: &Module, request: &str) -> (DecisionRecord, ObservedReads) {
     let mut problems = Vec::new();
     let req = parse_request(request, &mut problems);
     let action = module.action(&req.action);
@@ -707,7 +814,7 @@ pub fn evaluate(module: &Module, request: &str) -> DecisionRecord {
         record.insert("trace".into(), json!([]));
         record.insert("derived".into(), json!([]));
         record.insert("changes".into(), json!([]));
-        return DecisionRecord::new(Json::Object(record));
+        return (DecisionRecord::new(Json::Object(record)), BTreeSet::new());
     };
 
     // Normalized echo of the decoded request.
@@ -737,12 +844,13 @@ pub fn evaluate(module: &Module, request: &str) -> DecisionRecord {
         record.insert("trace".into(), json!([]));
         record.insert("derived".into(), json!([]));
         record.insert("changes".into(), json!([]));
-        return DecisionRecord::new(Json::Object(record));
+        return (DecisionRecord::new(Json::Object(record)), BTreeSet::new());
     }
 
     let mut ev = Evaluator {
         module,
         memo: BTreeMap::new(),
+        frames: vec![ReadFrame::default()],
         derived: Vec::new(),
         rescales: Vec::new(),
     };
@@ -763,7 +871,8 @@ pub fn evaluate(module: &Module, request: &str) -> DecisionRecord {
     record.insert("trace".into(), Json::Array(outcome.trace));
     record.insert("derived".into(), Json::Array(derived_json));
     record.insert("changes".into(), Json::Array(outcome.changes));
-    DecisionRecord::new(Json::Object(record))
+    let observed = ev.frames.pop().map(|f| f.reads).unwrap_or_default();
+    (DecisionRecord::new(Json::Object(record)), observed)
 }
 
 fn run_transition(ev: &mut Evaluator<'_>, action: &ActionItem, s: Vals) -> Outcome {
@@ -1109,7 +1218,9 @@ fn run_rules(
         if let Some(v) = state.get(&c.bound) {
             vals.insert(c.rule_param.clone(), v.clone());
         }
+        ev.push_frame(BTreeMap::from([(c.rule_param.clone(), c.bound.clone())]));
         let (r, reads) = ev.predicate(&c.body, &vals, phase);
+        ev.pop_frame();
         let outcome = match &r {
             Ok(b) => json!(b),
             Err(msg) => json!({"error": msg}),

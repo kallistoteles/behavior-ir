@@ -4,6 +4,7 @@ members = [
     "crates/behavior-verify",
     "crates/behavior-cli",
     "crates/behavior-py",
+    "crates/behavior-store",
 ]
 resolver = "3"
 
@@ -19,3 +20,4 @@ expect_used = "deny"
 [workspace.dependencies]
 behavior-core = { path = "crates/behavior-core" }
 behavior-verify = { path = "crates/behavior-verify" }
+behavior-store = { path = "crates/behavior-store" }

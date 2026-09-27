@@ -61,6 +61,18 @@ done
 
 # Verification attestations (feature 002): every verify fixture and every valid wire file,
 # without a cache so the solver runs both times.
+# Persistence (feature 005): a fixed store history, its records and replay reports (SC-005).
+cargo run -q -p behavior-store --example history >"$tmp/history_a" 2>/dev/null || fail=1
+cargo run -q -p behavior-store --example history >"$tmp/history_b" 2>/dev/null || fail=1
+if ! cmp -s "$tmp/history_a" "$tmp/history_b" || [ ! -s "$tmp/history_a" ]; then
+  echo "NOT DETERMINISTIC: store history" >&2
+  fail=1
+fi
+if [ "$(tail -n 2 "$tmp/history_a" | grep -c '"ok":true')" -ne 2 ]; then
+  echo "STORE REPLAY FAILED" >&2
+  fail=1
+fi
+
 if command -v "${BEHAVIOR_Z3:-z3}" >/dev/null 2>&1; then
   for f in tests/fixtures/verify/*.json tests/fixtures/wire/valid/*.json; do
     case "$f" in *.expected.json) continue ;; esac

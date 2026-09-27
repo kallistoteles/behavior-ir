@@ -19,6 +19,6 @@ pub mod wire;
 pub use admit::{
     AdmissionError, AdmissionResult, admission_report, admission_result, admit, admit_wire,
 };
-pub use eval::evaluate;
+pub use eval::{canonical_entity, evaluate, evaluate_observed};
 pub use intent::{IntentError, IntentRejection, evaluate_intent};
 pub use record::{DecisionRecord, ReplayResult, replay};

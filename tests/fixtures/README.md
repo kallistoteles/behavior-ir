@@ -42,3 +42,10 @@ Golden files are generated from the implementation, reviewed by a human, and the
 | `frozen_versions.json` | Behavior versions (semantic hashes) of every fixture module, recorded before feature 004; modules whose meaning does not change must keep them |
 | `migration_004.json` | Migration table: fixture modules whose behavior version changed in feature 004, with the reason (all others keep their frozen identity) |
 | `requests/004/` | Requests and expectations for exact ratios and exact general-decimal arithmetic (003 subset format) |
+
+## Feature 005
+
+| Path | Content |
+|------|---------|
+| `wire/valid/ledger.json` | Accounts (`active`, two-decimal `balance`) with `transfer`, the no-op `touch`, and `freeze`: the persistence fixture module |
+| `store/hash_vectors.json` | Frozen hashes of the persistence documents (entity content and version, state, evidence policy, genesis, commit bundle, transition record) |

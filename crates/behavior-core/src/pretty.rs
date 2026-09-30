@@ -8,7 +8,7 @@
 //! parenthesized (`a * (b / c)`, `a - (b + c)`), and a nested `and`/`or` keeps its grouping.
 //! `tests/pretty_roundtrip.rs` re-reads every rendered expression and compares trees.
 
-use crate::semantic::expr::{Expr, ExprKind};
+use crate::semantic::expr::{CANDIDATE, Expr, ExprKind, QueryKind, QueryNode};
 use crate::semantic::types::{ArithOp, CmpOp, Type, Unit};
 use crate::semantic::value::Value;
 
@@ -24,8 +24,8 @@ fn prec(e: &Expr) -> u8 {
     }
 }
 
-fn wrap_if(e: &Expr, parens: bool) -> String {
-    let s = text(e);
+fn wrap_if(e: &Expr, parens: bool, cand: Option<&str>) -> String {
+    let s = text_in(e, cand);
     if parens { format!("({s})") } else { s }
 }
 
@@ -83,53 +83,109 @@ fn wrap_name(t: &Type) -> String {
 
 /// Readable text of an expression with the fewest parentheses that keep its tree unambiguous.
 pub fn text(e: &Expr) -> String {
+    text_in(e, None)
+}
+
+/// Readable text of a query (feature 007): `select(T)`, `where(q, o, predicate)`, `union(a, b)`.
+pub fn query_text(q: &QueryNode) -> String {
+    match &q.kind {
+        QueryKind::Select => format!("select({})", q.entity),
+        QueryKind::Where { base, param, body } => format!(
+            "where({}, {param}, {})",
+            query_text(base),
+            text_in(body, Some(param))
+        ),
+        QueryKind::Set { op, a, b } => {
+            format!("{}({}, {})", op.as_str(), query_text(a), query_text(b))
+        }
+    }
+}
+
+/// [`text`] inside a lambda body whose candidate is displayed as `cand`.
+fn text_in(e: &Expr, cand: Option<&str>) -> String {
     let p = prec(e);
     match &e.kind {
         ExprKind::Lit(v) => value_text(&e.ty, v),
+        ExprKind::Field { param, field } if param == CANDIDATE => {
+            format!("{}.{field}", cand.unwrap_or(CANDIDATE))
+        }
         ExprKind::Field { param, field } => format!("{param}.{field}"),
         ExprKind::Param(name) => name.clone(),
-        ExprKind::DerivedRef { name, args, .. } => format!("{name}({})", args.join(", ")),
+        ExprKind::DerivedRef { name, args, .. } => {
+            let shown: Vec<&str> = args
+                .iter()
+                .map(|a| {
+                    if a == CANDIDATE {
+                        cand.unwrap_or(CANDIDATE)
+                    } else {
+                        a.as_str()
+                    }
+                })
+                .collect();
+            format!("{name}({})", shown.join(", "))
+        }
         ExprKind::Cmp(c, a, b) => format!(
             "{} {} {}",
-            wrap_if(a, prec(a) <= p),
+            wrap_if(a, prec(a) <= p, cand),
             cmp_symbol(*c),
-            wrap_if(b, prec(b) <= p)
+            wrap_if(b, prec(b) <= p, cand)
         ),
         // Left-associative: `a * b / c` is `(a * b) / c`; a right operand of equal precedence
         // keeps its parentheses even where the value would be the same (`a * (b / c)`).
         ExprKind::Arith(op, a, b) => format!(
             "{} {} {}",
-            wrap_if(a, prec(a) < p),
+            wrap_if(a, prec(a) < p, cand),
             arith_symbol(*op),
-            wrap_if(b, prec(b) <= p)
+            wrap_if(b, prec(b) <= p, cand)
         ),
         // A nested `and` inside `and` (or `or` inside `or`) is a different tree: keep it grouped.
         ExprKind::And(xs) => xs
             .iter()
-            .map(|x| wrap_if(x, prec(x) <= p))
+            .map(|x| wrap_if(x, prec(x) <= p, cand))
             .collect::<Vec<_>>()
             .join(" and "),
         ExprKind::Or(xs) => xs
             .iter()
-            .map(|x| wrap_if(x, prec(x) <= p))
+            .map(|x| wrap_if(x, prec(x) <= p, cand))
             .collect::<Vec<_>>()
             .join(" or "),
-        ExprKind::Not(a) => format!("not {}", wrap_if(a, prec(a) < p)),
+        ExprKind::Not(a) => format!("not {}", wrap_if(a, prec(a) < p, cand)),
         ExprKind::In(a, values) => {
             let vs: Vec<String> = values.iter().map(|v| value_text(&a.ty, v)).collect();
-            format!("{} in [{}]", wrap_if(a, prec(a) <= p), vs.join(", "))
+            format!("{} in [{}]", wrap_if(a, prec(a) <= p, cand), vs.join(", "))
         }
-        ExprKind::IsNone(a) => format!("{}.is_none()", wrap_if(a, prec(a) < 7)),
-        ExprKind::IsSome(a) => format!("{}.is_some()", wrap_if(a, prec(a) < 7)),
-        ExprKind::ValueOr(a, d) => format!("{}.value_or({})", wrap_if(a, prec(a) < 7), text(d)),
-        ExprKind::Some(a) => format!("some({})", text(a)),
-        ExprKind::ToDecimal(a) => format!("decimal({})", text(a)),
-        ExprKind::Wrap(a) => format!("{}({})", wrap_name(&e.ty), text(a)),
-        ExprKind::Unwrap(a) => format!("underlying({})", text(a)),
+        ExprKind::IsNone(a) => format!("{}.is_none()", wrap_if(a, prec(a) < 7, cand)),
+        ExprKind::IsSome(a) => format!("{}.is_some()", wrap_if(a, prec(a) < 7, cand)),
+        ExprKind::ValueOr(a, d) => format!(
+            "{}.value_or({})",
+            wrap_if(a, prec(a) < 7, cand),
+            text_in(d, cand)
+        ),
+        ExprKind::Some(a) => format!("some({})", text_in(a, cand)),
+        ExprKind::ToDecimal(a) => format!("decimal({})", text_in(a, cand)),
+        ExprKind::Wrap(a) => format!("{}({})", wrap_name(&e.ty), text_in(a, cand)),
+        ExprKind::Unwrap(a) => format!("underlying({})", text_in(a, cand)),
         ExprKind::Rescale { arg, rounding } => {
-            format!("rescale({}, {}, {})", text(arg), e.ty, rounding.as_str())
+            format!(
+                "rescale({}, {}, {})",
+                text_in(arg, cand),
+                e.ty,
+                rounding.as_str()
+            )
         }
-        ExprKind::Exists(a) => format!("exists({})", text(a)),
-        ExprKind::Referenced(a) => format!("referenced({})", text(a)),
+        ExprKind::Exists(a) => format!("exists({})", text_in(a, cand)),
+        ExprKind::Referenced(a) => format!("referenced({})", text_in(a, cand)),
+        ExprKind::Count(q) => format!("count({})", query_text(q)),
+        ExprKind::Fold {
+            op,
+            query,
+            param,
+            body,
+        } => format!(
+            "{}({}, {param}, {})",
+            op.as_str(),
+            query_text(query),
+            text_in(body, Some(param))
+        ),
     }
 }

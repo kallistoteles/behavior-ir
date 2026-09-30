@@ -282,6 +282,34 @@ pub(crate) fn facts(
             let _ = facts(a, derived, err);
             NON_NUMERIC
         }
+        ExprKind::Count(q) => {
+            for b in q.bodies() {
+                let _ = facts(b, derived, err);
+            }
+            leaf(&Type::Int)
+        }
+        ExprKind::Fold {
+            op, query, body, ..
+        } => {
+            for b in query.bodies() {
+                let _ = facts(b, derived, err);
+            }
+            let f = facts(body, derived, err);
+            match op {
+                // A sum has the body's scale; its magnitude grows by at most 64 bits (no store
+                // holds more than 2^64 members; the runtime checks overflow regardless).
+                crate::semantic::expr::FoldOp::Sum if is_integer(e.ty()) => leaf(&Type::Int),
+                crate::semantic::expr::FoldOp::Sum if fixed_scale(e.ty()).is_some() => leaf(e.ty()),
+                crate::semantic::expr::FoldOp::Sum => Facts {
+                    nb: f.nb.saturating_add(64).min(MAX_BITS),
+                    db: f.db,
+                    scale: f.scale,
+                    cd: f.cd.map(|c| c + 20),
+                },
+                crate::semantic::expr::FoldOp::Min | crate::semantic::expr::FoldOp::Max => f,
+                _ => NON_NUMERIC,
+            }
+        }
     }
 }
 

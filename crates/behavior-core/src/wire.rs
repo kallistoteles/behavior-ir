@@ -21,6 +21,10 @@ pub const IR_VERSION_EXACT: &str = "0.4";
 /// `referenced`, and `ref` field types. Any use of one of these forms needs 0.5; 0.4 documents
 /// without them are still accepted (the extension changes no existing meaning).
 pub const IR_VERSION_LIFECYCLE: &str = "0.5";
+/// The IR version with relational queries (feature 007): `select`, `where`, set algebra, `count`,
+/// `any`, `all`, `sum`, `min`, `max`, `unique`, and module-level invariants. Any use of one of
+/// them needs 0.6; earlier documents without them are still accepted.
+pub const IR_VERSION_QUERIES: &str = "0.6";
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 pub struct Loc {
@@ -116,6 +120,15 @@ pub struct WInvariant {
     pub loc: Loc,
 }
 
+/// A module-level invariant (wire 0.6): a closed state expression over the whole state, with no
+/// entity parameter.
+#[derive(Debug, Clone)]
+pub struct WGlobalInvariant {
+    pub name: String,
+    pub body: WExpr,
+    pub loc: Loc,
+}
+
 #[derive(Debug, Clone)]
 pub struct WConstraint {
     pub name: String,
@@ -182,6 +195,8 @@ pub struct WModule {
     pub entities: Vec<WEntity>,
     pub derived: Vec<WDerived>,
     pub invariants: Vec<WInvariant>,
+    /// Module-level invariants (wire 0.6), in document order.
+    pub global_invariants: Vec<WGlobalInvariant>,
     pub constraints: Vec<WConstraint>,
     pub actions: Vec<WAction>,
 }
@@ -211,6 +226,51 @@ pub enum OpName {
     Exists,
     /// `referenced(id)` (wire 0.5).
     Referenced,
+    /// `count(query)` (wire 0.6).
+    Count,
+    /// Set algebra over two queries of the same entity type (wire 0.6).
+    Union,
+    Intersection,
+    Difference,
+}
+
+/// A relational operator with a lambda over the candidate (wire 0.6).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum LambdaOp {
+    Where,
+    Any,
+    All,
+    Sum,
+    Min,
+    Max,
+    Unique,
+}
+
+impl LambdaOp {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            LambdaOp::Where => "where",
+            LambdaOp::Any => "any",
+            LambdaOp::All => "all",
+            LambdaOp::Sum => "sum",
+            LambdaOp::Min => "min",
+            LambdaOp::Max => "max",
+            LambdaOp::Unique => "unique",
+        }
+    }
+
+    pub fn parse(s: &str) -> Option<LambdaOp> {
+        Some(match s {
+            "where" => LambdaOp::Where,
+            "any" => LambdaOp::Any,
+            "all" => LambdaOp::All,
+            "sum" => LambdaOp::Sum,
+            "min" => LambdaOp::Min,
+            "max" => LambdaOp::Max,
+            "unique" => LambdaOp::Unique,
+            _ => return None,
+        })
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -246,6 +306,18 @@ pub enum WExprKind {
         rounding: String,
         arg: Box<WExpr>,
     },
+    /// `select(T)` (wire 0.6): the existing entities of type `T`, as a query.
+    Select {
+        entity: String,
+    },
+    /// A relational operator applied to a query with a lambda `param → body` over the candidate
+    /// (wire 0.6).
+    Lambda {
+        op: LambdaOp,
+        query: Box<WExpr>,
+        param: String,
+        body: Box<WExpr>,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -264,6 +336,8 @@ pub enum DecodeError {
     UnsupportedVersion(String),
     /// A 0.4 document uses a form introduced by wire 0.5 (named).
     NeedsLifecycleVersion(String),
+    /// A document below 0.6 uses a form introduced by wire 0.6 (named).
+    NeedsQueryVersion(String),
 }
 
 type R<T> = Result<T, DecodeError>;
@@ -469,6 +543,10 @@ pub(crate) fn op_name(s: &str) -> Option<OpName> {
         "value_or" => OpName::ValueOr,
         "exists" => OpName::Exists,
         "referenced" => OpName::Referenced,
+        "count" => OpName::Count,
+        "union" => OpName::Union,
+        "intersection" => OpName::Intersection,
+        "difference" => OpName::Difference,
         _ => return None,
     })
 }
@@ -477,7 +555,7 @@ pub(crate) fn arity_ok(op: OpName, n: usize) -> bool {
     use OpName::*;
     match op {
         And | Or => n >= 2,
-        Not | IsNone | IsSome | Some | ToDecimal | Unwrap | Exists | Referenced => n == 1,
+        Not | IsNone | IsSome | Some | ToDecimal | Unwrap | Exists | Referenced | Count => n == 1,
         _ => n == 2,
     }
 }
@@ -535,6 +613,31 @@ fn decode_expr(v: &Value, path: &str) -> R<WExpr> {
             WExprKind::Wrap {
                 nominal,
                 arg: Box::new(args.remove(0)),
+            }
+        }
+        "select" => WExprKind::Select {
+            entity: o.ident("entity")?,
+        },
+        name if LambdaOp::parse(name).is_some() => {
+            let op = LambdaOp::parse(name).ok_or_else(|| DecodeError::Structure {
+                path: op_path.clone(),
+                message: "unknown operator".into(),
+            })?;
+            let mut args = args_of(&mut o, path)?;
+            if args.len() != 1 {
+                return fail(
+                    &o.sub("args"),
+                    format!("`{name}` takes exactly one query argument"),
+                );
+            }
+            let param = o.ident("param")?;
+            let body_path = o.sub("body");
+            let body = decode_expr(o.get("body")?, &body_path)?;
+            WExprKind::Lambda {
+                op,
+                query: Box::new(args.remove(0)),
+                param,
+                body: Box::new(body),
             }
         }
         "rescale" => {
@@ -646,9 +749,10 @@ pub fn decode_module(text: &str) -> R<WModule> {
         Err(e) => return fail("$", format!("invalid JSON: {e}")),
     };
     let mut o = Obj::new(&root, "$")?;
-    let (with_constraints, fixed_scale, lifecycle) = match o.get("ir_version")? {
-        Value::String(v) if v == IR_VERSION_EXACT => (true, true, false),
-        Value::String(v) if v == IR_VERSION_LIFECYCLE => (true, true, true),
+    let (with_constraints, fixed_scale, lifecycle, queries) = match o.get("ir_version")? {
+        Value::String(v) if v == IR_VERSION_EXACT => (true, true, false, false),
+        Value::String(v) if v == IR_VERSION_LIFECYCLE => (true, true, true, false),
+        Value::String(v) if v == IR_VERSION_QUERIES => (true, true, true, true),
         Value::String(v) => return Err(DecodeError::UnsupportedVersion(v.clone())),
         _ => return fail("$.ir_version", "expected a string"),
     };
@@ -735,23 +839,39 @@ pub fn decode_module(text: &str) -> R<WModule> {
         })
     })?;
 
-    let invariants = decode_list(o.arr("invariants")?, "$.invariants", |v, p| {
+    // An invariant without `entity` and `param` is a module-level invariant (wire 0.6).
+    let mut invariants = Vec::new();
+    let mut global_invariants = Vec::new();
+    for d in decode_list(o.arr("invariants")?, "$.invariants", |v, p| {
         let mut i = Obj::new(v, p)?;
         let name = i.ident("name")?;
-        let entity = i.ident("entity")?;
-        let param = i.ident("param")?;
+        let global = i.opt("entity").is_none() && i.opt("param").is_none();
+        let (entity, param) = if global {
+            (String::new(), String::new())
+        } else {
+            (i.ident("entity")?, i.ident("param")?)
+        };
         let body_path = i.sub("body");
         let body = decode_expr(i.get("body")?, &body_path)?;
         let loc = i.loc()?;
         i.finish()?;
-        Ok(WInvariant {
-            name,
-            entity,
-            param,
-            body,
-            loc,
+        Ok(if global {
+            Err(WGlobalInvariant { name, body, loc })
+        } else {
+            Ok(WInvariant {
+                name,
+                entity,
+                param,
+                body,
+                loc,
+            })
         })
-    })?;
+    })? {
+        match d {
+            Ok(i) => invariants.push(i),
+            Err(g) => global_invariants.push(g),
+        }
+    }
 
     let constraints = if with_constraints {
         decode_list(o.arr("constraints")?, "$.constraints", |v, p| {
@@ -813,6 +933,7 @@ pub fn decode_module(text: &str) -> R<WModule> {
         entities,
         derived,
         invariants,
+        global_invariants,
         constraints,
         actions,
     };
@@ -822,10 +943,76 @@ pub fn decode_module(text: &str) -> R<WModule> {
             "fixed-scale nominals, exact types, rescale, and declared derived types need ir_version \"0.3\"",
         );
     }
+    if !queries && let Some(form) = query_form(&module) {
+        return Err(DecodeError::NeedsQueryVersion(form.to_string()));
+    }
     if !lifecycle && let Some(form) = lifecycle_form(&module) {
         return Err(DecodeError::NeedsLifecycleVersion(form.to_string()));
     }
     Ok(module)
+}
+
+/// Every expression of a module, for form detection.
+fn module_exprs(m: &WModule) -> Vec<&WExpr> {
+    let mut out: Vec<&WExpr> = Vec::new();
+    out.extend(m.derived.iter().map(|d| &d.body));
+    out.extend(m.invariants.iter().map(|i| &i.body));
+    out.extend(m.global_invariants.iter().map(|i| &i.body));
+    out.extend(m.constraints.iter().map(|c| &c.body));
+    for a in &m.actions {
+        out.extend(
+            a.preconditions
+                .iter()
+                .chain(&a.postconditions)
+                .map(|c| &c.expr),
+        );
+        out.extend(a.effects.iter().map(|e| &e.value));
+        for l in &a.lifecycle {
+            if let WLifecycle::Create { id, fields, .. } = l {
+                out.push(id);
+                out.extend(fields.iter().map(|(_, e)| e));
+            }
+        }
+    }
+    out
+}
+
+fn expr_query_form(e: &WExpr) -> Option<&'static str> {
+    match &e.kind {
+        WExprKind::Select { .. } => Some("select"),
+        WExprKind::Lambda { op, .. } => Some(op.as_str()),
+        WExprKind::Op {
+            op: OpName::Count, ..
+        } => Some("count"),
+        WExprKind::Op {
+            op: OpName::Union, ..
+        } => Some("union"),
+        WExprKind::Op {
+            op: OpName::Intersection,
+            ..
+        } => Some("intersection"),
+        WExprKind::Op {
+            op: OpName::Difference,
+            ..
+        } => Some("difference"),
+        WExprKind::Op { args, .. } => args.iter().find_map(expr_query_form),
+        WExprKind::In { arg, .. }
+        | WExprKind::Wrap { arg, .. }
+        | WExprKind::Rescale { arg, .. } => expr_query_form(arg),
+        WExprKind::Lit { .. }
+        | WExprKind::Field { .. }
+        | WExprKind::Param(_)
+        | WExprKind::Derived { .. } => None,
+    }
+}
+
+/// The first form introduced by wire 0.6 (feature 007) that a module uses, if any: such a module
+/// needs, and serializes as, `"0.6"`.
+pub fn query_form(m: &WModule) -> Option<&'static str> {
+    if !m.global_invariants.is_empty() {
+        return Some("module invariant");
+    }
+    module_exprs(m).into_iter().find_map(expr_query_form)
 }
 
 fn type_lifecycle_form(t: &WType) -> Option<&'static str> {
@@ -850,7 +1037,13 @@ fn expr_lifecycle_form(e: &WExpr) -> Option<&'static str> {
         WExprKind::In { arg, .. }
         | WExprKind::Wrap { arg, .. }
         | WExprKind::Rescale { arg, .. } => expr_lifecycle_form(arg),
-        WExprKind::Field { .. } | WExprKind::Param(_) | WExprKind::Derived { .. } => None,
+        WExprKind::Lambda { query, body, .. } => {
+            expr_lifecycle_form(query).or_else(|| expr_lifecycle_form(body))
+        }
+        WExprKind::Field { .. }
+        | WExprKind::Param(_)
+        | WExprKind::Derived { .. }
+        | WExprKind::Select { .. } => None,
     }
 }
 
@@ -911,7 +1104,13 @@ fn expr_uses_fixed_scale(e: &WExpr) -> bool {
         WExprKind::Lit { ty, .. } => type_uses_fixed_scale(ty),
         WExprKind::Op { args, .. } => args.iter().any(expr_uses_fixed_scale),
         WExprKind::In { arg, .. } | WExprKind::Wrap { arg, .. } => expr_uses_fixed_scale(arg),
-        WExprKind::Field { .. } | WExprKind::Param(_) | WExprKind::Derived { .. } => false,
+        WExprKind::Lambda { query, body, .. } => {
+            expr_uses_fixed_scale(query) || expr_uses_fixed_scale(body)
+        }
+        WExprKind::Field { .. }
+        | WExprKind::Param(_)
+        | WExprKind::Derived { .. }
+        | WExprKind::Select { .. } => false,
     }
 }
 
@@ -926,6 +1125,9 @@ pub fn uses_fixed_scale(m: &WModule) -> bool {
             .iter()
             .any(|d| d.declared.is_some() || params(&d.params) || expr_uses_fixed_scale(&d.body))
         || m.invariants.iter().any(|i| expr_uses_fixed_scale(&i.body))
+        || m.global_invariants
+            .iter()
+            .any(|i| expr_uses_fixed_scale(&i.body))
         || m.constraints.iter().any(|c| expr_uses_fixed_scale(&c.body))
         || m.actions.iter().any(|a| {
             params(&a.params)

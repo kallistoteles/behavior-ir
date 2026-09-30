@@ -302,3 +302,74 @@ pub fn lifecycle_history(n: usize, seed: u64) -> Store<InMemoryBackend> {
     }
     s
 }
+
+// --- feature 007: the orders query module ------------------------------------------------------
+
+pub fn orders() -> Module {
+    behavior_core::admit(&read(&fixtures().join("wire/valid/orders.json"))).unwrap()
+}
+
+pub fn order_seed(id: &str, customer: &str, amount: &str, status: &str) -> SeedEntity {
+    SeedEntity {
+        entity: "Order".into(),
+        value: json!({"id": id, "customer": customer, "amount": amount, "status": status,
+                      "region": "north"}),
+    }
+}
+
+pub fn customer_seed(id: &str, limit: &str) -> SeedEntity {
+    SeedEntity {
+        entity: "Customer".into(),
+        value: json!({"id": id, "name": id, "credit_limit": limit, "region": "north"}),
+    }
+}
+
+pub fn employee_seed(id: &str, number: &str) -> SeedEntity {
+    SeedEntity {
+        entity: "Employee".into(),
+        value: json!({"id": id, "personnel_number": number}),
+    }
+}
+
+/// Customers c1 (limit 100.00) and c2; orders o1 (c1, closed) and o2 (c2, open); employee e1.
+pub fn orders_seed() -> Vec<SeedEntity> {
+    vec![
+        customer_seed("c1", "100.00"),
+        customer_seed("c2", "100.00"),
+        order_seed("o1", "c1", "10.00", "closed"),
+        order_seed("o2", "c2", "5.00", "open"),
+        employee_seed("e1", "N1"),
+    ]
+}
+
+pub fn orders_store_with<B: Backend>(backend: B, seed: Vec<SeedEntity>) -> Store<B> {
+    let m = orders();
+    Store::create(backend, &m, genesis_for(&m, EvidencePolicy::none(), seed)).unwrap()
+}
+
+pub fn orders_store() -> Store<InMemoryBackend> {
+    orders_store_with(InMemoryBackend::new(), orders_seed())
+}
+
+pub fn run_orders<B: Backend>(
+    s: &Store<B>,
+    action: &str,
+    bindings: &[(&str, &str)],
+    input: Value,
+) -> Evaluation {
+    s.evaluate(
+        &orders(),
+        action,
+        &bind(bindings),
+        &input,
+        &json!({}),
+        T0,
+        None,
+    )
+    .unwrap()
+}
+
+pub fn commit_orders<B: Backend>(s: &mut Store<B>, e: &Evaluation) -> behavior_store::Committed {
+    let b = e.bundle.as_ref().unwrap_or_else(|| panic!("{}", e.record));
+    s.commit(&orders(), &b.evaluated_state.clone(), b).unwrap()
+}

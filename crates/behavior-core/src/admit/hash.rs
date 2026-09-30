@@ -5,7 +5,7 @@
 
 use sha2::{Digest, Sha256};
 
-use crate::semantic::expr::ExprKind;
+use crate::semantic::expr::{ExprKind, FoldOp, QueryKind, SetOp};
 use crate::semantic::module::{Kind, ParamRole};
 use crate::semantic::types::{ArithOp, CmpOp, Hash, Prim, Type};
 use crate::semantic::value::Value;
@@ -283,8 +283,70 @@ pub fn expr(kind: &ExprKind, ty: &Type) -> Hash {
             op(&mut e, 0x71);
             e.href(&a.hash);
         }
+        ExprKind::Count(q) => {
+            op(&mut e, 0x80);
+            e.href(&q.hash);
+        }
+        ExprKind::Fold {
+            op: fold,
+            query,
+            body,
+            ..
+        } => {
+            let code = match fold {
+                FoldOp::Any => 0x81,
+                FoldOp::All => 0x82,
+                FoldOp::Sum => 0x83,
+                FoldOp::Min => 0x84,
+                FoldOp::Max => 0x85,
+                FoldOp::Unique => 0x86,
+            };
+            // The lambda parameter's source name is not hashed: the candidate is normalized.
+            op(&mut e, code);
+            e.href(&query.hash).href(&body.hash);
+        }
     }
     e.finish(TAG_EXPR)
+}
+
+pub const TAG_QUERY: &str = "behavior.query.v1";
+pub const TAG_GLOBAL_INVARIANT: &str = "behavior.invariant.global.v1";
+pub const TAG_QUERY_INSTANCE: &str = "behavior.query_instance.v1";
+
+/// The definition hash of a query node (feature 007).
+pub fn query(kind: &QueryKind, entity: &str) -> Hash {
+    let mut e = Enc::default();
+    match kind {
+        QueryKind::Select => {
+            e.u8(0x90).str(entity);
+        }
+        QueryKind::Where { base, body, .. } => {
+            e.u8(0x91).str(entity).href(&base.hash).href(&body.hash);
+        }
+        QueryKind::Set { op, a, b } => {
+            let code = match op {
+                SetOp::Union => 0x92,
+                SetOp::Intersection => 0x93,
+                SetOp::Difference => 0x94,
+            };
+            e.u8(code).str(entity).href(&a.hash).href(&b.hash);
+        }
+    }
+    e.finish(TAG_QUERY)
+}
+
+/// A module-level invariant: its body only (it has no entity or parameter).
+pub fn global_invariant(body: &Hash) -> Hash {
+    Enc::default().href(body).finish(TAG_GLOBAL_INVARIANT)
+}
+
+/// A query instance: the definition hash and the canonical captured values (canonical JSON of
+/// `[[read, value], …]` in canonical order).
+pub fn query_instance(definition: &Hash, captures_json: &str) -> Hash {
+    Enc::default()
+        .href(definition)
+        .str(captures_json)
+        .finish(TAG_QUERY_INSTANCE)
 }
 
 pub fn effect(param: &str, field: &str, value: &Hash) -> Hash {

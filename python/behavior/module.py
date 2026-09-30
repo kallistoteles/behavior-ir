@@ -54,6 +54,8 @@ class CompileSession:
         for p in params:
             self.declare(p.type)
         site = "action" if fn.kind == "action" else "derived"
+        if fn.kind == "invariant" and not params:
+            site = "closed"  # a module invariant (feature 007)
         try:
             self.builder.push_scope(site, fn.engine_params(params), *fn.loc)
         except _engine.EngineError as e:
@@ -154,10 +156,14 @@ class BehaviorModule:
         finally:
             CURRENT.reset(token)
             session.builder.pop_scope()
-        p = params[0]
-        add = (session.builder.add_constraint if fn.kind == "constraint"
-               else session.builder.add_invariant)
         try:
+            if not params:
+                # A module invariant (feature 007): no parameter, a closed state expression.
+                session.builder.add_global_invariant(fn.name, body.node, *fn.loc)
+                return
+            p = params[0]
+            add = (session.builder.add_constraint if fn.kind == "constraint"
+                   else session.builder.add_invariant)
             add(fn.name, p.type.display(), p.name, body.node, *fn.loc)
         except _engine.EngineError as e:
             raise engine_error(e, body.loc) from None

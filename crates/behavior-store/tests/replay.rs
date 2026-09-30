@@ -75,6 +75,18 @@ impl Backend for Tamper<'_> {
     ) -> Result<(), BackendError> {
         Err(BackendError("read-only".into()))
     }
+    fn keys_at(&self, t: &str, p: u64) -> Result<Vec<EntityKey>, BackendError> {
+        self.inner.keys_at(t, p)
+    }
+    fn keys_by_field_at(
+        &self,
+        t: &str,
+        f: &str,
+        v: &serde_json::Value,
+        p: u64,
+    ) -> Result<Option<Vec<EntityKey>>, BackendError> {
+        self.inner.keys_by_field_at(t, f, v, p)
+    }
     fn removed_at(&self, k: &EntityKey) -> Result<Option<u64>, BackendError> {
         self.inner.removed_at(k)
     }
@@ -332,6 +344,18 @@ impl Backend for AlteredValue<'_> {
         _: &[behavior_store::documents::RefChange],
     ) -> Result<(), BackendError> {
         Err(BackendError("read-only".into()))
+    }
+    fn keys_at(&self, t: &str, p: u64) -> Result<Vec<EntityKey>, BackendError> {
+        self.inner.keys_at(t, p)
+    }
+    fn keys_by_field_at(
+        &self,
+        t: &str,
+        f: &str,
+        v: &serde_json::Value,
+        p: u64,
+    ) -> Result<Option<Vec<EntityKey>>, BackendError> {
+        self.inner.keys_by_field_at(t, f, v, p)
     }
     fn removed_at(&self, k: &EntityKey) -> Result<Option<u64>, BackendError> {
         self.inner.removed_at(k)

@@ -71,6 +71,22 @@ pub trait Backend {
     /// reverse-reference index, folded from its edge events (`added_at <= position` and not
     /// dropped at or before `position`).
     fn incoming_at(&self, target: &EntityKey, position: u64) -> Result<Vec<RefEdge>, BackendError>;
+    /// Every entity of `entity_type` that exists at `position`, in any order (feature 007: a derived
+    /// type index; never part of the state identity).
+    fn keys_at(&self, entity_type: &str, position: u64) -> Result<Vec<EntityKey>, BackendError>;
+    /// The entities of `entity_type` whose `field` equals `value` at `position`, in any order, or
+    /// `None` if the backend keeps no index for it (feature 007). An index only saves work: the
+    /// store re-checks every candidate.
+    fn keys_by_field_at(
+        &self,
+        entity_type: &str,
+        field: &str,
+        value: &serde_json::Value,
+        position: u64,
+    ) -> Result<Option<Vec<EntityKey>>, BackendError> {
+        let _ = (entity_type, field, value, position);
+        Ok(None)
+    }
     /// Whether the store has used `key` as of `position` (an identity names one lifetime,
     /// feature 006): some version of it exists at or before `position`.
     fn used_at(&self, key: &EntityKey, position: u64) -> Result<bool, BackendError> {

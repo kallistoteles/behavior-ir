@@ -18,7 +18,14 @@ pub(crate) fn references(e: &WExpr, out: &mut BTreeSet<String>) {
         WExprKind::In { arg, .. }
         | WExprKind::Wrap { arg, .. }
         | WExprKind::Rescale { arg, .. } => references(arg, out),
-        WExprKind::Lit { .. } | WExprKind::Field { .. } | WExprKind::Param(_) => {}
+        WExprKind::Lambda { query, body, .. } => {
+            references(query, out);
+            references(body, out);
+        }
+        WExprKind::Lit { .. }
+        | WExprKind::Field { .. }
+        | WExprKind::Param(_)
+        | WExprKind::Select { .. } => {}
     }
 }
 

@@ -1,0 +1,30 @@
+{
+ "action": "hire_unchecked",
+ "context": {},
+ "data_version": "1",
+ "facts": {
+  "identities": [
+   {
+    "entity": "Employee",
+    "id": "e9",
+    "used": false
+   }
+  ],
+  "universe": [
+   {
+    "entity": "Employee",
+    "members": [
+     {
+      "id": "e1",
+      "personnel_number": "N1"
+     }
+    ]
+   }
+  ]
+ },
+ "input": {
+  "employee_id": "e9",
+  "number": "N1"
+ },
+ "state": {}
+}

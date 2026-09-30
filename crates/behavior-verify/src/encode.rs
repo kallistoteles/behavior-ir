@@ -20,6 +20,9 @@ use behavior_core::wire::Loc;
 
 use crate::smt::{int_lit, quote, real_lit};
 
+mod relational;
+pub use relational::Slot;
+
 const I64_MIN: &str = "(- 9223372036854775808)";
 const I64_MAX: &str = "9223372036854775807";
 /// Largest decimal a request can carry (28 significant digits).
@@ -211,6 +214,17 @@ pub struct Encoder<'m> {
     pub world: World,
     /// Encoding facts on S' (postconditions and outgoing rules) instead of S.
     post: bool,
+    /// Unknown-member slots of each queried entity type (feature 007; witness only).
+    pub slots: BTreeMap<String, Vec<Slot>>,
+    /// Assertions of the witness (concretizing) query only.
+    witness: Vec<String>,
+    uf_declared: BTreeSet<String>,
+    /// Equality-narrowed S counts and S uniqueness flags, by query and key expression.
+    eq_counts: Vec<(String, String)>,
+    uniq_flags: Vec<(String, String)>,
+    /// Encoding a module invariant on S': the `unique` expressions it guarantees on S (its
+    /// top-level conjuncts), decided by their delta rule (research R7).
+    delta_unique: BTreeSet<Hash>,
 }
 
 impl<'m> Encoder<'m> {
@@ -229,6 +243,12 @@ impl<'m> Encoder<'m> {
             fact_index: BTreeMap::new(),
             world: World::default(),
             post: false,
+            slots: BTreeMap::new(),
+            witness: Vec::new(),
+            uf_declared: BTreeSet::new(),
+            eq_counts: Vec::new(),
+            uniq_flags: Vec::new(),
+            delta_unique: BTreeSet::new(),
         }
     }
 
@@ -591,7 +611,7 @@ impl<'m> Encoder<'m> {
     /// Encodes an expression; obligation guards are relative to the start of `e`. The same
     /// expression under the same bindings is encoded once.
     pub fn encode(&mut self, e: &Expr, env: &Env) -> R<Encoded> {
-        let key = format!("{}{:?}{env:?}", self.post, e.hash());
+        let key = format!("{}{:?}{:?}{env:?}", self.post, self.delta_unique, e.hash());
         if let Some(hit) = self.memo.get(&key) {
             return Ok(hit.clone());
         }
@@ -634,7 +654,7 @@ impl<'m> Encoder<'m> {
                         .ok_or_else(|| EncodeError::Unsupported(a.clone()))?;
                     inner.insert(p.name().to_string(), b);
                 }
-                let key = format!("{}{name}{inner:?}", self.post);
+                let key = format!("{}{:?}{name}{inner:?}", self.post, self.delta_unique);
                 if let Some(hit) = self.memo.get(&key) {
                     return Ok(hit.clone());
                 }
@@ -820,6 +840,7 @@ impl<'m> Encoder<'m> {
                     obligations,
                 })
             }
+            ExprKind::Count(_) | ExprKind::Fold { .. } => self.encode_relational(e, env),
             ExprKind::Exists(a) | ExprKind::Referenced(a) => {
                 let r = self.encode(a, env)?;
                 let entity = id_entity(a.ty())
@@ -849,7 +870,12 @@ impl<'m> Encoder<'m> {
     /// non-integer arithmetic recurses without rounding or range checks (nothing is stored),
     /// conversions pass through, anything else is encoded normally.
     fn encode_exact(&mut self, e: &Expr, env: &Env) -> R<Encoded> {
-        let key = format!("exact:{}{:?}{env:?}", self.post, e.hash());
+        let key = format!(
+            "exact:{}{:?}{:?}{env:?}",
+            self.post,
+            self.delta_unique,
+            e.hash()
+        );
         if let Some(hit) = self.memo.get(&key) {
             return Ok(hit.clone());
         }
@@ -909,10 +935,29 @@ impl<'m> Encoder<'m> {
 
     /// Declarations, axioms, the requested "nice value" restriction, and the given assertions.
     pub fn script(&self, assertions: &[String], nice: Nice) -> String {
+        self.script_with(assertions, nice, false)
+    }
+
+    /// Whether counterexamples need a witness query (the action queries entity sets).
+    pub fn has_slots(&self) -> bool {
+        !self.slots.is_empty()
+    }
+
+    /// As [`Encoder::script`]; `witness` adds the definitions of every summary as a fold over the
+    /// named universe (feature 007), for concretizing a counterexample. Never used for proofs.
+    pub fn script_with(&self, assertions: &[String], nice: Nice, witness: bool) -> String {
         let mut s = self.decls.join("\n");
         s.push('\n');
         for a in &self.axioms {
             s.push_str(&format!("(assert {a})\n"));
+        }
+        for a in self.unique_links() {
+            s.push_str(&format!("(assert {a})\n"));
+        }
+        if witness {
+            for a in self.witness.iter().cloned().chain(self.witness_facts()) {
+                s.push_str(&format!("(assert {a})\n"));
+            }
         }
         let extra: &[&Vec<String>] = match nice {
             Nice::Raw => &[],
@@ -937,12 +982,19 @@ impl<'m> Encoder<'m> {
             out.push(f.id.clone());
             out.push(f.value.clone());
         }
-        for v in &self.inputs {
-            match &v.term {
-                Term::Plain(t) => out.push(t.clone()),
+        let slot_terms = self.slots.values().flatten().flat_map(|s| {
+            let mut terms = vec![Term::Plain(s.present.clone())];
+            if let Binding::Entity { fields, .. } = &s.binding {
+                terms.extend(fields.values().cloned());
+            }
+            terms
+        });
+        for t in self.inputs.iter().map(|v| v.term.clone()).chain(slot_terms) {
+            match t {
+                Term::Plain(t) => out.push(t),
                 Term::Opt { some, val } => {
-                    out.push(some.clone());
-                    out.push(val.clone());
+                    out.push(some);
+                    out.push(val);
                 }
             }
         }
@@ -1016,6 +1068,8 @@ pub enum StepKind {
     Postcondition,
     InvariantPost,
     ConstraintPost,
+    /// A module invariant on S' (feature 007), for invariants the action can affect.
+    InvariantGlobal,
     /// A creation's identity conditions: identities distinct within the transition and never
     /// used (feature 006; the runtime refuses otherwise).
     Lifecycle,
@@ -1113,6 +1167,13 @@ impl<'m> ActionEncoding<'m> {
                     None => {}
                 }
             }
+        }
+
+        // Module invariants hold on S (feature 007): assumed, as the runtime guarantees.
+        for g in module.global_invariants().values() {
+            let r = enc.encode(g.body(), &Env::new())?;
+            let t = r.term.plain()?.to_string();
+            enc.assert_axiom(t);
         }
 
         let mut steps = Vec::new();
@@ -1403,6 +1464,26 @@ impl<'m> ActionEncoding<'m> {
                     &env_post,
                 )?);
             }
+        }
+        // Module invariants on S' that the action can affect (feature 007), `unique` by its
+        // delta rule.
+        for (name, g) in module.global_invariants() {
+            if !behavior_core::affects(module, action, g.signature()) {
+                continue;
+            }
+            enc.delta_unique = behavior_core::held_uniques(g.body());
+            let r = enc.encode(g.body(), &Env::new());
+            enc.delta_unique.clear();
+            let r = r?;
+            steps.push(Step {
+                kind: StepKind::InvariantGlobal,
+                name: name.clone(),
+                hash: *g.hash(),
+                bound: None,
+                cond: Some(r.term.plain()?.to_string()),
+                obligations: r.obligations,
+                loc: g.loc().clone(),
+            });
         }
         // Referential integrity on S' (research R6, R12).
         for (r, (entity, id, param)) in action.removes().iter().zip(&removed) {

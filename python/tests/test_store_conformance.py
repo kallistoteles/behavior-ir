@@ -65,6 +65,16 @@ class DictBackend:
         vs = [v for v in self._versions.get((key["entity"], key["id"]), []) if v["created_at"] <= position]
         return copy.deepcopy(vs[-1]) if vs else None
 
+    def keys_at(self, entity_type: str, position: int) -> list[Doc]:
+        """Feature 007: the type index, every entity of the type existing at `position`."""
+        out = []
+        for (entity, id_), vs in self._versions.items():
+            removed = self._removed.get((entity, id_))
+            if (entity == entity_type and vs[0]["created_at"] <= position
+                    and (removed is None or removed > position)):
+                out.append({"entity": entity, "id": id_})
+        return sorted(out, key=lambda k: k["id"])
+
     def version(self, key: Doc, revision: int) -> Doc | None:
         for v in self._versions.get((key["entity"], key["id"]), []):
             if v["revision"] == revision:
@@ -141,7 +151,7 @@ class StaleIndex(DictBackend):
 def test_reference_and_dict_backends_pass_every_case() -> None:
     for factory in (InMemoryBackend, DictBackend):
         report = run_conformance(factory)
-        assert len(report.cases) == 24
+        assert len(report.cases) == 28
         assert report.ok, report.failed()
 
 
@@ -158,6 +168,54 @@ def test_broken_python_backends_fail_their_case() -> None:
         result = {name: (ok, msg) for name, ok, msg in report.cases}[case]
         assert not result[0], f"{backend.__name__} must fail {case}"
         assert result[1]
+
+
+class IndexedBackend(DictBackend):
+    """Feature 007: with the optional field index (here a scan of the type index)."""
+
+    def keys_by_field_at(self, entity_type: str, field: str, value: Any, position: int) -> list[Doc]:
+        return [
+            k for k in self.keys_at(entity_type, position)
+            if (v := self.version_at(k, position)) is not None and v["value"].get(field) == value
+        ]
+
+
+class CurrentOnlyKeys(DictBackend):
+    """Feature 007: `keys_at` ignores the position."""
+
+    def keys_at(self, entity_type: str, position: int) -> list[Doc]:
+        return super().keys_at(entity_type, 1 << 62)
+
+
+class StaleFieldIndex(IndexedBackend):
+    """Feature 007: the field index is never updated after genesis."""
+
+    def keys_by_field_at(self, entity_type: str, field: str, value: Any, position: int) -> list[Doc]:
+        return super().keys_by_field_at(entity_type, field, value, 0)
+
+
+class ReversedKeys(IndexedBackend):
+    """Feature 007, a positive control: index order is never semantic."""
+
+    def keys_at(self, entity_type: str, position: int) -> list[Doc]:
+        return list(reversed(super().keys_at(entity_type, position)))
+
+    def keys_by_field_at(self, entity_type: str, field: str, value: Any, position: int) -> list[Doc]:
+        return list(reversed(super().keys_by_field_at(entity_type, field, value, position)))
+
+
+def test_query_backends() -> None:
+    for backend, case in [
+        (CurrentOnlyKeys, "query_snapshot"),
+        (StaleFieldIndex, "query_index_consistency"),
+    ]:
+        report = run_conformance(backend)
+        result = {name: (ok, msg) for name, ok, msg in report.cases}[case]
+        assert not result[0], f"{backend.__name__} must fail {case}"
+        assert result[1]
+    for backend in (IndexedBackend, ReversedKeys):
+        report = run_conformance(backend)
+        assert report.ok, report.failed()
 
 
 class FailingHead(DictBackend):

@@ -178,6 +178,23 @@ fn search(ctx: &Ctx<'_>, enc: &Encoder<'_>, assertions: &[String]) -> Search {
     match ctx.solver.check(&query(Nice::Raw)) {
         SolverAnswer::Unsat => Search::Unsat,
         SolverAnswer::Unknown(r) => Search::Unknown(r),
+        // Feature 007: a model of the summaries is not yet a state; the witness query asks for
+        // one whose summaries are folds over explicit unknown members (research R10).
+        SolverAnswer::Sat(_) if enc.has_slots() => {
+            let witness = |nice| Query {
+                script: enc.script_with(assertions, nice, true),
+                get: get.clone(),
+                rlimit: ctx.rlimit,
+            };
+            let mut models = Vec::new();
+            for level in [Nice::Full, Nice::Scale, Nice::Raw] {
+                if let SolverAnswer::Sat(m) = ctx.solver.check(&witness(level)) {
+                    models.push(m);
+                    break;
+                }
+            }
+            Search::Models(models)
+        }
         SolverAnswer::Sat(raw) => {
             let mut models = Vec::new();
             for level in [Nice::Full, Nice::Scale] {
@@ -206,6 +223,26 @@ fn action_dependencies(module: &Module, action: &str) -> Vec<String> {
     let Some(a) = module.action(action) else {
         return out;
     };
+    // Feature 007: queried types and module invariants are assumptions too.
+    for entity in behavior_core::queried_types(module, a) {
+        out.extend(entity_hash(module, &entity));
+        out.extend(
+            module
+                .constraints_for(&entity)
+                .map(|(_, c)| hash_display(c.hash())),
+        );
+        out.extend(
+            module
+                .invariants_for(&entity)
+                .map(|(_, i)| hash_display(i.hash())),
+        );
+    }
+    out.extend(
+        module
+            .global_invariants()
+            .values()
+            .map(|g| hash_display(g.hash())),
+    );
     for p in a.params() {
         let Type::Entity(entity) = p.ty() else {
             continue;
@@ -477,6 +514,7 @@ pub fn preservation(ctx: &Ctx<'_>, action: &str) -> Vec<CheckResult> {
             let (phase, subject_kind) = match step.kind {
                 StepKind::InvariantPost => ("invariant_post", "invariant"),
                 StepKind::ConstraintPost => ("constraint_post", "constraint"),
+                StepKind::InvariantGlobal => ("invariant_global", "invariant_global"),
                 _ => continue,
             };
             let index = {
@@ -487,10 +525,13 @@ pub fn preservation(ctx: &Ctx<'_>, action: &str) -> Vec<CheckResult> {
             let rule_hash = hash_display(&step.hash);
             let rule_loc =
                 rule_loc(module, subject_kind, &step.name).unwrap_or_else(|| step.loc.clone());
-            let param = step.bound.clone().unwrap_or_default();
+            let param = step.bound.clone();
             let cond = step.cond.clone().unwrap_or_else(|| "true".into());
             let assertions = [a.ae.path(k), a.ae.noerr(k), format!("(not {cond})")];
-            let explanation = format!("{action} can break {} for {param}", step.name);
+            let explanation = match &param {
+                Some(p) => format!("{action} can break {} for {p}", step.name),
+                None => format!("{action} can break the module invariant {}", step.name),
+            };
             let spec = Spec {
                 kind: CheckKind::Preservation,
                 check: CheckKind::Preservation.as_str(),
@@ -499,7 +540,7 @@ pub fn preservation(ctx: &Ctx<'_>, action: &str) -> Vec<CheckResult> {
                     name: step.name.clone(),
                     hash: rule_hash.clone(),
                     loc: rule_loc.clone(),
-                    param: Some(param),
+                    param,
                 },
                 depends: deps.clone(),
                 cites: vec![(subject_kind, rule_hash)],
@@ -928,6 +969,10 @@ fn rule_loc(module: &Module, kind: &str, name: &str) -> Option<Loc> {
     match kind {
         "invariant" => module.invariants().get(name).map(|i| i.loc().clone()),
         "constraint" => module.constraints().get(name).map(|c| c.loc().clone()),
+        "invariant_global" => module
+            .global_invariants()
+            .get(name)
+            .map(|g| g.loc().clone()),
         _ => None,
     }
 }

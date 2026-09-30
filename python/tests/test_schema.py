@@ -11,7 +11,7 @@ from .conftest import FIXTURES, REPO_ROOT
 
 SCHEMAS = {
     v: json.loads((REPO_ROOT / "schema" / f"wire-ir-{v}.schema.json").read_text())
-    for v in ("0.1", "0.2", "0.3", "0.4", "0.5")
+    for v in ("0.1", "0.2", "0.3", "0.4", "0.5", "0.6")
 }
 SCHEMA = SCHEMAS["0.4"]
 FILES = sorted((FIXTURES / "wire" / "valid").glob("*.json")) + sorted(
@@ -37,8 +37,9 @@ def test_schema_rejects_unknown_keys() -> None:
         jsonschema.validate(doc, SCHEMA, cls=jsonschema.Draft202012Validator)
 
 
-def test_only_0_4_and_0_5_documents_remain() -> None:
+def test_documents_use_their_minimal_version() -> None:
     # 0.5 only for documents that use an entity lifecycle form (feature 006).
     for path in FILES:
         version = json.loads(path.read_text())["ir_version"]
-        assert version == ("0.5" if path.name == "accounts.json" else "0.4"), path.name
+        want = {"accounts.json": "0.5", "orders.json": "0.6"}.get(path.name, "0.4")
+        assert version == want, path.name

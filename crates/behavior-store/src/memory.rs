@@ -28,11 +28,96 @@ pub struct InMemoryBackend {
     removed: BTreeMap<EntityKey, u64>,
     /// Index edge events per target (feature 006).
     edges: BTreeMap<EntityKey, Vec<IndexEdge>>,
+    /// Field index events (feature 007): `(entity type, field, canonical value)` → keys with the
+    /// positions from which and until which they held that value.
+    field_index: BTreeMap<(String, String, String), Vec<FieldEdge>>,
+}
+
+/// One event of the field index: `key` held the value from `added_at` until `dropped_at`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct FieldEdge {
+    key: EntityKey,
+    added_at: u64,
+    dropped_at: Option<u64>,
+}
+
+fn value_key(v: &serde_json::Value) -> Option<String> {
+    match v {
+        serde_json::Value::Object(_) | serde_json::Value::Array(_) => None,
+        other => Some(other.to_string()),
+    }
 }
 
 impl InMemoryBackend {
     pub fn new() -> Self {
         InMemoryBackend::default()
+    }
+
+    /// Updates the field index for a new version of an entity (its previous version, if any, is
+    /// dropped from the values that changed).
+    fn index_version(&mut self, v: &EntityVersion, position: u64) {
+        let key = v.key();
+        let previous = self
+            .versions
+            .get(&key)
+            .and_then(|vs| vs.last())
+            .map(|p| p.value.clone());
+        let Some(fields) = v.value.as_object() else {
+            return;
+        };
+        for (field, value) in fields {
+            let old = previous.as_ref().and_then(|p| p.get(field)).cloned();
+            if old.as_ref() == Some(value) {
+                continue;
+            }
+            if let Some(old) = old.as_ref().and_then(value_key) {
+                self.drop_field(&key, field, &old, position);
+            }
+            if let Some(new) = value_key(value) {
+                self.field_index
+                    .entry((key.entity.clone(), field.clone(), new))
+                    .or_default()
+                    .push(FieldEdge {
+                        key: key.clone(),
+                        added_at: position,
+                        dropped_at: None,
+                    });
+            }
+        }
+    }
+
+    fn drop_field(&mut self, key: &EntityKey, field: &str, value: &str, position: u64) {
+        if let Some(edges) =
+            self.field_index
+                .get_mut(&(key.entity.clone(), field.to_string(), value.to_string()))
+            && let Some(e) = edges
+                .iter_mut()
+                .find(|e| e.key == *key && e.dropped_at.is_none())
+        {
+            e.dropped_at = Some(position);
+        }
+    }
+
+    fn index_removal(&mut self, key: &EntityKey, position: u64) {
+        let last = self
+            .versions
+            .get(key)
+            .and_then(|vs| vs.last())
+            .map(|v| v.value.clone());
+        if let Some(serde_json::Value::Object(fields)) = last {
+            for (field, value) in fields {
+                if let Some(v) = value_key(&value) {
+                    self.drop_field(key, &field, &v, position);
+                }
+            }
+        }
+    }
+
+    fn exists_at(&self, key: &EntityKey, position: u64) -> bool {
+        self.versions
+            .get(key)
+            .is_some_and(|vs| vs.iter().any(|v| v.created_at <= position))
+            && self.removed.get(key).is_none_or(|r| *r > position)
     }
 
     fn apply_refs(&mut self, changes: &[RefChange], position: u64) {
@@ -74,13 +159,12 @@ impl Backend for InMemoryBackend {
         if self.genesis.is_some() {
             return Err(BackendError("store already created".into()));
         }
-        let mut versions: BTreeMap<EntityKey, Vec<EntityVersion>> = BTreeMap::new();
-        for v in seed {
-            versions.entry(v.key()).or_default().push(v.clone());
-        }
         self.genesis = Some(genesis.clone());
         self.head = Some(head.clone());
-        self.versions = versions;
+        for v in seed {
+            self.index_version(v, 0);
+            self.versions.entry(v.key()).or_default().push(v.clone());
+        }
         self.apply_refs(seed_refs, 0);
         Ok(())
     }
@@ -117,6 +201,39 @@ impl Backend for InMemoryBackend {
             .ok()
             .and_then(|i| self.records.get(i))
             .cloned())
+    }
+
+    fn keys_at(&self, entity_type: &str, position: u64) -> Result<Vec<EntityKey>, BackendError> {
+        Ok(self
+            .versions
+            .keys()
+            .filter(|k| k.entity == entity_type && self.exists_at(k, position))
+            .cloned()
+            .collect())
+    }
+
+    fn keys_by_field_at(
+        &self,
+        entity_type: &str,
+        field: &str,
+        value: &serde_json::Value,
+        position: u64,
+    ) -> Result<Option<Vec<EntityKey>>, BackendError> {
+        let Some(v) = value_key(value) else {
+            return Ok(None);
+        };
+        let mut out: Vec<EntityKey> = self
+            .field_index
+            .get(&(entity_type.to_string(), field.to_string(), v))
+            .into_iter()
+            .flatten()
+            .filter(|e| e.added_at <= position && e.dropped_at.is_none_or(|d| d > position))
+            .map(|e| e.key.clone())
+            .filter(|k| self.exists_at(k, position))
+            .collect();
+        out.sort();
+        out.dedup();
+        Ok(Some(out))
     }
 
     fn removed_at(&self, key: &EntityKey) -> Result<Option<u64>, BackendError> {
@@ -158,9 +275,11 @@ impl Backend for InMemoryBackend {
         // All-or-nothing: nothing below can fail.
         let position = new_head.state_ref.position;
         for v in versions {
+            self.index_version(v, position);
             self.versions.entry(v.key()).or_default().push(v.clone());
         }
         for k in removals {
+            self.index_removal(k, position);
             self.removed.entry(k.clone()).or_insert(position);
         }
         self.apply_refs(ref_changes, position);

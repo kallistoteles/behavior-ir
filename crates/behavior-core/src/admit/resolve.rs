@@ -388,6 +388,9 @@ pub(crate) fn declarations(w: &WModule, errs: &mut Vec<AdmissionError>) -> Decls
             );
         }
     }
+    for g in &w.global_invariants {
+        claim_behavior(&g.name, &g.loc, errs);
+    }
     for c in &w.constraints {
         claim_behavior(&c.name, &c.loc, errs);
         if !decls.entities.contains_key(&c.entity) {
@@ -527,7 +530,7 @@ pub(crate) fn params(
         });
     }
     let needed = match site {
-        ParamSite::Derived => !ps.is_empty(),
+        ParamSite::Derived => true,
         ParamSite::Action => out.iter().any(|p| p.role == ParamRole::State),
         ParamSite::CreatingAction => true,
     };

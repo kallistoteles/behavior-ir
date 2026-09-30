@@ -13,7 +13,7 @@ use crate::exact::Exact;
 use crate::facts::{BoundEntity, EvaluationFacts, FactError, Facts, RefEdge, check_snapshot};
 use crate::pretty;
 use crate::record::DecisionRecord;
-use crate::semantic::expr::{Expr, ExprKind};
+use crate::semantic::expr::{CANDIDATE, Expr, ExprKind};
 use crate::semantic::module::{ActionItem, Module, ParamRole};
 use crate::semantic::types::{ArithOp, CmpOp, Hash, Type, fixed_scale, hash_display};
 use crate::semantic::value::{Value, decode_scalar, encode};
@@ -24,6 +24,8 @@ pub const RECORD_VERSION: &str = "0.4";
 /// The record format with evaluation facts and lifecycle entries (feature 006); records without
 /// either stay `0.4`, byte for byte.
 pub const RECORD_VERSION_LIFECYCLE: &str = "0.5";
+/// The record format with query and field facts (feature 007).
+pub const RECORD_VERSION_QUERIES: &str = "0.6";
 
 /// Checks a decoded fixed-scale value against its grid and range (FR-004).
 fn check_fixed(ty: &Type, v: &Value, path: &str, problems: &mut Vec<InputProblem>) -> bool {
@@ -313,9 +315,484 @@ struct Evaluator<'a> {
     derived: Vec<DerivedEntry>,
     /// Rescale entries of the step being evaluated (attached to its trace step).
     rescales: Vec<Json>,
+    /// The member a lambda body is evaluated for (feature 007): its fields are read lazily.
+    candidate: Option<Key>,
+    /// While a module invariant is checked on S' (feature 007): the `unique` expressions known
+    /// to hold on the valid S (its top-level conjuncts), decided by the delta rule.
+    assume_valid: BTreeSet<Hash>,
+}
+
+/// The capture reads of a query (feature 007): enclosing field and parameter reads in its lambda
+/// bodies, by canonical read name.
+fn capture_reads(q: &crate::semantic::expr::QueryNode) -> BTreeMap<String, &Expr> {
+    let mut out = BTreeMap::new();
+    let mut stack: Vec<&Expr> = q.bodies();
+    while let Some(e) = stack.pop() {
+        match &e.kind {
+            ExprKind::Field { param, field } if param != CANDIDATE => {
+                out.insert(format!("{param}.{field}"), e);
+            }
+            ExprKind::Param(name) if name != CANDIDATE => {
+                out.insert(name.clone(), e);
+            }
+            _ => {}
+        }
+        stack.extend(e.children());
+    }
+    out
+}
+
+/// The `unique` expressions a module invariant guarantees on every valid state: its top-level
+/// conjuncts (feature 007). Only these may be decided by the delta rule on S' (research R7); a
+/// `unique` under `not` or `or` need not hold on S. The invariant is closed, so every occurrence
+/// of the same expression has that value on S.
+pub fn held_uniques(e: &Expr) -> BTreeSet<Hash> {
+    let mut out = BTreeSet::new();
+    let mut stack = vec![e];
+    while let Some(x) = stack.pop() {
+        match &x.kind {
+            ExprKind::And(xs) => stack.extend(xs),
+            ExprKind::Fold {
+                op: crate::semantic::expr::FoldOp::Unique,
+                ..
+            } => {
+                out.insert(x.hash);
+            }
+            _ => {}
+        }
+    }
+    out
+}
+
+/// Whether an action can affect a module invariant with this signature: it creates or removes an
+/// entity of a queried type, or changes a field its lambdas read (feature 007, research R7).
+pub fn affects(
+    module: &Module,
+    action: &ActionItem,
+    sig: &crate::semantic::module::Signature,
+) -> bool {
+    let entity_of_param = |name: &str| {
+        action
+            .params()
+            .iter()
+            .find(|p| p.name() == name)
+            .and_then(|p| match p.ty() {
+                Type::Entity(e) => Some(e.clone()),
+                _ => None,
+            })
+    };
+    let _ = module;
+    action
+        .creates
+        .iter()
+        .any(|c| sig.types.contains_key(&c.entity))
+        || action
+            .removes
+            .iter()
+            .filter_map(|r| entity_of_param(&r.param))
+            .any(|t| sig.types.contains_key(&t))
+        || action.effects.iter().any(|e| {
+            entity_of_param(&e.param)
+                .and_then(|t| sig.types.get(&t))
+                .is_some_and(|fields| fields.as_ref().is_none_or(|f| f.contains(&e.field)))
+        })
 }
 
 impl Evaluator<'_> {
+    /// The captured values of a query in the enclosing state, and the environment its predicates
+    /// are evaluated with (feature 007, FR-013a). Captures of bound fields are observed reads.
+    fn captures(
+        &mut self,
+        q: &crate::semantic::expr::QueryNode,
+        vals: &Vals,
+        phase: Phase,
+    ) -> Result<(Vec<(String, Json)>, Vals), String> {
+        let mut captures = Vec::new();
+        let mut env = Vals::new();
+        for (read, e) in capture_reads(q) {
+            let v = self.eval(e, vals, phase, &mut None)?;
+            captures.push((read, encode(&e.ty, &v)));
+            match &e.kind {
+                ExprKind::Field { param, field } => {
+                    if let Value::Entity(fields) = env
+                        .entry(param.clone())
+                        .or_insert_with(|| Value::Entity(BTreeMap::new()))
+                    {
+                        fields.insert(field.clone(), v);
+                    }
+                }
+                ExprKind::Param(name) => {
+                    env.insert(name.clone(), v);
+                }
+                _ => {}
+            }
+        }
+        Ok((captures, env))
+    }
+
+    /// The members of a query instance at S, observed once (feature 007).
+    fn query_s(
+        &mut self,
+        q: &crate::semantic::expr::QueryNode,
+        env: &Vals,
+        captures: Vec<(String, Json)>,
+    ) -> Result<Vec<String>, String> {
+        let canonical = crate::canonical::to_canonical_string(&Json::Array(
+            captures
+                .iter()
+                .map(|(r, v)| json!([r, v]))
+                .collect::<Vec<_>>(),
+        ))
+        .unwrap_or_default();
+        let instance = hash_display(&crate::admit::hash::query_instance(q.hash(), &canonical));
+        if let Some(f) = self.observed.queries.get(&instance) {
+            return Ok(f.members.clone());
+        }
+        let request = crate::facts::QueryRequest {
+            module: self.module,
+            node: q,
+            definition: hash_display(q.hash()),
+            instance: instance.clone(),
+            captures: &captures,
+            env,
+        };
+        let mut members = match self.facts.query(&request) {
+            Ok(m) => m,
+            Err(e) => return Err(self.fact_failed(e)),
+        };
+        members.sort();
+        members.dedup();
+        self.observed.queries.insert(
+            instance,
+            crate::facts::QueryFact {
+                definition: hash_display(q.hash()),
+                entity: q.entity().to_string(),
+                captures,
+                members: members.clone(),
+            },
+        );
+        Ok(members)
+    }
+
+    /// The members of a query on the given state, in canonical identity order. On S' they are
+    /// derived: `Q(captures_S', S') = Q(captures_S', S) + exact effects of ΔS` (research R4).
+    fn members(
+        &mut self,
+        q: &crate::semantic::expr::QueryNode,
+        vals: &Vals,
+        phase: Phase,
+    ) -> Result<Vec<String>, String> {
+        let (captures, env) = self.captures(q, vals, phase)?;
+        let base = self.query_s(q, &env, captures)?;
+        if phase == Phase::S {
+            return Ok(base);
+        }
+        let t = q.entity();
+        let mut out: BTreeSet<String> = base
+            .into_iter()
+            .filter(|id| {
+                let k = (t.to_string(), id.clone());
+                !self.world.removed.contains(&k) && !self.world.bound.contains_key(&k)
+            })
+            .collect();
+        let bound: Vec<(String, Value)> = self
+            .world
+            .bound
+            .iter()
+            .filter(|((bt, bid), _)| {
+                bt == t && !self.world.removed.contains(&(bt.clone(), bid.clone()))
+            })
+            .filter_map(|((_, bid), param)| {
+                self.world
+                    .s_prime
+                    .get(param)
+                    .map(|v| (bid.clone(), v.clone()))
+            })
+            .collect();
+        let created: Vec<(String, Value)> = self
+            .world
+            .created
+            .iter()
+            .filter(|((ct, _), _)| ct == t)
+            .map(|((_, cid), v)| (cid.clone(), v.clone()))
+            .collect();
+        for (id, value) in bound.into_iter().chain(created) {
+            if self.matches_value(q, &env, &value)? {
+                out.insert(id);
+            }
+        }
+        Ok(out.into_iter().collect())
+    }
+
+    /// The members of a query on S' that the transition bound or created: the only members whose
+    /// values can differ from S (the `unique` delta rule, research R7).
+    fn touched_members(
+        &mut self,
+        q: &crate::semantic::expr::QueryNode,
+        vals: &Vals,
+    ) -> Result<Vec<String>, String> {
+        let (_, env) = self.captures(q, vals, Phase::SPrime)?;
+        let t = q.entity();
+        let bound = self
+            .world
+            .bound
+            .iter()
+            .filter(|((bt, bid), _)| {
+                bt == t && !self.world.removed.contains(&(bt.clone(), bid.clone()))
+            })
+            .filter_map(|((_, bid), param)| {
+                self.world
+                    .s_prime
+                    .get(param)
+                    .map(|v| (bid.clone(), v.clone()))
+            });
+        let created = self
+            .world
+            .created
+            .iter()
+            .filter(|((ct, _), _)| ct == t)
+            .map(|((_, cid), v)| (cid.clone(), v.clone()));
+        let candidates: Vec<(String, Value)> = bound.chain(created).collect();
+        let mut out = BTreeSet::new();
+        for (id, value) in candidates {
+            if self.matches_value(q, &env, &value)? {
+                out.insert(id);
+            }
+        }
+        Ok(out.into_iter().collect())
+    }
+
+    /// Whether a candidate value is a member of a query, given the captured environment.
+    fn matches_value(
+        &mut self,
+        q: &crate::semantic::expr::QueryNode,
+        env: &Vals,
+        candidate: &Value,
+    ) -> Result<bool, String> {
+        use crate::semantic::expr::{QueryKind, SetOp};
+        match &q.kind {
+            QueryKind::Select => Ok(true),
+            QueryKind::Where { base, body, .. } => {
+                if !self.matches_value(base, env, candidate)? {
+                    return Ok(false);
+                }
+                let mut vals = env.clone();
+                vals.insert(CANDIDATE.to_string(), candidate.clone());
+                let saved = self.candidate.take();
+                let r = self.eval(body, &vals, Phase::S, &mut None);
+                self.candidate = saved;
+                r?.as_bool()
+                    .ok_or_else(|| "internal: predicate is not Bool".to_string())
+            }
+            QueryKind::Set { op, a, b } => {
+                let x = self.matches_value(a, env, candidate)?;
+                let y = self.matches_value(b, env, candidate)?;
+                Ok(match op {
+                    SetOp::Union => x || y,
+                    SetOp::Intersection => x && y,
+                    SetOp::Difference => x && !y,
+                })
+            }
+        }
+    }
+
+    /// A field of the current candidate: from its bound value, its created value, or an observed
+    /// field fact (feature 007, FR-009a).
+    fn candidate_field(&mut self, field: &str, vals: &Vals, phase: Phase) -> Result<Value, String> {
+        let bad = || format!("internal: no candidate field `{field}`");
+        let Some((t, id)) = self.candidate.clone() else {
+            return Err(bad());
+        };
+        let k = (t.clone(), id.clone());
+        if let Some(param) = self.world.bound.get(&k).cloned() {
+            let src = if phase == Phase::SPrime {
+                &self.world.s_prime
+            } else {
+                vals
+            };
+            let v = match src.get(&param) {
+                Some(Value::Entity(fields)) => fields.get(field).cloned().ok_or_else(bad)?,
+                _ => return Err(bad()),
+            };
+            self.observe(&param, field);
+            return Ok(v);
+        }
+        if phase == Phase::SPrime
+            && let Some(Value::Entity(fields)) = self.world.created.get(&k)
+        {
+            return fields.get(field).cloned().ok_or_else(bad);
+        }
+        let fk = (t.clone(), id.clone(), field.to_string());
+        let raw = match self.observed.fields.get(&fk) {
+            Some(v) => v.clone(),
+            None => match self.facts.field(&t, &id, field) {
+                Ok(v) => {
+                    self.observed.fields.insert(fk, v.clone());
+                    v
+                }
+                Err(e) => return Err(self.fact_failed(e)),
+            },
+        };
+        let ty = self
+            .module
+            .entity(&t)
+            .and_then(|item| item.field_type(field))
+            .cloned()
+            .ok_or_else(bad)?;
+        decode_scalar(&ty, &raw).map_err(|e| format!("field fact {t} {id}.{field}: {e}"))
+    }
+
+    /// The whole value of the current candidate (for a derived value over it).
+    fn candidate_value(&mut self, vals: &Vals, phase: Phase) -> Result<Value, String> {
+        let Some((t, id)) = self.candidate.clone() else {
+            return Err("internal: no candidate".into());
+        };
+        let names: Vec<String> = self
+            .module
+            .entity(&t)
+            .map(|e| e.fields().iter().map(|(n, _)| n.clone()).collect())
+            .unwrap_or_default();
+        let mut fields = BTreeMap::new();
+        for n in names {
+            let v = if n == "id" {
+                Value::Str(id.clone())
+            } else {
+                self.candidate_field(&n, vals, phase)?
+            };
+            fields.insert(n, v);
+        }
+        Ok(Value::Entity(fields))
+    }
+
+    /// `any`, `all`, `sum`, `min`, `max` or `unique` over members in canonical order.
+    #[allow(clippy::too_many_arguments)]
+    fn fold(
+        &mut self,
+        op: crate::semantic::expr::FoldOp,
+        q: &crate::semantic::expr::QueryNode,
+        members: &[String],
+        body: &Expr,
+        ty: &Type,
+        vals: &Vals,
+        phase: Phase,
+        delta: bool,
+    ) -> Result<Value, String> {
+        use crate::semantic::expr::FoldOp;
+        let t = q.entity().to_string();
+        let per = |ev: &mut Self, id: &str| -> Result<Value, String> {
+            ev.candidate = Some((t.clone(), id.to_string()));
+            ev.eval(body, vals, phase, &mut None)
+        };
+        match op {
+            FoldOp::Any | FoldOp::All => {
+                let want = op == FoldOp::Any;
+                for id in members {
+                    let b = per(self, id)?
+                        .as_bool()
+                        .ok_or_else(|| "internal: predicate is not Bool".to_string())?;
+                    if b == want {
+                        return Ok(Value::Bool(want));
+                    }
+                }
+                Ok(Value::Bool(!want))
+            }
+            FoldOp::Sum => {
+                let mut acc = Exact::from_i64(0);
+                let mut int_acc: i64 = 0;
+                for id in members {
+                    let v = per(self, id)?;
+                    if is_integer(ty) {
+                        let Value::Int(i) = v else {
+                            return Err("internal: integer sum".into());
+                        };
+                        int_acc = int_acc.checked_add(i).ok_or_else(|| {
+                            format!("{} in {}", NumError::Overflow, pretty::text(body))
+                        })?;
+                    } else {
+                        let x = to_exact(&v).ok_or_else(|| "internal: numeric sum".to_string())?;
+                        acc = acc.add(&x).map_err(|err| num_err(err, body))?;
+                        if let Some(n) = fixed_scale(ty) {
+                            fixed_value(&acc, n).map_err(|err| num_err(err, body))?;
+                        }
+                    }
+                }
+                if is_integer(ty) {
+                    Ok(Value::Int(int_acc))
+                } else if let Some(n) = fixed_scale(ty) {
+                    fixed_value(&acc, n).map_err(|err| num_err(err, body))
+                } else if matches!(ty, Type::Exact(_)) {
+                    Ok(Value::Exact(acc))
+                } else {
+                    acc.to_dec()
+                        .map(Value::Dec)
+                        .map_err(|err| num_err(err, body))
+                }
+            }
+            FoldOp::Min | FoldOp::Max => {
+                let mut best: Option<(Exact, Value)> = None;
+                for id in members {
+                    let v = per(self, id)?;
+                    let x = to_exact(&v).ok_or_else(|| "internal: ordered value".to_string())?;
+                    let better = match &best {
+                        None => true,
+                        Some((b, _)) if op == FoldOp::Min => x < *b,
+                        Some((b, _)) => x > *b,
+                    };
+                    if better {
+                        best = Some((x, v));
+                    }
+                }
+                Ok(best.map_or(Value::None, |(_, v)| v))
+            }
+            FoldOp::Unique if delta => {
+                // `unique` held on the valid S: only touched members can collide (research R7).
+                let touched: Vec<String> = members
+                    .iter()
+                    .filter(|id| {
+                        let k = (t.clone(), (*id).clone());
+                        self.world.bound.contains_key(&k) || self.world.created.contains_key(&k)
+                    })
+                    .cloned()
+                    .collect();
+                for id in touched {
+                    let key = per(self, &id)?;
+                    self.candidate = None;
+                    let loc = body.loc().clone();
+                    let lit = Expr::new(ExprKind::Lit(key), body.ty.clone(), loc.clone());
+                    let pred = Expr::new(
+                        ExprKind::Cmp(CmpOp::Eq, Box::new(body.clone()), Box::new(lit)),
+                        Type::Bool,
+                        loc.clone(),
+                    );
+                    let same_key = crate::semantic::expr::QueryNode::new(
+                        crate::semantic::expr::QueryKind::Where {
+                            base: Box::new(q.clone()),
+                            param: "key".into(),
+                            body: Box::new(pred),
+                        },
+                        t.clone(),
+                        loc,
+                    );
+                    let others = self.members(&same_key, vals, phase)?;
+                    if others != [id] {
+                        return Ok(Value::Bool(false));
+                    }
+                }
+                Ok(Value::Bool(true))
+            }
+            FoldOp::Unique => {
+                let mut seen = BTreeSet::new();
+                for id in members {
+                    let key = per(self, id)?;
+                    if !seen.insert(crate::semantic::value::encode_untyped(&key).to_string()) {
+                        return Ok(Value::Bool(false));
+                    }
+                }
+                Ok(Value::Bool(true))
+            }
+        }
+    }
+
     fn fact_failed(&mut self, e: FactError) -> String {
         self.fact_error.get_or_insert_with(|| e.0.clone());
         e.0
@@ -563,6 +1040,15 @@ impl Evaluator<'_> {
         let bad = || format!("internal: ill-typed value in {}", pretty::text(e));
         match &e.kind {
             ExprKind::Lit(v) => Ok(v.clone()),
+            ExprKind::Field { param, field } if param == CANDIDATE && self.candidate.is_some() => {
+                let v = self.candidate_field(field, vals, phase)?;
+                if let Some(r) = reads.as_deref_mut()
+                    && let Some((_, id)) = &self.candidate
+                {
+                    r.insert(format!("{id}.{field}"), encode(&e.ty, &v));
+                }
+                Ok(v)
+            }
             ExprKind::Field { param, field } => {
                 let v = match vals.get(param) {
                     Some(Value::Entity(fields)) => fields.get(field).cloned().ok_or_else(bad)?,
@@ -586,7 +1072,11 @@ impl Evaluator<'_> {
                 let mut inner = Vals::new();
                 let mut arg_values = Vec::new();
                 for (p, a) in d.params().iter().zip(args) {
-                    let v = vals.get(a).cloned().ok_or_else(bad)?;
+                    let v = if a == CANDIDATE && self.candidate.is_some() {
+                        self.candidate_value(vals, phase)?
+                    } else {
+                        vals.get(a).cloned().ok_or_else(bad)?
+                    };
                     arg_values.push(crate::semantic::value::encode_untyped(&v));
                     inner.insert(p.name().to_string(), v);
                 }
@@ -755,6 +1245,34 @@ impl Evaluator<'_> {
                 Value::Int(i) => Ok(Value::Dec(Dec::from_i64(i))),
                 _ => Err(bad()),
             },
+            ExprKind::Count(q) => {
+                let n = self.members(q, vals, phase)?.len();
+                let v = Value::Int(i64::try_from(n).map_err(|_| "internal: count".to_string())?);
+                if let Some(r) = reads.as_deref_mut() {
+                    r.insert(pretty::text(e), encode(&e.ty, &v));
+                }
+                Ok(v)
+            }
+            ExprKind::Fold {
+                op, query, body, ..
+            } => {
+                let delta = *op == crate::semantic::expr::FoldOp::Unique
+                    && phase == Phase::SPrime
+                    && self.assume_valid.contains(&e.hash);
+                let members = if delta {
+                    self.touched_members(query, vals)?
+                } else {
+                    self.members(query, vals, phase)?
+                };
+                let saved = self.candidate.take();
+                let r = self.fold(*op, query, &members, body, &e.ty, vals, phase, delta);
+                self.candidate = saved;
+                let v = r?;
+                if let Some(r) = reads.as_deref_mut() {
+                    r.insert(pretty::text(e), encode(&e.ty, &v));
+                }
+                Ok(v)
+            }
             ExprKind::Exists(a) | ExprKind::Referenced(a) => {
                 let v = self.eval(a, vals, phase, reads)?;
                 let entity = id_entity(&a.ty).ok_or_else(bad)?.to_string();
@@ -845,6 +1363,8 @@ impl<'a> Evaluator<'a> {
             frames: vec![ReadFrame::default()],
             derived: Vec::new(),
             rescales: Vec::new(),
+            candidate: None,
+            assume_valid: BTreeSet::new(),
         }
     }
 
@@ -1016,6 +1536,319 @@ pub fn check_entity(
     }
 }
 
+/// Whether a candidate entity (in its canonical encoding) is a member of a query, given the
+/// captured environment (feature 007). Used by fact providers that answer queries themselves.
+pub fn query_matches(
+    module: &Module,
+    q: &crate::semantic::expr::QueryNode,
+    env: &Vals,
+    candidate: &Json,
+) -> Result<bool, String> {
+    let value = decode_value(module, q.entity(), candidate).map_err(|p| p.join("; "))?;
+    let no_facts = Facts::default();
+    let mut ev = Evaluator::new(module, &no_facts);
+    ev.matches_value(q, env, &value)
+}
+
+fn collect_query_node<'a>(
+    q: &'a crate::semantic::expr::QueryNode,
+    out: &mut BTreeMap<String, &'a crate::semantic::expr::QueryNode>,
+) {
+    use crate::semantic::expr::QueryKind;
+    out.entry(hash_display(q.hash())).or_insert(q);
+    match q.kind() {
+        QueryKind::Select => {}
+        QueryKind::Where { base, .. } => collect_query_node(base, out),
+        QueryKind::Set { a, b, .. } => {
+            collect_query_node(a, out);
+            collect_query_node(b, out);
+        }
+    }
+}
+
+fn collect_query_nodes_expr<'a>(
+    module: &'a Module,
+    e: &'a Expr,
+    out: &mut BTreeMap<String, &'a crate::semantic::expr::QueryNode>,
+    seen_derived: &mut BTreeSet<String>,
+) {
+    match &e.kind {
+        ExprKind::Count(q) | ExprKind::Fold { query: q, .. } => collect_query_node(q, out),
+        ExprKind::DerivedRef { name, .. } => {
+            if seen_derived.insert(name.clone())
+                && let Some(d) = module.derived(name)
+            {
+                collect_query_nodes_expr(module, d.body(), out, seen_derived);
+            }
+        }
+        _ => {}
+    }
+    for child in e.children() {
+        collect_query_nodes_expr(module, child, out, seen_derived);
+    }
+}
+
+fn collect_query_nodes(module: &Module) -> BTreeMap<String, &crate::semantic::expr::QueryNode> {
+    let mut out = BTreeMap::new();
+    let mut seen_derived = BTreeSet::new();
+    for (name, d) in module.derived_items() {
+        if seen_derived.insert(name.clone()) {
+            collect_query_nodes_expr(module, d.body(), &mut out, &mut seen_derived);
+        }
+    }
+    for i in module.invariants().values() {
+        collect_query_nodes_expr(module, i.body(), &mut out, &mut seen_derived);
+    }
+    for g in module.global_invariants().values() {
+        collect_query_nodes_expr(module, g.body(), &mut out, &mut seen_derived);
+    }
+    for c in module.constraints().values() {
+        collect_query_nodes_expr(module, c.body(), &mut out, &mut seen_derived);
+    }
+    for a in module.actions().values() {
+        for c in a.preconditions.iter().chain(&a.postconditions) {
+            collect_query_nodes_expr(module, &c.expr, &mut out, &mut seen_derived);
+        }
+        for e in &a.effects {
+            collect_query_nodes_expr(module, &e.value, &mut out, &mut seen_derived);
+        }
+        for c in &a.creates {
+            collect_query_nodes_expr(module, &c.id, &mut out, &mut seen_derived);
+            for (_, value) in &c.fields {
+                collect_query_nodes_expr(module, value, &mut out, &mut seen_derived);
+            }
+        }
+    }
+    out
+}
+
+fn capture_env_from_fact(
+    module: &Module,
+    q: &crate::semantic::expr::QueryNode,
+    fact: &crate::facts::QueryFact,
+) -> Result<Vals, String> {
+    let supplied: BTreeMap<&str, &Json> = fact
+        .captures
+        .iter()
+        .map(|(read, value)| (read.as_str(), value))
+        .collect();
+    let reads = capture_reads(q);
+    if supplied.len() != reads.len() {
+        return Err("capture set differs from the query definition".into());
+    }
+    let mut env = Vals::new();
+    for (read, e) in reads {
+        let raw = supplied
+            .get(read.as_str())
+            .ok_or_else(|| format!("missing capture `{read}`"))?;
+        let v = match &e.ty {
+            Type::Entity(entity) => decode_value(module, entity, raw).map_err(|p| p.join("; "))?,
+            ty => decode_scalar(ty, raw)?,
+        };
+        match &e.kind {
+            ExprKind::Field { param, field } => {
+                if let Value::Entity(fields) = env
+                    .entry(param.clone())
+                    .or_insert_with(|| Value::Entity(BTreeMap::new()))
+                {
+                    fields.insert(field.clone(), v);
+                }
+            }
+            ExprKind::Param(name) => {
+                env.insert(name.clone(), v);
+            }
+            _ => {}
+        }
+    }
+    Ok(env)
+}
+
+fn check_query_universe_agreement(
+    module: &Module,
+    facts: &Facts,
+) -> Result<(), crate::facts::FactsProblem> {
+    let bad = |message: String| crate::facts::FactsProblem {
+        code: "INCONSISTENT_FACTS",
+        message,
+    };
+    if facts.queries.is_empty() || facts.universe.is_empty() {
+        return Ok(());
+    }
+    let queries = collect_query_nodes(module);
+    for (instance, fact) in &facts.queries {
+        let Some(members) = facts.universe.get(&fact.entity) else {
+            continue;
+        };
+        let Some(q) = queries.get(&fact.definition) else {
+            return Err(bad(format!(
+                "query fact for instance {instance} overlaps a complete universe but has an unknown definition"
+            )));
+        };
+        if q.entity() != fact.entity {
+            return Err(bad(format!(
+                "query fact for instance {instance} names {}, but its definition queries {}",
+                fact.entity,
+                q.entity()
+            )));
+        }
+        let env = capture_env_from_fact(module, q, fact)
+            .map_err(|e| bad(format!("query fact for instance {instance}: {e}")))?;
+        let mut expected = Vec::new();
+        for (id, value) in members {
+            if query_matches(module, q, &env, value).map_err(|e| {
+                bad(format!(
+                    "query fact for instance {instance} cannot be checked against the universe: {e}"
+                ))
+            })? {
+                expected.push(id.clone());
+            }
+        }
+        if expected != fact.members {
+            return Err(bad(format!(
+                "query fact for instance {instance} contradicts the supplied universe of {}",
+                fact.entity
+            )));
+        }
+    }
+    Ok(())
+}
+
+/// The entity types an action's evaluation may query (feature 007): every query in its
+/// conditions, effects and creations (through the derived values they use), and every module
+/// invariant's queried types.
+pub fn queried_types(module: &Module, action: &ActionItem) -> BTreeSet<String> {
+    let mut out = BTreeSet::new();
+    let mut stack: Vec<&Expr> = Vec::new();
+    stack.extend(
+        action
+            .preconditions
+            .iter()
+            .chain(&action.postconditions)
+            .map(|c| &c.expr),
+    );
+    stack.extend(action.effects.iter().map(|e| &e.value));
+    for c in &action.creates {
+        stack.push(&c.id);
+        stack.extend(c.fields.iter().map(|(_, v)| v));
+    }
+    for g in module.global_invariants().values() {
+        out.extend(g.signature().types.keys().cloned());
+    }
+    let mut seen = BTreeSet::new();
+    while let Some(e) = stack.pop() {
+        match &e.kind {
+            ExprKind::Count(q) | ExprKind::Fold { query: q, .. } => {
+                out.insert(q.entity().to_string());
+            }
+            ExprKind::DerivedRef { name, .. } => {
+                if seen.insert(name.clone())
+                    && let Some(d) = module.derived(name)
+                {
+                    stack.push(d.body());
+                }
+            }
+            _ => {}
+        }
+        stack.extend(e.children());
+    }
+    out
+}
+
+/// Where a store may look for a query's candidates (feature 007): an indexable equality
+/// `candidate.field == value` of a filter (a captured value preferred over a literal, the likely
+/// more selective one), combined through set algebra. A store re-checks every candidate, so the
+/// plan never changes a result.
+pub fn index_hint(q: &crate::semantic::expr::QueryNode, env: &Vals) -> Option<IndexPlan> {
+    use crate::semantic::expr::{QueryKind, SetOp};
+    match &q.kind {
+        QueryKind::Select => None,
+        QueryKind::Where { base, body, .. } => {
+            let conjuncts: Vec<&Expr> = match &body.kind {
+                ExprKind::And(xs) => xs.iter().collect(),
+                _ => vec![body],
+            };
+            let mut literal = None;
+            for c in conjuncts {
+                let ExprKind::Cmp(CmpOp::Eq, a, b) = &c.kind else {
+                    continue;
+                };
+                for (field_side, value_side) in [(a, b), (b, a)] {
+                    let ExprKind::Field { param, field } = &field_side.kind else {
+                        continue;
+                    };
+                    if param != CANDIDATE {
+                        continue;
+                    }
+                    let plan = |v: &Value| IndexPlan::Eq {
+                        field: field.clone(),
+                        value: encode(&field_side.ty, v),
+                    };
+                    match &value_side.kind {
+                        // A captured value (an identity, a key) is the selective kind.
+                        ExprKind::Field { param, field } if param != CANDIDATE => {
+                            if let Some(Value::Entity(fields)) = env.get(param)
+                                && let Some(v) = fields.get(field)
+                            {
+                                return Some(plan(v));
+                            }
+                        }
+                        ExprKind::Param(name) if name != CANDIDATE => {
+                            if let Some(v) = env.get(name) {
+                                return Some(plan(v));
+                            }
+                        }
+                        ExprKind::Lit(v) => {
+                            literal.get_or_insert_with(|| plan(v));
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            index_hint(base, env).or(literal)
+        }
+        QueryKind::Set { op, a, b } => match op {
+            SetOp::Union => Some(IndexPlan::Union(
+                Box::new(index_hint(a, env)?),
+                Box::new(index_hint(b, env)?),
+            )),
+            SetOp::Intersection => index_hint(a, env).or_else(|| index_hint(b, env)),
+            SetOp::Difference => index_hint(a, env),
+        },
+    }
+}
+
+/// Where to look for the candidates of a query (feature 007): a performance hint only. Every
+/// candidate is re-checked against the query, so a plan may give too many, never too few.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum IndexPlan {
+    /// The entities whose `field` equals `value`.
+    Eq { field: String, value: Json },
+    /// The candidates of either plan.
+    Union(Box<IndexPlan>, Box<IndexPlan>),
+}
+
+/// Checks every module-level invariant on a state described by `facts` alone (feature 007: a
+/// genesis seed). Returns the violated invariants, or the evaluation problems.
+pub fn check_global_invariants(
+    module: &Module,
+    facts: &dyn EvaluationFacts,
+) -> Result<(), Vec<String>> {
+    let mut failed = Vec::new();
+    for (name, g) in module.global_invariants() {
+        let mut ev = Evaluator::new(module, facts);
+        match ev.predicate(g.body(), &Vals::new(), Phase::S).0 {
+            Ok(true) => {}
+            Ok(false) => failed.push(format!("module invariant `{name}` is violated")),
+            Err(e) => failed.push(format!("module invariant `{name}`: {e}")),
+        }
+    }
+    if failed.is_empty() {
+        Ok(())
+    } else {
+        Err(failed)
+    }
+}
+
 /// Evaluates an EvaluationRequest (JSON) against an admitted module.
 pub fn evaluate(module: &Module, request: &str) -> DecisionRecord {
     evaluate_observed(module, request).0
@@ -1039,6 +1872,157 @@ pub fn evaluate_with(
     facts: &dyn EvaluationFacts,
 ) -> (DecisionRecord, Observed) {
     evaluate_inner(module, request, Some(facts))
+}
+
+/// Supplied facts with a module (plain evaluation): incoming references not given explicitly are
+/// derived from complete universes of every referencing type (feature 007).
+struct Supplied<'a> {
+    module: &'a Module,
+    facts: &'a Facts,
+}
+
+impl EvaluationFacts for Supplied<'_> {
+    fn exists(&self, entity: &str, id: &str) -> Result<bool, FactError> {
+        self.facts.exists(entity, id)
+    }
+    fn used(&self, entity: &str, id: &str) -> Result<bool, FactError> {
+        self.facts.used(entity, id)
+    }
+    fn incoming(&self, entity: &str, id: &str) -> Result<Vec<RefEdge>, FactError> {
+        if let Ok(edges) = self.facts.incoming(entity, id) {
+            return Ok(edges);
+        }
+        let mut out = Vec::new();
+        for (source, field) in self.module.references_to(entity) {
+            let Some(members) = self.facts.universe.get(&source) else {
+                return self.facts.incoming(entity, id);
+            };
+            for (sid, value) in members {
+                if value.get(&field).and_then(Json::as_str) == Some(id) {
+                    out.push(RefEdge {
+                        entity: source.clone(),
+                        id: sid.clone(),
+                        field: field.clone(),
+                    });
+                }
+            }
+        }
+        out.sort();
+        Ok(out)
+    }
+    fn query(&self, q: &crate::facts::QueryRequest<'_>) -> Result<Vec<String>, FactError> {
+        self.facts.query(q)
+    }
+    fn field(&self, entity: &str, id: &str, field: &str) -> Result<Json, FactError> {
+        self.facts.field(entity, id, field)
+    }
+}
+
+/// Supplied universes, query and field facts must describe one valid state with the bound
+/// entities (feature 007, research R5; closed under subsets).
+fn check_query_snapshot(
+    module: &Module,
+    facts: &Facts,
+    action: &ActionItem,
+    vals: &Vals,
+) -> Result<(), crate::facts::FactsProblem> {
+    let bad = |message: String| crate::facts::FactsProblem {
+        code: "INCONSISTENT_FACTS",
+        message,
+    };
+    let absent = |t: &str, id: &str| {
+        let k = (t.to_string(), id.to_string());
+        facts.existence.get(&k) == Some(&false) || facts.identities.get(&k) == Some(&false)
+    };
+    // Bound state entities, by type and id, in their canonical encoding.
+    let mut bound: BTreeMap<Key, Json> = BTreeMap::new();
+    for p in action.params() {
+        if p.role() != ParamRole::State {
+            continue;
+        }
+        if let (Type::Entity(t), Some(v @ Value::Entity(fields))) = (p.ty(), vals.get(p.name()))
+            && let Some(id) = fields.get("id").and_then(id_text)
+        {
+            bound.insert((t.clone(), id), encode_param(module, p.ty(), v));
+        }
+    }
+    for (t, members) in &facts.universe {
+        if module.entity(t).is_none() {
+            return Err(bad(format!(
+                "the universe names an unknown entity type `{t}`"
+            )));
+        }
+        let no_facts = Facts::default();
+        for (id, raw) in members {
+            let value = decode_value(module, t, raw)
+                .map_err(|p| bad(format!("{t} {id} in the universe: {}", p.join("; "))))?;
+            if absent(t, id) {
+                return Err(bad(format!(
+                    "{t} {id} is in the universe but marked absent"
+                )));
+            }
+            // Entity constraints hold for every existing entity (queries are not allowed in
+            // them; reference constraints concern the universe and are skipped).
+            let mut ev = Evaluator::new(module, &no_facts);
+            for (name, c) in module
+                .constraints_for(t)
+                .filter(|(_, c)| c.reference().is_none())
+            {
+                let cv = Vals::from([(c.param().to_string(), value.clone())]);
+                if ev.predicate(c.body(), &cv, Phase::S).0 == Ok(false) {
+                    return Err(bad(format!(
+                        "{t} {id} in the universe violates constraint `{name}`"
+                    )));
+                }
+            }
+            let canonical = encode_param(module, &Type::Entity(t.clone()), &value);
+            if let Some(b) = bound.get(&(t.clone(), id.clone()))
+                && *b != canonical
+            {
+                return Err(bad(format!(
+                    "bound {t} {id} differs from its value in the universe"
+                )));
+            }
+        }
+        for ((bt, bid), _) in bound.iter().filter(|((bt, _), _)| bt == t) {
+            if !members.contains_key(bid) {
+                return Err(bad(format!(
+                    "bound {bt} {bid} is missing from the universe"
+                )));
+            }
+        }
+        for ((et, eid), exists) in &facts.existence {
+            if et == t && *exists && !members.contains_key(eid) {
+                return Err(bad(format!(
+                    "{et} {eid} exists but is missing from the universe"
+                )));
+            }
+        }
+    }
+    for ((t, id, field), v) in &facts.fields {
+        let known = bound
+            .get(&(t.clone(), id.clone()))
+            .or_else(|| facts.universe.get(t).and_then(|m| m.get(id)));
+        if let Some(value) = known
+            && value.get(field) != Some(v)
+        {
+            return Err(bad(format!(
+                "the field {t} {id}.{field} contradicts its entity"
+            )));
+        }
+    }
+    for (instance, q) in &facts.queries {
+        for m in &q.members {
+            if absent(&q.entity, m) {
+                return Err(bad(format!(
+                    "{} {m} is a member of {instance} but marked absent",
+                    q.entity
+                )));
+            }
+        }
+    }
+    check_query_universe_agreement(module, facts)?;
+    Ok(())
 }
 
 /// The bound state entities of an action with their reference-field values.
@@ -1101,6 +2085,7 @@ fn evaluate_inner(
         (Some(raw), None, Some(a), Some(v)) => {
             match Facts::from_json(raw)
                 .and_then(|f| check_snapshot(module, &f, &bound_entities(module, a, v)).map(|_| f))
+                .and_then(|f| check_query_snapshot(module, &f, a, v).map(|_| f))
             {
                 Ok(f) => supplied = f,
                 Err(p) => problems.push(InputProblem {
@@ -1135,7 +2120,15 @@ fn evaluate_inner(
         // A refused request keeps its facts section, so replay refuses it the same way.
         if let Some(f) = &req.facts {
             record.insert("facts".into(), sanitize_floats(f));
-            record.insert("record_version".into(), json!(RECORD_VERSION_LIFECYCLE));
+            let queries = ["queries", "fields", "universe"]
+                .iter()
+                .any(|k| f.get(k).is_some());
+            let version = if queries {
+                RECORD_VERSION_QUERIES
+            } else {
+                RECORD_VERSION_LIFECYCLE
+            };
+            record.insert("record_version".into(), json!(version));
         }
         record.insert("result".into(), json!("INVALID_INPUT"));
         let reasons: Vec<Json> = problems
@@ -1185,6 +2178,10 @@ fn evaluate_inner(
         );
     }
 
+    let supplied = Supplied {
+        module,
+        facts: &supplied,
+    };
     let mut ev = Evaluator::new(module, provider.unwrap_or(&supplied));
     let outcome = run_transition(&mut ev, action, vals);
 
@@ -1204,7 +2201,9 @@ fn evaluate_inner(
     record.insert("derived".into(), Json::Array(derived_json));
     record.insert("changes".into(), Json::Array(outcome.changes));
     let facts = std::mem::take(&mut ev.observed);
-    if !facts.is_empty() || !outcome.lifecycle.is_empty() {
+    if facts.has_query_facts() {
+        record.insert("record_version".into(), json!(RECORD_VERSION_QUERIES));
+    } else if !facts.is_empty() || !outcome.lifecycle.is_empty() {
         record.insert("record_version".into(), json!(RECORD_VERSION_LIFECYCLE));
     }
     if !facts.is_empty() {
@@ -1659,6 +2658,60 @@ fn run_transition(ev: &mut Evaluator<'_>, action: &ActionItem, s: Vals) -> Outco
         Phase::SPrime,
         "constraint_post",
     );
+    // Module-level invariants on S' (feature 007, research R7): every invariant the transition
+    // can affect, by a sound dependency analysis; they hold on the valid S.
+    for (name, g) in module.global_invariants() {
+        if !affects(module, action, g.signature()) {
+            continue;
+        }
+        let text = pretty::text(g.body());
+        if stopped {
+            out.trace.push(step(
+                "invariant_global",
+                Some(name),
+                g.hash(),
+                text,
+                Reads::new(),
+                json!("skipped"),
+                g.loc(),
+            ));
+            continue;
+        }
+        ev.assume_valid = held_uniques(g.body());
+        let (r, reads) = ev.predicate(g.body(), &s_prime, Phase::SPrime);
+        ev.assume_valid.clear();
+        let outcome = match &r {
+            Ok(b) => json!(b),
+            Err(msg) => json!({"error": msg}),
+        };
+        out.trace.push(step(
+            "invariant_global",
+            Some(name),
+            g.hash(),
+            text,
+            reads,
+            outcome,
+            g.loc(),
+        ));
+        match r {
+            Ok(true) => {}
+            Ok(false) => {
+                stopped = true;
+                out.result = "DENY";
+                out.reasons.push(reason(
+                    "INVARIANT_VIOLATED",
+                    format!("module invariant `{name}` does not hold on the resulting state"),
+                    Some(g.loc()),
+                ));
+            }
+            Err(msg) => {
+                stopped = true;
+                out.result = "ERROR";
+                let why = ev.error_reason(msg, g.loc());
+                out.reasons.push(why);
+            }
+        }
+    }
     if stopped {
         return out;
     }

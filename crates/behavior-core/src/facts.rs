@@ -43,7 +43,50 @@ pub trait EvaluationFacts {
     fn exists(&self, entity: &str, id: &str) -> Result<bool, FactError>;
     fn used(&self, entity: &str, id: &str) -> Result<bool, FactError>;
     fn incoming(&self, entity: &str, id: &str) -> Result<Vec<RefEdge>, FactError>;
+    /// The members of a query instance at the evaluated state (feature 007), in any order.
+    fn query(&self, q: &QueryRequest<'_>) -> Result<Vec<String>, FactError> {
+        Err(FactError(format!(
+            "no query fact for instance {}",
+            q.instance
+        )))
+    }
+    /// A field of an entity the action does not bind (feature 007), in its canonical encoding.
+    fn field(&self, entity: &str, id: &str, field: &str) -> Result<Json, FactError> {
+        Err(FactError(format!(
+            "no field fact for {}.{field}",
+            describe(entity, id)
+        )))
+    }
 }
+
+/// A query instance to answer (feature 007): the query, its identity, and the captured values it
+/// is evaluated with. `matches` decides the membership of one candidate value.
+pub struct QueryRequest<'a> {
+    pub module: &'a Module,
+    pub node: &'a crate::semantic::expr::QueryNode,
+    pub definition: String,
+    pub instance: String,
+    pub captures: &'a [(String, Json)],
+    pub env: &'a BTreeMap<String, crate::semantic::value::Value>,
+}
+
+impl QueryRequest<'_> {
+    /// Whether a candidate (an entity value in its canonical encoding) is a member.
+    pub fn matches(&self, candidate: &Json) -> Result<bool, FactError> {
+        crate::eval::query_matches(self.module, self.node, self.env, candidate).map_err(FactError)
+    }
+}
+
+/// An observed query instance: definition, entity type, captured values and members (sorted).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct QueryFact {
+    pub definition: String,
+    pub entity: String,
+    pub captures: Vec<(String, Json)>,
+    pub members: Vec<String>,
+}
+
+type FieldKey = (String, String, String);
 
 type Key = (String, String);
 
@@ -54,6 +97,13 @@ pub struct Facts {
     pub identities: BTreeMap<Key, bool>,
     /// Incoming references per target, sorted.
     pub references: BTreeMap<Key, Vec<RefEdge>>,
+    /// Query instances by instance id (feature 007).
+    pub queries: BTreeMap<String, QueryFact>,
+    /// Fields of entities not bound by the action (feature 007).
+    pub fields: BTreeMap<FieldKey, Json>,
+    /// Supplied only (plain evaluation): the complete set of existing entities of a type, with
+    /// their values, by id (feature 007). Never recorded; observations are recorded instead.
+    pub universe: BTreeMap<String, BTreeMap<String, Json>>,
 }
 
 fn key(entity: &str, id: &str) -> Key {
@@ -66,10 +116,17 @@ fn describe(entity: &str, id: &str) -> String {
 
 impl EvaluationFacts for Facts {
     fn exists(&self, entity: &str, id: &str) -> Result<bool, FactError> {
-        self.existence
-            .get(&key(entity, id))
-            .copied()
-            .ok_or_else(|| FactError(format!("no existence fact for {}", describe(entity, id))))
+        if let Some(b) = self.existence.get(&key(entity, id)) {
+            return Ok(*b);
+        }
+        // A universe is the complete set of existing entities of its type.
+        if let Some(members) = self.universe.get(entity) {
+            return Ok(members.contains_key(id));
+        }
+        Err(FactError(format!(
+            "no existence fact for {}",
+            describe(entity, id)
+        )))
     }
     fn used(&self, entity: &str, id: &str) -> Result<bool, FactError> {
         self.identities
@@ -82,6 +139,56 @@ impl EvaluationFacts for Facts {
             .get(&key(entity, id))
             .cloned()
             .ok_or_else(|| FactError(format!("no reference fact for {}", describe(entity, id))))
+    }
+    fn query(&self, q: &QueryRequest<'_>) -> Result<Vec<String>, FactError> {
+        if let Some(members) = self.universe.get(q.node.entity()) {
+            let mut out = Vec::new();
+            for (id, value) in members {
+                if q.matches(value)? {
+                    out.push(id.clone());
+                }
+            }
+            if let Some(f) = self.queries.get(&q.instance)
+                && (f.definition != q.definition
+                    || f.entity != q.node.entity()
+                    || f.captures.as_slice() != q.captures
+                    || f.members != out)
+            {
+                return Err(FactError(format!(
+                    "query fact for instance {} contradicts the supplied universe of {}",
+                    q.instance,
+                    q.node.entity()
+                )));
+            }
+            return Ok(out);
+        }
+        self.queries
+            .get(&q.instance)
+            .map(|f| f.members.clone())
+            .ok_or_else(|| {
+                FactError(format!(
+                    "no query fact for instance {} and no universe of {}",
+                    q.instance,
+                    q.node.entity()
+                ))
+            })
+    }
+    fn field(&self, entity: &str, id: &str, field: &str) -> Result<Json, FactError> {
+        let k = (entity.to_string(), id.to_string(), field.to_string());
+        if let Some(v) = self.fields.get(&k) {
+            return Ok(v.clone());
+        }
+        self.universe
+            .get(entity)
+            .and_then(|m| m.get(id))
+            .and_then(|v| v.get(field))
+            .cloned()
+            .ok_or_else(|| {
+                FactError(format!(
+                    "no field fact for {}.{field}",
+                    describe(entity, id)
+                ))
+            })
     }
 }
 
@@ -145,13 +252,34 @@ fn boolean(o: &Map<String, Json>, k: &str, path: &str) -> Result<bool, FactsProb
 
 impl Facts {
     pub fn is_empty(&self) -> bool {
-        self.existence.is_empty() && self.identities.is_empty() && self.references.is_empty()
+        self.existence.is_empty()
+            && self.identities.is_empty()
+            && self.references.is_empty()
+            && self.queries.is_empty()
+            && self.fields.is_empty()
+            && self.universe.is_empty()
+    }
+
+    /// Whether the section has query or field facts (a record 0.6, feature 007).
+    pub fn has_query_facts(&self) -> bool {
+        !self.queries.is_empty() || !self.fields.is_empty()
     }
 
     /// Parses a `facts` section. A fact given twice is `INCONSISTENT_FACTS`.
     pub fn from_json(v: &Json) -> Result<Facts, FactsProblem> {
         let root = object(v, "facts")?;
-        only_keys(root, &["existence", "identities", "references"], "facts")?;
+        only_keys(
+            root,
+            &[
+                "existence",
+                "identities",
+                "references",
+                "queries",
+                "fields",
+                "universe",
+            ],
+            "facts",
+        )?;
         let mut f = Facts::default();
         let duplicate = |what: &str, e: &str, id: &str| {
             inconsistent(format!(
@@ -220,7 +348,106 @@ impl Facts {
                 return Err(duplicate("incoming references", &e, &id));
             }
         }
+        f.parse_queries(root)?;
         Ok(f)
+    }
+
+    fn parse_queries(&mut self, root: &Map<String, Json>) -> Result<(), FactsProblem> {
+        for (i, item) in entries(root, "queries")?.iter().enumerate() {
+            let path = format!("facts.queries[{i}]");
+            let o = object(item, &path)?;
+            only_keys(
+                o,
+                &["instance", "definition", "entity", "captures", "members"],
+                &path,
+            )?;
+            let instance = string_field(o, "instance", &path)?;
+            let Some(Json::Array(cs)) = o.get("captures") else {
+                return Err(malformed(format!("{path}.captures: expected an array")));
+            };
+            let mut captures = Vec::new();
+            for (j, c) in cs.iter().enumerate() {
+                let cp = format!("{path}.captures[{j}]");
+                let co = object(c, &cp)?;
+                only_keys(co, &["read", "value"], &cp)?;
+                let value = co
+                    .get("value")
+                    .cloned()
+                    .ok_or_else(|| malformed(format!("{cp}.value: missing")))?;
+                captures.push((string_field(co, "read", &cp)?, value));
+            }
+            let Some(Json::Array(ms)) = o.get("members") else {
+                return Err(malformed(format!("{path}.members: expected an array")));
+            };
+            let mut members = BTreeSet::new();
+            for (j, m) in ms.iter().enumerate() {
+                let mp = format!("{path}.members[{j}]");
+                let mo = object(m, &mp)?;
+                only_keys(mo, &["id"], &mp)?;
+                if !members.insert(string_field(mo, "id", &mp)?) {
+                    return Err(inconsistent(format!("{mp}: a member is listed twice")));
+                }
+            }
+            let fact = QueryFact {
+                definition: string_field(o, "definition", &path)?,
+                entity: string_field(o, "entity", &path)?,
+                captures,
+                members: members.into_iter().collect(),
+            };
+            if self.queries.insert(instance.clone(), fact).is_some() {
+                return Err(inconsistent(format!(
+                    "query instance {instance} is given more than once"
+                )));
+            }
+        }
+        for (i, item) in entries(root, "fields")?.iter().enumerate() {
+            let path = format!("facts.fields[{i}]");
+            let o = object(item, &path)?;
+            only_keys(o, &["entity", "id", "field", "value"], &path)?;
+            let k = (
+                string_field(o, "entity", &path)?,
+                string_field(o, "id", &path)?,
+                string_field(o, "field", &path)?,
+            );
+            let value = o
+                .get("value")
+                .cloned()
+                .ok_or_else(|| malformed(format!("{path}.value: missing")))?;
+            if self.fields.insert(k.clone(), value).is_some() {
+                return Err(inconsistent(format!(
+                    "the field {}.{} is given more than once",
+                    describe(&k.0, &k.1),
+                    k.2
+                )));
+            }
+        }
+        for (i, item) in entries(root, "universe")?.iter().enumerate() {
+            let path = format!("facts.universe[{i}]");
+            let o = object(item, &path)?;
+            only_keys(o, &["entity", "members"], &path)?;
+            let entity = string_field(o, "entity", &path)?;
+            let Some(Json::Array(ms)) = o.get("members") else {
+                return Err(malformed(format!("{path}.members: expected an array")));
+            };
+            let mut members = BTreeMap::new();
+            for (j, m) in ms.iter().enumerate() {
+                let mp = format!("{path}.members[{j}]");
+                let mo = object(m, &mp)?;
+                let id = string_field(mo, "id", &mp)?;
+                if members.insert(id.clone(), m.clone()).is_some() {
+                    return Err(inconsistent(format!(
+                        "{} appears twice in the universe",
+                        describe(&entity, &id)
+                    )));
+                }
+            }
+            if self.universe.insert(entity.clone(), members).is_some() {
+                return Err(inconsistent(format!(
+                    "the universe of {entity} is given more than once"
+                )));
+            }
+        }
+        Ok(())
     }
 
     /// The canonical `facts` section: sections sorted by (entity, id), edges by (entity, id,
@@ -253,6 +480,42 @@ impl Facts {
                 })
                 .collect();
             o.insert("references".into(), Json::Array(items));
+        }
+        if !self.queries.is_empty() {
+            let items: Vec<Json> = self
+                .queries
+                .iter()
+                .map(|(instance, q)| {
+                    json!({
+                        "instance": instance,
+                        "definition": q.definition,
+                        "entity": q.entity,
+                        "captures": q.captures.iter()
+                            .map(|(r, v)| json!({"read": r, "value": v}))
+                            .collect::<Vec<_>>(),
+                        "members": q.members.iter().map(|m| json!({"id": m})).collect::<Vec<_>>(),
+                    })
+                })
+                .collect();
+            o.insert("queries".into(), Json::Array(items));
+        }
+        if !self.fields.is_empty() {
+            let items: Vec<Json> = self
+                .fields
+                .iter()
+                .map(|((e, id, field), v)| json!({"entity": e, "id": id, "field": field, "value": v}))
+                .collect();
+            o.insert("fields".into(), Json::Array(items));
+        }
+        if !self.universe.is_empty() {
+            let items: Vec<Json> = self
+                .universe
+                .iter()
+                .map(|(e, members)| {
+                    json!({"entity": e, "members": members.values().cloned().collect::<Vec<_>>()})
+                })
+                .collect();
+            o.insert("universe".into(), Json::Array(items));
         }
         Json::Object(o)
     }

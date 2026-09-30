@@ -18,7 +18,8 @@ use crate::semantic::module::{DerivedItem, Module, Param, ParamRole};
 use crate::semantic::types::{Type, coerce};
 use crate::wire::{
     DerivedKind, Loc, WAction, WCond, WConstraint, WDerived, WEffect, WEntity, WEnum, WExpr,
-    WExprKind, WField, WInvariant, WLifecycle, WModule, WNominal, WParam, WType, arity_ok, op_name,
+    WExprKind, WField, WGlobalInvariant, WInvariant, WLifecycle, WModule, WNominal, WParam, WType,
+    arity_ok, op_name,
 };
 
 /// A construction error: the same codes as admission errors.
@@ -57,6 +58,8 @@ type R<T> = Result<T, BuildError>;
 pub enum ScopeSite {
     Derived,
     Action,
+    /// A module invariant (feature 007): no parameters at all.
+    Closed,
 }
 
 /// A typed expression node. `ty` is `None` for a node that depends on a derived value that is
@@ -66,6 +69,8 @@ pub struct Node {
     pub(crate) w: WExpr,
     pub(crate) ty: Option<Type>,
     pub(crate) role: Option<ParamRole>,
+    /// The entity type of a query node (feature 007): a set of entities, not a value.
+    pub(crate) query: Option<String>,
 }
 
 impl Node {
@@ -82,6 +87,11 @@ impl Node {
     /// The node's wire expression (for lifecycle effects built from nodes, feature 006).
     pub fn into_wire(self) -> WExpr {
         self.w
+    }
+
+    /// The entity type of a query node (feature 007), or `None` for a value.
+    pub fn query_entity(&self) -> Option<&str> {
+        self.query.as_deref()
     }
 
     /// The parameter role of `field`/`param` nodes: `state`, `input`, `context`, or `read`.
@@ -102,6 +112,7 @@ pub struct Builder {
     entities: Vec<WEntity>,
     derived: Vec<WDerived>,
     invariants: Vec<WInvariant>,
+    global_invariants: Vec<WGlobalInvariant>,
     constraints: Vec<WConstraint>,
     actions: Vec<WAction>,
     decls: Option<Decls>,
@@ -197,6 +208,7 @@ impl Builder {
             entities: self.entities.clone(),
             derived: Vec::new(),
             invariants: Vec::new(),
+            global_invariants: Vec::new(),
             constraints: Vec::new(),
             actions: Vec::new(),
         };
@@ -213,6 +225,16 @@ impl Builder {
 
     pub fn push_scope(&mut self, site: ScopeSite, ps: Vec<WParam>, loc: Loc) -> R<()> {
         self.ensure_decls()?;
+        if site == ScopeSite::Closed {
+            if !ps.is_empty() {
+                return Err(err(
+                    "ARITY_MISMATCH",
+                    "a module invariant has no parameters",
+                ));
+            }
+            self.scopes.push(Vec::new());
+            return Ok(());
+        }
         let Some(decls) = &self.decls else {
             return Err(err("DECODE_ERROR", "no declarations"));
         };
@@ -220,6 +242,7 @@ impl Builder {
             ScopeSite::Derived => ParamSite::Derived,
             // Whether the action creates is known only when it is added (`add_action` checks).
             ScopeSite::Action => ParamSite::CreatingAction,
+            ScopeSite::Closed => ParamSite::Derived,
         };
         let mut errors = Vec::new();
         match params(decls, &ps, site, &loc, &mut errors) {
@@ -246,8 +269,13 @@ impl Builder {
     // --- nodes -------------------------------------------------------------------------
 
     fn make(&mut self, w: WExpr, children: &[&Node], role: Option<ParamRole>) -> R<Node> {
-        if children.iter().any(|c| c.ty.is_none()) {
-            return Ok(Node { w, ty: None, role });
+        if children.iter().any(|c| c.ty.is_none() && c.query.is_none()) {
+            return Ok(Node {
+                w,
+                ty: None,
+                role,
+                query: None,
+            });
         }
         self.ensure_decls()?;
         let Some(decls) = &self.decls else {
@@ -259,7 +287,88 @@ impl Builder {
             ty: Some(typed.ty().clone()),
             w,
             role,
+            query: None,
         })
+    }
+
+    /// A query node (feature 007): checked as the argument of `count`, which applies every rule
+    /// a query must satisfy (candidate-local filters, same-type set algebra).
+    fn make_query(&mut self, w: WExpr, entity: String, children: &[&Node]) -> R<Node> {
+        let untyped = children.iter().any(|c| c.ty.is_none() && c.query.is_none());
+        if !untyped {
+            let probe = WExpr {
+                loc: w.loc.clone(),
+                kind: WExprKind::Op {
+                    op: crate::wire::OpName::Count,
+                    args: vec![w.clone()],
+                },
+            };
+            self.make(probe, children, None)?;
+        }
+        Ok(Node {
+            w,
+            ty: None,
+            role: None,
+            query: Some(entity),
+        })
+    }
+
+    /// `select(T)`: every existing entity of type `entity` (feature 007).
+    pub fn select(&mut self, entity: &str, loc: Loc) -> R<Node> {
+        let w = WExpr {
+            kind: WExprKind::Select {
+                entity: entity.into(),
+            },
+            loc,
+        };
+        self.make_query(w, entity.into(), &[])
+    }
+
+    /// Opens the scope of a lambda body: the current scope plus the candidate `param` of type
+    /// `entity` (feature 007). Close it with `pop_scope`.
+    pub fn push_lambda(&mut self, param: &str, entity: &str) -> R<()> {
+        let mut scope = self.scope().to_vec();
+        if scope.iter().any(|p| p.name() == param) {
+            return Err(err(
+                "DUPLICATE_NAME",
+                format!("the lambda parameter `{param}` shadows a parameter"),
+            ));
+        }
+        scope.push(Param {
+            name: param.into(),
+            role: ParamRole::Read,
+            ty: Type::Entity(entity.into()),
+        });
+        self.scopes.push(scope);
+        Ok(())
+    }
+
+    /// A relational operator with a lambda `param → body` over the candidates of `query`:
+    /// `where` gives a query; `any`, `all`, `sum`, `min`, `max`, `unique` a value.
+    pub fn lambda(&mut self, op: &str, query: Node, param: &str, body: Node, loc: Loc) -> R<Node> {
+        let Some(lop) = crate::wire::LambdaOp::parse(op) else {
+            return Err(err("DECODE_ERROR", format!("unknown operator `{op}`")));
+        };
+        let Some(entity) = query.query.clone() else {
+            return Err(err(
+                "TYPE_MISMATCH",
+                format!("`{op}` needs a query as its first argument"),
+            ));
+        };
+        let w = WExpr {
+            kind: WExprKind::Lambda {
+                op: lop,
+                query: Box::new(query.w.clone()),
+                param: param.into(),
+                body: Box::new(body.w.clone()),
+            },
+            loc,
+        };
+        if lop == crate::wire::LambdaOp::Where {
+            self.make_query(w, entity, &[&query, &body])
+        } else {
+            self.make(w, &[&query, &body], None)
+        }
     }
 
     pub fn lit(&mut self, ty: WType, value: Json, loc: Loc) -> R<Node> {
@@ -317,6 +426,7 @@ impl Builder {
                 w,
                 ty: None,
                 role: None,
+                query: None,
             });
         }
         self.make(w, &[], None)
@@ -340,6 +450,24 @@ impl Builder {
             loc,
         };
         let children: Vec<&Node> = args.iter().collect();
+        if matches!(
+            name,
+            crate::wire::OpName::Union
+                | crate::wire::OpName::Intersection
+                | crate::wire::OpName::Difference
+        ) {
+            let entity = args
+                .first()
+                .and_then(|a| a.query.clone())
+                .ok_or_else(|| err("TYPE_MISMATCH", format!("`{op}` combines queries")))?;
+            return self.make_query(w, entity, &children);
+        }
+        if children.iter().any(|c| c.query.is_some()) && name != crate::wire::OpName::Count {
+            return Err(err(
+                "TYPE_MISMATCH",
+                format!("a query is a set of entities, not a value, and cannot be used in `{op}`"),
+            ));
+        }
         self.make(w, &children, None)
     }
 
@@ -427,6 +555,7 @@ impl Builder {
         let taken = self.derived.iter().any(|d| d.name == name)
             || self.invariants.iter().any(|i| i.name == name)
             || self.constraints.iter().any(|c| c.name == name)
+            || self.global_invariants.iter().any(|g| g.name == name)
             || self.actions.iter().any(|a| a.name == name);
         if taken {
             return Err(err(
@@ -492,6 +621,18 @@ impl Builder {
             name: name.into(),
             entity: entity.into(),
             param: param.into(),
+            body: body.w,
+            loc,
+        });
+        Ok(())
+    }
+
+    /// Adds a module invariant (feature 007): a closed state expression over entity sets.
+    pub fn add_global_invariant(&mut self, name: &str, body: Node, loc: Loc) -> R<()> {
+        self.claim(name)?;
+        self.check_condition(&body, "a module invariant")?;
+        self.global_invariants.push(WGlobalInvariant {
+            name: name.into(),
             body: body.w,
             loc,
         });
@@ -578,6 +719,7 @@ impl Builder {
             entities: self.entities.clone(),
             derived: self.derived.clone(),
             invariants: self.invariants.clone(),
+            global_invariants: self.global_invariants.clone(),
             constraints: self.constraints.clone(),
             actions: self.actions.clone(),
         };
@@ -629,6 +771,10 @@ fn expr_locs(e: &mut WExpr, f: &mut dyn FnMut(&mut Loc)) {
     match &mut e.kind {
         WExprKind::Op { args, .. } => args.iter_mut().for_each(|a| expr_locs(a, f)),
         WExprKind::In { arg, .. } | WExprKind::Wrap { arg, .. } => expr_locs(arg, f),
+        WExprKind::Lambda { query, body, .. } => {
+            expr_locs(query, f);
+            expr_locs(body, f);
+        }
         _ => {}
     }
 }
@@ -651,6 +797,10 @@ fn for_each_loc(w: &mut WModule, f: &mut dyn FnMut(&mut Loc)) {
     for c in &mut w.constraints {
         f(&mut c.loc);
         expr_locs(&mut c.body, f);
+    }
+    for g in &mut w.global_invariants {
+        f(&mut g.loc);
+        expr_locs(&mut g.body, f);
     }
     for a in &mut w.actions {
         f(&mut a.loc);

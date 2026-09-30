@@ -7,11 +7,11 @@
 use serde_json::{Map, Value as Json, json};
 
 use crate::canonical;
-use crate::semantic::expr::{Expr, ExprKind};
+use crate::semantic::expr::{CANDIDATE, Expr, ExprKind, QueryKind, QueryNode};
 use crate::semantic::module::{Module, ParamRole};
 use crate::semantic::types::{ArithOp, CmpOp, Type, ops};
 use crate::semantic::value::encode;
-use crate::wire::{DerivedKind, IR_VERSION_EXACT, IR_VERSION_LIFECYCLE, Loc};
+use crate::wire::{DerivedKind, IR_VERSION_EXACT, IR_VERSION_LIFECYCLE, IR_VERSION_QUERIES, Loc};
 
 fn loc(l: &Loc) -> Json {
     json!({"file": l.file, "line": l.line})
@@ -42,35 +42,72 @@ fn arith_name(a: ArithOp) -> &'static str {
 }
 
 fn expr(e: &Expr) -> Json {
+    expr_in(e, None)
+}
+
+/// The wire form of a query (feature 007).
+fn query(q: &QueryNode) -> Json {
+    let l = q.loc();
+    match q.kind() {
+        QueryKind::Select => json!({"op": "select", "entity": q.entity(), "loc": loc(l)}),
+        QueryKind::Where { base, param, body } => json!({
+            "op": "where", "args": [query(base)], "param": param,
+            "body": expr_in(body, Some(param)), "loc": loc(l),
+        }),
+        QueryKind::Set { op, a, b } => op_node(op.as_str(), vec![query(a), query(b)], l),
+    }
+}
+
+/// [`expr`] inside a lambda body whose candidate is written as `cand`.
+fn expr_in(e: &Expr, cand: Option<&str>) -> Json {
     let l = e.loc();
     match e.kind() {
         ExprKind::Lit(v) => {
             json!({"op": "lit", "type": e.ty().to_wire_json(), "value": encode(e.ty(), v), "loc": loc(l)})
         }
         ExprKind::Field { param, field } => {
+            let param = if param == CANDIDATE {
+                cand.unwrap_or(CANDIDATE)
+            } else {
+                param
+            };
             json!({"op": "field", "param": param, "field": field, "loc": loc(l)})
         }
         ExprKind::Param(p) => json!({"op": "param", "param": p, "loc": loc(l)}),
         ExprKind::DerivedRef { name, args, .. } => {
+            let args: Vec<&str> = args
+                .iter()
+                .map(|a| {
+                    if a == CANDIDATE {
+                        cand.unwrap_or(CANDIDATE)
+                    } else {
+                        a.as_str()
+                    }
+                })
+                .collect();
             json!({"op": "derived", "name": name, "args": args, "loc": loc(l)})
         }
-        ExprKind::Cmp(c, a, b) => op_node(cmp_name(*c), vec![expr(a), expr(b)], l),
-        ExprKind::Arith(o, a, b) => op_node(arith_name(*o), vec![expr(a), expr(b)], l),
-        ExprKind::And(xs) => op_node("and", xs.iter().map(expr).collect(), l),
-        ExprKind::Or(xs) => op_node("or", xs.iter().map(expr).collect(), l),
-        ExprKind::Not(a) => op_node("not", vec![expr(a)], l),
+        ExprKind::Cmp(c, a, b) => {
+            op_node(cmp_name(*c), vec![expr_in(a, cand), expr_in(b, cand)], l)
+        }
+        ExprKind::Arith(o, a, b) => {
+            op_node(arith_name(*o), vec![expr_in(a, cand), expr_in(b, cand)], l)
+        }
+        ExprKind::And(xs) => op_node("and", xs.iter().map(|x| expr_in(x, cand)).collect(), l),
+        ExprKind::Or(xs) => op_node("or", xs.iter().map(|x| expr_in(x, cand)).collect(), l),
+        ExprKind::Not(a) => op_node("not", vec![expr_in(a, cand)], l),
         ExprKind::In(a, values) => json!({
             "op": "in",
-            "args": [expr(a)],
+            "args": [expr_in(a, cand)],
             "values": values.iter().map(|v| encode(a.ty(), v)).collect::<Vec<_>>(),
             "loc": loc(l),
         }),
-        ExprKind::IsNone(a) => op_node("is_none", vec![expr(a)], l),
-        ExprKind::IsSome(a) => op_node("is_some", vec![expr(a)], l),
-        ExprKind::ValueOr(a, d) => op_node("value_or", vec![expr(a), expr(d)], l),
-        ExprKind::Some(a) => op_node("some", vec![expr(a)], l),
-        ExprKind::ToDecimal(a) => op_node("to_decimal", vec![expr(a)], l),
-        ExprKind::Unwrap(a) => op_node("unwrap", vec![expr(a)], l),
+        ExprKind::IsNone(a) => op_node("is_none", vec![expr_in(a, cand)], l),
+        ExprKind::IsSome(a) => op_node("is_some", vec![expr_in(a, cand)], l),
+        ExprKind::ValueOr(a, d) => op_node("value_or", vec![expr_in(a, cand), expr_in(d, cand)], l),
+        ExprKind::Some(a) => op_node("some", vec![expr_in(a, cand)], l),
+        ExprKind::ToDecimal(a) => op_node("to_decimal", vec![expr_in(a, cand)], l),
+        ExprKind::Unwrap(a) => op_node("unwrap", vec![expr_in(a, cand)], l),
         ExprKind::Rescale { arg, rounding } => json!({
             "op": "rescale",
             "nominal": match e.ty() {
@@ -78,7 +115,7 @@ fn expr(e: &Expr) -> Json {
                 other => other.to_string(),
             },
             "rounding": rounding.as_str(),
-            "args": [expr(arg)],
+            "args": [expr_in(arg, cand)],
             "loc": loc(l),
         }),
         ExprKind::Wrap(a) => {
@@ -86,10 +123,20 @@ fn expr(e: &Expr) -> Json {
                 Type::Nominal(n) => n.name.clone(),
                 other => other.to_string(),
             };
-            json!({"op": "wrap", "nominal": nominal, "args": [expr(a)], "loc": loc(l)})
+            json!({"op": "wrap", "nominal": nominal, "args": [expr_in(a, cand)], "loc": loc(l)})
         }
-        ExprKind::Exists(a) => op_node("exists", vec![expr(a)], l),
-        ExprKind::Referenced(a) => op_node("referenced", vec![expr(a)], l),
+        ExprKind::Exists(a) => op_node("exists", vec![expr_in(a, cand)], l),
+        ExprKind::Referenced(a) => op_node("referenced", vec![expr_in(a, cand)], l),
+        ExprKind::Count(q) => op_node("count", vec![query(q)], l),
+        ExprKind::Fold {
+            op,
+            query: q,
+            param,
+            body,
+        } => json!({
+            "op": op.as_str(), "args": [query(q)], "param": param,
+            "body": expr_in(body, Some(param)), "loc": loc(l),
+        }),
     }
 }
 
@@ -198,7 +245,7 @@ pub fn to_wire_value(m: &Module) -> Json {
             o
         })
         .collect();
-    let invariants: Vec<Json> = m
+    let mut invariants: Vec<Json> = m
         .invariants
         .iter()
         .map(|(name, i)| {
@@ -206,6 +253,12 @@ pub fn to_wire_value(m: &Module) -> Json {
                    "body": expr(&i.body), "loc": loc(&i.loc)})
         })
         .collect();
+    // Module-level invariants (feature 007) have no entity or parameter.
+    invariants.extend(
+        m.global_invariants
+            .iter()
+            .map(|(name, g)| json!({"name": name, "body": expr(&g.body), "loc": loc(&g.loc)})),
+    );
     let constraints: Vec<Json> = m
         .constraints
         .iter()
@@ -254,7 +307,13 @@ pub fn to_wire_value(m: &Module) -> Json {
         })
         .collect();
     let doc = json!({
-        "ir_version": if uses_lifecycle(m) { IR_VERSION_LIFECYCLE } else { IR_VERSION_EXACT },
+        "ir_version": if uses_queries(m) {
+            IR_VERSION_QUERIES
+        } else if uses_lifecycle(m) {
+            IR_VERSION_LIFECYCLE
+        } else {
+            IR_VERSION_EXACT
+        },
         "enums": enums,
         "nominals": nominals,
         "entities": entities,
@@ -267,32 +326,9 @@ pub fn to_wire_value(m: &Module) -> Json {
 }
 
 fn expr_uses_fixed_scale(e: &Expr) -> bool {
-    let mut found =
-        matches!(e.ty(), Type::Exact(_)) || matches!(e.kind(), ExprKind::Rescale { .. });
-    let mut visit = |x: &Expr| found |= expr_uses_fixed_scale(x);
-    match e.kind() {
-        ExprKind::Cmp(_, a, b) | ExprKind::Arith(_, a, b) | ExprKind::ValueOr(a, b) => {
-            visit(a);
-            visit(b);
-        }
-        ExprKind::And(xs) | ExprKind::Or(xs) => xs.iter().for_each(visit),
-        ExprKind::Not(a)
-        | ExprKind::In(a, _)
-        | ExprKind::IsNone(a)
-        | ExprKind::IsSome(a)
-        | ExprKind::Some(a)
-        | ExprKind::ToDecimal(a)
-        | ExprKind::Wrap(a)
-        | ExprKind::Unwrap(a)
-        | ExprKind::Rescale { arg: a, .. }
-        | ExprKind::Exists(a)
-        | ExprKind::Referenced(a) => visit(a),
-        ExprKind::Lit(_)
-        | ExprKind::Field { .. }
-        | ExprKind::Param(_)
-        | ExprKind::DerivedRef { .. } => {}
-    }
-    found
+    matches!(e.ty(), Type::Exact(_))
+        || matches!(e.kind(), ExprKind::Rescale { .. })
+        || e.children().into_iter().any(expr_uses_fixed_scale)
 }
 
 /// Whether the module uses a wire 0.3 feature (fixed scale, exact types, rescale, declared types).
@@ -317,31 +353,32 @@ pub fn uses_fixed_scale(m: &Module) -> bool {
 }
 
 fn expr_uses_lifecycle(e: &Expr) -> bool {
-    let mut found = matches!(e.kind(), ExprKind::Exists(_) | ExprKind::Referenced(_));
-    let mut visit = |x: &Expr| found |= expr_uses_lifecycle(x);
-    match e.kind() {
-        ExprKind::Cmp(_, a, b) | ExprKind::Arith(_, a, b) | ExprKind::ValueOr(a, b) => {
-            visit(a);
-            visit(b);
-        }
-        ExprKind::And(xs) | ExprKind::Or(xs) => xs.iter().for_each(visit),
-        ExprKind::Not(a)
-        | ExprKind::In(a, _)
-        | ExprKind::IsNone(a)
-        | ExprKind::IsSome(a)
-        | ExprKind::Some(a)
-        | ExprKind::ToDecimal(a)
-        | ExprKind::Wrap(a)
-        | ExprKind::Unwrap(a)
-        | ExprKind::Rescale { arg: a, .. }
-        | ExprKind::Exists(a)
-        | ExprKind::Referenced(a) => visit(a),
-        ExprKind::Lit(_)
-        | ExprKind::Field { .. }
-        | ExprKind::Param(_)
-        | ExprKind::DerivedRef { .. } => {}
-    }
-    found
+    matches!(e.kind(), ExprKind::Exists(_) | ExprKind::Referenced(_))
+        || e.children().into_iter().any(expr_uses_lifecycle)
+}
+
+fn expr_uses_queries(e: &Expr) -> bool {
+    matches!(e.kind(), ExprKind::Count(_) | ExprKind::Fold { .. })
+        || e.children().into_iter().any(expr_uses_queries)
+}
+
+/// Whether the module uses a form introduced by wire 0.6 (feature 007): relational forms or
+/// module-level invariants. Such a module serializes as `"0.6"`.
+pub fn uses_queries(m: &Module) -> bool {
+    !m.global_invariants.is_empty()
+        || m.derived.values().any(|d| expr_uses_queries(&d.body))
+        || m.invariants.values().any(|i| expr_uses_queries(&i.body))
+        || m.constraints.values().any(|c| expr_uses_queries(&c.body))
+        || m.actions.values().any(|a| {
+            a.preconditions
+                .iter()
+                .chain(&a.postconditions)
+                .any(|c| expr_uses_queries(&c.expr))
+                || a.effects.iter().any(|e| expr_uses_queries(&e.value))
+                || a.creates.iter().any(|c| {
+                    expr_uses_queries(&c.id) || c.fields.iter().any(|(_, v)| expr_uses_queries(v))
+                })
+        })
 }
 
 /// Whether the module uses a form introduced by wire 0.5 (feature 006): reference fields,

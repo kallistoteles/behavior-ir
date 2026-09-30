@@ -1,0 +1,14 @@
+{
+ "action": "close_customer",
+ "context": {},
+ "data_version": "1",
+ "input": {},
+ "state": {
+  "customer": {
+   "credit_limit": "100.00",
+   "id": "c1",
+   "name": "Ada",
+   "region": "north"
+  }
+ }
+}

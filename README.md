@@ -164,6 +164,40 @@ plain `evaluate(..., facts={...})` takes them from the request, and records keep
 for replay. Any lifecycle form needs wire IR 0.5. See `docs/persistence.md`,
 `python -m examples.accounts.run` and `specs/006-entity-lifecycle/`.
 
+### Relational queries (feature 007)
+
+Behavior can decide over *sets* of entities with typed, read-only set comprehensions:
+
+```python
+@derived
+def open_order_count(customer: Customer):
+    orders = select(Order).where(lambda o: o.customer == customer.id)
+    return count(orders.where(lambda o: o.status == OrderStatus.OPEN))
+
+@invariant                      # no parameter: a module invariant over the whole state
+def personnel_numbers_unique():
+    return unique(select(Employee), by=lambda e: e.personnel_number)
+
+@action
+def place_order(customer: Customer, *, order_id: Input[Id[Order]], amount: Input[Money]):
+    orders = select(Order).where(lambda o: o.customer == customer.id)
+    requires(sum_(orders, lambda o: o.amount) + amount <= customer.credit_limit)
+    create(Order, id=order_id, customer=customer.id, amount=amount, status=OrderStatus.OPEN, region=customer.region)
+```
+
+`select`, `where`, `union`/`intersection`/`difference`, `count`, `any_`, `all_`, `sum_` (exact),
+`min_`/`max_` (optional) and `unique` are expressions, never Python collections. Filters are
+candidate-local; relational invariants live at module level ("local invariants describe entities;
+global invariants describe relations"). A query result is a *fact* about the evaluated state:
+stores answer it as of the evaluated position (with an optional field index that never changes a
+result), plain `evaluate(..., facts={...})` takes `queries`/`fields` (or whole `universe`
+sections) from the request, records keep the observed memberships and member values, and
+resulting-state queries are derived from the change, never stored. When a complete `universe`
+and redundant query or field facts overlap, they must exactly agree; the universe determines the
+query result and contradictions are `INCONSISTENT_FACTS`. Any query form needs wire IR
+0.6. See `docs/persistence.md`, `docs/verification.md`, `python -m examples.orders.run` and
+`specs/007-relational-queries/`.
+
 The output is a canonical, content-addressed **verification attestation** bound to the
 behavior version. Results are cached by check key (`--cache .behavior/verify-cache`), so
 unchanged behavior is not re-verified.

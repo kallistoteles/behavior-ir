@@ -106,7 +106,7 @@ fn chain_link<B: Backend>(store: &Store<B>, pos: u64) -> R<String> {
 /// the registry, every identity used up to `pos`.
 type Universe = (BTreeMap<EntityKey, EntityVersion>, BTreeSet<EntityKey>);
 
-fn content_at<B: Backend>(store: &Store<B>, pos: u64) -> R<Universe> {
+pub(crate) fn content_at<B: Backend>(store: &Store<B>, pos: u64) -> R<Universe> {
     let genesis = store.genesis()?;
     let mut keys: BTreeSet<EntityKey> = genesis
         .seed

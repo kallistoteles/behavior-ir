@@ -1,0 +1,27 @@
+{
+ "action": "renumber",
+ "context": {},
+ "data_version": "1",
+ "facts": {
+  "universe": [
+   {
+    "entity": "Employee",
+    "members": [
+     {
+      "id": "e1",
+      "personnel_number": "N7"
+     }
+    ]
+   }
+  ]
+ },
+ "input": {
+  "number": "N2"
+ },
+ "state": {
+  "employee": {
+   "id": "e1",
+   "personnel_number": "N1"
+  }
+ }
+}

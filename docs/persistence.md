@@ -1,4 +1,4 @@
-# The persistence contract (features 005–006)
+# The persistence contract (features 005–007)
 
 > **The engine defines the canonical state-transition and persistence contract; hosts choose how
 > that contract is stored.**
@@ -49,11 +49,12 @@ new state identity + transition record (evaluated_against == committed_on) + new
 
 ## What a host implements
 
-A `Backend` has ten methods: `genesis`, `head`, `create(genesis, head, seed, seed_refs)`,
+A `Backend` has twelve methods: `genesis`, `head`, `create(genesis, head, seed, seed_refs)`,
 `version_at(key, position)`, `version(key, revision)`, `record(position)`, `removed_at(key)`,
-`incoming_at(target, position)`, `used_at(key, position)` (with a default), and
-`commit(expected_last_record, versions, removals, ref_changes, record, new_head)`. Only `create`
-and `commit` write.
+`incoming_at(target, position)`, `used_at(key, position)` (with a default), `keys_at(entity_type,
+position)` and `keys_by_field_at(entity_type, field, value, position)` (optional, feature 007),
+and `commit(expected_last_record, versions, removals, ref_changes, record, new_head)`. Only
+`create` and `commit` write.
 - **The compare-and-set:** `commit` is the only concurrency primitive, and it must be atomic and
   crash-safe.
 - **As-of reads:** stored versions never change and are tagged with the position that created them,
@@ -62,9 +63,9 @@ and `commit` write.
   replay.
 
 `InMemoryBackend` is the reference backend. `behavior_store::conformance::run(factory)` (Python:
-`run_conformance(factory)`) runs 24 named cases against any backend. Faults and interleavings are
-injected around the backend, so no hooks are needed. Ten deliberately broken backends each fail
-their designated case.
+`run_conformance(factory)`) runs 28 named cases against any backend. Faults and interleavings are
+injected around the backend, so no hooks are needed. Twelve deliberately broken backends each fail
+their designated case, and a backend listing keys in reverse order passes every case.
 
 ## Replay
 
@@ -120,6 +121,41 @@ position, checked again at commit and by replay against the same store. It is **
 cryptographic proof: MuHash commits to the state's content, but a fact about absence or about
 incoming references cannot be verified without the store (no membership or non-membership proofs).
 A reader who does not trust the store must replay against it.
+
+## Relational queries (feature 007)
+
+> Sets are semantic; indexes are implementation.
+
+A query (`select(T)`, `where`, set algebra, and `count`/`any`/`all`/`sum`/`min`/`max`/`unique`
+over it) is a pure read of the evaluated state. Details: `specs/007-relational-queries/`.
+
+- **Query facts:** a query *instance* is its definition hash plus its canonical captured values
+  (`QueryInstanceId`); a query fact records the instance's complete membership, and member values
+  are ordinary field facts. Only what evaluation actually read is recorded, in the record's
+  `facts.queries` / `facts.fields` (record version 0.6) and the bundle's `read_facts`, where each
+  query also carries a `result_hash`. Records list full memberships even for `count`, so large
+  results make large records; this is accepted for now. Overlapping fact representations must
+  agree: if a request supplies a complete `universe` and also supplies redundant query or field
+  facts for the same state, the engine derives from the universe and rejects contradictions as
+  `INCONSISTENT_FACTS`.
+- **The evaluation snapshot:** the store answers memberships and member values as of the
+  evaluated position, like every other read. `keys_at(type, position)` is the derived type index;
+  `keys_by_field_at` an optional field index. The store follows an index plan from the query's
+  equalities (a captured value preferred over a literal), then re-checks every candidate, so an
+  index can only save work: it never defines a result and is never part of the state identity.
+  Conformance: `query_snapshot`, `query_index_consistency`, `query_order_independence`,
+  `module_invariant_preserved`.
+- **Resulting state:** `Q(captures_S', S') = Q(captures_S', S) + exact effects of ΔS`. Filters are
+  candidate-local, so only created, removed and changed bound candidates are re-classified; the
+  baseline is an observed fact against S. Nothing speculative is ever written.
+- **Module invariants** hold at genesis (`GENESIS_INVALID`) and on every resulting state they can
+  be affected by (`INVARIANT_VIOLATED`); a sound dependency analysis skips only unaffected ones,
+  and `unique` is decided by a delta rule (only touched members can collide).
+- **Replay** never queries a store: plain replay uses the recorded facts; behavior replay
+  re-derives them at each parent and compares, result hashes included.
+
+**Trust boundary.** As with existence facts, a recorded membership is what the store answered;
+it is not a standalone (non-)membership proof.
 
 ## Evidence
 

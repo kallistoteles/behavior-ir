@@ -171,6 +171,37 @@ impl InvariantItem {
     }
 }
 
+/// What a module-level invariant depends on (feature 007): the entity types it queries and, per
+/// type, the fields its lambdas read (`None`: possibly every field).
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Signature {
+    pub types: BTreeMap<String, Option<std::collections::BTreeSet<String>>>,
+}
+
+/// A module-level invariant (feature 007): a closed state expression over the whole state.
+#[derive(Debug, Clone)]
+pub struct GlobalInvariantItem {
+    pub(crate) body: Expr,
+    pub(crate) hash: Hash,
+    pub(crate) loc: Loc,
+    pub(crate) signature: Signature,
+}
+
+impl GlobalInvariantItem {
+    pub fn body(&self) -> &Expr {
+        &self.body
+    }
+    pub fn hash(&self) -> &Hash {
+        &self.hash
+    }
+    pub fn loc(&self) -> &Loc {
+        &self.loc
+    }
+    pub fn signature(&self) -> &Signature {
+        &self.signature
+    }
+}
+
 /// An entity constraint: what a valid instance of an entity type is (feature 002).
 #[derive(Debug, Clone)]
 pub struct ConstraintItem {
@@ -348,6 +379,7 @@ pub struct Module {
     pub(crate) entities: BTreeMap<String, EntityItem>,
     pub(crate) derived: BTreeMap<String, DerivedItem>,
     pub(crate) invariants: BTreeMap<String, InvariantItem>,
+    pub(crate) global_invariants: BTreeMap<String, GlobalInvariantItem>,
     pub(crate) constraints: BTreeMap<String, ConstraintItem>,
     pub(crate) actions: BTreeMap<String, ActionItem>,
     pub(crate) name_table: BTreeMap<(Kind, String), Hash>,
@@ -391,6 +423,10 @@ impl Module {
     }
     pub fn constraints(&self) -> &BTreeMap<String, ConstraintItem> {
         &self.constraints
+    }
+    /// Module-level invariants (feature 007), in name order.
+    pub fn global_invariants(&self) -> &BTreeMap<String, GlobalInvariantItem> {
+        &self.global_invariants
     }
     pub fn entity(&self, name: &str) -> Option<&EntityItem> {
         self.entities.get(name)

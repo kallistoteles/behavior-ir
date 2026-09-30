@@ -7,7 +7,7 @@ use crate::admit::resolve::{Decls, ParamSite, action_site, params, resolve_type}
 use crate::admit::{AdmissionError, hash};
 use crate::decimal::Dec;
 use crate::exact::Rounding;
-use crate::semantic::expr::{Expr, ExprKind};
+use crate::semantic::expr::{CANDIDATE, Expr, ExprKind, FoldOp, QueryKind, QueryNode, SetOp};
 use crate::semantic::module::{
     ActionItem, Condition, ConstraintItem, CreateEffect, DerivedItem, Effect, InvariantItem, Kind,
     Module, Param, ParamRole, RemoveEffect,
@@ -16,13 +16,191 @@ use crate::semantic::types::{
     ArithOp, CmpOp, Conv, OpSig, Type, TypeCode, Unit, coerce, fixed_scale, type_of_op,
 };
 use crate::semantic::value::{Value, decode_scalar};
-use crate::wire::{DerivedKind, Loc, OpName, WExpr, WExprKind, WLifecycle, WModule};
+use crate::wire::{DerivedKind, LambdaOp, Loc, OpName, WExpr, WExprKind, WLifecycle, WModule};
 
 struct Ctx<'a> {
     decls: &'a Decls,
     derived: &'a BTreeMap<String, DerivedItem>,
     scope: &'a [Param],
     errs: &'a mut Vec<AdmissionError>,
+    /// Relational forms are allowed here (not in entity constraints, per-entity invariants or
+    /// lambda bodies; feature 007).
+    queries: bool,
+    /// Inside a lambda body: only candidate-local reads (feature 007).
+    lambda: bool,
+}
+
+/// Whether an expression (through the derived values it references) uses a relational form, and
+/// whether it uses `exists` or `referenced`.
+fn universe_use(e: &Expr, derived: &BTreeMap<String, DerivedItem>) -> (bool, bool) {
+    let mut relational = false;
+    let mut existential = false;
+    let mut stack = vec![e];
+    while let Some(x) = stack.pop() {
+        match &x.kind {
+            ExprKind::Count(_) | ExprKind::Fold { .. } => relational = true,
+            ExprKind::Exists(_) | ExprKind::Referenced(_) => existential = true,
+            ExprKind::DerivedRef { name, .. } => {
+                if let Some(d) = derived.get(name) {
+                    let (r, x) = universe_use(&d.body, derived);
+                    relational |= r;
+                    existential |= x;
+                }
+            }
+            _ => {}
+        }
+        stack.extend(x.children());
+    }
+    (relational, existential)
+}
+
+/// A lambda body with its parameter renamed to the candidate marker (a lambda parameter shadows
+/// an enclosing one of the same name).
+fn rename_candidate(w: &WExpr, from: &str) -> WExpr {
+    let mut out = w.clone();
+    fn walk(e: &mut WExpr, from: &str) {
+        match &mut e.kind {
+            WExprKind::Field { param, .. } if param == from => *param = CANDIDATE.to_string(),
+            WExprKind::Param(name) if name == from => *name = CANDIDATE.to_string(),
+            WExprKind::Derived { args, .. } => {
+                for a in args.iter_mut().filter(|a| a.as_str() == from) {
+                    *a = CANDIDATE.to_string();
+                }
+            }
+            WExprKind::Op { args, .. } => args.iter_mut().for_each(|a| walk(a, from)),
+            WExprKind::In { arg, .. }
+            | WExprKind::Wrap { arg, .. }
+            | WExprKind::Rescale { arg, .. } => walk(arg, from),
+            WExprKind::Lambda { query, body, .. } => {
+                walk(query, from);
+                walk(body, from);
+            }
+            WExprKind::Lit { .. }
+            | WExprKind::Field { .. }
+            | WExprKind::Param(_)
+            | WExprKind::Select { .. } => {}
+        }
+    }
+    walk(&mut out, from);
+    out
+}
+
+fn merge_signature(
+    dst: &mut crate::semantic::module::Signature,
+    src: crate::semantic::module::Signature,
+) {
+    for (entity, fields) in src.types {
+        let slot = dst
+            .types
+            .entry(entity)
+            .or_insert_with(|| Some(BTreeSet::new()));
+        match fields {
+            None => *slot = None,
+            Some(new) => {
+                if let Some(existing) = slot.as_mut() {
+                    existing.extend(new);
+                }
+            }
+        }
+    }
+}
+
+fn derived_signature(
+    name: &str,
+    derived: &BTreeMap<String, DerivedItem>,
+    cache: &mut BTreeMap<String, crate::semantic::module::Signature>,
+    visiting: &mut BTreeSet<String>,
+) -> crate::semantic::module::Signature {
+    if let Some(sig) = cache.get(name) {
+        return sig.clone();
+    }
+    if !visiting.insert(name.to_string()) {
+        return crate::semantic::module::Signature::default();
+    }
+    let sig = derived
+        .get(name)
+        .map(|d| signature_inner(d.body(), derived, cache, visiting))
+        .unwrap_or_default();
+    visiting.remove(name);
+    cache.insert(name.to_string(), sig.clone());
+    sig
+}
+
+fn collect_candidate_dependencies(
+    entity: &str,
+    body: &Expr,
+    derived: &BTreeMap<String, DerivedItem>,
+    sig: &mut crate::semantic::module::Signature,
+    cache: &mut BTreeMap<String, crate::semantic::module::Signature>,
+    visiting: &mut BTreeSet<String>,
+) {
+    let mut stack = vec![body];
+    while let Some(x) = stack.pop() {
+        match &x.kind {
+            ExprKind::Field { param, field } if param == CANDIDATE => {
+                let slot = sig
+                    .types
+                    .entry(entity.to_string())
+                    .or_insert_with(|| Some(BTreeSet::new()));
+                if let Some(fields) = slot.as_mut() {
+                    fields.insert(field.clone());
+                }
+            }
+            ExprKind::DerivedRef { name, args, .. } => {
+                if args.iter().any(|a| a == CANDIDATE) {
+                    let slot = sig
+                        .types
+                        .entry(entity.to_string())
+                        .or_insert_with(|| Some(BTreeSet::new()));
+                    *slot = None;
+                }
+                merge_signature(sig, derived_signature(name, derived, cache, visiting));
+            }
+            _ => {}
+        }
+        stack.extend(x.children());
+    }
+}
+
+fn signature_inner(
+    e: &Expr,
+    derived: &BTreeMap<String, DerivedItem>,
+    cache: &mut BTreeMap<String, crate::semantic::module::Signature>,
+    visiting: &mut BTreeSet<String>,
+) -> crate::semantic::module::Signature {
+    let mut sig = crate::semantic::module::Signature::default();
+    let mut stack = vec![e];
+    while let Some(x) = stack.pop() {
+        let (entity, bodies) = match &x.kind {
+            ExprKind::Count(q) => (Some(q.entity.clone()), q.bodies()),
+            ExprKind::Fold { query, body, .. } => {
+                let mut b = query.bodies();
+                b.push(body);
+                (Some(query.entity.clone()), b)
+            }
+            ExprKind::DerivedRef { name, .. } => {
+                merge_signature(&mut sig, derived_signature(name, derived, cache, visiting));
+                (None, Vec::new())
+            }
+            _ => (None, Vec::new()),
+        };
+        if let Some(entity) = entity {
+            for body in bodies {
+                collect_candidate_dependencies(&entity, body, derived, &mut sig, cache, visiting);
+            }
+        }
+        stack.extend(x.children());
+    }
+    sig
+}
+
+/// The dependency signature of a module-level invariant: the queried entity types and the fields
+/// its lambdas read (`None` when a derived value over the candidate may read any field).
+pub(crate) fn signature(
+    e: &Expr,
+    derived: &BTreeMap<String, DerivedItem>,
+) -> crate::semantic::module::Signature {
+    signature_inner(e, derived, &mut BTreeMap::new(), &mut BTreeSet::new())
 }
 
 fn op_label(op: OpName) -> &'static str {
@@ -48,6 +226,10 @@ fn op_label(op: OpName) -> &'static str {
         OpName::ValueOr => "value_or",
         OpName::Exists => "exists",
         OpName::Referenced => "referenced",
+        OpName::Count => "count",
+        OpName::Union => "union",
+        OpName::Intersection => "intersection",
+        OpName::Difference => "difference",
     }
 }
 
@@ -305,6 +487,20 @@ impl Ctx<'_> {
                         return None;
                     }
                 }
+                let (relational, existential) = universe_use(&d.body, self.derived);
+                if relational && !self.queries {
+                    let msg = format!("`{name}` uses a query, which is not allowed here");
+                    self.err("QUERY_NOT_ALLOWED", msg, loc);
+                    return None;
+                }
+                if self.lambda && (existential || args.iter().any(|a| a != CANDIDATE)) {
+                    let msg = format!(
+                        "a query predicate may use `{name}` only over the candidate alone, and only \
+                         if it reads no other entities"
+                    );
+                    self.err("NON_LOCAL_PREDICATE", msg, loc);
+                    return None;
+                }
                 let kind = ExprKind::DerivedRef {
                     name: name.clone(),
                     target: d.hash,
@@ -312,6 +508,24 @@ impl Ctx<'_> {
                 };
                 Some(Expr::new(kind, d.body.ty.clone(), loc.clone()))
             }
+            WExprKind::Select { .. }
+            | WExprKind::Lambda {
+                op: LambdaOp::Where,
+                ..
+            } => {
+                self.err(
+                    "TYPE_MISMATCH",
+                    "a query is not a value; use count, any, all, sum, min, max or unique",
+                    loc,
+                );
+                None
+            }
+            WExprKind::Lambda {
+                op,
+                query,
+                param,
+                body,
+            } => self.fold(*op, query, param, body, loc),
             WExprKind::In { arg, values } => {
                 let a = self.expr(arg)?;
                 let (ty, _) = match type_of_op(
@@ -408,6 +622,43 @@ impl Ctx<'_> {
                 };
                 Some(Expr::new(kind, Type::Nominal(n), loc.clone()))
             }
+            WExprKind::Op {
+                op: OpName::Union | OpName::Intersection | OpName::Difference,
+                ..
+            } => {
+                self.err(
+                    "TYPE_MISMATCH",
+                    "a query is not a value; use count, any, all, sum, min, max or unique",
+                    loc,
+                );
+                None
+            }
+            WExprKind::Op {
+                op: OpName::Count,
+                args,
+            } => {
+                if !self.relational_allowed(loc) {
+                    return None;
+                }
+                let q = self.query(args.first()?)?;
+                Some(Expr::new(
+                    ExprKind::Count(Box::new(q)),
+                    Type::Int,
+                    loc.clone(),
+                ))
+            }
+            WExprKind::Op {
+                op: OpName::Exists | OpName::Referenced,
+                ..
+            } if self.lambda => {
+                self.err(
+                    "NON_LOCAL_PREDICATE",
+                    "a query predicate reads only the candidate, captured values, inputs and \
+                     context; `exists` and `referenced` read other entities",
+                    loc,
+                );
+                None
+            }
             WExprKind::Op { op, args } => {
                 let mut typed = Vec::new();
                 let mut failed = false;
@@ -462,7 +713,12 @@ impl Ctx<'_> {
                     OpName::ToDecimal => OpSig::ToDecimal,
                     OpName::Unwrap => OpSig::Unwrap,
                     OpName::ValueOr => OpSig::ValueOr,
-                    OpName::Exists | OpName::Referenced => return None,
+                    OpName::Exists
+                    | OpName::Referenced
+                    | OpName::Count
+                    | OpName::Union
+                    | OpName::Intersection
+                    | OpName::Difference => return None,
                 };
                 let (ty, convs) = match type_of_op(&sig, &operands) {
                     Ok(r) => r,
@@ -509,6 +765,208 @@ impl Ctx<'_> {
                 Some(expr)
             }
         }
+    }
+
+    /// Reports `QUERY_NOT_ALLOWED` where relational forms are not allowed.
+    fn relational_allowed(&mut self, loc: &Loc) -> bool {
+        if self.queries {
+            return true;
+        }
+        let msg = if self.lambda {
+            "a query predicate cannot contain another query"
+        } else {
+            "queries describe the whole state: they belong in module-level invariants and \
+             action conditions, not in entity constraints or per-entity invariants"
+        };
+        self.err("QUERY_NOT_ALLOWED", msg, loc);
+        false
+    }
+
+    /// A query expression: `select`, `where` or set algebra (feature 007).
+    fn query(&mut self, w: &WExpr) -> Option<QueryNode> {
+        let loc = &w.loc;
+        match &w.kind {
+            WExprKind::Select { entity } => {
+                if !self.decls.entities.contains_key(entity) {
+                    self.err("UNKNOWN_ENTITY", format!("unknown entity `{entity}`"), loc);
+                    return None;
+                }
+                Some(QueryNode::new(
+                    QueryKind::Select,
+                    entity.clone(),
+                    loc.clone(),
+                ))
+            }
+            WExprKind::Lambda {
+                op: LambdaOp::Where,
+                query,
+                param,
+                body,
+            } => {
+                let base = self.query(query)?;
+                let body = self.lambda_body(&base.entity, param, body)?;
+                if body.ty != Type::Bool {
+                    let msg = format!("a `where` predicate must be Bool, found `{}`", body.ty);
+                    self.err("NOT_BOOLEAN", msg, body.loc());
+                    return None;
+                }
+                let entity = base.entity.clone();
+                let kind = QueryKind::Where {
+                    base: Box::new(base),
+                    param: param.clone(),
+                    body: Box::new(body),
+                };
+                Some(QueryNode::new(kind, entity, loc.clone()))
+            }
+            WExprKind::Op {
+                op: op @ (OpName::Union | OpName::Intersection | OpName::Difference),
+                args,
+            } => {
+                let a = self.query(args.first()?)?;
+                let b = self.query(args.get(1)?)?;
+                if a.entity != b.entity {
+                    let msg = format!(
+                        "`{}` combines queries over different entity types (`{}` and `{}`)",
+                        op_label(*op),
+                        a.entity,
+                        b.entity
+                    );
+                    self.err("TYPE_MISMATCH", msg, loc);
+                    return None;
+                }
+                let set = match op {
+                    OpName::Union => SetOp::Union,
+                    OpName::Intersection => SetOp::Intersection,
+                    _ => SetOp::Difference,
+                };
+                let entity = a.entity.clone();
+                let kind = QueryKind::Set {
+                    op: set,
+                    a: Box::new(a),
+                    b: Box::new(b),
+                };
+                Some(QueryNode::new(kind, entity, loc.clone()))
+            }
+            _ => {
+                self.err(
+                    "TYPE_MISMATCH",
+                    "expected a query (`select`, `where`, `union`, `intersection` or `difference`)",
+                    loc,
+                );
+                None
+            }
+        }
+    }
+
+    /// A lambda body over a candidate of type `entity`, candidate-local (feature 007).
+    fn lambda_body(&mut self, entity: &str, param: &str, body: &WExpr) -> Option<Expr> {
+        let renamed = rename_candidate(body, param);
+        let mut scope: Vec<Param> = self
+            .scope
+            .iter()
+            .filter(|p| p.name != param)
+            .cloned()
+            .collect();
+        scope.push(Param {
+            name: CANDIDATE.to_string(),
+            role: ParamRole::Read,
+            ty: Type::Entity(entity.to_string()),
+        });
+        let mut ctx = Ctx {
+            decls: self.decls,
+            derived: self.derived,
+            scope: &scope,
+            errs: &mut *self.errs,
+            queries: false,
+            lambda: true,
+        };
+        ctx.expr(&renamed)
+    }
+
+    /// `any`, `all`, `sum`, `min`, `max` or `unique` over a query (feature 007).
+    fn fold(
+        &mut self,
+        op: LambdaOp,
+        query: &WExpr,
+        param: &str,
+        body: &WExpr,
+        loc: &Loc,
+    ) -> Option<Expr> {
+        if !self.relational_allowed(loc) {
+            return None;
+        }
+        let q = self.query(query)?;
+        let body = self.lambda_body(&q.entity, param, body)?;
+        let e = body.ty.clone();
+        let (fold, ty) = match op {
+            LambdaOp::Any | LambdaOp::All => {
+                if e != Type::Bool {
+                    let msg = format!("`{}` needs a Bool predicate, found `{e}`", op.as_str());
+                    self.err("NOT_BOOLEAN", msg, body.loc());
+                    return None;
+                }
+                let f = if op == LambdaOp::Any {
+                    FoldOp::Any
+                } else {
+                    FoldOp::All
+                };
+                (f, Type::Bool)
+            }
+            LambdaOp::Sum => {
+                // An additive numeric type with a canonical zero; the result is the type of
+                // repeated exact addition.
+                let numeric = match &e {
+                    Type::Int | Type::Decimal | Type::Exact(_) => true,
+                    Type::Nominal(n) => n.underlying.is_numeric(),
+                    _ => false,
+                };
+                let ty = if numeric {
+                    type_of_op(&OpSig::Arith(ArithOp::Add), &[e.clone(), e.clone()])
+                        .ok()
+                        .map(|(t, _)| t)
+                } else {
+                    None
+                };
+                let Some(ty) = ty else {
+                    let msg =
+                        format!("`sum` needs an additive numeric type with a zero, found `{e}`");
+                    self.err("TYPE_MISMATCH", msg, loc);
+                    return None;
+                };
+                (FoldOp::Sum, ty)
+            }
+            LambdaOp::Min | LambdaOp::Max => {
+                let ordered = match &e {
+                    Type::Int | Type::Decimal | Type::Exact(_) => true,
+                    Type::Nominal(n) => {
+                        n.underlying.is_numeric()
+                            && type_of_op(&OpSig::Cmp(CmpOp::Lt), &[e.clone(), e.clone()]).is_ok()
+                    }
+                    _ => false,
+                };
+                let ty = Type::Option(Box::new(e.clone()));
+                if !ordered || crate::semantic::types::check_type(&ty).is_err() {
+                    let msg = format!("`{}` needs an ordered type, found `{e}`", op.as_str());
+                    self.err("TYPE_MISMATCH", msg, loc);
+                    return None;
+                }
+                let f = if op == LambdaOp::Min {
+                    FoldOp::Min
+                } else {
+                    FoldOp::Max
+                };
+                (f, ty)
+            }
+            LambdaOp::Unique => (FoldOp::Unique, Type::Bool),
+            LambdaOp::Where => return None,
+        };
+        let kind = ExprKind::Fold {
+            op: fold,
+            query: Box::new(q),
+            param: param.to_string(),
+            body: Box::new(body),
+        };
+        Some(Expr::new(kind, ty, loc.clone()))
     }
 
     fn boolean(&mut self, w: &WExpr, at: &Loc, what: &str) -> Option<Expr> {
@@ -564,6 +1022,8 @@ pub(crate) fn build_module(
             derived: &derived,
             scope: &scope,
             errs,
+            queries: false,
+            lambda: false,
         };
         let Some(body) = ctx.boolean(&i.body, &i.body.loc, "an invariant") else {
             continue;
@@ -581,6 +1041,32 @@ pub(crate) fn build_module(
         );
     }
 
+    // Module-level invariants (feature 007): closed state expressions (no parameters in scope).
+    let mut global_invariants = BTreeMap::new();
+    for g in &w.global_invariants {
+        let mut ctx = Ctx {
+            decls: &decls,
+            derived: &derived,
+            scope: &[],
+            errs,
+            queries: true,
+            lambda: false,
+        };
+        let Some(body) = ctx.boolean(&g.body, &g.body.loc, "a module invariant") else {
+            continue;
+        };
+        let h = hash::global_invariant(&body.hash);
+        global_invariants.insert(
+            g.name.clone(),
+            crate::semantic::module::GlobalInvariantItem {
+                signature: signature(&body, &derived),
+                body,
+                hash: h,
+                loc: g.loc.clone(),
+            },
+        );
+    }
+
     let mut constraints = BTreeMap::new();
     for c in &w.constraints {
         let scope = [Param {
@@ -593,6 +1079,8 @@ pub(crate) fn build_module(
             derived: &derived,
             scope: &scope,
             errs,
+            queries: false,
+            lambda: false,
         };
         let Some(body) = ctx.boolean(&c.body, &c.body.loc, "an entity constraint") else {
             continue;
@@ -668,6 +1156,8 @@ pub(crate) fn build_module(
             derived: &derived,
             scope: &ps,
             errs,
+            queries: true,
+            lambda: false,
         };
         let mut ok = true;
         let mut pre = Vec::new();
@@ -803,6 +1293,9 @@ pub(crate) fn build_module(
     for i in invariants.values() {
         check(&i.body, &facts);
     }
+    for g in global_invariants.values() {
+        check(&g.body, &facts);
+    }
     for c in constraints.values() {
         check(&c.body, &facts);
     }
@@ -867,6 +1360,9 @@ pub(crate) fn build_module(
     for (n, x) in &invariants {
         name_table.insert((Kind::Invariant, n.clone()), x.hash);
     }
+    for (n, x) in &global_invariants {
+        name_table.insert((Kind::Invariant, n.clone()), x.hash);
+    }
     // Synthesized reference constraints are part of their entity's hash, not items.
     for (n, x) in constraints.iter().filter(|(_, c)| c.reference.is_none()) {
         name_table.insert((Kind::Constraint, n.clone()), x.hash);
@@ -882,6 +1378,7 @@ pub(crate) fn build_module(
         entities: decls.entities,
         derived,
         invariants,
+        global_invariants,
         constraints,
         actions,
         name_table,
@@ -1110,6 +1607,8 @@ pub(crate) fn check_expr(
         derived,
         scope,
         errs: &mut errs,
+        queries: true,
+        lambda: false,
     }
     .expr(w);
     match result {
@@ -1173,6 +1672,8 @@ pub(crate) fn derived_item(
             derived,
             scope: &ps,
             errs,
+            queries: true,
+            lambda: false,
         };
         if d.kind == DerivedKind::Rule {
             ctx.boolean(&d.body, &d.body.loc, "a rule")

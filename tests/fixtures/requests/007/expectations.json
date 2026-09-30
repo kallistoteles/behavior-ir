@@ -1,0 +1,105 @@
+{
+ "check_orders_blocked": {
+  "reasons": [
+   {
+    "code": "PRECONDITION_FAILED"
+   }
+  ],
+  "result": "DENY"
+ },
+ "check_orders_empty": {
+  "record_version": "0.6",
+  "result": "ALLOW"
+ },
+ "check_orders_many": {
+  "result": "ALLOW"
+ },
+ "close_customer_no_open": {
+  "$absent": [
+   "facts.fields"
+  ],
+  "facts": {
+   "queries": [
+    {
+     "entity": "Order",
+     "members": []
+    }
+   ]
+  },
+  "record_version": "0.6",
+  "result": "ALLOW"
+ },
+ "close_customer_open": {
+  "facts": {
+   "queries": [
+    {
+     "entity": "Order",
+     "members": [
+      {
+       "id": "o3"
+      }
+     ]
+    }
+   ]
+  },
+  "reasons": [
+   {
+    "code": "PRECONDITION_FAILED"
+   }
+  ],
+  "result": "DENY"
+ },
+ "close_customer_unknown": {
+  "reasons": [
+   {
+    "code": "UNKNOWN_FACT"
+   }
+  ],
+  "result": "ERROR"
+ },
+ "hire_free": {
+  "result": "ALLOW"
+ },
+ "hire_unchecked_duplicate": {
+  "reasons": [
+   {
+    "code": "INVARIANT_VIOLATED"
+   }
+  ],
+  "result": "DENY"
+ },
+ "place_order_ok": {
+  "lifecycle": [
+   {
+    "entity": "Order",
+    "id": "o9",
+    "op": "create"
+   }
+  ],
+  "result": "ALLOW"
+ },
+ "place_order_over_limit": {
+  "reasons": [
+   {
+    "code": "PRECONDITION_FAILED"
+   }
+  ],
+  "result": "DENY"
+ },
+ "universe_bound_mismatch": {
+  "reasons": [
+   {
+    "code": "INCONSISTENT_FACTS"
+   }
+  ],
+  "result": "INVALID_INPUT"
+ },
+ "universe_inconsistent": {
+  "reasons": [
+   {
+    "code": "INCONSISTENT_FACTS"
+   }
+  ],
+  "result": "INVALID_INPUT"
+ }
+}

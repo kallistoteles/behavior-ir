@@ -14,6 +14,7 @@ from .errors import (
 )
 from .expr import and_, exists, none, not_, or_, referenced, rescale, underlying
 from .module import BehaviorModule
+from .query import Query, all_, any_, count, max_, min_, select, sum_, unique
 from .results import AdmissionError, AdmissionResult, Change, Decision, ReplayResult, TraceStep
 from .statements import create, ensures, remove, requires, set_
 from .types import Context, Exact, Id, Input, Option, Ref, Rounding, nominal
@@ -46,7 +47,8 @@ def evaluate(
     Values are passed as Python objects (`Decimal`, `Enum` members, `None`, ...); floats raise
     `TypeError` at the engine boundary. `facts` supplies the evaluation facts a lifecycle
     decision needs (feature 006): `{"existence": [...], "identities": [...], "references":
-    [...]}`. A needed fact that is missing gives the result `ERROR` with `UNKNOWN_FACT`; facts
+    [...]}`, and for queries (feature 007) `"queries"` (memberships) and `"fields"` (member
+    values), or `"universe"` sections listing every entity of a type. A needed fact that is missing gives the result `ERROR` with `UNKNOWN_FACT`; facts
     that cannot describe one valid state give `INVALID_INPUT` with `INCONSISTENT_FACTS`.
     """
     record = model.engine.evaluate(
@@ -95,4 +97,5 @@ __all__ = [
     "IntentRejected", "Option", "action", "admit", "constraint", "and_", "derived", "ensures", "entity",
     "field", "invariant", "nominal", "none", "not_", "or_", "requires", "rule", "set_",
     "underlying", "Ref", "create", "remove", "exists", "referenced",
+    "Query", "select", "count", "any_", "all_", "sum_", "min_", "max_", "unique",
 ]

@@ -43,6 +43,18 @@ impl<B: Backend> Backend for FaultInjector<B> {
     ) -> Result<(), BackendError> {
         self.inner.create(g, h, seed, refs)
     }
+    fn keys_at(&self, t: &str, p: u64) -> Result<Vec<EntityKey>, BackendError> {
+        self.inner.keys_at(t, p)
+    }
+    fn keys_by_field_at(
+        &self,
+        t: &str,
+        f: &str,
+        v: &serde_json::Value,
+        p: u64,
+    ) -> Result<Option<Vec<EntityKey>>, BackendError> {
+        self.inner.keys_by_field_at(t, f, v, p)
+    }
     fn removed_at(&self, key: &EntityKey) -> Result<Option<u64>, BackendError> {
         self.inner.removed_at(key)
     }
@@ -182,6 +194,24 @@ impl<B: Backend> Backend for Interleave<B> {
         refs: &[RefChange],
     ) -> Result<(), BackendError> {
         self.inner.borrow_mut().create(g, h, seed, refs)
+    }
+    fn keys_at(&self, t: &str, p: u64) -> Result<Vec<EntityKey>, BackendError> {
+        if self.on == LandOn::FirstRead {
+            self.land()?;
+        }
+        self.inner.borrow().keys_at(t, p)
+    }
+    fn keys_by_field_at(
+        &self,
+        t: &str,
+        f: &str,
+        v: &serde_json::Value,
+        p: u64,
+    ) -> Result<Option<Vec<EntityKey>>, BackendError> {
+        if self.on == LandOn::FirstRead {
+            self.land()?;
+        }
+        self.inner.borrow().keys_by_field_at(t, f, v, p)
     }
     fn removed_at(&self, key: &EntityKey) -> Result<Option<u64>, BackendError> {
         if self.on == LandOn::FirstRead {
@@ -930,6 +960,18 @@ impl<B: Backend> Backend for AlterRecord<B> {
     ) -> Result<(), BackendError> {
         self.inner.create(g, h, seed, refs)
     }
+    fn keys_at(&self, t: &str, p: u64) -> Result<Vec<EntityKey>, BackendError> {
+        self.inner.keys_at(t, p)
+    }
+    fn keys_by_field_at(
+        &self,
+        t: &str,
+        f: &str,
+        v: &serde_json::Value,
+        p: u64,
+    ) -> Result<Option<Vec<EntityKey>>, BackendError> {
+        self.inner.keys_by_field_at(t, f, v, p)
+    }
     fn removed_at(&self, key: &EntityKey) -> Result<Option<u64>, BackendError> {
         self.inner.removed_at(key)
     }
@@ -1326,9 +1368,324 @@ fn existence_snapshot<B: Backend>(f: &dyn Fn() -> B) -> Result<(), String> {
     )
 }
 
+// --- feature 007: query cases (the orders module) -------------------------------------------------
+
+pub const ORDERS_WIRE: &str = include_str!("../../../tests/fixtures/wire/valid/orders.json");
+
+fn orders() -> Result<Module, String> {
+    behavior_core::admit(ORDERS_WIRE).map_err(|r| format!("{:?}", r.errors))
+}
+
+fn orders_seed() -> Vec<SeedEntity> {
+    let s = |entity: &str, value: Json| SeedEntity {
+        entity: entity.into(),
+        value,
+    };
+    vec![
+        s(
+            "Customer",
+            json!({"id": "c1", "name": "c1", "credit_limit": "100.00", "region": "north"}),
+        ),
+        s(
+            "Customer",
+            json!({"id": "c2", "name": "c2", "credit_limit": "1000.00", "region": "south"}),
+        ),
+        s(
+            "Order",
+            json!({"id": "ob", "customer": "c2", "amount": "150.00", "status": "open", "region": "south"}),
+        ),
+        s("Employee", json!({"id": "e1", "personnel_number": "N1"})),
+    ]
+}
+
+fn create_orders<B: Backend>(backend: B) -> Result<(Store<B>, Module), String> {
+    let m = orders()?;
+    let s = Store::create(
+        backend,
+        &m,
+        genesis_for(&m, EvidencePolicy::none(), orders_seed()),
+    )
+    .map_err(e)?;
+    Ok((s, m))
+}
+
+/// A backend whose type and field indexes list keys in reverse: backend order is never semantic.
+struct ReversedKeys<B> {
+    inner: B,
+}
+
+impl<B: Backend> Backend for ReversedKeys<B> {
+    fn genesis(&self) -> Result<Option<Genesis>, BackendError> {
+        self.inner.genesis()
+    }
+    fn head(&self) -> Result<Option<Head>, BackendError> {
+        self.inner.head()
+    }
+    fn create(
+        &mut self,
+        g: &Genesis,
+        h: &Head,
+        seed: &[EntityVersion],
+        refs: &[RefChange],
+    ) -> Result<(), BackendError> {
+        self.inner.create(g, h, seed, refs)
+    }
+    fn keys_at(&self, t: &str, p: u64) -> Result<Vec<EntityKey>, BackendError> {
+        let mut keys = self.inner.keys_at(t, p)?;
+        keys.reverse();
+        Ok(keys)
+    }
+    fn keys_by_field_at(
+        &self,
+        t: &str,
+        f: &str,
+        v: &serde_json::Value,
+        p: u64,
+    ) -> Result<Option<Vec<EntityKey>>, BackendError> {
+        Ok(self.inner.keys_by_field_at(t, f, v, p)?.map(|mut keys| {
+            keys.reverse();
+            keys
+        }))
+    }
+    fn removed_at(&self, key: &EntityKey) -> Result<Option<u64>, BackendError> {
+        self.inner.removed_at(key)
+    }
+    fn incoming_at(&self, t: &EntityKey, pos: u64) -> Result<Vec<RefEdge>, BackendError> {
+        self.inner.incoming_at(t, pos)
+    }
+    fn used_at(&self, key: &EntityKey, pos: u64) -> Result<bool, BackendError> {
+        self.inner.used_at(key, pos)
+    }
+    fn version_at(&self, k: &EntityKey, p: u64) -> Result<Option<EntityVersion>, BackendError> {
+        self.inner.version_at(k, p)
+    }
+    fn version(&self, k: &EntityKey, r: u64) -> Result<Option<EntityVersion>, BackendError> {
+        self.inner.version(k, r)
+    }
+    fn record(&self, p: u64) -> Result<Option<TransitionRecord>, BackendError> {
+        self.inner.record(p)
+    }
+    fn commit(
+        &mut self,
+        x: &str,
+        v: &[EntityVersion],
+        rm: &[EntityKey],
+        refs: &[RefChange],
+        r: &TransitionRecord,
+        h: &Head,
+    ) -> Result<CasOutcome, BackendError> {
+        self.inner.commit(x, v, rm, refs, r, h)
+    }
+}
+
+/// An action, its bindings and its input.
+type Step = (&'static str, Vec<(&'static str, &'static str)>, Json);
+
+/// A small history touching every query-relevant change: creations, removals, and field changes
+/// of queried types. Returns the records of every evaluation, committed or not.
+fn orders_history<B: Backend>(s: &mut Store<B>, m: &Module) -> Result<Vec<Json>, String> {
+    let steps: [Step; 9] = [
+        (
+            "place_order",
+            vec![("customer", "c1")],
+            json!({"order_id": "o1", "amount": "20.00"}),
+        ),
+        (
+            "place_order",
+            vec![("customer", "c1")],
+            json!({"order_id": "o2", "amount": "20.00"}),
+        ),
+        (
+            "place_order",
+            vec![("customer", "c1")],
+            json!({"order_id": "o3", "amount": "30.00"}),
+        ),
+        ("check_orders", vec![("customer", "c1")], json!({})),
+        (
+            "remove_cheapest",
+            vec![("order", "o1"), ("customer", "c1")],
+            json!({}),
+        ),
+        (
+            "raise_limit",
+            vec![("customer", "c1")],
+            json!({"limit": "200.00"}),
+        ),
+        ("hire", vec![], json!({"employee_id": "e2", "number": "N2"})),
+        (
+            "renumber",
+            vec![("employee", "e1")],
+            json!({"number": "N3"}),
+        ),
+        ("check_orders", vec![("customer", "c2")], json!({})),
+    ];
+    let mut records = Vec::new();
+    for (action, bindings, input) in steps {
+        let ev = run_action(s, m, action, &bindings, input)?;
+        records.push(ev.record.clone());
+        if ev.bundle.is_some() {
+            apply(s, m, ev)?;
+        }
+    }
+    Ok(records)
+}
+
+/// Query results come from the evaluated position even while commits land (FR-012).
+fn query_snapshot<B: Backend>(f: &dyn Fn() -> B) -> Result<(), String> {
+    let m = orders()?;
+    // Prepared elsewhere: the over-limit order `ob` is removed at position 1.
+    let (mut other, _) = create_orders(f())?;
+    {
+        let ev = run_action(
+            &other,
+            &m,
+            "remove_cheapest",
+            &[("order", "ob"), ("customer", "c2")],
+            json!({}),
+        )?;
+        apply(&mut other, &m, ev)?
+    };
+    let rec = other
+        .backend()
+        .record(1)
+        .map_err(|x| x.0)?
+        .ok_or("record missing")?;
+    let head = other
+        .backend()
+        .head()
+        .map_err(|x| x.0)?
+        .ok_or("head missing")?;
+    let (base, _) = create_orders(f())?;
+    let landing = Landing::of(base.store_id().map_err(e)?, rec, head);
+    let s = Store::open(Interleave::new(base.into_backend(), landing)).map_err(e)?;
+    // `count(orders over c1's limit) == 0` must see `ob` (it exists at position 0).
+    let ev = run_action(
+        &s,
+        &m,
+        "raise_limit",
+        &[("customer", "c1")],
+        json!({"limit": "120.00"}),
+    )?;
+    ensure(
+        ev.record["result"] == "DENY",
+        format!(
+            "the query must be answered at position 0: {}",
+            ev.record["result"]
+        ),
+    )?;
+    let members = ev.record["facts"]["queries"][0]["members"].clone();
+    ensure(
+        members == json!([{"id": "ob"}]),
+        format!("the observed members are those of position 0: {members}"),
+    )
+}
+
+/// The type and field indexes equal a scan of the history at every position (FR-016).
+fn query_index_consistency<B: Backend>(f: &dyn Fn() -> B) -> Result<(), String> {
+    let (mut s, m) = create_orders(f())?;
+    orders_history(&mut s, &m)?;
+    let end = s.current().map_err(e)?.position;
+    // Every (type, field, value) that occurs anywhere in the history.
+    let mut probes: std::collections::BTreeSet<(String, String, String)> = Default::default();
+    for pos in 0..=end {
+        let (content, _) = crate::replay::content_at(&s, pos).map_err(e)?;
+        for v in content.values() {
+            if let Some(o) = v.value.as_object() {
+                for (field, value) in o {
+                    probes.insert((v.entity.clone(), field.clone(), value.to_string()));
+                }
+            }
+        }
+    }
+    for pos in 0..=end {
+        let (content, _) = crate::replay::content_at(&s, pos).map_err(e)?;
+        for t in ["Customer", "Order", "Employee"] {
+            let scan: Vec<EntityKey> = content.keys().filter(|k| k.entity == t).cloned().collect();
+            let mut keys = s.backend().keys_at(t, pos).map_err(|x| x.0)?;
+            keys.sort();
+            ensure(
+                keys == scan,
+                format!("keys_at({t}, {pos}) = {keys:?}, a scan gives {scan:?}"),
+            )?;
+        }
+        for (t, field, value) in &probes {
+            let v: Json = serde_json::from_str(value).map_err(|x| x.to_string())?;
+            let Some(mut keys) = s
+                .backend()
+                .keys_by_field_at(t, field, &v, pos)
+                .map_err(|x| x.0)?
+            else {
+                continue;
+            };
+            let scan: Vec<EntityKey> = content
+                .values()
+                .filter(|x| x.entity == *t && x.value.get(field) == Some(&v))
+                .map(EntityVersion::key)
+                .collect();
+            keys.sort();
+            ensure(
+                keys == scan,
+                format!(
+                    "keys_by_field_at({t}.{field} = {value}, {pos}) = {keys:?}, a scan gives {scan:?}"
+                ),
+            )?;
+        }
+    }
+    Ok(())
+}
+
+/// Results and records do not depend on the backend's iteration order (FR-020a).
+fn query_order_independence<B: Backend>(f: &dyn Fn() -> B) -> Result<(), String> {
+    let (mut a, m) = create_orders(f())?;
+    let (mut b, _) = create_orders(ReversedKeys { inner: f() })?;
+    let ra = orders_history(&mut a, &m)?;
+    let rb = orders_history(&mut b, &m)?;
+    for (x, y) in ra.iter().zip(&rb) {
+        ensure(
+            x == y,
+            format!("a record depends on the key order:\n{x}\n{y}"),
+        )?;
+    }
+    ensure(
+        a.current().map_err(e)? == b.current().map_err(e)?,
+        "the resulting states differ",
+    )
+}
+
+/// A transition breaking a module invariant is refused, and so is a genesis (FR-024).
+fn module_invariant_preserved<B: Backend>(f: &dyn Fn() -> B) -> Result<(), String> {
+    let (s, m) = create_orders(f())?;
+    let ev = run_action(
+        &s,
+        &m,
+        "hire_unchecked",
+        &[],
+        json!({"employee_id": "e2", "number": "N1"}),
+    )?;
+    ensure(
+        ev.record["result"] == "DENY"
+            && ev.record["reasons"][0]["code"] == "INVARIANT_VIOLATED"
+            && ev.bundle.is_none(),
+        format!(
+            "a duplicate personnel number must be refused: {}",
+            ev.record
+        ),
+    )?;
+    let mut seed = orders_seed();
+    seed.push(SeedEntity {
+        entity: "Employee".into(),
+        value: json!({"id": "e9", "personnel_number": "N1"}),
+    });
+    match Store::create(f(), &m, genesis_for(&m, EvidencePolicy::none(), seed)) {
+        Err(err) if err.code() == "GENESIS_INVALID" => Ok(()),
+        Err(err) => Err(format!("a genesis breaking a module invariant: {err}")),
+        Ok(_) => Err("a genesis breaking a module invariant must be refused".into()),
+    }
+}
+
 /// Runs every named case against backends from `factory`.
 pub fn run<B: Backend>(factory: impl Fn() -> B) -> ConformanceReport {
-    let cases: [(&'static str, Case<B>); 24] = [
+    let cases: [(&'static str, Case<B>); 28] = [
         ("create_and_open", create_and_open),
         ("commit_new_state", commit_new_state),
         ("conflict_on_outdated_parent", conflict_on_outdated_parent),
@@ -1359,6 +1716,10 @@ pub fn run<B: Backend>(factory: impl Fn() -> B) -> ConformanceReport {
             concurrent_creation_same_identity,
         ),
         ("existence_snapshot", existence_snapshot),
+        ("query_snapshot", query_snapshot),
+        ("query_index_consistency", query_index_consistency),
+        ("query_order_independence", query_order_independence),
+        ("module_invariant_preserved", module_invariant_preserved),
     ];
     let cases = cases
         .into_iter()

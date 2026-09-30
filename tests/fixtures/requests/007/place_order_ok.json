@@ -1,0 +1,40 @@
+{
+ "action": "place_order",
+ "context": {},
+ "data_version": "1",
+ "facts": {
+  "identities": [
+   {
+    "entity": "Order",
+    "id": "o9",
+    "used": false
+   }
+  ],
+  "universe": [
+   {
+    "entity": "Order",
+    "members": [
+     {
+      "amount": "10.00",
+      "customer": "c1",
+      "id": "o1",
+      "region": "north",
+      "status": "open"
+     }
+    ]
+   }
+  ]
+ },
+ "input": {
+  "amount": "5.00",
+  "order_id": "o9"
+ },
+ "state": {
+  "customer": {
+   "credit_limit": "100.00",
+   "id": "c1",
+   "name": "Ada",
+   "region": "north"
+  }
+ }
+}

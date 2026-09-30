@@ -294,6 +294,12 @@ impl PyNode {
     fn role(&self) -> Option<&'static str> {
         self.inner.role()
     }
+
+    /// The entity type of a query node (feature 007), or None for a value.
+    #[getter]
+    fn query_entity(&self) -> Option<String> {
+        self.inner.query_entity().map(str::to_string)
+    }
 }
 
 /// A decision record: `data` for Python, `json` as the canonical artifact.
@@ -642,7 +648,8 @@ impl PyBuilder {
             .map_err(build_err)
     }
 
-    /// `site` is "derived" (also used for invariants) or "action".
+    /// `site` is "derived" (also used for invariants), "action", or "closed" (a module
+    /// invariant, feature 007).
     fn push_scope(
         &mut self,
         site: &str,
@@ -650,10 +657,10 @@ impl PyBuilder {
         file: String,
         line: u64,
     ) -> PyResult<()> {
-        let site = if site == "action" {
-            ScopeSite::Action
-        } else {
-            ScopeSite::Derived
+        let site = match site {
+            "action" => ScopeSite::Action,
+            "closed" => ScopeSite::Closed,
+            _ => ScopeSite::Derived,
         };
         self.inner
             .push_scope(site, params(ps)?, loc(file, line))
@@ -662,6 +669,53 @@ impl PyBuilder {
 
     fn pop_scope(&mut self) {
         self.inner.pop_scope();
+    }
+
+    /// `select(T)` (feature 007): a query node over every existing entity of type `entity`.
+    fn select(&mut self, entity: &str, file: String, line: u64) -> PyResult<PyNode> {
+        let inner = self
+            .inner
+            .select(entity, loc(file, line))
+            .map_err(build_err)?;
+        Ok(PyNode { inner })
+    }
+
+    /// Opens a lambda body scope with the candidate `param` of type `entity`; close it with
+    /// `pop_scope`.
+    fn push_lambda(&mut self, param: &str, entity: &str) -> PyResult<()> {
+        self.inner.push_lambda(param, entity).map_err(build_err)
+    }
+
+    /// A relational operator with a lambda (`where`, `any`, `all`, `sum`, `min`, `max`,
+    /// `unique`).
+    #[allow(clippy::too_many_arguments)]
+    fn lambda_(
+        &mut self,
+        op: &str,
+        query: PyNode,
+        param: &str,
+        body: PyNode,
+        file: String,
+        line: u64,
+    ) -> PyResult<PyNode> {
+        let inner = self
+            .inner
+            .lambda(op, query.inner, param, body.inner, loc(file, line))
+            .map_err(build_err)?;
+        Ok(PyNode { inner })
+    }
+
+    /// A module invariant (feature 007): a closed Bool expression over entity sets.
+    fn add_global_invariant(
+        &mut self,
+        name: &str,
+        body: PyNode,
+        file: String,
+        line: u64,
+    ) -> PyResult<()> {
+        self.inner
+            .add_global_invariant(name, body.inner, loc(file, line))
+            .map_err(build_err)
     }
 
     fn lit(
@@ -997,6 +1051,32 @@ impl Backend for PyBackend {
             })
             .collect()
     }
+    fn keys_at(&self, t: &str, p: u64) -> Result<Vec<EntityKey>, BackendError> {
+        let keys: Option<Vec<EntityKey>> = self.call("keys_at", vec![json!(t), json!(p)])?;
+        Ok(keys.unwrap_or_default())
+    }
+    fn keys_by_field_at(
+        &self,
+        t: &str,
+        f: &str,
+        v: &Value,
+        p: u64,
+    ) -> Result<Option<Vec<EntityKey>>, BackendError> {
+        // Optional in Python backends: "not indexed" otherwise.
+        let has = Python::attach(|py| {
+            self.obj
+                .bind(py)
+                .hasattr("keys_by_field_at")
+                .unwrap_or(false)
+        });
+        if !has {
+            return Ok(None);
+        }
+        self.call(
+            "keys_by_field_at",
+            vec![json!(t), json!(f), v.clone(), json!(p)],
+        )
+    }
     fn used_at(&self, k: &EntityKey, p: u64) -> Result<bool, BackendError> {
         // Optional in Python backends: the contract's default otherwise.
         let has = Python::attach(|py| self.obj.bind(py).hasattr("used_at").unwrap_or(false));
@@ -1084,6 +1164,18 @@ impl Backend for AnyBackend {
     }
     fn used_at(&self, k: &EntityKey, p: u64) -> Result<bool, BackendError> {
         delegate!(self, b => b.used_at(k, p))
+    }
+    fn keys_at(&self, t: &str, p: u64) -> Result<Vec<EntityKey>, BackendError> {
+        delegate!(self, b => b.keys_at(t, p))
+    }
+    fn keys_by_field_at(
+        &self,
+        t: &str,
+        f: &str,
+        v: &Value,
+        p: u64,
+    ) -> Result<Option<Vec<EntityKey>>, BackendError> {
+        delegate!(self, b => b.keys_by_field_at(t, f, v, p))
     }
     fn version_at(&self, k: &EntityKey, p: u64) -> Result<Option<EntityVersion>, BackendError> {
         delegate!(self, b => b.version_at(k, p))

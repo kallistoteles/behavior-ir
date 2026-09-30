@@ -8,7 +8,8 @@ use serde_json::{Map, Value as Json, json};
 use behavior_core::semantic::module::{Kind, Module, ParamRole};
 use behavior_core::semantic::types::{Type, hash_display};
 use behavior_core::{
-    EvaluationFacts, FactError, RefEdge, check_entity, decode_entity, evaluate_with,
+    EvaluationFacts, FactError, IndexPlan, QueryRequest, RefEdge, check_entity,
+    check_global_invariants, decode_entity, evaluate_with, index_hint,
 };
 use behavior_verify::hashing::{TAG_TRANSITION, document_hash};
 
@@ -105,6 +106,27 @@ fn key(entity: &str, id: &str) -> EntityKey {
     }
 }
 
+impl<B: Backend + ?Sized> StoreFacts<'_, B> {
+    /// The candidates an index plan names, or `None` if the backend lacks an index it needs.
+    fn candidates(&self, t: &str, plan: &IndexPlan) -> Result<Option<Vec<EntityKey>>, FactError> {
+        Ok(match plan {
+            IndexPlan::Eq { field, value } => self
+                .backend
+                .keys_by_field_at(t, field, value, self.position)
+                .map_err(|e| FactError(e.0))?,
+            IndexPlan::Union(a, b) => match (self.candidates(t, a)?, self.candidates(t, b)?) {
+                (Some(mut x), Some(y)) => {
+                    x.extend(y);
+                    x.sort();
+                    x.dedup();
+                    Some(x)
+                }
+                _ => None,
+            },
+        })
+    }
+}
+
 impl<B: Backend + ?Sized> EvaluationFacts for StoreFacts<'_, B> {
     fn exists(&self, entity: &str, id: &str) -> Result<bool, FactError> {
         exists_at(self.backend, &key(entity, id), self.position).map_err(|e| FactError(e.0))
@@ -119,16 +141,54 @@ impl<B: Backend + ?Sized> EvaluationFacts for StoreFacts<'_, B> {
             .incoming_at(&key(entity, id), self.position)
             .map_err(|e| FactError(e.0))
     }
+    /// Evaluates the query over the entities of its type as of the position (feature 007): an
+    /// indexable equality narrows the candidates, and every candidate is re-checked.
+    fn query(&self, q: &QueryRequest<'_>) -> Result<Vec<String>, FactError> {
+        let t = q.node.entity();
+        let hinted = match index_hint(q.node, q.env) {
+            Some(plan) => self.candidates(t, &plan)?,
+            None => None,
+        };
+        let candidates = match hinted {
+            Some(keys) => keys,
+            None => self
+                .backend
+                .keys_at(t, self.position)
+                .map_err(|e| FactError(e.0))?,
+        };
+        let mut out = Vec::new();
+        for k in candidates {
+            let Some(v) = self
+                .backend
+                .version_at(&k, self.position)
+                .map_err(|e| FactError(e.0))?
+            else {
+                continue;
+            };
+            if q.matches(&v.value)? {
+                out.push(k.id);
+            }
+        }
+        Ok(out)
+    }
+    fn field(&self, entity: &str, id: &str, field: &str) -> Result<Json, FactError> {
+        self.backend
+            .version_at(&key(entity, id), self.position)
+            .map_err(|e| FactError(e.0))?
+            .and_then(|v| v.value.get(field).cloned())
+            .ok_or_else(|| FactError(format!("{entity}#{id}.{field} is not in the state")))
+    }
 }
 
 /// Evaluation facts of a genesis: the seed is the whole universe and the whole history.
 struct SeedFacts {
     keys: BTreeSet<EntityKey>,
     incoming: BTreeMap<EntityKey, Vec<RefEdge>>,
+    values: BTreeMap<EntityKey, Json>,
 }
 
 impl SeedFacts {
-    fn new(keys: &BTreeSet<EntityKey>, refs: &[RefChange]) -> Self {
+    fn new(versions: &[EntityVersion], keys: &BTreeSet<EntityKey>, refs: &[RefChange]) -> Self {
         let mut incoming: BTreeMap<EntityKey, Vec<RefEdge>> = BTreeMap::new();
         for r in refs {
             incoming.entry(r.target.clone()).or_default().push(RefEdge {
@@ -140,6 +200,10 @@ impl SeedFacts {
         SeedFacts {
             keys: keys.clone(),
             incoming,
+            values: versions
+                .iter()
+                .map(|v| (v.key(), v.value.clone()))
+                .collect(),
         }
     }
 }
@@ -157,6 +221,26 @@ impl EvaluationFacts for SeedFacts {
             .get(&key(entity, id))
             .cloned()
             .unwrap_or_default())
+    }
+    fn query(&self, q: &QueryRequest<'_>) -> Result<Vec<String>, FactError> {
+        let mut out = Vec::new();
+        for (k, v) in self
+            .values
+            .iter()
+            .filter(|(k, _)| k.entity == q.node.entity())
+        {
+            if q.matches(v)? {
+                out.push(k.id.clone());
+            }
+        }
+        Ok(out)
+    }
+    fn field(&self, entity: &str, id: &str, field: &str) -> Result<Json, FactError> {
+        self.values
+            .get(&key(entity, id))
+            .and_then(|v| v.get(field))
+            .cloned()
+            .ok_or_else(|| FactError(format!("{entity}#{id}.{field} is not in the seed")))
     }
 }
 
@@ -190,7 +274,8 @@ fn touched_types(
         })
         .collect();
     out.extend(action.creates().iter().map(|c| c.entity().to_string()));
-    let _ = module;
+    // Queried types are read too (feature 007): their declarations must match the store's.
+    out.extend(behavior_core::queried_types(module, action));
     out
 }
 
@@ -286,11 +371,13 @@ impl<B: Backend> Store<B> {
         }
         seed_refs.sort();
         // Entity constraints, with `exists` and `referenced` answered by the seed itself.
-        let facts = SeedFacts::new(&seen, &seed_refs);
+        let facts = SeedFacts::new(&versions, &seen, &seed_refs);
         for v in &versions {
             check_entity(module, &v.entity, &v.value, &facts)
                 .map_err(|p| bad(format!("seed {}: {}", v.key(), p.join("; "))))?;
         }
+        // Module invariants hold at genesis (feature 007).
+        check_global_invariants(module, &facts).map_err(|p| bad(p.join("; ")))?;
         let state = acc.state_id()?;
         let (n, d) = acc.normalize()?.to_hex();
         let head = Head {
@@ -1009,11 +1096,24 @@ pub fn transition_hash(record: &Json) -> R<String> {
 /// The observed facts as a bundle's `read_facts` (absent when empty).
 fn facts_json(f: &behavior_core::Facts) -> Json {
     if f.is_empty() {
-        Json::Null
-    } else {
-        f.to_json()
+        return Json::Null;
     }
+    let mut j = f.to_json();
+    // Each query instance carries the hash of its members (feature 007, FR-014/FR-015).
+    if let Some(Json::Array(queries)) = j.get_mut("queries") {
+        for q in queries {
+            let members = q["members"].clone();
+            let h = document_hash(TAG_QUERY_RESULT, &members).unwrap_or_default();
+            if let Json::Object(m) = q {
+                m.insert("result_hash".into(), json!(h));
+            }
+        }
+    }
+    j
 }
+
+/// The domain tag of a query result hash.
+pub const TAG_QUERY_RESULT: &str = "behavior.query_result.v1";
 
 /// Observed reads of state parameters, grouped per entity with its revision at the evaluated state.
 fn read_set(

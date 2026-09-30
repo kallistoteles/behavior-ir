@@ -944,6 +944,221 @@ def lifecycle_invalid_cases() -> dict[str, tuple[dict[str, object], list[dict[st
     return cases
 
 
+Q = "orders.py"
+
+
+def select(entity: str, at: dict[str, object]) -> dict[str, object]:
+    return {"op": "select", "entity": entity, "loc": at}
+
+
+def lam(opname: str, query: dict[str, object], param_: str, body: dict[str, object],
+        at: dict[str, object]) -> dict[str, object]:
+    return {"op": opname, "args": [query], "param": param_, "body": body, "loc": at}
+
+
+def orders_module() -> dict[str, object]:
+    """Customers, orders and employees queried as sets (feature 007 fixtures)."""
+    at = lambda line: loc(Q, line)  # noqa: E731
+    f = lambda p_, fl, line: fld(p_, fl, at(line))  # noqa: E731
+    p = lambda name, line: par(name, at(line))  # noqa: E731
+    money = lambda v, line: lit(MONEY, v, at(line))  # noqa: E731
+    status = {"t": "enum", "name": "OrderStatus"}
+    st = lambda v, line: lit(status, v, at(line))  # noqa: E731
+
+    def orders_of(cust: str, line: int) -> dict[str, object]:
+        return lam("where", select("Order", at(line)), "o",
+                   op("eq", f("o", "customer", line), f(cust, "id", line), at=at(line)), at(line))
+
+    def with_status(q: dict[str, object], value: str, line: int) -> dict[str, object]:
+        return lam("where", q, "o", op("eq", f("o", "status", line), st(value, line), at=at(line)), at(line))
+
+    def amounts(q: dict[str, object], opname: str, line: int) -> dict[str, object]:
+        return lam(opname, q, "o", f("o", "amount", line), at(line))
+
+    def cond(e: dict[str, object]) -> dict[str, object]:
+        return {"expr": e, "loc": e["loc"]}
+
+    def action(name: str, line: int, params: list[dict[str, object]], effects: list[dict[str, object]],
+               pre: list[dict[str, object]] | None = None,
+               post: list[dict[str, object]] | None = None) -> dict[str, object]:
+        return {"name": name, "loc": at(line), "params": params, "effects": effects,
+                "preconditions": pre or [], "postconditions": post or []}
+
+    def create_order(cust: str, line: int) -> dict[str, object]:
+        return {"create": "Order", "id": p("order_id", line), "loc": at(line), "fields": {
+            "customer": f(cust, "id", line), "amount": p("amount", line), "status": st("open", line),
+            "region": f(cust, "region", line)}}
+
+    order_inputs = [param("order_id", idt("Order"), "input"), param("amount", MONEY, "input")]
+    cust = [param("customer", ent("Customer"), "state")]
+
+    def place_order(name: str, line: int, guarded: bool) -> dict[str, object]:
+        total = lambda ln: amounts(orders_of("customer", ln), "sum", ln)  # noqa: E731
+        pre = [cond(op("le", op("add", total(line + 1), p("amount", line + 1), at=at(line + 1)),
+                       f("customer", "credit_limit", line + 1), at=at(line + 1)))] if guarded else []
+        return action(name, line, cust + order_inputs, [create_order("customer", line + 2)], pre,
+                      [cond(op("le", total(line + 3), f("customer", "credit_limit", line + 3), at=at(line + 3)))])
+
+    def hire(name: str, line: int, guarded: bool) -> dict[str, object]:
+        pre = [cond(op("not", lam("any", select("Employee", at(line + 1)), "e",
+                                  op("eq", f("e", "personnel_number", line + 1), p("number", line + 1),
+                                     at=at(line + 1)), at(line + 1)), at=at(line + 1)))] if guarded else []
+        return action(name, line, [param("employee_id", idt("Employee"), "input"),
+                                   param("number", STR, "input")],
+                      [{"create": "Employee", "id": p("employee_id", line + 2), "loc": at(line + 2),
+                        "fields": {"personnel_number": p("number", line + 2)}}], pre)
+
+    over_limit = lambda line: lam("where", select("Order", at(line)), "o",  # noqa: E731
+                                  op("gt", f("o", "amount", line), f("customer", "credit_limit", line),
+                                     at=at(line)), at(line))
+    m = module(
+        nominals=[{"name": "Money", "underlying": DEC, "ops": ["add", "order", "ratio", "scale"],
+                   "scale": 2, "loc": at(3)}],
+        enums=[{"name": "OrderStatus", "values": ["open", "closed", "blocked"], "loc": at(5)}],
+        entities=[
+            {"name": "Customer", "loc": at(8), "fields": [
+                field_decl("name", STR, at(9)), field_decl("credit_limit", MONEY, at(10)),
+                field_decl("region", STR, at(11))]},
+            {"name": "Order", "loc": at(14), "fields": [
+                # A plain identity: closed orders keep naming a customer who has been removed.
+                field_decl("customer", idt("Customer"), at(15)),
+                field_decl("amount", MONEY, at(16)), field_decl("status", status, at(17)),
+                field_decl("region", STR, at(18))]},
+            {"name": "Employee", "loc": at(21), "fields": [field_decl("personnel_number", STR, at(22))]},
+        ],
+        derived=[{"name": "open_order_count", "kind": "derived", "loc": at(30),
+                  "params": [param("customer", ent("Customer"))],
+                  "body": {"op": "count", "args": [with_status(orders_of("customer", 31), "open", 31)],
+                           "loc": at(31)}}],
+        invariants=[{"name": "personnel_numbers_unique", "loc": at(34),
+                     "body": lam("unique", select("Employee", at(35)), "e",
+                                 f("e", "personnel_number", 35), at(35))}],
+        actions=[
+            action("close_customer", 40, cust, [remove("customer", at(42))],
+                   [cond(op("eq", der("open_order_count", ["customer"], at(41)),
+                            lit(INT, 0, at(41)), at=at(41)))]),
+            place_order("place_order", 45, True),
+            place_order("place_order_unchecked", 50, False),
+            action("check_orders", 55, cust, [], [
+                cond(op("not", lam("any", orders_of("customer", 56), "o",
+                                   op("eq", f("o", "status", 56), st("blocked", 56), at=at(56)), at(56)),
+                        at=at(56))),
+                cond(lam("all", orders_of("customer", 57), "o",
+                         op("gt", f("o", "amount", 57), money("0", 57), at=at(57)), at(57))),
+                cond(op("le", op("value_or", amounts(orders_of("customer", 58), "max", 58), money("0", 58),
+                                 at=at(58)), f("customer", "credit_limit", 58), at=at(58))),
+                cond(op("le", {"op": "count", "loc": at(59), "args": [
+                    {"op": "union", "loc": at(59), "args": [with_status(orders_of("customer", 59), "open", 59),
+                                                             with_status(orders_of("customer", 59), "blocked", 59)]}]},
+                        {"op": "count", "loc": at(59), "args": [orders_of("customer", 59)]}, at=at(59))),
+                cond(op("ge", {"op": "count", "loc": at(60), "args": [
+                    {"op": "difference", "loc": at(60), "args": [orders_of("customer", 60),
+                                                                  with_status(orders_of("customer", 60), "open", 60)]}]},
+                        lit(INT, 0, at(60)), at=at(60))),
+                cond(op("ge", op("value_or", amounts(orders_of("customer", 61), "min", 61), money("0", 61),
+                                 at=at(61)), money("0", 61), at=at(61))),
+            ]),
+            action("raise_limit", 65, cust + [param("limit", MONEY, "input")],
+                   [{"target": {"param": "customer", "field": "credit_limit"}, "value": p("limit", 68),
+                     "loc": at(68)}],
+                   [cond(op("ge", p("limit", 66), f("customer", "credit_limit", 66), at=at(66))),
+                    cond(op("eq", {"op": "count", "args": [over_limit(67)], "loc": at(67)},
+                            lit(INT, 0, at(67)), at=at(67)))],
+                   [cond(op("eq", {"op": "count", "args": [over_limit(69)], "loc": at(69)},
+                            lit(INT, 0, at(69)), at=at(69)))]),
+            hire("hire", 72, True),
+            hire("hire_unchecked", 76, False),
+            action("renumber", 80, [param("employee", ent("Employee"), "state"), param("number", STR, "input")],
+                   [{"target": {"param": "employee", "field": "personnel_number"}, "value": p("number", 81),
+                     "loc": at(81)}]),
+            action("add_counted_order", 84, cust + order_inputs, [create_order("customer", 86)],
+                   [cond(op("eq", {"op": "count", "args": [orders_of("customer", 85)], "loc": at(85)},
+                            lit(INT, 3, at(85)), at=at(85)))],
+                   [cond(op("eq", {"op": "count", "args": [orders_of("customer", 87)], "loc": at(87)},
+                            lit(INT, 4, at(87)), at=at(87)))]),
+            action("add_other_customer_order", 90, cust + [param("other", ent("Customer"), "state")] + order_inputs,
+                   [create_order("other", 92)],
+                   [cond(op("eq", {"op": "count", "args": [orders_of("customer", 91)], "loc": at(91)},
+                            lit(INT, 0, at(91)), at=at(91)))],
+                   [cond(op("eq", {"op": "count", "args": [orders_of("customer", 93)], "loc": at(93)},
+                            lit(INT, 0, at(93)), at=at(93)))]),
+            action("add_counted_sum", 96, cust + order_inputs, [create_order("customer", 98)],
+                   [cond(op("eq", amounts(orders_of("customer", 97), "sum", 97), money("100", 97), at=at(97)))],
+                   [cond(op("eq", amounts(orders_of("customer", 99), "sum", 99),
+                            op("add", money("100", 99), p("amount", 99), at=at(99)), at=at(99)))]),
+            action("remove_cheapest", 102, [param("order", ent("Order"), "state")] + cust,
+                   [remove("order", at(105))],
+                   [cond(op("eq", f("order", "customer", 103), f("customer", "id", 103), at=at(103))),
+                    cond(op("eq", amounts(orders_of("customer", 104), "min", 104),
+                            op("some", f("order", "amount", 104), at=at(104)), at=at(104)))],
+                   [cond(op("ge", op("value_or", amounts(orders_of("customer", 106), "min", 106),
+                                     f("order", "amount", 106), at=at(106)),
+                            f("order", "amount", 106), at=at(106)))]),
+        ],
+    )
+    m["ir_version"] = "0.6"
+    m["constraints"] = [
+        {"name": "non_negative_amount", "entity": "Order", "param": "o",
+         "body": op("ge", f("o", "amount", 26), money("0", 26), at=at(26)), "loc": at(25)},
+    ]
+    return m
+
+
+def query_invalid_cases() -> dict[str, tuple[dict[str, object], list[dict[str, object]]]]:
+    at = lambda line: loc(Q, line)  # noqa: E731
+    count_all = lambda entity, line: {"op": "count", "args": [select(entity, at(line))], "loc": at(line)}  # noqa: E731
+    ge0 = lambda e, line: op("ge", e, lit(INT, 0, at(line)), at=at(line))  # noqa: E731
+    cases: dict[str, tuple[dict[str, object], list[dict[str, object]]]] = {}
+
+    m = orders_module()
+    m["constraints"].append({"name": "bad", "entity": "Order", "param": "o", "loc": at(120),  # type: ignore[union-attr]
+                             "body": ge0(count_all("Order", 121), 121)})
+    cases["query_in_constraint"] = (m, [err("QUERY_NOT_ALLOWED", Q, 121)])
+
+    m = orders_module()
+    m["invariants"].append({"name": "bad", "entity": "Customer", "param": "c", "loc": at(120),  # type: ignore[union-attr]
+                            "body": ge0(count_all("Order", 121), 121)})
+    cases["query_in_entity_invariant"] = (m, [err("QUERY_NOT_ALLOWED", Q, 121)])
+
+    def module_invariant(body: dict[str, object]) -> dict[str, object]:
+        mm = orders_module()
+        mm["invariants"].append({"name": "bad", "loc": at(120), "body": body})  # type: ignore[union-attr]
+        return mm
+
+    cases["nested_query"] = (module_invariant(ge0({"op": "count", "loc": at(121), "args": [
+        lam("where", select("Order", at(121)), "o",
+            op("gt", count_all("Customer", 122), lit(INT, 0, at(122)), at=at(122)), at(121))]}, 121)),
+        [err("QUERY_NOT_ALLOWED", Q, 122)])
+    cases["exists_in_filter"] = (module_invariant(ge0({"op": "count", "loc": at(121), "args": [
+        lam("where", select("Order", at(121)), "o",
+            op("exists", fld("o", "customer", at(122)), at=at(122)), at(121))]}, 121)),
+        [err("NON_LOCAL_PREDICATE", Q, 122)])
+    cases["mixed_set_types"] = (module_invariant(ge0({"op": "count", "loc": at(121), "args": [
+        {"op": "union", "loc": at(122), "args": [select("Order", at(122)), select("Customer", at(122))]}]}, 121)),
+        [err("TYPE_MISMATCH", Q, 122)])
+    cases["sum_of_string"] = (module_invariant(op("eq", lam("sum", select("Customer", at(122)), "c",
+        fld("c", "name", at(122)), at(122)), lit(STR, "x", at(121)), at=at(121))),
+        [err("TYPE_MISMATCH", Q, 122)])
+    cases["min_of_unordered"] = (module_invariant(op("is_some", lam("min", select("Order", at(122)), "o",
+        fld("o", "status", at(122)), at(122)), at=at(121))),
+        [err("TYPE_MISMATCH", Q, 122)])
+    cases["module_invariant_reads_input"] = (module_invariant(ge0({"op": "count", "loc": at(121), "args": [
+        lam("where", select("Order", at(121)), "o",
+            op("gt", fld("o", "amount", at(122)), par("amount", at(122)), at=at(122)), at(121))]}, 121)),
+        [err("UNKNOWN_PARAM", Q, 122)])
+
+    m = orders_module()
+    renum = next(a for a in m["actions"] if a["name"] == "renumber")  # type: ignore[union-attr,index]
+    renum["effects"].append({"target": select("Employee", at(82)),  # type: ignore[union-attr,index]
+                             "value": par("number", at(82)), "loc": at(82)})
+    cases["query_as_effect"] = (m, [err("DECODE_ERROR")])
+
+    m = orders_module()
+    m["ir_version"] = "0.5"
+    cases["query_in_0_5"] = (m, [err("UNSUPPORTED_IR_VERSION")])
+    return cases
+
+
 def main() -> None:
     valid = ROOT / "valid"
     invalid = ROOT / "invalid"
@@ -958,10 +1173,11 @@ def main() -> None:
     dump(valid / "exact_closure.json", exact_closure_module())
     dump(valid / "ledger.json", ledger_module())
     dump(valid / "accounts.json", accounts_module())
+    dump(valid / "orders.json", orders_module())
     for name, (doc, errors) in {**invalid_cases(), **constraint_invalid_cases(), **fixed_scale_invalid_cases(),
                            "exact_bound_exceeded": (bound_module(5), [err("EXACT_BOUND_EXCEEDED", B, 10)]),
                            **exact_closure_invalid_cases(), **decimal_store_invalid_cases(),
-                           **lifecycle_invalid_cases()}.items():
+                           **lifecycle_invalid_cases(), **query_invalid_cases()}.items():
         dump(invalid / f"{name}.json", doc)
         dump(invalid / f"{name}.expected.json", {"errors": errors})
 

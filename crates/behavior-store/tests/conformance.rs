@@ -25,6 +25,12 @@ enum Broken {
     StaleIndex,
     /// `incoming_at` ignores the position (answers the current index).
     CurrentOnlyIndex,
+    /// The field index is never updated after genesis.
+    StaleFieldIndex,
+    /// `keys_at` ignores the position (answers the current type index).
+    CurrentOnlyKeys,
+    /// A positive control: indexes list keys in reverse order, which is never semantic.
+    ReversedKeys,
 }
 
 /// A deliberately broken backend around the reference backend.
@@ -66,6 +72,33 @@ impl Backend for Mutant {
         refs: &[RefChange],
     ) -> Result<(), BackendError> {
         self.inner.create(g, h, seed, refs)
+    }
+    fn keys_at(&self, t: &str, p: u64) -> Result<Vec<EntityKey>, BackendError> {
+        match self.kind {
+            Broken::CurrentOnlyKeys => self.inner.keys_at(t, u64::MAX),
+            Broken::ReversedKeys => {
+                let mut keys = self.inner.keys_at(t, p)?;
+                keys.reverse();
+                Ok(keys)
+            }
+            _ => self.inner.keys_at(t, p),
+        }
+    }
+    fn keys_by_field_at(
+        &self,
+        t: &str,
+        f: &str,
+        v: &serde_json::Value,
+        p: u64,
+    ) -> Result<Option<Vec<EntityKey>>, BackendError> {
+        match self.kind {
+            Broken::StaleFieldIndex => self.inner.keys_by_field_at(t, f, v, 0),
+            Broken::ReversedKeys => Ok(self.inner.keys_by_field_at(t, f, v, p)?.map(|mut k| {
+                k.reverse();
+                k
+            })),
+            _ => self.inner.keys_by_field_at(t, f, v, p),
+        }
     }
     fn removed_at(&self, k: &EntityKey) -> Result<Option<u64>, BackendError> {
         self.inner.removed_at(k)
@@ -187,7 +220,7 @@ impl Backend for Mutant {
 #[test]
 fn the_reference_backend_passes_every_case() {
     let report = run(InMemoryBackend::new);
-    assert_eq!(report.cases.len(), 24);
+    assert_eq!(report.cases.len(), 28);
     let failed: Vec<_> = report.cases.iter().filter(|c| !c.ok).collect();
     assert!(failed.is_empty(), "{failed:#?}");
 }
@@ -205,6 +238,8 @@ fn each_broken_backend_fails_its_designated_case() {
         (Broken::DeletesVersionsOnRemove, "removed_entity_history"),
         (Broken::StaleIndex, "reference_index_consistency"),
         (Broken::CurrentOnlyIndex, "existence_snapshot"),
+        (Broken::StaleFieldIndex, "query_index_consistency"),
+        (Broken::CurrentOnlyKeys, "query_snapshot"),
     ] {
         let report = run(|| Mutant::new(kind));
         let c = report.case(case).unwrap();
@@ -214,4 +249,11 @@ fn each_broken_backend_fails_its_designated_case() {
             "{kind:?}: the failure names the violated rule"
         );
     }
+}
+
+#[test]
+fn reversed_key_order_passes_every_case() {
+    let report = run(|| Mutant::new(Broken::ReversedKeys));
+    let failed: Vec<_> = report.cases.iter().filter(|c| !c.ok).collect();
+    assert!(failed.is_empty(), "{failed:#?}");
 }

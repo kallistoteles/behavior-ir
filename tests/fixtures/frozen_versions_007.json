@@ -1,0 +1,329 @@
+{
+ "_comment": "Behavior versions and item hashes of every admitted fixture module before feature 007 (including the 006 lifecycle module). Modules without 007 forms must keep them byte for byte (SC-006). Checked by crates/behavior-core/tests/ir_0_6.rs.",
+ "modules": {
+  "verify/dead_and_vacuous.json": {
+   "behavior_version": "sha256:88a73bc09635c942ae09496eeecf3bc29505c04abf40906a7e08e2e7fd75fb16",
+   "items": {
+    "action:impossible": "sha256:48914b6474c02ee66308eb3bd81086e74adfddd2ebcd7bf6b44ca93de831411e",
+    "action:ship": "sha256:f714dd2731da480aaa6338b6113fdb5b45465e3bc3beca2348adfaaec866501b",
+    "constraint:non_negative_amount": "sha256:da824308b6ba2fe047a1354f32da826f3efeaca5b831c7acf0c9cbe632c54989",
+    "derived:has_value": "sha256:df8a4cfb20a734fd6aad4921f71630fcfea2998b6aeef7bb45a5d20bdbcdee1a",
+    "derived:large": "sha256:2311e8ecd2d4cd333ecd8cb22f4d98d974e0eb738c67963bfc0d54f7a3e93285",
+    "entity:Order": "sha256:7932533b2b270430b2ab6c3571c409563078142bee29eaa90c901ac56ef7a42c",
+    "nominal:Money": "sha256:12364694ce79ebcaadf7ba9022bfbaebf8144b8f70bd28c9f3e7bfc5cf03127c"
+   }
+  },
+  "verify/discount_rescale.json": {
+   "behavior_version": "sha256:217468ea4ef0bee1c09beba3a85a72f2dc267d6c7d7ec260ba9effb29c56d2cc",
+   "items": {
+    "action:discount": "sha256:c9b2dcc21a8855e092df137572acc92dbe7e29c485bad67dc59f44661634c5ea",
+    "action:discount_over": "sha256:70fc7f0971c7dd316ebd2ebbed3c5a92be8003b84a4ab410febc536721c5c79f",
+    "entity:Bill": "sha256:649ca6684538178314db98e484196601e072a07828eaefff484e3a1a953d8112",
+    "invariant:non_negative_bill": "sha256:b3259ad97c7244bfab7d6d959d10d720f788c099fead7417ed2fefc2c9818bc0",
+    "nominal:Money": "sha256:409fe109c28646134b51968c6fcd621dcfca99eee762b311f5e3b8efddea6793"
+   }
+  },
+  "verify/invoice_money2.json": {
+   "behavior_version": "sha256:5f1b7be8c2b313eca58bb0fa15ab446b7ebc42a5fe416e8cac58584e3f674636",
+   "items": {
+    "action:apply_discount": "sha256:e36e83b12bc2b68eb198e90a870a0e05f23cf2b869990a7adb6aa75052bd89de",
+    "action:approve_invoice": "sha256:391888e2ead353bd11163c30e755dab9a141748bbdf802aae38c860dc8ddec03",
+    "entity:Invoice": "sha256:16298027d55f617685e418c0d4ad8fc4cdc871c1b352f3439feda3c1ef61def4",
+    "entity:User": "sha256:8a1c5e8731b22c037325aeebe197a8392d59ba926b5dae60c51e45a4e66851d5",
+    "enum:InvoiceStatus": "sha256:4dd4710601911febe19f7214ea96f6597677ba63fac5eabd37064f46d5269a40",
+    "invariant:non_negative_amount": "sha256:2cef6fffe14dba679aa4509d454d7fe8197325caa56f60206ded5d48a371d884",
+    "nominal:Money": "sha256:409fe109c28646134b51968c6fcd621dcfca99eee762b311f5e3b8efddea6793"
+   }
+  },
+  "verify/overflow.json": {
+   "behavior_version": "sha256:4ef5d670eba0f6527a5b497dbe5bae65e0f441f2dd47d3bd855e5d0b03c8d8e2",
+   "items": {
+    "action:scale": "sha256:c0fca4d7496f4c3af7c965639262d3fef44bdae36c6257d5b25c072260495c93",
+    "action:scale_bounded": "sha256:5d8c3fa5985e107a107bab8c431b759168058613cd888144771ead500dcf2cac",
+    "entity:Counter": "sha256:4fa0f7b226d578745091078e38c9ac0698cc7fd0c02f4fccae45f25cc1d3861a"
+   }
+  },
+  "verify/postcondition.json": {
+   "behavior_version": "sha256:2cf2f2ef1732d9432b498369c7720c73514812b95fb2006eaaaf3de48ef265c5",
+   "items": {
+    "action:deposit": "sha256:a6c03b0ed1b2287f5ca2d36766eee248e9accd4e94dba93a0e19e4376289d07f",
+    "action:deposit_checked": "sha256:643aa8b1e5c00b70fecbd2586092de1751a457b200feaf443676dc2ba94eabb0",
+    "entity:Account": "sha256:89450e0ccf3c5f548ff2df16195fcef9df03464be2f2fb6a4ce595b64793415e",
+    "nominal:Money": "sha256:409fe109c28646134b51968c6fcd621dcfca99eee762b311f5e3b8efddea6793"
+   }
+  },
+  "verify/purchase.json": {
+   "behavior_version": "sha256:e604b2ec31abd51473bcbd3b7c40961ebb27aa16237adfad16f198bf31dc4e9f",
+   "items": {
+    "action:approve": "sha256:96c0b300346bf5885e8674a474fffcefdbd1639785d653f304e3e8fead78432c",
+    "entity:Employee": "sha256:57d808d4026af30b6d777911443c00de1722978fa1fe6cad319c312bf7f44cd7",
+    "entity:Project": "sha256:14646b837631be5219d226a6c34354bf8d1c4929e623435d5a90cbccea6ddbc6",
+    "entity:Purchase": "sha256:f15b645c08a9c43b0e224ebf07cf05077e14279f69e69e1ac9d44282e591d37d",
+    "enum:Status": "sha256:4d258862ca284595207f7d0103f22958b42c22462ec95e87b1374d09b441298e",
+    "invariant:within_budget": "sha256:0b41deb66e35044c222d8306849c9c3d9cb8027026b5bbe6e76695c220de6e4a",
+    "nominal:Money": "sha256:409fe109c28646134b51968c6fcd621dcfca99eee762b311f5e3b8efddea6793"
+   }
+  },
+  "verify/purchase_fixed.json": {
+   "behavior_version": "sha256:ee920e5d23b591566ec638ca40d2a3705912ee8009263680e47a2877cc18a51d",
+   "items": {
+    "action:approve": "sha256:ba4306bfa577f337c3de7f683d22f64b951237449204bb7812adabf02ba774dc",
+    "entity:Employee": "sha256:57d808d4026af30b6d777911443c00de1722978fa1fe6cad319c312bf7f44cd7",
+    "entity:Project": "sha256:14646b837631be5219d226a6c34354bf8d1c4929e623435d5a90cbccea6ddbc6",
+    "entity:Purchase": "sha256:f15b645c08a9c43b0e224ebf07cf05077e14279f69e69e1ac9d44282e591d37d",
+    "enum:Status": "sha256:4d258862ca284595207f7d0103f22958b42c22462ec95e87b1374d09b441298e",
+    "invariant:within_budget": "sha256:0b41deb66e35044c222d8306849c9c3d9cb8027026b5bbe6e76695c220de6e4a",
+    "nominal:Money": "sha256:409fe109c28646134b51968c6fcd621dcfca99eee762b311f5e3b8efddea6793"
+   }
+  },
+  "verify/purchase_money2.json": {
+   "behavior_version": "sha256:55524bdbbcce8d91467c882a7296ecf7b08e226cf44a46fe9b93d4691d7e8f43",
+   "items": {
+    "action:approve": "sha256:96c0b300346bf5885e8674a474fffcefdbd1639785d653f304e3e8fead78432c",
+    "constraint:non_negative_project": "sha256:37bfb0b162614d57b328e50dcc4db8753126e436d4b1617ae42e2324a2bab89c",
+    "constraint:non_negative_purchase": "sha256:0ce3016eaa028ecb588100ddff17936f757fee77f38d7d0adb960324b39f8cb7",
+    "entity:Employee": "sha256:57d808d4026af30b6d777911443c00de1722978fa1fe6cad319c312bf7f44cd7",
+    "entity:Project": "sha256:14646b837631be5219d226a6c34354bf8d1c4929e623435d5a90cbccea6ddbc6",
+    "entity:Purchase": "sha256:f15b645c08a9c43b0e224ebf07cf05077e14279f69e69e1ac9d44282e591d37d",
+    "enum:Status": "sha256:4d258862ca284595207f7d0103f22958b42c22462ec95e87b1374d09b441298e",
+    "invariant:within_budget": "sha256:0b41deb66e35044c222d8306849c9c3d9cb8027026b5bbe6e76695c220de6e4a",
+    "nominal:Money": "sha256:409fe109c28646134b51968c6fcd621dcfca99eee762b311f5e3b8efddea6793"
+   }
+  },
+  "verify/purchase_money2_fixed.json": {
+   "behavior_version": "sha256:20b2500765e23b80d6d1dffbc2d10817467702e773ad8897e2145a64c3eb4605",
+   "items": {
+    "action:approve": "sha256:ba4306bfa577f337c3de7f683d22f64b951237449204bb7812adabf02ba774dc",
+    "constraint:non_negative_project": "sha256:37bfb0b162614d57b328e50dcc4db8753126e436d4b1617ae42e2324a2bab89c",
+    "constraint:non_negative_purchase": "sha256:0ce3016eaa028ecb588100ddff17936f757fee77f38d7d0adb960324b39f8cb7",
+    "entity:Employee": "sha256:57d808d4026af30b6d777911443c00de1722978fa1fe6cad319c312bf7f44cd7",
+    "entity:Project": "sha256:14646b837631be5219d226a6c34354bf8d1c4929e623435d5a90cbccea6ddbc6",
+    "entity:Purchase": "sha256:f15b645c08a9c43b0e224ebf07cf05077e14279f69e69e1ac9d44282e591d37d",
+    "enum:Status": "sha256:4d258862ca284595207f7d0103f22958b42c22462ec95e87b1374d09b441298e",
+    "invariant:within_budget": "sha256:0b41deb66e35044c222d8306849c9c3d9cb8027026b5bbe6e76695c220de6e4a",
+    "nominal:Money": "sha256:409fe109c28646134b51968c6fcd621dcfca99eee762b311f5e3b8efddea6793"
+   }
+  },
+  "verify/purchase_money2_remaining.json": {
+   "behavior_version": "sha256:7c153a22a48f91fa1d3f19b44b57661fc9728a6cf6daf606ce0b71ef2986312a",
+   "items": {
+    "action:approve": "sha256:b44378b7558b5097041ecae88d3d340ca84fe5586ef81f820de7cf677f4e4271",
+    "constraint:non_negative_project": "sha256:37bfb0b162614d57b328e50dcc4db8753126e436d4b1617ae42e2324a2bab89c",
+    "constraint:non_negative_purchase": "sha256:0ce3016eaa028ecb588100ddff17936f757fee77f38d7d0adb960324b39f8cb7",
+    "derived:remaining": "sha256:90c779afb31526e7c2ada7f37a6f7863f73095f67a83623a7d4e5ec974d58f48",
+    "entity:Employee": "sha256:57d808d4026af30b6d777911443c00de1722978fa1fe6cad319c312bf7f44cd7",
+    "entity:Project": "sha256:14646b837631be5219d226a6c34354bf8d1c4929e623435d5a90cbccea6ddbc6",
+    "entity:Purchase": "sha256:f15b645c08a9c43b0e224ebf07cf05077e14279f69e69e1ac9d44282e591d37d",
+    "enum:Status": "sha256:4d258862ca284595207f7d0103f22958b42c22462ec95e87b1374d09b441298e",
+    "invariant:within_budget": "sha256:0b41deb66e35044c222d8306849c9c3d9cb8027026b5bbe6e76695c220de6e4a",
+    "nominal:Money": "sha256:409fe109c28646134b51968c6fcd621dcfca99eee762b311f5e3b8efddea6793"
+   }
+  },
+  "verify/purchase_remaining.json": {
+   "behavior_version": "sha256:ef22c4fbd07776712bafff7367fe26f5113693ef039ecb7b95d5117ec6d1171d",
+   "items": {
+    "action:approve": "sha256:b44378b7558b5097041ecae88d3d340ca84fe5586ef81f820de7cf677f4e4271",
+    "derived:remaining": "sha256:90c779afb31526e7c2ada7f37a6f7863f73095f67a83623a7d4e5ec974d58f48",
+    "entity:Employee": "sha256:57d808d4026af30b6d777911443c00de1722978fa1fe6cad319c312bf7f44cd7",
+    "entity:Project": "sha256:14646b837631be5219d226a6c34354bf8d1c4929e623435d5a90cbccea6ddbc6",
+    "entity:Purchase": "sha256:f15b645c08a9c43b0e224ebf07cf05077e14279f69e69e1ac9d44282e591d37d",
+    "enum:Status": "sha256:4d258862ca284595207f7d0103f22958b42c22462ec95e87b1374d09b441298e",
+    "invariant:within_budget": "sha256:0b41deb66e35044c222d8306849c9c3d9cb8027026b5bbe6e76695c220de6e4a",
+    "nominal:Money": "sha256:409fe109c28646134b51968c6fcd621dcfca99eee762b311f5e3b8efddea6793"
+   }
+  },
+  "verify/rescale_modes.json": {
+   "behavior_version": "sha256:ea7514636befa84c731e7f08497ccdd08c54673b7d10a1088d3748b64f9bdf66",
+   "items": {
+    "action:split_ceiling": "sha256:57c8b2d16ce61b52df6e77c743b68234eaf0b92482d19908053ed39f12e2c3f0",
+    "action:split_floor": "sha256:d1aa32b7552e36d79a221c5b1249450b0f58a528789bec45cc97982940b4183e",
+    "action:split_half_even": "sha256:ca2df4afabc0dac3d97b3f598bc081378c42801f9cfbd5c768687d904c4111d8",
+    "entity:Split": "sha256:b94a6f2e415ad7bf56e713a6fbabaec4dc275cc66e5cd61caf4b627ef582a452",
+    "nominal:Money": "sha256:409fe109c28646134b51968c6fcd621dcfca99eee762b311f5e3b8efddea6793"
+   }
+  },
+  "verify/rounding.json": {
+   "behavior_version": "sha256:dc750e5886003af1977c8b2daf05482ad099650a412409bdcd62f76e5f264e7e",
+   "items": {
+    "action:third_clear": "sha256:ba4b151aadc8322f06d95c20b848f0f6e37246db6947cd7104778ecce63159da",
+    "action:third_tight": "sha256:1415c6bd78aa3b21b782fb361f4de9115f9ff1a47bd30a3e3ab8cf205cd6df59",
+    "entity:Ratio": "sha256:171013c613ccc0e83da44f820308813ebe3215ae2e844148f5c3b21c2eb56e29"
+   }
+  },
+  "verify/share_bound.json": {
+   "behavior_version": "sha256:40bfb0d456df6dc9c734f5791b4e89356b6bfab5b9411239b2e3ee44ecd00d59",
+   "items": {
+    "action:allocate": "sha256:561033259aa4531e96f41d1e5bce01619bfc228216e819c9a4a0aaa0dc428515",
+    "action:allocate_unchecked": "sha256:062c2699f00f22287818b873afb11aefd81058b8d5007c5e4c027adf23ecb4e7",
+    "constraint:non_negative_share": "sha256:cc830433ef0c11207d836916a75e7a5a7d3c6e4ccbbd8aa19c70fb661a85ad8c",
+    "entity:Share": "sha256:d8f4b623c40099b9f90b94b85036ff25bf4941e398f3eaf967b9562805c21a62",
+    "invariant:part_within_total": "sha256:292f1afcd52487f228851c02c926627fa3aed055d3e7dd148ed2be2ea99bc0ef",
+    "nominal:Money": "sha256:409fe109c28646134b51968c6fcd621dcfca99eee762b311f5e3b8efddea6793"
+   }
+  },
+  "verify/sum_rounding.json": {
+   "behavior_version": "sha256:d79bc773c4fc75ea0a9367f63b06fd63b8b2afae761cdae8f95cb9662cc49e64",
+   "items": {
+    "action:add_positive": "sha256:171d9042b0bb246f7f4f257f52656ab6c9a8c8c0b5c13bf72c97e1e35533bdeb",
+    "entity:Pair": "sha256:7b1828540e98ecffdd4b9ffd92aa4343346d9926d49fb1aca68a1a329318f9af",
+    "nominal:Money": "sha256:409fe109c28646134b51968c6fcd621dcfca99eee762b311f5e3b8efddea6793"
+   }
+  },
+  "verify/unchanged_entity.json": {
+   "behavior_version": "sha256:df6a068c06d3e3222d7e4f73e43fb40e97b2e9edee2d347bb2898626c405ce2c",
+   "items": {
+    "action:approve": "sha256:ba4306bfa577f337c3de7f683d22f64b951237449204bb7812adabf02ba774dc",
+    "action:reject": "sha256:c9015b4175494797b327508da06c1a53021d31d684fb8a0688d0959c062989a9",
+    "entity:Employee": "sha256:57d808d4026af30b6d777911443c00de1722978fa1fe6cad319c312bf7f44cd7",
+    "entity:Project": "sha256:14646b837631be5219d226a6c34354bf8d1c4929e623435d5a90cbccea6ddbc6",
+    "entity:Purchase": "sha256:f15b645c08a9c43b0e224ebf07cf05077e14279f69e69e1ac9d44282e591d37d",
+    "enum:Status": "sha256:4d258862ca284595207f7d0103f22958b42c22462ec95e87b1374d09b441298e",
+    "invariant:within_budget": "sha256:0b41deb66e35044c222d8306849c9c3d9cb8027026b5bbe6e76695c220de6e4a",
+    "nominal:Money": "sha256:409fe109c28646134b51968c6fcd621dcfca99eee762b311f5e3b8efddea6793"
+   }
+  },
+  "wire/python/invoice.json": {
+   "behavior_version": "sha256:5f1b7be8c2b313eca58bb0fa15ab446b7ebc42a5fe416e8cac58584e3f674636",
+   "items": {
+    "action:apply_discount": "sha256:e36e83b12bc2b68eb198e90a870a0e05f23cf2b869990a7adb6aa75052bd89de",
+    "action:approve_invoice": "sha256:391888e2ead353bd11163c30e755dab9a141748bbdf802aae38c860dc8ddec03",
+    "entity:Invoice": "sha256:16298027d55f617685e418c0d4ad8fc4cdc871c1b352f3439feda3c1ef61def4",
+    "entity:User": "sha256:8a1c5e8731b22c037325aeebe197a8392d59ba926b5dae60c51e45a4e66851d5",
+    "enum:InvoiceStatus": "sha256:4dd4710601911febe19f7214ea96f6597677ba63fac5eabd37064f46d5269a40",
+    "invariant:non_negative_amount": "sha256:2cef6fffe14dba679aa4509d454d7fe8197325caa56f60206ded5d48a371d884",
+    "nominal:Money": "sha256:409fe109c28646134b51968c6fcd621dcfca99eee762b311f5e3b8efddea6793"
+   }
+  },
+  "wire/python/project_margin.json": {
+   "behavior_version": "sha256:3121a20148bb8a75f4eb36c15db0496530101653548d347193c3f1f0be4b2845",
+   "items": {
+    "action:flag_project": "sha256:a19c22490edfbdf8a6174ecf51569c0ea2af4b7862d2ff5443479fae4eade8c8",
+    "action:flag_project_unguarded": "sha256:6758e001d37da415c5c9daba92e2faef9ea74fc24d2f55c04f7d2235368c9fcd",
+    "derived:high_risk": "sha256:3c40826b2063c52fb2fccbc1ba2c62c6bb716e9b8d84e218ae3811aa03f7757b",
+    "derived:margin": "sha256:009a8a542f5512900b6256ed5157c26397bb05fc1b4d62b5e84599e573ac2e37",
+    "entity:Project": "sha256:e83fc7e14bb5b2011deac14c403e8ed78e8afe418f1536317667df67ec894960",
+    "nominal:Money": "sha256:12364694ce79ebcaadf7ba9022bfbaebf8144b8f70bd28c9f3e7bfc5cf03127c"
+   }
+  },
+  "wire/valid/accounts.json": {
+   "behavior_version": "sha256:dd3b9a332f612b1a0be7b7aeaf30906cb7d9a1ba325c1bb3ea49e1609e53af2d",
+   "items": {
+    "action:check_exists": "sha256:f2885ab88b61d8bda14d319336b27165f5c319a76fe949fe7d379f7bee4db0b1",
+    "action:close_account": "sha256:d09aa2bf241ee9b647ae26ce68299efe46434c006efd1c70c37195ed956f2b5e",
+    "action:create_twice": "sha256:6021ad326438c199c203b7d0ec775e111970720fc4efc106b82b2013e4ee8679",
+    "action:deposit": "sha256:36c444746b21f77202272dd861b14f96bb3ee90442e74c5d6ace3249595b2751",
+    "action:open_account": "sha256:b9cefcab55d4d5166b4c9e18bbbc8a451ae18bca3f723b30dc0577867ff478fa",
+    "action:open_account_unchecked": "sha256:ddd9faebfa8a26f9e590b2df55127b1ab0498b9376a64d56b760eb221c1b13b2",
+    "action:register_customer": "sha256:f0883418b8958a53dd8e1f3faf084865075ae39b02d03e217b5203c772330a42",
+    "action:remove_customer": "sha256:5ff83298af5fb90f2d04d14f25a5d5d6d243e0c0b1b23abed2b1ddd7a8093210",
+    "action:remove_customer_unchecked": "sha256:d65f13ca41f801140767a3e0d2581de5c98794974fad937cd74c908f645e8660",
+    "action:switch_and_remove": "sha256:e46113b38c3045ed436fd12337ed1b109f380ceca4580e82b230ca4d24a43bed",
+    "constraint:non_negative_balance": "sha256:c930217be9a642c24d9a771a3f4d2c8915a22674961e07e8d5b7dfebec403b53",
+    "entity:Account": "sha256:f823aaebf8ba4dc2e209d9ffb6f5fa1d3f18f233b27800bdfb608e3e3367b3f1",
+    "entity:AuditNote": "sha256:afecf6e8e2f2ec9344410ffc830c5b3e7ae97cdca96a163814d60d864ebbcbea",
+    "entity:Customer": "sha256:50c05c38c4a23e643f9b55913a2a879de06ac158f4502ccf0808bade1bbafbf3",
+    "nominal:Money": "sha256:409fe109c28646134b51968c6fcd621dcfca99eee762b311f5e3b8efddea6793"
+   }
+  },
+  "wire/valid/constraints.json": {
+   "behavior_version": "sha256:5a49d20a92685459224bb64dd0f77b224dabbe465a74698b0a2e7d29c3cea5db",
+   "items": {
+    "action:assign": "sha256:263d51771c670f4005737a0c23c71753faab08cffe02e0e949e9c9e2c2d07ca0",
+    "action:review": "sha256:2bddda63a913b8fdf18d2cc49933fa0f21eb5e5cccbb372c6607287b158dfc3d",
+    "action:transfer": "sha256:b9a7663766437d439c42574543438a19114d22ceb21172f80be5fd45d4ebd450",
+    "constraint:non_negative_balance": "sha256:c930217be9a642c24d9a771a3f4d2c8915a22674961e07e8d5b7dfebec403b53",
+    "constraint:non_negative_limit": "sha256:5c134eabc78a7380f1e75c29cbf4c99012f6a46a62cfea3531a26ae888bbd43f",
+    "entity:Account": "sha256:89450e0ccf3c5f548ff2df16195fcef9df03464be2f2fb6a4ce595b64793415e",
+    "entity:Employee": "sha256:57d808d4026af30b6d777911443c00de1722978fa1fe6cad319c312bf7f44cd7",
+    "nominal:Money": "sha256:409fe109c28646134b51968c6fcd621dcfca99eee762b311f5e3b8efddea6793"
+   }
+  },
+  "wire/valid/empty.json": {
+   "behavior_version": "sha256:8b290a60790c0d087f0138f7b9e3f3037b8052941c7a6ba7c918b413577d31fc",
+   "items": {}
+  },
+  "wire/valid/exact_bound_ok.json": {
+   "behavior_version": "sha256:1313c2cef3d1d11864c34ff0f2f8982efcc22a1a211896c508a2582d273ec2ba",
+   "items": {
+    "action:check": "sha256:8e92693a79b71740b8bbf72648470441a5c088f8c8ccae4e1f1378eb78aef32c",
+    "derived:shrink": "sha256:17713d7ca6f511ca409d5bea0bab69fe75c49dc4fd376056a20dbfe9cacfc82a",
+    "entity:Row": "sha256:3d91acd4f01907fad02aaabc6e7f77f8571ff20ce40f7c4ada798dcd5ad5e909",
+    "nominal:Money": "sha256:409fe109c28646134b51968c6fcd621dcfca99eee762b311f5e3b8efddea6793"
+   }
+  },
+  "wire/valid/exact_closure.json": {
+   "behavior_version": "sha256:c14a6df795eb8adbd9f4b2eeb9149a7d225c5b2e06b7ae2603189d5426f9db51",
+   "items": {
+    "action:scaled_share": "sha256:75b9c6f20bec05bb25fbf4c095b7713eaa95119a90a4114a61db5e1463c63eb3",
+    "action:share_threshold": "sha256:fb905058091b7e4c53acf3e8458438096e1ad745375755c5d7b692a9a2aa86ca",
+    "action:show_portion": "sha256:713ac4b26c1716d9b1b0f37a359932d9a85926b2be0d6dca9d6e6692790c39a8",
+    "derived:portion": "sha256:b5513d71bbe0d351cbf7c17990f9d207003f9e98fe2ac6fc20c1b4c73868a1d1",
+    "entity:Share": "sha256:a1c312be64514b1deba95787145c3ee4f514dde83c4563cd8f2468b2012fddbd",
+    "nominal:Money": "sha256:409fe109c28646134b51968c6fcd621dcfca99eee762b311f5e3b8efddea6793"
+   }
+  },
+  "wire/valid/fixed_scale.json": {
+   "behavior_version": "sha256:bd91a684d2e3701acdeff3b397ce22436682b153d92de8a5a412b10145fed264",
+   "items": {
+    "action:add_spent": "sha256:d6ed54d8a0c5227d4d691120bf0cefbba83f61c6e731364dce0b591ffc82019d",
+    "action:charge": "sha256:f7c8662a90d57925025e3e4747707bd0b51086a2d4bfaf18d47319cc56e3af1d",
+    "action:check_margin": "sha256:26e590b3baabae936bb2a02b673030e2ec0c09cb74bfb41398c8a49e4b52be02",
+    "action:compare_fee": "sha256:f5d0fcf0df885adccbd55146e1744057cf6a292cae99be69cae8267f504e7e34",
+    "action:per_unit": "sha256:39320e55425ac5952465d12ddf2e83096a56766a11d593f77fac39be0d92f68c",
+    "action:round_ceiling": "sha256:6ed1c0ec0f2d0ce4687721f24e1f03b95fcd4bac58c1817de83ce0c81fb0f32d",
+    "action:round_down": "sha256:159dd40f6f491f81b8a82e88d27fd65008a46f4cd20d4adc50ae703340b0bd22",
+    "action:round_floor": "sha256:9b3c49000f0d4f61839295280bfe02abe62bc4cea0e3fac643962d87e8d1cb2b",
+    "action:round_half_even": "sha256:ff3c5ccab2a95cb77f569cbe48883f981522e772aaacd54662461dbfb07da44d",
+    "action:round_half_up": "sha256:d1d5f8e75507375754044dc7525552ece899748b36ce32609d8292455898e2d4",
+    "action:round_up": "sha256:c659b5f32ac0905d98a6fb841351b3328827b10b659a9e7de606e13cfa23914c",
+    "action:scale_up": "sha256:314b7e6ac909808ac2f30044f371d7f761c69af56d71b8e441907ed26b4e9fdd",
+    "action:split3": "sha256:360e6e63b6a91c0c409c9cf9312b6764fea624e29e9b4d5a1d45322a08b6a13f",
+    "action:split3_nested": "sha256:36d8819199a8818f450c31d52b3bf2eccecc4a5a896ba6ade6b99b22455a1896",
+    "action:third_exact": "sha256:a3e6ec33ab65d71cd2014f33c8fa1a6e5560ad0b177102652dd2548b578d30dd",
+    "action:third_via_derived": "sha256:c0b2bcf041d165dfa587fa9aa7d4042b5007f11ac355fd9705cdba11b808f07c",
+    "action:triple": "sha256:0fbbed50f9e20b7939a6b2b494e66303ea04d0ec73b2e95c4692771f58e02f62",
+    "derived:fee_rounded": "sha256:3441e991ac5a5b11365d73a61ffb3b30655c9217c7a40710ea8d544fa58ed0dd",
+    "derived:theoretical_fee": "sha256:2d5275cf194c86867dfc646b00e56e3898b313d28db0dd511267cf0799d7c342",
+    "derived:third": "sha256:346c2a3e79ba6c4485b34c21691d08d11c061fd3e3bb8356f70c888acfb7905f",
+    "entity:Budget": "sha256:a2e8cf0341fbea5cb2612649a6dc5e5409ace9b5141bd334b488412684f3f327",
+    "entity:Invoice": "sha256:edf46607c14d6160492e45a3148a9a9545679f249d9ea25732e7bd3c92da8f5c",
+    "nominal:Money": "sha256:409fe109c28646134b51968c6fcd621dcfca99eee762b311f5e3b8efddea6793"
+   }
+  },
+  "wire/valid/invoice.json": {
+   "behavior_version": "sha256:5f1b7be8c2b313eca58bb0fa15ab446b7ebc42a5fe416e8cac58584e3f674636",
+   "items": {
+    "action:apply_discount": "sha256:e36e83b12bc2b68eb198e90a870a0e05f23cf2b869990a7adb6aa75052bd89de",
+    "action:approve_invoice": "sha256:391888e2ead353bd11163c30e755dab9a141748bbdf802aae38c860dc8ddec03",
+    "entity:Invoice": "sha256:16298027d55f617685e418c0d4ad8fc4cdc871c1b352f3439feda3c1ef61def4",
+    "entity:User": "sha256:8a1c5e8731b22c037325aeebe197a8392d59ba926b5dae60c51e45a4e66851d5",
+    "enum:InvoiceStatus": "sha256:4dd4710601911febe19f7214ea96f6597677ba63fac5eabd37064f46d5269a40",
+    "invariant:non_negative_amount": "sha256:2cef6fffe14dba679aa4509d454d7fe8197325caa56f60206ded5d48a371d884",
+    "nominal:Money": "sha256:409fe109c28646134b51968c6fcd621dcfca99eee762b311f5e3b8efddea6793"
+   }
+  },
+  "wire/valid/ledger.json": {
+   "behavior_version": "sha256:72dc5771477c0e00132caa9b8ee333d943d2116b6e8a6f0dd95454015aa3ba09",
+   "items": {
+    "action:freeze": "sha256:85cd3b646c1633b108c29a83a50721dc57217108f1591289c639749c3540f7b7",
+    "action:touch": "sha256:14fe1855b3d23987b29e09a4ccaa8d5666dd2bb185f47e1e41349e10a155236f",
+    "action:transfer": "sha256:c2a182fde03e99f62ef7c1e539c6d873b34ee06510e19aa3a2b46a98fe64f208",
+    "constraint:non_negative_balance": "sha256:c930217be9a642c24d9a771a3f4d2c8915a22674961e07e8d5b7dfebec403b53",
+    "derived:available": "sha256:05d3e220cb5e6c073eba0a28721cba1036bd9925630b95311360608685a779e3",
+    "entity:Account": "sha256:cb749640d434f3df30031c32af1843e32e99fd691fba8c9a3aff55143351e39b",
+    "nominal:Money": "sha256:409fe109c28646134b51968c6fcd621dcfca99eee762b311f5e3b8efddea6793"
+   }
+  },
+  "wire/valid/project_margin.json": {
+   "behavior_version": "sha256:3121a20148bb8a75f4eb36c15db0496530101653548d347193c3f1f0be4b2845",
+   "items": {
+    "action:flag_project": "sha256:a19c22490edfbdf8a6174ecf51569c0ea2af4b7862d2ff5443479fae4eade8c8",
+    "action:flag_project_unguarded": "sha256:6758e001d37da415c5c9daba92e2faef9ea74fc24d2f55c04f7d2235368c9fcd",
+    "derived:high_risk": "sha256:3c40826b2063c52fb2fccbc1ba2c62c6bb716e9b8d84e218ae3811aa03f7757b",
+    "derived:margin": "sha256:009a8a542f5512900b6256ed5157c26397bb05fc1b4d62b5e84599e573ac2e37",
+    "entity:Project": "sha256:e83fc7e14bb5b2011deac14c403e8ed78e8afe418f1536317667df67ec894960",
+    "nominal:Money": "sha256:12364694ce79ebcaadf7ba9022bfbaebf8144b8f70bd28c9f3e7bfc5cf03127c"
+   }
+  }
+ }
+}

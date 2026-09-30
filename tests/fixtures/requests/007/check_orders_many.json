@@ -1,0 +1,51 @@
+{
+ "action": "check_orders",
+ "context": {},
+ "data_version": "1",
+ "facts": {
+  "universe": [
+   {
+    "entity": "Order",
+    "members": [
+     {
+      "amount": "10.00",
+      "customer": "c1",
+      "id": "o1",
+      "region": "north",
+      "status": "closed"
+     },
+     {
+      "amount": "20.00",
+      "customer": "c1",
+      "id": "o2",
+      "region": "north",
+      "status": "open"
+     },
+     {
+      "amount": "0.01",
+      "customer": "c1",
+      "id": "o3",
+      "region": "north",
+      "status": "open"
+     },
+     {
+      "amount": "99.00",
+      "customer": "c2",
+      "id": "o4",
+      "region": "north",
+      "status": "blocked"
+     }
+    ]
+   }
+  ]
+ },
+ "input": {},
+ "state": {
+  "customer": {
+   "credit_limit": "100.00",
+   "id": "c1",
+   "name": "Ada",
+   "region": "north"
+  }
+ }
+}

@@ -1,0 +1,105 @@
+{
+ "_comment": "Feature 007 verification over wire/valid/orders.json (SC-005). Proven: exact deltas for a fixed instance (counts, sums, the unique delta rule). Counterexamples are runtime-confirmed with query and field facts; renumber and the unguarded `amount` input are real findings. Inconclusive: a changed capture (raise_limit) and an extremum after a removal (remove_cheapest) are fresh summaries, never assumed.",
+ "wire": "../wire/valid/orders.json",
+ "profile": [
+  "postcondition",
+  "preservation"
+ ],
+ "checks": [
+  {
+   "kind": "postcondition",
+   "action": "add_counted_order",
+   "subject": "count(where(select(Order), o, o.customer == customer.id)) == 4",
+   "outcome": "proven"
+  },
+  {
+   "kind": "postcondition",
+   "action": "add_other_customer_order",
+   "subject": "count(where(select(Order), o, o.customer == customer.id)) == 0",
+   "outcome": "proven"
+  },
+  {
+   "kind": "postcondition",
+   "action": "add_counted_sum",
+   "subject": "sum(where(select(Order), o, o.customer == customer.id), o, o.amount) == Money(100.00) + amount",
+   "outcome": "proven"
+  },
+  {
+   "kind": "postcondition",
+   "action": "place_order",
+   "subject": "sum(where(select(Order), o, o.customer == customer.id), o, o.amount) <= customer.credit_limit",
+   "outcome": "proven"
+  },
+  {
+   "kind": "preservation",
+   "action": "hire",
+   "subject": "personnel_numbers_unique",
+   "outcome": "proven"
+  },
+  {
+   "kind": "postcondition",
+   "action": "place_order_unchecked",
+   "subject": "sum(where(select(Order), o, o.customer == customer.id), o, o.amount) <= customer.credit_limit",
+   "outcome": "counterexample"
+  },
+  {
+   "kind": "preservation",
+   "action": "hire_unchecked",
+   "subject": "personnel_numbers_unique",
+   "outcome": "counterexample"
+  },
+  {
+   "kind": "preservation",
+   "action": "renumber",
+   "subject": "personnel_numbers_unique",
+   "outcome": "counterexample"
+  },
+  {
+   "kind": "preservation",
+   "action": "add_counted_order",
+   "subject": "non_negative_amount",
+   "outcome": "counterexample",
+   "param": "create[0]"
+  },
+  {
+   "kind": "preservation",
+   "action": "add_counted_sum",
+   "subject": "non_negative_amount",
+   "outcome": "counterexample",
+   "param": "create[0]"
+  },
+  {
+   "kind": "preservation",
+   "action": "add_other_customer_order",
+   "subject": "non_negative_amount",
+   "outcome": "counterexample",
+   "param": "create[0]"
+  },
+  {
+   "kind": "preservation",
+   "action": "place_order",
+   "subject": "non_negative_amount",
+   "outcome": "counterexample",
+   "param": "create[0]"
+  },
+  {
+   "kind": "preservation",
+   "action": "place_order_unchecked",
+   "subject": "non_negative_amount",
+   "outcome": "counterexample",
+   "param": "create[0]"
+  },
+  {
+   "kind": "postcondition",
+   "action": "raise_limit",
+   "subject": "count(where(select(Order), o, o.amount > customer.credit_limit)) == 0",
+   "outcome": "inconclusive"
+  },
+  {
+   "kind": "postcondition",
+   "action": "remove_cheapest",
+   "subject": "min(where(select(Order), o, o.customer == customer.id), o, o.amount).value_or(order.amount) >= order.amount",
+   "outcome": "inconclusive"
+  }
+ ]
+}

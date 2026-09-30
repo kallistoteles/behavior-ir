@@ -21,9 +21,10 @@ pub use admit::{
     AdmissionError, AdmissionResult, admission_report, admission_result, admit, admit_wire,
 };
 pub use eval::{
-    Observed, canonical_entity, check_entity, decode_entity, evaluate, evaluate_observed,
-    evaluate_with,
+    IndexPlan, Observed, affects, canonical_entity, check_entity, check_global_invariants,
+    decode_entity, evaluate, evaluate_observed, evaluate_with, held_uniques, index_hint,
+    queried_types, query_matches,
 };
-pub use facts::{EvaluationFacts, FactError, Facts, RefEdge};
+pub use facts::{EvaluationFacts, FactError, Facts, QueryFact, QueryRequest, RefEdge};
 pub use intent::{IntentError, IntentRejection, evaluate_intent};
 pub use record::{DecisionRecord, ReplayResult, replay};

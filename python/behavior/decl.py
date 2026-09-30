@@ -208,9 +208,13 @@ def rule(fn: Callable[..., Any]) -> RuleFn:
 
 
 def invariant(fn: Callable[..., Any]) -> InvariantFn:
-    if len(inspect.signature(fn).parameters) != 1:
+    """An invariant over one entity (one entity parameter), or a module invariant (no
+    parameters, feature 007): a closed expression over entity sets, checked at genesis and on
+    every resulting state it can be affected by."""
+    if len(inspect.signature(fn).parameters) > 1:
         raise BehaviorDefinitionError(
-            "an invariant takes exactly one entity parameter", *InvariantFn(fn).loc
+            "an invariant takes one entity parameter, or none for a module invariant",
+            *InvariantFn(fn).loc,
         )
     return InvariantFn(fn)
 

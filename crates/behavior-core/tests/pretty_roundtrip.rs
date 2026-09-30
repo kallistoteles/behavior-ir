@@ -326,6 +326,20 @@ fn lit(t: &Type, v: &behavior_core::semantic::value::Value) -> String {
     full(&parse(&value_text(t, v)))
 }
 
+/// The tree form of a query (feature 007).
+fn qtree(q: &behavior_core::semantic::expr::QueryNode) -> String {
+    use behavior_core::semantic::expr::QueryKind;
+    match q.kind() {
+        QueryKind::Select => format!("select({})", q.entity()),
+        QueryKind::Where { base, param, body } => format!(
+            "where({}, {param}, {})",
+            qtree(base),
+            tree(body).replace("$c", param)
+        ),
+        QueryKind::Set { op, a, b } => format!("{}({}, {})", op.as_str(), qtree(a), qtree(b)),
+    }
+}
+
 fn tree(e: &Expr) -> String {
     match e.kind() {
         ExprKind::Lit(v) => lit(e.ty(), v),
@@ -363,6 +377,18 @@ fn tree(e: &Expr) -> String {
         ExprKind::Unwrap(a) => format!("underlying({})", tree(a)),
         ExprKind::Exists(a) => format!("exists({})", tree(a)),
         ExprKind::Referenced(a) => format!("referenced({})", tree(a)),
+        ExprKind::Count(q) => format!("count({})", qtree(q)),
+        ExprKind::Fold {
+            op,
+            query,
+            param,
+            body,
+        } => format!(
+            "{}({}, {param}, {})",
+            op.as_str(),
+            qtree(query),
+            tree(body).replace("$c", param)
+        ),
         ExprKind::Rescale { arg, rounding } => {
             format!("rescale({}, {}, {})", tree(arg), e.ty(), rounding.as_str())
         }
@@ -386,6 +412,7 @@ fn children(e: &Expr) -> Vec<&Expr> {
         | ExprKind::Rescale { arg: a, .. }
         | ExprKind::Exists(a)
         | ExprKind::Referenced(a) => vec![a],
+        ExprKind::Count(_) | ExprKind::Fold { .. } => Vec::new(),
         _ => vec![],
     }
 }

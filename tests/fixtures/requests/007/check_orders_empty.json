@@ -1,0 +1,22 @@
+{
+ "action": "check_orders",
+ "context": {},
+ "data_version": "1",
+ "facts": {
+  "universe": [
+   {
+    "entity": "Order",
+    "members": []
+   }
+  ]
+ },
+ "input": {},
+ "state": {
+  "customer": {
+   "credit_limit": "100.00",
+   "id": "c1",
+   "name": "Ada",
+   "region": "north"
+  }
+ }
+}

@@ -66,7 +66,8 @@ class Decision:
     record_json: str  # the canonical decision record, the audit artifact
     #: Creations and removals of an allowed decision (feature 006), in effect order.
     lifecycle: list[dict[str, Any]] = field(default_factory=list)
-    #: The evaluation facts the decision observed (feature 006), or an empty dict.
+    #: The evaluation facts the decision observed (feature 006; query and field facts, feature
+    #: 007), or an empty dict.
     facts: dict[str, Any] = field(default_factory=dict)
 
     @staticmethod

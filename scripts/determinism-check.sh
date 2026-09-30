@@ -45,9 +45,9 @@ if [ -f tests/fixtures/requests/expectations.json ]; then
   done < <(python3 -c 'import json,sys; [print(k, v["wire"]) for k, v in sorted(json.load(open(sys.argv[1])).items())]' tests/fixtures/requests/expectations.json)
 fi
 
-# Evaluation and replay of the feature 002, 003, 004 and 006 requests (constraints, fixed-scale
-# values, exact ratios, evaluation facts).
-for pair in "002:constraints" "003:fixed_scale" "004:exact_closure" "006:accounts"; do
+# Evaluation and replay of the feature 002, 003, 004, 006 and 007 requests (constraints,
+# fixed-scale values, exact ratios, evaluation facts, query facts).
+for pair in "002:constraints" "003:fixed_scale" "004:exact_closure" "006:accounts" "007:orders"; do
   dir="tests/fixtures/requests/${pair%%:*}"
   w="tests/fixtures/wire/valid/${pair##*:}.json"
   for r in "$dir"/*.json; do
@@ -82,6 +82,18 @@ if ! cmp -s "$tmp/lifecycle_a" "$tmp/lifecycle_b" || [ ! -s "$tmp/lifecycle_a" ]
 fi
 if [ "$(tail -n 3 "$tmp/lifecycle_a" | grep -c '"ok":true')" -ne 3 ]; then
   echo "LIFECYCLE REPLAY FAILED" >&2
+  fail=1
+fi
+# Relational queries (feature 007): a fixed history whose decisions depend on queries, and its
+# data and behavior replay reports.
+cargo run -q -p behavior-store --example query_history >"$tmp/query_a" 2>/dev/null || fail=1
+cargo run -q -p behavior-store --example query_history >"$tmp/query_b" 2>/dev/null || fail=1
+if ! cmp -s "$tmp/query_a" "$tmp/query_b" || [ ! -s "$tmp/query_a" ]; then
+  echo "NOT DETERMINISTIC: query history" >&2
+  fail=1
+fi
+if [ "$(tail -n 2 "$tmp/query_a" | grep -c '"ok":true')" -ne 2 ]; then
+  echo "QUERY REPLAY FAILED" >&2
   fail=1
 fi
 
@@ -124,6 +136,7 @@ if python3 -c "import behavior._engine" 2>/dev/null; then
   run_twice "examples.invoice.run" python3 -m examples.invoice.run
   run_twice "examples.project_margin.run" python3 -m examples.project_margin.run
   run_twice "examples.accounts.run" python3 -m examples.accounts.run
+  run_twice "examples.orders.run" python3 -m examples.orders.run
 fi
 
 if [ "$fail" -ne 0 ]; then

@@ -129,8 +129,60 @@ pub fn request_parts(
             }
         }
     }
+    // Feature 007: every queried type is given as a universe (the named members of the witness:
+    // bound entities and present slots), which also answers existence of that type.
+    for (entity, slots) in &enc.slots {
+        facts.existence.retain(|(e, _), _| e != entity);
+        let mut members = BTreeMap::new();
+        for (param, source) in &enc.world.bound {
+            if source == entity
+                && let Some(v) = sections[0].get(param.as_str())
+                && let Some(id) = v["id"].as_str()
+            {
+                members.insert(id.to_string(), v.clone());
+            }
+        }
+        for slot in slots {
+            if model.get(&slot.present)? != &SmtValue::Bool(true) {
+                continue;
+            }
+            let crate::encode::Binding::Entity { fields, .. } = &slot.binding else {
+                return None;
+            };
+            let item = enc.module.entity(entity)?;
+            let mut value = Map::new();
+            for (f, term) in fields {
+                let ty = item.field_type(f)?;
+                value.insert(f.clone(), term_json(model, &mut ids, ty, term)?);
+            }
+            let id = value.get("id")?.as_str()?.to_string();
+            members.insert(id, Json::Object(value));
+        }
+        facts.universe.insert(entity.clone(), members);
+    }
     let facts = (!facts.is_empty()).then(|| facts.to_json());
     Some((sections, facts))
+}
+
+/// The request value of a model term of type `ty` (identities renamed, options `null`).
+fn term_json(
+    model: &BTreeMap<String, SmtValue>,
+    ids: &mut Ids,
+    ty: &Type,
+    term: &Term,
+) -> Option<Json> {
+    let (present, val) = match term {
+        Term::Plain(t) => (true, model.get(t)?),
+        Term::Opt { some, val } => (model.get(some)? == &SmtValue::Bool(true), model.get(val)?),
+    };
+    Some(if !present {
+        Json::Null
+    } else if let Some(entity) = id_entity(ty) {
+        let SmtValue::Str(raw) = val else { return None };
+        json!(renamed(ids, entity, raw))
+    } else {
+        encode(ty, &model_value(ty, val)?)
+    })
 }
 
 fn sections_with(
@@ -214,7 +266,22 @@ pub fn confirm(
     }
     let record = behavior_core::evaluate(module, &request.to_string());
     let record = record.as_json().clone();
-    reproduces(&record, expect).then_some(Confirmed {
+    if !reproduces(&record, expect) {
+        return None;
+    }
+    // Feature 007: a counterexample confirmed on a universe is reported with the facts its
+    // evaluation observed (query and field facts), if those reproduce it on their own.
+    let mut facts = facts;
+    if !enc.slots.is_empty()
+        && let Some(observed) = record.get("facts")
+    {
+        request["facts"] = observed.clone();
+        let again = behavior_core::evaluate(module, &request.to_string());
+        if again.as_json() == &record {
+            facts = Some(observed.clone());
+        }
+    }
+    Some(Confirmed {
         state,
         input,
         context,

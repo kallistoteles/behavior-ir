@@ -58,3 +58,11 @@ Golden files are generated from the implementation, reviewed by a human, and the
 | `requests/006/` | Plain-evaluation requests with `facts` sections (existence, identities, references) and expectations in the 004 subset format |
 | `frozen_versions_006.json` | Behavior versions and item hashes of every fixture module before feature 006; modules without 006 forms must keep them (SC-006) |
 | `verify/lifecycle.expected.json` | Verification expectations for `wire/valid/accounts.json`: seeded defects (negative initial balance, unguarded removal of a referenced customer), proven guarded actions, and the real `switch_and_remove` counterexample |
+
+## Feature 007
+
+| Path | Content |
+|------|---------|
+| `wire/valid/orders.json` | Wire IR 0.6: customers, orders and employees queried as sets (`select`, `where`, set algebra, `count`, `any`, `all`, `sum`, `min`, `max`, `unique`), a module invariant, and the verification cases of SC-005 (invalid 0.6 cases in `wire/invalid/`: `query_*`, `nested_query`, `exists_in_filter`, `mixed_set_types`, `sum_of_string`, `min_of_unordered`, `module_invariant_reads_input`) |
+| `frozen_versions_007.json` | Behavior versions and item hashes of every fixture module before feature 007, including the 006 lifecycle module (SC-006) |
+| `requests/007/` | Plain-evaluation requests whose `facts` give complete `universe` sections per entity type, with expectations in the 004 subset format |

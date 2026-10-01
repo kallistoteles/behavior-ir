@@ -22,13 +22,22 @@ versions = json.loads(info)
 if versions["engine"] != version:
     sys.exit(f"release-build: engine version {versions['engine']} is not {version}")
 sums = dict(reversed(line.split()) for line in open(f"{out}/SHA256SUMS").read().splitlines())
+# The Python binding's version is the release version in Python's form (PEP 440), as maturin
+# writes it into the wheel (the same conversion as behavior._python_version).
+pre = {"alpha": "a", "a": "a", "beta": "b", "b": "b", "rc": "rc", "c": "rc"}
+core, plus, local = version.partition("+")
+release, dash, tail = core.partition("-")
+if dash:
+    label, _, number = tail.partition(".")
+    release += f"{pre[label]}{int(number)}"
+python_version = release + (plus + local if plus else "")
 manifest = {
     "format": "behavior.release_manifest.v1",
     "release": version,
     "tag": f"v{version}",
     "commit": commit,
     "versions": versions,
-    "bindings": {"python": {"version": version, "requires_python": ">=3.13"}},
+    "bindings": {"python": {"version": python_version, "requires_python": ">=3.13"}},
     "platforms": ["manylinux_2_28_x86_64"],
     "artifacts": [{"file": wheel, "sha256": sums[wheel]}],
     "solver": {"name": "z3", "version": "4.16.0"},

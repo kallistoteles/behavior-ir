@@ -34,3 +34,19 @@ def test_a_binding_refuses_a_different_engine() -> None:
     with pytest.raises(ImportError, match=r"0\.8\.0.*0\.9\.0"):
         behavior._check_versions("0.8.0", "0.9.0")
     behavior._check_versions("0.8.0", "0.8.0")
+
+
+@pytest.mark.parametrize(("cargo", "python"), [
+    ("0.8.0", "0.8.0"),
+    ("0.9.0-rc.1", "0.9.0rc1"),
+    ("0.9.0-alpha.2", "0.9.0a2"),
+    ("0.9.0-beta.3", "0.9.0b3"),
+    ("1.0.0+build.5", "1.0.0+build.5"),
+])
+def test_engine_versions_compare_in_python_form(cargo: str, python: str) -> None:
+    """The wheel's version is the Cargo version normalized to Python's form (PEP 440), so a
+    pre-release binding must accept its own engine (code review, feature 008)."""
+    assert behavior._python_version(cargo) == python
+    behavior._check_versions(python, cargo)
+    with pytest.raises(ImportError):
+        behavior._check_versions(python, "0.7.0")

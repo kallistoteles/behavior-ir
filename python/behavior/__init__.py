@@ -28,9 +28,27 @@ from .store import (
 )
 
 
+_PRE_RELEASE = {"alpha": "a", "a": "a", "beta": "b", "b": "b", "rc": "rc", "c": "rc"}
+
+
+def _python_version(cargo: str) -> str:
+    """A Cargo (SemVer) version in the form Python packaging gives it (PEP 440), e.g.
+    `0.9.0-rc.1` -> `0.9.0rc1`. The wheel's metadata carries this form; the engine reports the
+    Cargo form."""
+    version, plus, local = cargo.partition("+")
+    release, dash, pre = version.partition("-")
+    if dash:
+        label, _, number = pre.partition(".")
+        if label not in _PRE_RELEASE or not number.isdigit():
+            return cargo
+        release += f"{_PRE_RELEASE[label]}{int(number)}"
+    return release + (plus + local if plus else "")
+
+
 def _check_versions(binding: str, engine: str) -> None:
-    """A binding runs only on the engine of its own release (feature 008: exact match)."""
-    if binding != engine:
+    """A binding runs only on the engine of its own release (feature 008: exact match, compared
+    in Python's version form)."""
+    if binding != _python_version(engine):
         raise ImportError(
             f"behavior binding {binding} requires engine {binding}, but loaded engine {engine}"
         )

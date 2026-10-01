@@ -132,3 +132,16 @@
   - cross-entity filters;
   - bulk effects;
   - ordering.
+
+## Code review fixes (after v0.8.0)
+
+- **Pre-release versions failed the binding/engine check.** The wheel's version is the Cargo
+  version normalized by maturin to Python's form (PEP 440: `0.9.0-rc.1` becomes `0.9.0rc1`).
+  The engine reports the Cargo form, so `import behavior` would have raised `ImportError` for
+  any pre-release, and release-check step 7 would have failed.
+  - `_check_versions` now compares in Python's form (`_python_version`).
+  - `release-build.sh` writes the binding version in that form into `release-manifest.json`.
+  - Test: `test_versions.py::test_engine_versions_compare_in_python_form`, covering rc, alpha,
+    beta and build metadata.
+  - `v0.8.0` (a plain version, which is unaffected) keeps its tag; the fix ships with the next
+    release.

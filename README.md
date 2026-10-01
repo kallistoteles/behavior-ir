@@ -220,6 +220,44 @@ The same is available from Rust (`behavior_verify::{verify, governance::authoriz
 `specs/002-smt-verification/` (quickstart, contracts); overview, guarantees, and known
 limitations: `docs/verification.md`.
 
+## Using a release (feature 008)
+
+Applications use Behavior through a **release**: an immutable tag `vX.Y.Z` of this repository
+with prebuilt artifacts. The Python binding is one manylinux wheel for CPython ≥ 3.13. Install it
+pinned by file and hash; no Rust toolchain is needed:
+
+```text
+# requirements.txt of the application
+behavior @ file:///path/to/behavior-0.8.0-cp313-abi3-manylinux_2_28_x86_64.whl --hash=sha256:<from SHA256SUMS>
+```
+
+- **Install.** Run `pip install --require-hashes -r requirements.txt`. The wheel also installs
+  the `behavior` command line.
+- **Versions.** `behavior.versions()` and `behavior engine-info` report the release:
+  - the engine and binding versions, which must match exactly;
+  - the wire IR, record and store document formats it reads;
+  - the verifier version.
+- **Solver.** Verification needs the Z3 SMT solver at the version the release names (`z3` on
+  PATH, or `BEHAVIOR_Z3`). Without it, verification fails with an error naming the prerequisite;
+  nothing else needs it.
+- **Platforms.** Unsupported platforms and Python versions are refused by pip, by the wheel's
+  platform tag.
+- **Skills.** Agent skills for application builders live in [`skills/`](skills/README.md):
+  - authoring models;
+  - acting on verification results;
+  - building the host application;
+  - the semantic gap log that records what the language cannot express yet.
+
+  Copy them from the same release tag. Guidance for changing the engine itself is a separate
+  skill, in `.claude/skills/behavior-engine-development/`.
+- **Public API and versioning.** The public surface of a release is listed in
+  [`api/public-api.json`](api/public-api.json). The versioning policy is in
+  [`docs/versioning.md`](docs/versioning.md).
+
+Maintainers cut releases with `scripts/release.sh X.Y.Z`: build, check, then tag locally.
+`scripts/release-check.sh` installs the wheel into a clean environment outside the repository
+and requires byte-identical results with the in-repo build.
+
 ## Development
 
 Requires Nix with flakes. The dev shell provides the pinned Rust toolchain, Python 3.13,

@@ -1159,6 +1159,58 @@ def query_invalid_cases() -> dict[str, tuple[dict[str, object], list[dict[str, o
     return cases
 
 
+def only_actions(m: dict[str, object], names: list[str]) -> dict[str, object]:
+    """`m` with just the named actions, in their original order."""
+    m["actions"] = [a for a in m["actions"] if a["name"] in names]  # type: ignore[union-attr,index]
+    return m
+
+
+def orders_example_module() -> dict[str, object]:
+    """The orders domain exactly as `examples/orders` states it (feature 008 binding equivalence):
+    the fixture's actions, where `place_order` also requires a non-negative amount and
+    `check_orders` states four of the fixture's six conditions."""
+    m = only_actions(orders_module(), ["close_customer", "place_order", "check_orders",
+                                       "raise_limit", "hire", "renumber"])
+    for a in m["actions"]:  # type: ignore[union-attr]
+        if a["name"] == "place_order":
+            at = loc(Q, 46)
+            guard = op("ge", par("amount", at), lit(MONEY, "0", at), at=at)
+            a["preconditions"].insert(0, {"expr": guard, "loc": at})
+        if a["name"] == "check_orders":
+            c = a["preconditions"]
+            a["preconditions"] = [c[0], c[1], c[2], c[5]]
+    return m
+
+
+def binding_fixtures() -> dict[str, tuple[dict[str, object], dict[str, object]]]:
+    """Feature 008: the canonical wire module of each example domain, written directly (never
+    through the DSL), and one allowed and one refused request for it. Every language binding must
+    build the same module (the same hashes) and reach the same decisions."""
+    req = ROOT.parent / "requests"
+    load = lambda path: json.loads((req / path).read_text())  # noqa: E731
+    ledger_transfer = lambda amount: {  # noqa: E731
+        "action": "transfer", "data_version": "1", "context": {},
+        "state": {"from_": {"id": "a1", "active": True, "balance": "100.00"},
+                  "to": {"id": "a2", "active": True, "balance": "5.00"}},
+        "input": {"amount": amount}}
+    return {
+        "invoice": (invoice(), {"allowed": load("invoice_allowed.json"),
+                                "refused": load("invoice_above_limit.json")}),
+        "project_margin": (project_margin(), {"allowed": load("margin_flagged.json"),
+                                              "refused": load("margin_guarded_zero_revenue.json")}),
+        "accounts": (only_actions(accounts_module(), ["register_customer", "open_account",
+                                                      "deposit", "close_account",
+                                                      "remove_customer"]),
+                     {"allowed": load("006/remove_customer_free.json"),
+                      "refused": load("006/remove_customer_referenced.json")}),
+        "ledger": (only_actions(ledger_module(), ["transfer", "freeze"]),
+                   {"allowed": ledger_transfer("10.00"), "refused": ledger_transfer("500.00")}),
+        "orders": (orders_example_module(),
+                   {"allowed": load("007/close_customer_no_open.json"),
+                    "refused": load("007/close_customer_open.json")}),
+    }
+
+
 def main() -> None:
     valid = ROOT / "valid"
     invalid = ROOT / "invalid"
@@ -1180,6 +1232,11 @@ def main() -> None:
                            **lifecycle_invalid_cases(), **query_invalid_cases()}.items():
         dump(invalid / f"{name}.json", doc)
         dump(invalid / f"{name}.expected.json", {"errors": errors})
+    bindings = ROOT.parent / "bindings"
+    bindings.mkdir(exist_ok=True)
+    for name, (doc, requests) in binding_fixtures().items():
+        dump(bindings / f"{name}.json", doc)
+        dump(bindings / f"{name}.request.json", requests)
 
 
 if __name__ == "__main__":

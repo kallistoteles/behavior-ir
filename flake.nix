@@ -19,11 +19,11 @@
       devShells = forAll (pkgs:
         let
           rust = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
-          python = pkgs.python313.withPackages (ps: [ ps.pytest ps.mypy ps.jsonschema ps.pip ]);
+          python = pkgs.python313.withPackages (ps: [ ps.pytest ps.mypy ps.jsonschema ps.pip ps.auditwheel ]);
         in
         {
           default = pkgs.mkShell {
-            packages = [ rust python pkgs.maturin pkgs.z3 ];
+            packages = [ rust python pkgs.maturin pkgs.z3 pkgs.zig ];
             shellHook = ''
               if [ ! -d .venv ]; then
                 ${python}/bin/python -m venv --system-site-packages .venv

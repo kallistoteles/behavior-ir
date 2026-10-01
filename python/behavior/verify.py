@@ -6,6 +6,7 @@ counterexample by evaluation; Python only selects the profile and reads the atte
 
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass
 from typing import Any
 
@@ -50,6 +51,9 @@ def verify(
 ) -> Attestation:
     """Verifies `model`; raises BehaviorError if the solver is unavailable."""
     p = profile or Profile()
+    notice = _engine.solver_notice()
+    if notice is not None:
+        warnings.warn(notice, stacklevel=2)
     try:
         a = model.engine.verify(p.checks, p.rlimit, p.wall_clock_guard_ms, cache)
     except _engine.EngineError as e:

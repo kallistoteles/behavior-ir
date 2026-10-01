@@ -5,8 +5,10 @@ The DSL only constructs behavior; the Rust engine admits, hashes, and evaluates 
 
 from __future__ import annotations
 
+from importlib import metadata
 from typing import Any
 
+from . import _engine
 from .decl import action, constraint, derived, entity, field, invariant, rule
 from .errors import (
     BehaviorDefinitionError, BehaviorError, BehaviorInvalid, BehaviorTypeError, CommitRefused,
@@ -24,6 +26,26 @@ from .store import (
     CommitResult, ConformanceReport, Evaluation, InMemoryBackend, ReplayReport, StateRef, Store,
     replay_behavior, replay_data, run_conformance,
 )
+
+
+def _check_versions(binding: str, engine: str) -> None:
+    """A binding runs only on the engine of its own release (feature 008: exact match)."""
+    if binding != engine:
+        raise ImportError(
+            f"behavior binding {binding} requires engine {binding}, but loaded engine {engine}"
+        )
+
+
+__version__: str = metadata.version("behavior")
+_check_versions(__version__, _engine.ENGINE_VERSION)
+
+
+def versions() -> dict[str, Any]:
+    """Every version of this release: the engine, the wire IR, record and store document formats
+    it reads and writes, the verifier, and this binding (feature 008)."""
+    info: dict[str, Any] = _engine.engine_info()
+    info["binding"] = {"python": __version__}
+    return info
 
 
 def admit(model: BehaviorModule) -> AdmissionResult:
@@ -98,4 +120,5 @@ __all__ = [
     "field", "invariant", "nominal", "none", "not_", "or_", "requires", "rule", "set_",
     "underlying", "Ref", "create", "remove", "exists", "referenced",
     "Query", "select", "count", "any_", "all_", "sum_", "min_", "max_", "unique",
+    "versions", "__version__",
 ]

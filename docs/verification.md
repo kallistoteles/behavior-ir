@@ -8,6 +8,13 @@ Details: `specs/002-smt-verification/`, `specs/003-fixed-scale-decimals/`, and
 `specs/004-exact-arithmetic-closure/` (spec, research, contracts, quickstart,
 `checklists/implementation-review.md`).
 
+**The solver prerequisite (feature 008).** Verification runs the Z3 binary found through
+`BEHAVIOR_Z3`, or else `z3` on PATH. A release names the version it was verified with
+(`SUPPORTED_Z3` in `crates/behavior-verify/src/solver.rs`, currently 4.16.0).
+- **Missing solver.** The error reads "verification needs the Z3 SMT solver (supported:
+  4.16.0); install z3 on PATH or set BEHAVIOR_Z3". The CLI then exits 3.
+- **Another version.** It runs with a warning, and the attestation records the version that ran.
+
 ## Pipeline
 
 ```text

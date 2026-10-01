@@ -1,0 +1,1 @@
+{"allowed":{"action":"flag_project","context":{},"data_version":"7","input":{},"state":{"project":{"cost":"98","flagged":false,"id":"p1","revenue":"100"}}},"refused":{"action":"flag_project","context":{},"data_version":"7","input":{},"state":{"project":{"cost":"10","flagged":false,"id":"p1","revenue":"0"}}}}

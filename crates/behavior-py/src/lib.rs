@@ -1446,8 +1446,38 @@ fn run_conformance(factory: &Bound<'_, PyAny>) -> PyResult<Vec<(String, bool, St
         .collect())
 }
 
+/// Every version of this release (feature 008): the engine, its formats, the store documents and
+/// the verifier. The binding adds its own version in Python.
+#[pyfunction]
+fn engine_info(py: Python<'_>) -> PyResult<Py<PyAny>> {
+    to_py(py, &behavior_cli::engine_info())
+}
+
+/// The `behavior` command line (feature 008): the engine's own CLI, run in this process with
+/// `args` (without the program name). Returns the exit code.
+#[pyfunction]
+fn cli(py: Python<'_>, args: Vec<String>) -> u8 {
+    let argv: Vec<std::ffi::OsString> = std::iter::once("behavior".to_string())
+        .chain(args)
+        .map(Into::into)
+        .collect();
+    py.detach(|| behavior_cli::run(argv))
+}
+
+/// A notice if the solver verification would use is not the supported version (feature 008).
+#[pyfunction]
+fn solver_notice() -> Option<String> {
+    behavior_verify::solver::Z3Process::from_env()
+        .ok()
+        .and_then(|z| z.version_mismatch())
+}
+
 #[pymodule]
 fn _engine(m: &Bound<'_, pyo3::types::PyModule>) -> PyResult<()> {
+    m.add("ENGINE_VERSION", env!("CARGO_PKG_VERSION"))?;
+    m.add_function(wrap_pyfunction!(engine_info, m)?)?;
+    m.add_function(wrap_pyfunction!(cli, m)?)?;
+    m.add_function(wrap_pyfunction!(solver_notice, m)?)?;
     m.add_class::<PyType_>()?;
     m.add_class::<PyBuilder>()?;
     m.add_class::<PyNode>()?;

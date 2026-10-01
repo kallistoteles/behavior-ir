@@ -4,9 +4,12 @@ build-backend = "maturin"
 
 [project]
 name = "behavior"
-version = "0.1.0"
+dynamic = ["version"]
 requires-python = ">=3.13"
 description = "Python authoring layer for the verifiable Behavior IR"
+
+[project.scripts]
+behavior = "behavior._cli:main"
 
 [tool.maturin]
 python-source = "python"

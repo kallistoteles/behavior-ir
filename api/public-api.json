@@ -1,0 +1,177 @@
+{
+ "backend": {
+  "optional": [
+   "keys_by_field_at",
+   "used_at"
+  ],
+  "required": [
+   "commit",
+   "create",
+   "genesis",
+   "head",
+   "incoming_at",
+   "keys_at",
+   "record",
+   "removed_at",
+   "version",
+   "version_at"
+  ]
+ },
+ "cli": {
+  "admit": [
+   "<wire>"
+  ],
+  "authorize": [
+   "<wire>",
+   "<record>",
+   "--attestation",
+   "--now",
+   "--policy",
+   "--signature",
+   "--waiver"
+  ],
+  "engine-info": [],
+  "eval": [
+   "<wire>",
+   "<request>"
+  ],
+  "hashes": [
+   "<wire>"
+  ],
+  "intent": [
+   "<wire>",
+   "<intent>",
+   "<host>"
+  ],
+  "replay": [
+   "<wire>",
+   "<record>"
+  ],
+  "sign-waiver": [
+   "<waiver>",
+   "--seed"
+  ],
+  "verify": [
+   "<wire>",
+   "--cache",
+   "--out",
+   "--profile"
+  ],
+  "version": [
+   "<wire>"
+  ],
+  "waiver-hash": [
+   "<waiver>"
+  ]
+ },
+ "format": "behavior.public_api.v1",
+ "formats": {
+  "records": [
+   "0.4",
+   "0.5",
+   "0.6"
+  ],
+  "store_documents": [
+   "behavior.entity_content.v1",
+   "behavior.entity_version.v1",
+   "behavior.state.v1",
+   "behavior.evidence_policy.v1",
+   "behavior.store_genesis.v1",
+   "behavior.commit_bundle.v1",
+   "behavior.transition_record.v1",
+   "behavior.replay_report.v1"
+  ],
+  "wire_ir": {
+   "0.1": "schema/wire-ir-0.1.schema.json",
+   "0.2": "schema/wire-ir-0.2.schema.json",
+   "0.3": "schema/wire-ir-0.3.schema.json",
+   "0.4": "schema/wire-ir-0.4.schema.json",
+   "0.5": "schema/wire-ir-0.5.schema.json",
+   "0.6": "schema/wire-ir-0.6.schema.json"
+  }
+ },
+ "python": {
+  "module": "behavior",
+  "names": {
+   "AdmissionError": "class",
+   "AdmissionResult": "class",
+   "Attestation": "class",
+   "Authorization": "class",
+   "BehaviorDefinitionError": "exception",
+   "BehaviorError": "exception",
+   "BehaviorInvalid": "exception",
+   "BehaviorModule": "class",
+   "BehaviorTypeError": "exception",
+   "Change": "class",
+   "CommitRefused": "exception",
+   "CommitResult": "class",
+   "ConformanceReport": "class",
+   "Context": "type",
+   "Decision": "class",
+   "Evaluation": "class",
+   "Exact": "type",
+   "Id": "type",
+   "InMemoryBackend": "class",
+   "Input": "type",
+   "IntentRejected": "exception",
+   "Option": "type",
+   "Profile": "class",
+   "Query": "class",
+   "Ref": "type",
+   "ReplayReport": "class",
+   "ReplayResult": "class",
+   "Rounding": "class",
+   "StateConflict": "exception",
+   "StateRef": "class",
+   "Store": "class",
+   "TraceStep": "class",
+   "__version__": "value",
+   "action": "decorator",
+   "admit": "function",
+   "all_": "function",
+   "and_": "function",
+   "any_": "function",
+   "authorize": "function",
+   "constraint": "decorator",
+   "count": "function",
+   "create": "function",
+   "derived": "decorator",
+   "ensures": "function",
+   "entity": "decorator",
+   "evaluate": "function",
+   "evaluate_intent": "function",
+   "exists": "function",
+   "field": "function",
+   "invariant": "decorator",
+   "max_": "function",
+   "min_": "function",
+   "nominal": "function",
+   "none": "value",
+   "not_": "function",
+   "or_": "function",
+   "referenced": "function",
+   "remove": "function",
+   "replay": "function",
+   "replay_behavior": "function",
+   "replay_data": "function",
+   "requires": "function",
+   "rescale": "function",
+   "rule": "decorator",
+   "run_conformance": "function",
+   "select": "function",
+   "set_": "function",
+   "sign_waiver": "function",
+   "sum_": "function",
+   "underlying": "function",
+   "unique": "function",
+   "verify": "function",
+   "versions": "function",
+   "waiver_hash": "function"
+  }
+ },
+ "release": "0.8.0",
+ "solver": {
+  "name": "z3",
+  "version": "4.16.0"
+ }
+}

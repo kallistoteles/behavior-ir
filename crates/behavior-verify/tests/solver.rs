@@ -53,3 +53,37 @@ fn tiny_resource_limit_is_unknown() {
         other => panic!("{other:?}"),
     }
 }
+
+// --- feature 008: the solver prerequisite ---------------------------------------------------
+
+#[test]
+fn a_missing_solver_names_the_prerequisite() {
+    let err = Z3Process::new("/nonexistent/z3".into(), std::time::Duration::from_secs(1))
+        .unwrap_err()
+        .to_string();
+    assert!(
+        err.starts_with(
+            "verification needs the Z3 SMT solver (supported: 4.16.0); install z3 on PATH or set BEHAVIOR_Z3"
+        ),
+        "{err}"
+    );
+    assert!(err.contains("/nonexistent/z3"), "the cause is kept: {err}");
+}
+
+#[test]
+fn another_solver_version_is_reported() {
+    assert_eq!(behavior_verify::solver::SUPPORTED_Z3, "4.16.0");
+    assert_eq!(z3().version_mismatch(), None);
+    let dir = std::env::temp_dir().join(format!("behavior-fake-z3-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let fake = dir.join("z3");
+    std::fs::write(&fake, "#!/bin/sh\necho 'Z3 version 4.15.0 - 64 bit'\n").unwrap();
+    use std::os::unix::fs::PermissionsExt;
+    std::fs::set_permissions(&fake, std::fs::Permissions::from_mode(0o755)).unwrap();
+    let old = Z3Process::new(fake, std::time::Duration::from_secs(1)).unwrap();
+    let notice = old.version_mismatch().unwrap();
+    assert!(
+        notice.contains("4.15.0") && notice.contains("4.16.0"),
+        "{notice}"
+    );
+}

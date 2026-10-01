@@ -18,6 +18,18 @@ pub const TAG_COMMIT_BUNDLE: &str = "behavior.commit_bundle.v1";
 pub const TAG_TRANSITION_RECORD: &str = "behavior.transition_record.v1";
 pub const TAG_REPLAY_REPORT: &str = "behavior.replay_report.v1";
 
+/// Every store document tag (feature 008: reported by `behavior engine-info`).
+pub const DOCUMENT_TAGS: &[&str] = &[
+    TAG_ENTITY_CONTENT,
+    TAG_ENTITY_VERSION,
+    TAG_STATE,
+    TAG_EVIDENCE_POLICY,
+    TAG_GENESIS,
+    TAG_COMMIT_BUNDLE,
+    TAG_TRANSITION_RECORD,
+    TAG_REPLAY_REPORT,
+];
+
 /// Errors of the store and its documents (data-model.md → Store results and errors).
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum StoreError {

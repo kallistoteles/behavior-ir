@@ -52,9 +52,16 @@ pub trait Solver {
     fn version(&self) -> String;
 }
 
+/// The Z3 version this release is verified with (feature 008). Another version may run, but may
+/// prove or leave inconclusive different checks; every attestation records the version it ran.
+pub const SUPPORTED_Z3: &str = "4.16.0";
+
 #[derive(Debug, thiserror::Error)]
 pub enum SolverError {
-    #[error("cannot run the solver at {0}: {1}")]
+    /// The solver could not be started: the one external prerequisite of verification.
+    #[error(
+        "verification needs the Z3 SMT solver (supported: {SUPPORTED_Z3}); install z3 on PATH or set BEHAVIOR_Z3 (cannot run {0}: {1})"
+    )]
     Spawn(String, String),
 }
 
@@ -87,6 +94,17 @@ impl Z3Process {
             path,
             version: format!("z3 {number}"),
             guard,
+        })
+    }
+
+    /// A notice if the solver is not the supported version, or `None`.
+    pub fn version_mismatch(&self) -> Option<String> {
+        let supported = format!("z3 {SUPPORTED_Z3}");
+        (self.version != supported).then(|| {
+            format!(
+                "solver {} is not the supported z3 {SUPPORTED_Z3}; results may differ (the attestation records the version)",
+                self.version
+            )
         })
     }
 

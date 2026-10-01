@@ -28,3 +28,26 @@ pub use eval::{
 pub use facts::{EvaluationFacts, FactError, Facts, QueryFact, QueryRequest, RefEdge};
 pub use intent::{IntentError, IntentRejection, evaluate_intent};
 pub use record::{DecisionRecord, ReplayResult, replay};
+
+/// The engine version and the document formats it reads and writes (feature 008): the wire IR
+/// versions and the decision record versions, in order, taken from the constants that implement
+/// them.
+pub fn format_versions() -> serde_json::Value {
+    use eval::{RECORD_VERSION, RECORD_VERSION_LIFECYCLE, RECORD_VERSION_QUERIES};
+    use wire::{
+        IR_VERSION, IR_VERSION_CONSTRAINTS, IR_VERSION_EXACT, IR_VERSION_FIXED_SCALE,
+        IR_VERSION_LIFECYCLE, IR_VERSION_QUERIES,
+    };
+    serde_json::json!({
+        "engine": env!("CARGO_PKG_VERSION"),
+        "wire_ir": [
+            IR_VERSION,
+            IR_VERSION_CONSTRAINTS,
+            IR_VERSION_FIXED_SCALE,
+            IR_VERSION_EXACT,
+            IR_VERSION_LIFECYCLE,
+            IR_VERSION_QUERIES,
+        ],
+        "records": [RECORD_VERSION, RECORD_VERSION_LIFECYCLE, RECORD_VERSION_QUERIES],
+    })
+}

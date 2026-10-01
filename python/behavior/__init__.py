@@ -9,6 +9,7 @@ from importlib import metadata
 from typing import Any
 
 from . import _engine
+from ._versions import python_version
 from .decl import action, constraint, derived, entity, field, invariant, rule
 from .errors import (
     BehaviorDefinitionError, BehaviorError, BehaviorInvalid, BehaviorTypeError, CommitRefused,
@@ -28,21 +29,13 @@ from .store import (
 )
 
 
-_PRE_RELEASE = {"alpha": "a", "a": "a", "beta": "b", "b": "b", "rc": "rc", "c": "rc"}
-
-
 def _python_version(cargo: str) -> str:
-    """A Cargo (SemVer) version in the form Python packaging gives it (PEP 440), e.g.
-    `0.9.0-rc.1` -> `0.9.0rc1`. The wheel's metadata carries this form; the engine reports the
-    Cargo form."""
-    version, plus, local = cargo.partition("+")
-    release, dash, pre = version.partition("-")
-    if dash:
-        label, _, number = pre.partition(".")
-        if label not in _PRE_RELEASE or not number.isdigit():
-            return cargo
-        release += f"{_PRE_RELEASE[label]}{int(number)}"
-    return release + (plus + local if plus else "")
+    """The engine's Cargo version in Python's form (see `_versions.python_version`); a version
+    without a Python equivalent is returned unchanged, so it can only mismatch."""
+    try:
+        return python_version(cargo)
+    except ValueError:
+        return cargo
 
 
 def _check_versions(binding: str, engine: str) -> None:

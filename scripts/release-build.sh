@@ -23,14 +23,9 @@ if versions["engine"] != version:
     sys.exit(f"release-build: engine version {versions['engine']} is not {version}")
 sums = dict(reversed(line.split()) for line in open(f"{out}/SHA256SUMS").read().splitlines())
 # The Python binding's version is the release version in Python's form (PEP 440), as maturin
-# writes it into the wheel (the same conversion as behavior._python_version).
-pre = {"alpha": "a", "a": "a", "beta": "b", "b": "b", "rc": "rc", "c": "rc"}
-core, plus, local = version.partition("+")
-release, dash, tail = core.partition("-")
-if dash:
-    label, _, number = tail.partition(".")
-    release += f"{pre[label]}{int(number)}"
-python_version = release + (plus + local if plus else "")
+# writes it into the wheel: the package's own converter, loaded without importing the package.
+import runpy
+python_version = runpy.run_path("python/behavior/_versions.py")["python_version"](version)
 manifest = {
     "format": "behavior.release_manifest.v1",
     "release": version,

@@ -136,6 +136,12 @@ if python3 -c "import behavior._engine" 2>/dev/null; then
   # The consumer smoke scenario of a release (feature 008), run from outside the repository.
   cp release/smoke.py "$tmp/smoke.py"
   run_twice "release/smoke.py" python3 "$tmp/smoke.py"
+  # Deterministic is not enough: the scenario must also succeed (a failed check exits 1 the same
+  # way every time).
+  if ! python3 "$tmp/smoke.py" >/dev/null 2>"$tmp/smoke.err" || ! grep -q 'smoke: OK' "$tmp/smoke.err"; then
+    echo "SMOKE SCENARIO FAILED: $(tail -n 3 "$tmp/smoke.err")" >&2
+    fail=1
+  fi
   run_twice "examples.invoice.run" python3 -m examples.invoice.run
   run_twice "examples.project_margin.run" python3 -m examples.project_margin.run
   run_twice "examples.accounts.run" python3 -m examples.accounts.run

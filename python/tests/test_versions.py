@@ -42,6 +42,11 @@ def test_a_binding_refuses_a_different_engine() -> None:
     ("0.9.0-alpha.2", "0.9.0a2"),
     ("0.9.0-beta.3", "0.9.0b3"),
     ("1.0.0+build.5", "1.0.0+build.5"),
+    ("0.9.0-alpha", "0.9.0a0"),
+    ("0.9.0-rc1", "0.9.0rc1"),
+    ("0.9.0-RC.1", "0.9.0rc1"),
+    ("0.9.0-beta.2", "0.9.0b2"),
+    ("0.9.0-rc.1+build.7", "0.9.0rc1+build.7"),
 ])
 def test_engine_versions_compare_in_python_form(cargo: str, python: str) -> None:
     """The wheel's version is the Cargo version normalized to Python's form (PEP 440), so a
@@ -50,3 +55,12 @@ def test_engine_versions_compare_in_python_form(cargo: str, python: str) -> None
     behavior._check_versions(python, cargo)
     with pytest.raises(ImportError):
         behavior._check_versions(python, "0.7.0")
+
+
+def test_unsupported_pre_release_labels_are_refused() -> None:
+    """A version Python packaging cannot represent is refused by name, never passed through."""
+    from behavior._versions import python_version
+
+    for unsupported in ["0.9.0-snapshot", "0.9.0-dev.4", "0.9.0-rc.x"]:
+        with pytest.raises(ValueError, match=unsupported.replace(".", r"\.")):
+            python_version(unsupported)

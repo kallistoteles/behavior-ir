@@ -145,3 +145,16 @@
     beta and build metadata.
   - `v0.8.0` (a plain version, which is unaffected) keeps its tag; the fix ships with the next
     release.
+- **Pre-release forms beyond `-label.N`** (second review). `0.9.0-alpha` and `0.9.0-rc1` were
+  not converted, so the package would refuse its own engine, and `release-build.sh` would crash
+  on them.
+  - The conversion now lives once, in `python/behavior/_versions.py`. The package uses it, and
+    `release-build.sh` loads the same file by path.
+  - It accepts `alpha`/`a`, `beta`/`b` and `rc`/`c`, in any case, with or without a separator or
+    number.
+  - Any other label (for example `dev`, whose PEP 440 form maturin may write differently) is
+    refused by name. A release with such a version fails at build time instead of producing an
+    unimportable wheel.
+- **The determinism gate did not require the smoke scenario to succeed.** `run_twice` compares
+  two runs, so a scenario that failed the same way twice passed. `determinism-check.sh` now also
+  requires exit 0 and the `smoke: OK` line.

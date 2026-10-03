@@ -8,6 +8,7 @@ pub mod confirm;
 pub mod encode;
 pub mod governance;
 pub mod hashing;
+pub mod migration;
 pub mod smt;
 pub mod solver;
 
@@ -22,8 +23,10 @@ use crate::checks::{CheckResult, Ctx};
 use crate::hashing::{TAG_PROFILE, TAG_VERIFICATION, document_hash};
 use crate::solver::Solver;
 
+pub use migration::verify_migration;
+
 /// Version of the verifier; part of every check key and attestation.
-pub const VERIFIER_VERSION: &str = "0.4.0";
+pub const VERIFIER_VERSION: &str = "0.5.0";
 
 /// The kinds of checks a profile can select (research R6).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]

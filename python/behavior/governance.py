@@ -83,3 +83,30 @@ def authorize(
     except _engine.EngineError as e:
         raise _invalid(e) from None
     return Authorization(a.decision, a.data, a.json)
+
+
+def authorize_migration(
+    migration: Any,
+    store: Any,
+    *,
+    policy: dict[str, Any],
+    attestation: Attestation | None = None,
+    waivers: list[dict[str, Any]] | None = None,
+    signatures: list[dict[str, Any]] | None = None,
+    now: str,
+) -> Authorization:
+    """Decides whether `migration` may be applied to `store` in its current state under the
+    execution `policy` at `now` (feature 009). The authorization binds the migration and the
+    store state; pass it with the attestation as `evidence` to `Store.migrate`."""
+    try:
+        a = migration.engine.authorize(
+            policy,
+            store.data_version(),
+            attestation.json if attestation else None,
+            waivers or [],
+            signatures or [],
+            now,
+        )
+    except _engine.EngineError as e:
+        raise _invalid(e) from None
+    return Authorization(a.decision, a.data, a.json)

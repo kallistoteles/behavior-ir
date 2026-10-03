@@ -43,9 +43,17 @@
    "<intent>",
    "<host>"
   ],
+  "migration": [
+   "admit",
+   "apply",
+   "verify"
+  ],
   "replay": [
    "<wire>",
    "<record>"
+  ],
+  "schema-hash": [
+   "<wire>"
   ],
   "sign-waiver": [
    "<waiver>",
@@ -114,6 +122,8 @@
    "InMemoryBackend": "class",
    "Input": "type",
    "IntentRejected": "exception",
+   "Migration": "class",
+   "MigrationAdmission": "class",
    "Option": "type",
    "Profile": "class",
    "Query": "class",
@@ -121,6 +131,7 @@
    "ReplayReport": "class",
    "ReplayResult": "class",
    "Rounding": "class",
+   "SchemaRef": "class",
    "StateConflict": "exception",
    "StateRef": "class",
    "Store": "class",
@@ -131,13 +142,16 @@
    "all_": "function",
    "and_": "function",
    "any_": "function",
+   "apply_migration": "function",
    "authorize": "function",
+   "authorize_migration": "function",
    "constraint": "decorator",
    "count": "function",
    "create": "function",
    "derived": "decorator",
    "ensures": "function",
    "entity": "decorator",
+   "enum_map": "function",
    "evaluate": "function",
    "evaluate_intent": "function",
    "exists": "function",
@@ -161,15 +175,18 @@
    "select": "function",
    "set_": "function",
    "sign_waiver": "function",
+   "strict_enum_map": "function",
+   "strict_unwrap": "function",
    "sum_": "function",
    "underlying": "function",
    "unique": "function",
    "verify": "function",
+   "verify_migration": "function",
    "versions": "function",
    "waiver_hash": "function"
   }
  },
- "release": "0.8.0",
+ "release": "0.9.0",
  "solver": {
   "name": "z3",
   "version": "4.16.0"

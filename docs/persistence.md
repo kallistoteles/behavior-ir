@@ -1,4 +1,4 @@
-# The persistence contract (features 005–007)
+# The persistence contract (features 005–007, 009)
 
 > **The engine defines the canonical state-transition and persistence contract; hosts choose how
 > that contract is stored.**
@@ -63,7 +63,7 @@ and `commit(expected_last_record, versions, removals, ref_changes, record, new_h
   replay.
 
 `InMemoryBackend` is the reference backend. `behavior_store::conformance::run(factory)` (Python:
-`run_conformance(factory)`) runs 28 named cases against any backend. Faults and interleavings are
+`run_conformance(factory)`) runs 30 named cases against any backend. Faults and interleavings are
 injected around the backend, so no hooks are needed. Twelve deliberately broken backends each fail
 their designated case, and a backend listing keys in reverse order passes every case.
 
@@ -157,6 +157,43 @@ over it) is a pure read of the evaluated state. Details: `specs/007-relational-q
 **Trust boundary.** As with existence facts, a recorded membership is what the store answered;
 it is not a standalone (non-)membership proof.
 
+## Schema identity and migrations (feature 009)
+
+> State is meaningful only under an exact schema; schema changes never reinterpret history.
+
+- **Store schema:** the entity declarations (fields, field types with the enums and nominals they
+  use, references). Its identity is the **SchemaHash** (`behavior.store_schema.v1` over the
+  sorted entity name → declaration hash pairs), separate from the behavior version. Behavior-only
+  changes leave it unchanged.
+- **Exact binding:** evaluation and commit require the module's SchemaHash to equal the store's
+  schema at the evaluated position, over every entity type. A mismatch is `SCHEMA_MISMATCH`
+  (with every differing type and both declarations) before anything runs. This replaced 0.8's
+  touched-types comparison.
+- **Schema history:** `Head.schema` names the schema in force since the last migration (it is
+  absent while the store is under its genesis schema, so heads of stores that never migrate keep
+  their bytes). A migration record carries the previous schema, so `schema_at(position)` and
+  `schema_history()` walk back through migration records only. An entity version is
+  content-hashed under the declaration in force at the position that created it.
+- **Migration transition:** `store.migrate(migration, source, target, …)` reads the complete
+  state at the head and applies the migration to it. That means validating the source state under
+  the source rules, checking the requirements, transforming every entity of every changed type
+  and validating the target state. It commits the new versions (`revision + 1`, created at the
+  new position), the reference-index changes, a **migration record** (`kind: "migration"`, a
+  `MigrationBundle` instead of a commit bundle; action records keep their bytes) and a head naming
+  the new schema, with one compare-and-set. A refusal leaves the store unchanged. The identity
+  registry continues across it.
+- **Evidence:** the evidence policy's optional `migration` section sets what a migration needs.
+  Without it, a migration needs what an action needs. A migration authorization
+  (`governance::authorize_migration`) binds the migration hash and the store state. Runtime
+  validation is never waivable.
+- **Replay:** data replay walks the schema chain itself (never trusting the head). It checks each
+  migration record's previous and target schema, which entities changed, their content hashes
+  under the target declarations, and the state identity. Behavior replay re-runs each migration on
+  the parent state (`replay_behavior_with`, given the migrations by hash). Conformance:
+  `migration_atomicity`, `schema_history_consistency`.
+
+Details: `specs/009-schema-evolution/`.
+
 ## Evidence
 
 Every store has a content-addressed evidence policy, fixed in its genesis. It requires either no
@@ -191,3 +228,7 @@ This ties into the open feature-002 risks (unsigned attestations, trusted cache)
   the verifier ever gains heavy dependencies. Today it links no solver.
 - **Changing a store's evidence policy:** the choice among a new store, a configuration transition
   or a versioned policy is left open. Records cite the exact policy, so history stays unambiguous.
+- **Schema evolution (feature 009):** provably lossless evolution without rewriting data (e.g.
+  appending an optional field read as absent), relational migrations that read the immutable
+  source state are follow-ups. Reference replay across a schema change takes the module of each
+  schema (`replay_index_with`).

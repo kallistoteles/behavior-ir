@@ -52,7 +52,7 @@ pub struct AdmissionResult {
 }
 
 impl AdmissionResult {
-    fn failed(mut errors: Vec<AdmissionError>) -> Self {
+    pub(crate) fn failed(mut errors: Vec<AdmissionError>) -> Self {
         errors.sort_by(|a, b| {
             let key = |e: &AdmissionError| {
                 (

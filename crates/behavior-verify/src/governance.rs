@@ -431,57 +431,22 @@ const FAILURES: [&str; 5] = [
     "waiver_expired",
 ];
 
-/// Decides whether the transition in `record` may be committed under `policy`.
+/// Judges an attestation of `subject` (the attestation's `subject_key`) under an execution
+/// policy: verified, or every blocking finding waived as the policy allows. Adds the refusal
+/// reasons and the waivers used. Shared by actions (`behavior_version`) and migrations
+/// (`migration_hash`; a migration waiver names the migration hash as its subject).
 #[allow(clippy::too_many_arguments)]
-pub fn authorize(
-    policy_json: &str,
-    module: &Module,
-    record_json: &str,
-    attestation_json: Option<&str>,
-    waivers_json: &[String],
-    signed_json: &[String],
+fn judge(
+    policy: &Policy,
+    attestation: &Option<Json>,
+    subject_key: &str,
+    subject: &str,
+    waivers: &BTreeMap<String, Waiver>,
+    signed: &[Signed],
     now: &str,
-) -> R<Authorization> {
-    let policy = decode_policy(policy_json)?;
-    timestamp("time", now)?;
-    let record = Json::Object(parse("record", record_json)?);
-    let attestation = attestation_json.map(decode_attestation).transpose()?;
-    let mut waivers: BTreeMap<String, Waiver> = BTreeMap::new();
-    for w in waivers_json {
-        let w = decode_waiver(w)?;
-        waivers.insert(w.hash.clone(), w);
-    }
-    let mut signed: Vec<Signed> = signed_json
-        .iter()
-        .map(|s| decode_signed(s))
-        .collect::<R<_>>()?;
-    signed.sort_by(|a, b| (&a.key_id, &a.signature).cmp(&(&b.key_id, &b.signature)));
-
-    let behavior_version = module.behavior_version();
-    let transition_hash = document_hash(TAG_TRANSITION, &record)
-        .map_err(|e| GovernanceError::Invalid("record", e.to_string()))?;
-    let mut reasons = Vec::new();
-    let mut used = Vec::new();
-
-    if record["behavior_version"] != behavior_version.as_str() {
-        reasons.push(reason(
-            "behavior_mismatch",
-            "the record was made by another behavior version".into(),
-            None,
-        ));
-    } else if !behavior_core::replay(module, record_json).matches {
-        reasons.push(reason(
-            "record_not_reproducible",
-            "replaying the record gives a different outcome".into(),
-            None,
-        ));
-    } else if record["result"] != "ALLOW" {
-        reasons.push(reason(
-            "nothing_to_commit",
-            format!("the record's result is {}", record["result"]),
-            None,
-        ));
-    }
+    reasons: &mut Vec<Json>,
+    used: &mut Vec<Json>,
+) {
     match &attestation {
         _ if !reasons.is_empty() => {}
         None => reasons.push(reason(
@@ -489,9 +454,12 @@ pub fn authorize(
             "no verification attestation".into(),
             None,
         )),
-        Some(a) if a["behavior_version"] != behavior_version.as_str() => reasons.push(reason(
+        Some(a) if a[subject_key] != subject => reasons.push(reason(
             "unverified",
-            "the attestation is for another behavior version".into(),
+            format!(
+                "the attestation is for another {}",
+                subject_key.replace('_', " ")
+            ),
             None,
         )),
         Some(a)
@@ -537,7 +505,7 @@ pub fn authorize(
                     .values()
                     .filter(|w| {
                         w.finding_hash == fh
-                            && a["behavior_version"] == w.behavior_version.as_str()
+                            && a[subject_key] == w.behavior_version.as_str()
                             && a["profile"]["hash"] == w.profile_hash.as_str()
                             && a["verifier_version"] == w.verifier_version.as_str()
                     })
@@ -601,6 +569,70 @@ pub fn authorize(
             }
         }
     }
+}
+
+/// Decides whether the transition in `record` may be committed under `policy`.
+#[allow(clippy::too_many_arguments)]
+pub fn authorize(
+    policy_json: &str,
+    module: &Module,
+    record_json: &str,
+    attestation_json: Option<&str>,
+    waivers_json: &[String],
+    signed_json: &[String],
+    now: &str,
+) -> R<Authorization> {
+    let policy = decode_policy(policy_json)?;
+    timestamp("time", now)?;
+    let record = Json::Object(parse("record", record_json)?);
+    let attestation = attestation_json.map(decode_attestation).transpose()?;
+    let mut waivers: BTreeMap<String, Waiver> = BTreeMap::new();
+    for w in waivers_json {
+        let w = decode_waiver(w)?;
+        waivers.insert(w.hash.clone(), w);
+    }
+    let mut signed: Vec<Signed> = signed_json
+        .iter()
+        .map(|s| decode_signed(s))
+        .collect::<R<_>>()?;
+    signed.sort_by(|a, b| (&a.key_id, &a.signature).cmp(&(&b.key_id, &b.signature)));
+
+    let behavior_version = module.behavior_version();
+    let transition_hash = document_hash(TAG_TRANSITION, &record)
+        .map_err(|e| GovernanceError::Invalid("record", e.to_string()))?;
+    let mut reasons = Vec::new();
+    let mut used = Vec::new();
+
+    if record["behavior_version"] != behavior_version.as_str() {
+        reasons.push(reason(
+            "behavior_mismatch",
+            "the record was made by another behavior version".into(),
+            None,
+        ));
+    } else if !behavior_core::replay(module, record_json).matches {
+        reasons.push(reason(
+            "record_not_reproducible",
+            "replaying the record gives a different outcome".into(),
+            None,
+        ));
+    } else if record["result"] != "ALLOW" {
+        reasons.push(reason(
+            "nothing_to_commit",
+            format!("the record's result is {}", record["result"]),
+            None,
+        ));
+    }
+    judge(
+        &policy,
+        &attestation,
+        "behavior_version",
+        &behavior_version,
+        &waivers,
+        &signed,
+        now,
+        &mut reasons,
+        &mut used,
+    );
     let decision = if reasons.is_empty() {
         "allow"
     } else {
@@ -613,6 +645,81 @@ pub fn authorize(
         "authorization_version": "1",
         "behavior_version": behavior_version,
         "transition_hash": transition_hash,
+        "policy_hash": policy.hash,
+        "verification": attestation.as_ref().map(|a| json!({"attestation_hash": a["hash"], "result": a["result"]})),
+        "waivers_used": used,
+        "now": now,
+        "decision": decision,
+        "reasons": reasons,
+    });
+    let hash = document_hash(TAG_AUTHORIZATION, &value)
+        .map_err(|e| GovernanceError::Invalid("authorization", e.to_string()))?;
+    if let Json::Object(m) = &mut value {
+        m.insert("hash".into(), json!(hash));
+    }
+    Ok(Authorization {
+        value,
+        decision: decision.to_string(),
+        hash,
+    })
+}
+
+/// Decides whether a migration may be committed on one store state under an execution policy
+/// (feature 009, research R8). The authorization binds the migration (its hash, source and target
+/// schemas) and the store state it is applied to (`data_version`); like an action's, it needs a
+/// verified attestation of that migration, or the policy's waivers for its blocking findings.
+/// Runtime validation at application is never replaced by it.
+pub fn authorize_migration(
+    policy_json: &str,
+    migration: &behavior_core::migration::Migration,
+    data_version: &str,
+    attestation_json: Option<&str>,
+    waivers_json: &[String],
+    signed_json: &[String],
+    now: &str,
+) -> R<Authorization> {
+    let policy = decode_policy(policy_json)?;
+    timestamp("time", now)?;
+    let attestation = attestation_json.map(decode_attestation).transpose()?;
+    let mut waivers: BTreeMap<String, Waiver> = BTreeMap::new();
+    for w in waivers_json {
+        let w = decode_waiver(w)?;
+        waivers.insert(w.hash.clone(), w);
+    }
+    let mut signed: Vec<Signed> = signed_json
+        .iter()
+        .map(|s| decode_signed(s))
+        .collect::<R<_>>()?;
+    signed.sort_by(|a, b| (&a.key_id, &a.signature).cmp(&(&b.key_id, &b.signature)));
+    let migration_hash = migration.hash();
+    let mut reasons = Vec::new();
+    let mut used = Vec::new();
+    judge(
+        &policy,
+        &attestation,
+        "migration_hash",
+        &migration_hash,
+        &waivers,
+        &signed,
+        now,
+        &mut reasons,
+        &mut used,
+    );
+    let decision = if reasons.is_empty() {
+        "allow"
+    } else {
+        "refuse"
+    };
+    if decision == "refuse" {
+        used.clear();
+    }
+    let mut value = json!({
+        "authorization_version": "1",
+        "kind": "migration",
+        "migration_hash": migration_hash,
+        "source": migration.source_schema(),
+        "target": migration.target_schema(),
+        "data_version": data_version,
         "policy_hash": policy.hash,
         "verification": attestation.as_ref().map(|a| json!({"attestation_hash": a["hash"], "result": a["result"]})),
         "waivers_used": used,

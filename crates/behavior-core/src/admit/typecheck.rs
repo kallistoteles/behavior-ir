@@ -28,6 +28,8 @@ struct Ctx<'a> {
     queries: bool,
     /// Inside a lambda body: only candidate-local reads (feature 007).
     lambda: bool,
+    /// A migration expression (feature 009): `strict_unwrap` and enum maps are allowed.
+    migration: bool,
 }
 
 /// Whether an expression (through the derived values it references) uses a relational form, and
@@ -70,7 +72,9 @@ fn rename_candidate(w: &WExpr, from: &str) -> WExpr {
             WExprKind::Op { args, .. } => args.iter_mut().for_each(|a| walk(a, from)),
             WExprKind::In { arg, .. }
             | WExprKind::Wrap { arg, .. }
-            | WExprKind::Rescale { arg, .. } => walk(arg, from),
+            | WExprKind::Rescale { arg, .. }
+            | WExprKind::StrictUnwrap(arg)
+            | WExprKind::EnumMap { arg, .. } => walk(arg, from),
             WExprKind::Lambda { query, body, .. } => {
                 walk(query, from);
                 walk(body, from);
@@ -622,6 +626,34 @@ impl Ctx<'_> {
                 };
                 Some(Expr::new(kind, Type::Nominal(n), loc.clone()))
             }
+            WExprKind::StrictUnwrap(arg) => {
+                if !self.migration {
+                    self.err(
+                        "TYPE_MISMATCH",
+                        "`strict_unwrap` is available only in migrations",
+                        loc,
+                    );
+                    return None;
+                }
+                let a = self.expr(arg)?;
+                let Type::Option(inner) = &a.ty else {
+                    let msg = format!("`strict_unwrap` takes an option; `{}` is not one", a.ty);
+                    self.err("TYPE_MISMATCH", msg, loc);
+                    return None;
+                };
+                let ty = (**inner).clone();
+                Some(Expr::new(
+                    ExprKind::StrictUnwrap(Box::new(a)),
+                    ty,
+                    loc.clone(),
+                ))
+            }
+            WExprKind::EnumMap {
+                arg,
+                to,
+                mapping,
+                strict,
+            } => self.enum_map(arg, to, mapping, *strict, loc),
             WExprKind::Op {
                 op: OpName::Union | OpName::Intersection | OpName::Difference,
                 ..
@@ -768,6 +800,106 @@ impl Ctx<'_> {
     }
 
     /// Reports `QUERY_NOT_ALLOWED` where relational forms are not allowed.
+    /// `enum_map` / `strict_enum_map` (feature 009): every mapped value must exist on its side;
+    /// a total map must cover every source value. The mapping is kept in source value order.
+    fn enum_map(
+        &mut self,
+        arg: &WExpr,
+        to: &crate::wire::WType,
+        mapping: &[(String, String)],
+        strict: bool,
+        loc: &Loc,
+    ) -> Option<Expr> {
+        let name = if strict {
+            "strict_enum_map"
+        } else {
+            "enum_map"
+        };
+        if !self.migration {
+            self.err(
+                "TYPE_MISMATCH",
+                format!("`{name}` is available only in migrations"),
+                loc,
+            );
+            return None;
+        }
+        let a = self.expr(arg)?;
+        let (source, optional) = match &a.ty {
+            Type::Enum(e) => (e.clone(), false),
+            Type::Option(inner) => match inner.as_ref() {
+                Type::Enum(e) => (e.clone(), true),
+                _ => {
+                    let msg = format!("`{name}` maps an enum; `{}` is not one", a.ty);
+                    self.err("TYPE_MISMATCH", msg, loc);
+                    return None;
+                }
+            },
+            _ => {
+                let msg = format!("`{name}` maps an enum; `{}` is not one", a.ty);
+                self.err("TYPE_MISMATCH", msg, loc);
+                return None;
+            }
+        };
+        let target = match self.resolve_type(to, loc)? {
+            Type::Enum(e) => e,
+            other => {
+                let msg = format!("`{name}` maps to an enum; `{other}` is not one");
+                self.err("TYPE_MISMATCH", msg, loc);
+                return None;
+            }
+        };
+        let mut map: BTreeMap<&str, &str> = BTreeMap::new();
+        for (from, into) in mapping {
+            if !source.values.contains(from) {
+                let msg = format!("`{from}` is not a value of `{}`", source.name);
+                self.err("INVALID_LITERAL", msg, loc);
+                return None;
+            }
+            if !target.values.contains(into) {
+                let msg = format!("`{into}` is not a value of the target `{}`", target.name);
+                self.err("INVALID_LITERAL", msg, loc);
+                return None;
+            }
+            if map.insert(from, into).is_some() {
+                let msg = format!("`{}.{from}` is mapped twice", source.name);
+                self.err("INVALID_LITERAL", msg, loc);
+                return None;
+            }
+        }
+        let unmapped: Vec<&str> = source
+            .values
+            .iter()
+            .filter(|v| !map.contains_key(v.as_str()))
+            .map(String::as_str)
+            .collect();
+        if !strict && !unmapped.is_empty() {
+            let msg = format!(
+                "`enum_map` must map every value of `{}`; {} has no target value (narrow with \
+                 `strict_enum_map` under a source requirement that proves it absent)",
+                source.name,
+                unmapped.join(", ")
+            );
+            self.err("UNMAPPED_ENUM_VALUE", msg, loc);
+            return None;
+        }
+        let ordered: Vec<(String, String)> = source
+            .values
+            .iter()
+            .filter_map(|v| map.get(v.as_str()).map(|t| (v.clone(), t.to_string())))
+            .collect();
+        let ty = if optional {
+            Type::Option(Box::new(Type::Enum(target)))
+        } else {
+            Type::Enum(target)
+        };
+        let kind = ExprKind::EnumMap {
+            arg: Box::new(a),
+            mapping: ordered,
+            strict,
+        };
+        Some(Expr::new(kind, ty, loc.clone()))
+    }
+
     fn relational_allowed(&mut self, loc: &Loc) -> bool {
         if self.queries {
             return true;
@@ -879,6 +1011,7 @@ impl Ctx<'_> {
             errs: &mut *self.errs,
             queries: false,
             lambda: true,
+            migration: self.migration,
         };
         ctx.expr(&renamed)
     }
@@ -1024,6 +1157,7 @@ pub(crate) fn build_module(
             errs,
             queries: false,
             lambda: false,
+            migration: false,
         };
         let Some(body) = ctx.boolean(&i.body, &i.body.loc, "an invariant") else {
             continue;
@@ -1051,6 +1185,7 @@ pub(crate) fn build_module(
             errs,
             queries: true,
             lambda: false,
+            migration: false,
         };
         let Some(body) = ctx.boolean(&g.body, &g.body.loc, "a module invariant") else {
             continue;
@@ -1081,6 +1216,7 @@ pub(crate) fn build_module(
             errs,
             queries: false,
             lambda: false,
+            migration: false,
         };
         let Some(body) = ctx.boolean(&c.body, &c.body.loc, "an entity constraint") else {
             continue;
@@ -1158,6 +1294,7 @@ pub(crate) fn build_module(
             errs,
             queries: true,
             lambda: false,
+            migration: false,
         };
         let mut ok = true;
         let mut pre = Vec::new();
@@ -1398,7 +1535,11 @@ pub(crate) fn build_module(
 }
 
 /// Converts a value for storage in a field of type `fty`, or reports why it cannot be stored.
-fn store_value(value: Expr, fty: &Type, what: &str) -> Result<Expr, (&'static str, String)> {
+pub(crate) fn store_value(
+    value: Expr,
+    fty: &Type,
+    what: &str,
+) -> Result<Expr, (&'static str, String)> {
     let coerced = if exact_store(&value.ty, fty) {
         Some(Conv::Keep)
     } else {
@@ -1609,6 +1750,7 @@ pub(crate) fn check_expr(
         errs: &mut errs,
         queries: true,
         lambda: false,
+        migration: false,
     }
     .expr(w);
     match result {
@@ -1617,6 +1759,44 @@ pub(crate) fn check_expr(
             AdmissionError::new("TYPE_MISMATCH", "ill-typed expression", Some(&w.loc))
         })),
     }
+}
+
+/// Type-checks a migration expression (feature 009) in `scope` over the merged two-sided
+/// declarations: requirements may use queries (`queries`), transforms may not.
+pub(crate) fn check_migration_expr(
+    decls: &Decls,
+    derived: &BTreeMap<String, DerivedItem>,
+    scope: &[Param],
+    queries: bool,
+    w: &WExpr,
+) -> Result<Expr, Vec<AdmissionError>> {
+    let mut errs = Vec::new();
+    let result = Ctx {
+        decls,
+        derived,
+        scope,
+        errs: &mut errs,
+        queries,
+        lambda: false,
+        migration: true,
+    }
+    .expr(w);
+    match result {
+        Some(e) if errs.is_empty() => Ok(e),
+        _ if !errs.is_empty() => Err(errs),
+        _ => Err(vec![AdmissionError::new(
+            "TYPE_MISMATCH",
+            "ill-typed expression",
+            Some(&w.loc),
+        )]),
+    }
+}
+
+/// Whether an expression (through the derived values it uses) reads beyond one entity: a query,
+/// `exists` or `referenced` (feature 009: migration transforms are entity-local).
+pub(crate) fn reads_universe(e: &Expr, derived: &BTreeMap<String, DerivedItem>) -> bool {
+    let (relational, existential) = universe_use(e, derived);
+    relational || existential
 }
 
 /// The type of the field an effect assigns, or why the effect is not allowed.
@@ -1674,6 +1854,7 @@ pub(crate) fn derived_item(
             errs,
             queries: true,
             lambda: false,
+            migration: false,
         };
         if d.kind == DerivedKind::Rule {
             ctx.boolean(&d.body, &d.body.loc, "a rule")

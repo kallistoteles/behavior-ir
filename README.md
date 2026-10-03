@@ -220,6 +220,32 @@ The same is available from Rust (`behavior_verify::{verify, governance::authoriz
 `specs/002-smt-verification/` (quickstart, contracts); overview, guarantees, and known
 limitations: `docs/verification.md`.
 
+### Schema evolution (feature 009)
+
+A store's data is valid only under its **store schema**, the entity declarations, identified by
+a `SchemaHash`. Behavior-only changes need nothing. Any declaration change needs an explicit,
+verifiable **migration**, applied in place as one atomic transition. History, identities and
+replay carry across it:
+
+```python
+broaden = Migration(source=v1.model, target=v2.model,
+    transforms={v1.Culture: lambda old: {
+        "medium_type": enum_map(old.medium, {v1.MediumKind.MS: v2.MediumKind.MS,
+                                             v1.MediumKind.WPM: v2.MediumKind.WPM}),
+        "ph": old.ph, "notes": None,
+        "price": rescale(underlying(old.price), v2.Money, Rounding.HALF_EVEN)}},
+    drops={v1.Culture: ["legacy_code"]}, retire=[v1.AuditNote])
+store.migrate(broaden, commit_time=now)
+```
+
+Unchanged fields are copied automatically, removed ones need an explicit drop, and narrowing
+(`strict_unwrap`, `strict_enum_map`) is allowed only under source requirements that prove the
+data fits. Broaden freely, backfill with ordinary actions, then narrow. `verify_migration`
+proves migrations, `behavior migration admit|verify|apply` covers the command line, and
+`replay_behavior(..., migrations=[...])` replays across them. See `python -m
+examples.schema_evolution.run`, `docs/persistence.md`, `docs/verification.md` and
+`specs/009-schema-evolution/`.
+
 ## Using a release (feature 008)
 
 Applications use Behavior through a **release**: an immutable tag `vX.Y.Z` of this repository
@@ -228,7 +254,7 @@ pinned by file and hash; no Rust toolchain is needed:
 
 ```text
 # requirements.txt of the application
-behavior @ file:///path/to/behavior-0.8.0-cp313-abi3-manylinux_2_28_x86_64.whl --hash=sha256:<from SHA256SUMS>
+behavior @ file:///path/to/behavior-0.9.0-cp313-abi3-manylinux_2_28_x86_64.whl --hash=sha256:<from SHA256SUMS>
 ```
 
 - **Install.** Run `pip install --require-hashes -r requirements.txt`. The wheel also installs

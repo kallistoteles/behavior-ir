@@ -1,12 +1,12 @@
 ---
 name: behavior-authoring
 description: Model a domain as Behavior with the Python binding (entities, field types, actions, creation and removal, references, queries over sets, entity constraints, module invariants, exact arithmetic). Use when writing or changing a behavior model.
-release: 0.8.0
+release: 0.9.0
 ---
 
 # Authoring behavior
 
-This skill describes **Behavior release 0.8.0**. Use only what is described here or listed in the
+This skill describes **Behavior release 0.9.0**. Use only what is described here or listed in the
 release's public API (`behavior.versions()` reports the installed release). Everything is imported
 from the `behavior` package.
 
@@ -236,6 +236,71 @@ def allocate(share: Share):
     set_(share.part, rescale(portion(share) * share.budget, Money, Rounding.HALF_EVEN))
 ```
 
+## Changing a schema
+
+A store's data is valid only under its **store schema**: the entity declarations, meaning their
+fields, field types (with the enums and nominal types they use) and references. `model.schema_hash`
+identifies it. Rules, actions, derived values, constraints and invariants are behavior, not
+schema: change them freely, with no migration.
+
+Any declaration change needs a **migration**, even appending an optional field or reordering
+fields. Until one is applied, the store refuses the new module with `SCHEMA_MISMATCH` before
+anything runs.
+
+A `Migration` relates the source and the target module:
+
+- **`transforms`**: for each changed entity type, `lambda old: {field: value}`. A target field with
+  the same name and exactly the same type as a source field is copied automatically. Everything
+  else is explicit: `enum_map` for an enum whose values changed (it must map every value), plain
+  assignment for a lossless widening such as `int` to `Decimal`, and `rescale(underlying(...),
+  Type, Rounding...)` between nominal types.
+- **`drops`**: removed fields that no assignment reads. Losing information is never silent.
+- **`retire`**: entity types the target no longer declares. They must be empty when applied.
+- **`requires`**: closed predicates over the source state. They are the only way to narrow:
+  `strict_unwrap` (an option becomes required) and `strict_enum_map` (values disappear) are
+  allowed where a requirement proves them safe.
+
+Migrations change representation; behavior changes information. A transform reads only the old
+entity, literals and constants, never other entities. To fill a field from a related entity, take
+the staged path: broaden (an optional field), backfill with an ordinary action, then narrow under
+a requirement.
+
+```python
+# from examples/changing_a_schema.py
+transforms = {
+    v1.Culture: lambda old: {
+        "medium_type": enum_map(old.medium, {
+            v1.Medium.MS: v2.Medium.MS, v1.Medium.WPM: v2.Medium.WPM,
+        }),
+        "ph": old.ph,
+        "notes": None,
+    },
+}
+broaden = Migration(
+    source=v1.model,
+    target=v2.model,
+    transforms=transforms,
+    drops={v1.Culture: ["legacy_code"]},
+    retire=[v1.AuditNote],
+)
+assert broaden.admit().ok
+narrow = Migration(
+    source=v2.model,
+    target=v3.model,
+    requires={
+        "every_order_has_region": lambda: all_(select(v2.Order), lambda o: o.region.is_some()),
+    },
+    transforms={v2.Order: lambda old: {"region": strict_unwrap(old.region)}},
+)
+```
+
+Review `migration.summary()`, which lists for every migrated type its copied, transformed, new and
+dropped fields. Then verify the migration (behavior-verification) and apply it to the store
+(behavior-application). Admission errors: `MISSING_MIGRATION_FIELD` (assign the field),
+`UNACKNOWLEDGED_FIELD_DROP` (drop it), `MISSING_RETIREMENT` (retire the type),
+`UNMAPPED_ENUM_VALUE` (map every value, or narrow under a requirement),
+`MIGRATION_TYPE_MISMATCH` (convert explicitly), `NON_LOCAL_TRANSFORM` (backfill with an action).
+
 ## When the engine refuses a model
 
 Errors come at one of two points, and both name the line you wrote:
@@ -261,7 +326,7 @@ refused = BehaviorModule(entities=[Customer, Order], constraints=[few_orders])
 assert [e.code for e in admit(refused).errors] == ["QUERY_NOT_ALLOWED"]
 ```
 
-## Requirements that are semantic gaps in 0.8.0
+## Requirements that are semantic gaps in 0.9.0
 
 Record these, do not approximate them:
 

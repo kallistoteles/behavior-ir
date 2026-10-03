@@ -80,7 +80,7 @@ fn a_transfer_commits_a_new_state() {
     assert_eq!(rec.evaluated_against, rec.committed_on);
     assert_eq!(rec.committed_on, s0);
     // The full context snapshot is in the record (FR-022).
-    assert_eq!(rec.bundle.record["context"], json!({}));
+    assert_eq!(rec.bundle.as_ref().unwrap().record["context"], json!({}));
 }
 
 #[test]
@@ -238,7 +238,7 @@ fn another_declaration_is_refused() {
             None,
         )
         .unwrap_err();
-    assert_eq!(e.code(), "ENTITY_DECLARATION_MISMATCH");
+    assert_eq!(e.code(), "SCHEMA_MISMATCH");
 }
 
 #[test]
@@ -377,7 +377,7 @@ fn declarations_are_derived_from_the_action_not_the_bundle() {
     let e = s
         .commit(&other, &forged.evaluated_state.clone(), &forged)
         .unwrap_err();
-    assert_eq!(e.code(), "ENTITY_DECLARATION_MISMATCH", "{e}");
+    assert_eq!(e.code(), "SCHEMA_MISMATCH", "{e}");
     // With the right module, a bundle whose declaration list is not the action's is refused.
     let mut partial = b.clone();
     partial.entity_declarations.clear();

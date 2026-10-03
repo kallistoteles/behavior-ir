@@ -137,7 +137,7 @@ fn eligible(kind: Tampering) -> Vec<u64> {
                 Tampering::CreatedValue | Tampering::Registry => !r.created.is_empty(),
                 Tampering::Removal => !r.removed.is_empty(),
                 Tampering::RefChange => !r.ref_changes.is_empty(),
-                Tampering::Fact => !r.bundle.read_facts.is_null(),
+                Tampering::Fact => !r.bundle.as_ref().unwrap().read_facts.is_null(),
                 Tampering::ResultState | Tampering::Chain => true,
             }
         })
@@ -153,7 +153,7 @@ fn tamper(kind: Tampering, rec: &TransitionRecord) -> TransitionRecord {
             r.ref_changes.pop();
         }
         Tampering::Fact => {
-            let facts = &mut r.bundle.record["facts"];
+            let facts = &mut r.bundle.as_mut().unwrap().record["facts"];
             if let Some(refs) = facts["references"].as_array_mut() {
                 refs[0]["incoming"]
                     .as_array_mut()
@@ -169,19 +169,22 @@ fn tamper(kind: Tampering, rec: &TransitionRecord) -> TransitionRecord {
                 *facts = serde_json::from_str(&text).unwrap();
             }
             // Consistent hashes: only the decision itself is wrong.
-            r.bundle.transition_hash = transition_hash(&r.bundle.record).unwrap();
-            r.bundle.read_facts = r.bundle.record["facts"].clone();
-            r.bundle_hash = r.bundle.hash().unwrap();
+            r.bundle.as_mut().unwrap().transition_hash =
+                transition_hash(&r.bundle.as_ref().unwrap().record).unwrap();
+            r.bundle.as_mut().unwrap().read_facts =
+                r.bundle.as_ref().unwrap().record["facts"].clone();
+            r.bundle_hash = r.bundle.as_ref().unwrap().hash().unwrap();
         }
         Tampering::Registry => {
             // Re-create a seed identity, with every hash made consistent.
-            let l = &mut r.bundle.record["lifecycle"][0];
+            let l = &mut r.bundle.as_mut().unwrap().record["lifecycle"][0];
             let entity = l["entity"].as_str().unwrap().to_string();
             let id = if entity == "Customer" { "c1" } else { "a1" };
             l["id"] = serde_json::json!(id);
             l["value"]["id"] = serde_json::json!(id);
-            r.bundle.transition_hash = transition_hash(&r.bundle.record).unwrap();
-            r.bundle_hash = r.bundle.hash().unwrap();
+            r.bundle.as_mut().unwrap().transition_hash =
+                transition_hash(&r.bundle.as_ref().unwrap().record).unwrap();
+            r.bundle_hash = r.bundle.as_ref().unwrap().hash().unwrap();
         }
         Tampering::ResultState => r.result_state.state = "sha256:00".into(),
         Tampering::Chain => r.previous_record = "sha256:00".into(),

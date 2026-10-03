@@ -114,6 +114,35 @@ Example (`tests/fixtures/verify/queries.expected.json`): `add_counted_order` (co
 and `hire_unchecked` have confirmed counterexamples; `raise_limit` (a changed capture) and
 `remove_cheapest` (`min` after a removal) are inconclusive.
 
+## Migrations (feature 009)
+
+`verify_migration(migration, source, target, …)` gives an attestation whose subject is the
+migration (`"subject": "migration"`, `migration_hash`).
+
+- **Local, per migrated type:** a symbolic source entity is assumed valid under the source rules
+  of its type and the source module invariants. Every source requirement is also assumed, with the
+  entity a known candidate of every query over its type. The verifier proves that every narrowing
+  succeeds (`migration_narrowing`), that no other evaluation error occurs (`evaluation_error`) and
+  that every target constraint and invariant holds on the transformed value
+  (`migration_constraint`). A proof that needs the requirements lists them in `under`. A
+  counterexample counts only after running the transform on the reported entity reproduces it.
+  A type the migration carries over unchanged is checked too, against the target rules the
+  source does not state identically: rules are behavior, so a target may add one to a type whose
+  declaration did not change.
+- **Whole-state:** `referential_integrity` is proven when every target reference of a migrated
+  type is carried over from a source reference to the same type. A target `module_invariant` is
+  proven when the source module states the same invariant and the migration copies every field it
+  reads. Anything else is `inconclusive`: precision debt, never assumed, and checked in full when
+  the migration is applied.
+- **Assumed rules are established at runtime:** constraints and invariants are behavior, not
+  schema, so stored data may predate them. Applying a migration first validates the source state
+  under the source rules (`MIGRATION_SOURCE_INVALID`), so a proof never stands in for a check.
+
+Example (`tests/fixtures/verify/migration.expected.json`): narrowing `Order.region` is proven
+under `every_order_has_region` and is a confirmed counterexample without it. Widening `Money`
+from two to four decimals is a confirmed `evaluation_error`: the wider scale shrinks the range, so
+very large prices overflow.
+
 ## What is proven — and what is not
 
 The verifier does **not** prove "the system is correct". It proves:
@@ -140,6 +169,7 @@ Two consequences:
 | Unsigned attestations | trust / provenance | Content is tamper-evident (hash), but not *who* produced it; anyone can compute a self-consistent "verified" attestation | Verifier-signed attestations, or `authorize` re-verifying (cheap with the cache) |
 | Trusted cache | integrity | Keys are already content-addressed from all inputs, but the stored *result* is not verifiable: a planted entry under the right key is accepted | Authenticated entries (signature/MAC) or checkable proof certificates; keep the cache writable only by the verifier |
 | Relational precision (feature 007) | precision | A changed capture gets a fresh summary, `min`/`max` after a removal or change are fresh, and a `sum`'s partial-sum range checks (made in canonical order over unknown members) are a free flag: such checks can be `inconclusive` although they hold (e.g. `raise_limit`, `remove_cheapest`, a postcondition `sum` with non-negative members) | Monotonicity lemmas for changed captures; constraint-derived bounds on members (all amounts ≥ 0 bounds every partial sum by the total). This applies only to guarantees the model states (entity constraints, preconditions); an unstated expectation belongs in the model, never in a verifier assumption |
+| Whole-state migration properties (feature 009) | precision | Target module invariants over migrated values, and references that are not carried over from a source reference, are `inconclusive` | Set-to-set reasoning over transformed predicates; until then they are checked in full when the migration is applied |
 | General decimals and ratios | semantics / expressiveness | **Resolved by features 003–004**: fixed-scale types (`nominal(Decimal, scale=2)`) are exact on input; since 004 *all* decimal arithmetic is exact (ratios `T ÷ T` are exact dimensionless values, general decimals compute exactly), rounding happens only in an explicit `rescale` (six modes), and implicit stores are admitted only when proven representable. The verifier models exactly this; no check is inconclusive because of decimal rounding, and the runtime's 512-bit limit is enforced at admission | Declare a scale for stored quantities; use `rescale` at every lossy boundary. What remains is range: fixed-scale sums can exceed their integer digits, found as `evaluation_error` |
 
 Fixed-scale decimals (feature 003) and exact arithmetic closure (feature 004) came first, since

@@ -10,8 +10,10 @@ pub mod eval;
 pub mod exact;
 pub mod facts;
 pub mod intent;
+pub mod migration;
 pub mod pretty;
 pub mod record;
+pub mod schema;
 pub mod semantic;
 pub mod serialize;
 pub mod testing;
@@ -28,6 +30,7 @@ pub use eval::{
 pub use facts::{EvaluationFacts, FactError, Facts, QueryFact, QueryRequest, RefEdge};
 pub use intent::{IntentError, IntentRejection, evaluate_intent};
 pub use record::{DecisionRecord, ReplayResult, replay};
+pub use schema::{StoreSchema, schema};
 
 /// The engine version and the document formats it reads and writes (feature 008): the wire IR
 /// versions and the decision record versions, in order, taken from the constants that implement

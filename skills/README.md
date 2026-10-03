@@ -61,7 +61,7 @@ entries from many projects can be collected mechanically:
 ## GAP-001: At most three open orders per customer
 
 - **Date**: 2026-10-02
-- **Behavior release**: 0.8.0
+- **Behavior release**: 0.9.0
 - **Requirement**: A customer may have at most three open orders at any time.
 - **Why inexpressible**: needs a grouped module invariant (a count per customer over all
   customers); module invariants are closed and queries cannot group. Closest construct: a

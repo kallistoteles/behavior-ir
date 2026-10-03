@@ -31,6 +31,10 @@ pub struct InMemoryBackend {
     /// Field index events (feature 007): `(entity type, field, canonical value)` → keys with the
     /// positions from which and until which they held that value.
     field_index: BTreeMap<(String, String, String), Vec<FieldEdge>>,
+    /// The open field-index edge of each entity field: its value and its place in
+    /// `field_index`, so a change finds it directly (a migration rewrites many entities that
+    /// share a value in one commit, feature 009).
+    open_fields: BTreeMap<(EntityKey, String), (String, usize)>,
 }
 
 /// One event of the field index: `key` held the value from `added_at` until `dropped_at`.
@@ -65,6 +69,17 @@ impl InMemoryBackend {
         let Some(fields) = v.value.as_object() else {
             return;
         };
+        // A field the new version no longer has (a migration removed it, feature 009) leaves
+        // the index.
+        if let Some(serde_json::Value::Object(old)) = &previous {
+            for (field, value) in old {
+                if !fields.contains_key(field)
+                    && let Some(old) = value_key(value)
+                {
+                    self.drop_field(&key, field, &old, position);
+                }
+            }
+        }
         for (field, value) in fields {
             let old = previous.as_ref().and_then(|p| p.get(field)).cloned();
             if old.as_ref() == Some(value) {
@@ -74,28 +89,37 @@ impl InMemoryBackend {
                 self.drop_field(&key, field, &old, position);
             }
             if let Some(new) = value_key(value) {
-                self.field_index
-                    .entry((key.entity.clone(), field.clone(), new))
-                    .or_default()
-                    .push(FieldEdge {
-                        key: key.clone(),
-                        added_at: position,
-                        dropped_at: None,
-                    });
+                let edges = self
+                    .field_index
+                    .entry((key.entity.clone(), field.clone(), new.clone()))
+                    .or_default();
+                edges.push(FieldEdge {
+                    key: key.clone(),
+                    added_at: position,
+                    dropped_at: None,
+                });
+                self.open_fields
+                    .insert((key.clone(), field.clone()), (new, edges.len() - 1));
             }
         }
     }
 
     fn drop_field(&mut self, key: &EntityKey, field: &str, value: &str, position: u64) {
-        if let Some(edges) =
-            self.field_index
-                .get_mut(&(key.entity.clone(), field.to_string(), value.to_string()))
-            && let Some(e) = edges
-                .iter_mut()
-                .find(|e| e.key == *key && e.dropped_at.is_none())
+        let slot = (key.clone(), field.to_string());
+        let Some((open, i)) = self.open_fields.get(&slot).cloned() else {
+            return;
+        };
+        if open != value {
+            return;
+        }
+        if let Some(e) = self
+            .field_index
+            .get_mut(&(key.entity.clone(), field.to_string(), open))
+            .and_then(|edges| edges.get_mut(i))
         {
             e.dropped_at = Some(position);
         }
+        self.open_fields.remove(&slot);
     }
 
     fn index_removal(&mut self, key: &EntityKey, position: u64) {

@@ -59,8 +59,11 @@ class StateConflict(BehaviorError):
 
 
 class CommitRefused(BehaviorError):
-    """A store operation was refused (the code names the rule, e.g. EVIDENCE_REQUIRED)."""
+    """A store operation was refused (the code names the rule, e.g. EVIDENCE_REQUIRED).
+    `details` carries structured detail where there is some: for `SCHEMA_MISMATCH` the store's
+    and the module's SchemaHash and every differing entity type with both declarations."""
 
-    def __init__(self, code: str, message: str) -> None:
+    def __init__(self, code: str, message: str, details: dict[str, Any] | None = None) -> None:
         self.code = code
+        self.details = details
         super().__init__(message)

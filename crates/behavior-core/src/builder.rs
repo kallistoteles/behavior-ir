@@ -118,11 +118,190 @@ pub struct Builder {
     decls: Option<Decls>,
     typed_derived: BTreeMap<String, DerivedItem>,
     scopes: Vec<Vec<Param>>,
+    /// Set when the builder builds a migration (feature 009) instead of a module.
+    migration: Option<Box<MigrationParts>>,
+}
+
+/// A migration being built (feature 009): its modules and the parts collected so far.
+struct MigrationParts {
+    source: Module,
+    target: Module,
+    transforms: BTreeMap<String, crate::migration::wire::WTransform>,
+    requirements: Vec<crate::migration::wire::WRequirement>,
+    retire: Vec<String>,
 }
 
 impl Builder {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// A builder for a migration from `source` to `target` (feature 009): expressions are typed
+    /// over both schemas (target-side named types under [`crate::wire::TARGET_SIDE`]) and the
+    /// source module's derived values.
+    pub fn for_migration(source: &Module, target: &Module) -> Self {
+        Builder {
+            decls: Some(crate::migration::merged_decls(source, target)),
+            typed_derived: source.derived.clone(),
+            migration: Some(Box::new(MigrationParts {
+                source: source.clone(),
+                target: target.clone(),
+                transforms: BTreeMap::new(),
+                requirements: Vec::new(),
+                retire: Vec::new(),
+            })),
+            ..Self::default()
+        }
+    }
+
+    fn parts(&mut self) -> R<&mut MigrationParts> {
+        self.migration
+            .as_deref_mut()
+            .ok_or_else(|| err("DECODE_ERROR", "this builder does not build a migration"))
+    }
+
+    /// Opens the scope of a transform of `entity`: the old entity `old` (feature 009).
+    pub fn push_transform(&mut self, entity: &str, loc: Loc) -> R<()> {
+        let parts = self.parts()?;
+        if parts.source.entity(entity).is_none() {
+            return Err(err(
+                "INVALID_TRANSFORM",
+                format!("`{entity}` is not an entity type of the source schema"),
+            ));
+        }
+        parts
+            .transforms
+            .entry(entity.to_string())
+            .or_insert_with(|| crate::migration::wire::WTransform {
+                entity: entity.to_string(),
+                fields: Vec::new(),
+                drops: Vec::new(),
+                loc: Some(loc),
+            });
+        self.scopes.push(vec![Param {
+            name: crate::migration::OLD.into(),
+            role: ParamRole::Read,
+            ty: Type::Entity(entity.into()),
+        }]);
+        Ok(())
+    }
+
+    /// Opens the scope of a source requirement: a closed expression (feature 009).
+    pub fn push_requirement(&mut self) -> R<()> {
+        self.parts()?;
+        self.scopes.push(Vec::new());
+        Ok(())
+    }
+
+    /// `strict_unwrap(arg)` (migrations only, feature 009).
+    pub fn strict_unwrap(&mut self, arg: Node, loc: Loc) -> R<Node> {
+        self.parts()?;
+        let w = WExpr {
+            kind: WExprKind::StrictUnwrap(Box::new(arg.w.clone())),
+            loc,
+        };
+        self.make(w, &[&arg], None)
+    }
+
+    /// `enum_map` / `strict_enum_map` (migrations only, feature 009).
+    pub fn enum_map(
+        &mut self,
+        arg: Node,
+        to: WType,
+        mapping: Vec<(String, String)>,
+        strict: bool,
+        loc: Loc,
+    ) -> R<Node> {
+        self.parts()?;
+        let w = WExpr {
+            kind: WExprKind::EnumMap {
+                arg: Box::new(arg.w.clone()),
+                to,
+                mapping,
+                strict,
+            },
+            loc,
+        };
+        self.make(w, &[&arg], None)
+    }
+
+    /// Assigns a target field of `entity` in its transform.
+    pub fn set_field(&mut self, entity: &str, field: &str, value: Node) -> R<()> {
+        let t = self.transform_mut(entity)?;
+        t.fields.retain(|(f, _)| f != field);
+        t.fields.push((
+            field.to_string(),
+            crate::migration::wire::WFieldSpec::Expr(value.w),
+        ));
+        Ok(())
+    }
+
+    /// Acknowledges that the source field `field` of `entity` is dropped.
+    pub fn drop_field(&mut self, entity: &str, field: &str) -> R<()> {
+        let t = self.transform_mut(entity)?;
+        if !t.drops.iter().any(|d| d == field) {
+            t.drops.push(field.to_string());
+        }
+        Ok(())
+    }
+
+    fn transform_mut(&mut self, entity: &str) -> R<&mut crate::migration::wire::WTransform> {
+        let parts = self.parts()?;
+        Ok(parts
+            .transforms
+            .entry(entity.to_string())
+            .or_insert_with(|| crate::migration::wire::WTransform {
+                entity: entity.to_string(),
+                fields: Vec::new(),
+                drops: Vec::new(),
+                loc: None,
+            }))
+    }
+
+    /// Adds a source requirement (feature 009).
+    pub fn add_requirement(&mut self, name: &str, body: Node, loc: Loc) -> R<()> {
+        self.check_condition(&body, &format!("requirement `{name}`"))?;
+        self.parts()?
+            .requirements
+            .push(crate::migration::wire::WRequirement {
+                name: name.to_string(),
+                body: body.w,
+                loc,
+            });
+        Ok(())
+    }
+
+    /// Retires an entity type of the source schema (feature 009).
+    pub fn retire(&mut self, entity: &str) -> R<()> {
+        let parts = self.parts()?;
+        if !parts.retire.iter().any(|r| r == entity) {
+            parts.retire.push(entity.to_string());
+        }
+        Ok(())
+    }
+
+    /// Admits the collected migration through the same pipeline as migration documents.
+    pub fn finish_migration(
+        &self,
+        name: &str,
+    ) -> Result<crate::migration::Migration, AdmissionResult> {
+        let Some(parts) = self.migration.as_deref() else {
+            return Err(AdmissionResult::failed(vec![AdmissionError::new(
+                "DECODE_ERROR",
+                "this builder does not build a migration",
+                None,
+            )]));
+        };
+        let w = crate::migration::wire::WMigration {
+            name: name.to_string(),
+            source: crate::schema(&parts.source).hash,
+            target: crate::schema(&parts.target).hash,
+            constants: Vec::new(),
+            requirements: parts.requirements.clone(),
+            transforms: parts.transforms.values().cloned().collect(),
+            retire: parts.retire.clone(),
+        };
+        crate::migration::admit_migration_wire(&parts.source, &parts.target, &w)
     }
 
     // --- declarations ------------------------------------------------------------------
@@ -282,7 +461,23 @@ impl Builder {
             return Err(err("DECODE_ERROR", "no declarations"));
         };
         let scope = self.scopes.last().map(Vec::as_slice).unwrap_or(&[]);
-        let typed = check_expr(decls, &self.typed_derived, scope, &w)?;
+        let typed = if self.migration.is_some() {
+            crate::admit::typecheck::check_migration_expr(
+                decls,
+                &self.typed_derived,
+                scope,
+                true,
+                &w,
+            )
+            .map_err(|es| {
+                es.into_iter()
+                    .next()
+                    .map(BuildError::from)
+                    .unwrap_or_else(|| err("TYPE_MISMATCH", "ill-typed expression"))
+            })?
+        } else {
+            check_expr(decls, &self.typed_derived, scope, &w)?
+        };
         Ok(Node {
             ty: Some(typed.ty().clone()),
             w,
@@ -770,7 +965,10 @@ fn expr_locs(e: &mut WExpr, f: &mut dyn FnMut(&mut Loc)) {
     f(&mut e.loc);
     match &mut e.kind {
         WExprKind::Op { args, .. } => args.iter_mut().for_each(|a| expr_locs(a, f)),
-        WExprKind::In { arg, .. } | WExprKind::Wrap { arg, .. } => expr_locs(arg, f),
+        WExprKind::In { arg, .. }
+        | WExprKind::Wrap { arg, .. }
+        | WExprKind::StrictUnwrap(arg)
+        | WExprKind::EnumMap { arg, .. } => expr_locs(arg, f),
         WExprKind::Lambda { query, body, .. } => {
             expr_locs(query, f);
             expr_locs(body, f);

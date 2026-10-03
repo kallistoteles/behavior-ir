@@ -31,6 +31,8 @@ enum Broken {
     CurrentOnlyKeys,
     /// A positive control: indexes list keys in reverse order, which is never semantic.
     ReversedKeys,
+    /// The head is written without its schema (feature 009): a migrated store forgets it.
+    DropsHeadSchema,
 }
 
 /// A deliberately broken backend around the reference backend.
@@ -198,6 +200,12 @@ impl Backend for Mutant {
                 self.inner
                     .commit(expected, versions, removals, refs, record, head)
             }
+            Broken::DropsHeadSchema => {
+                let mut forgetful = head.clone();
+                forgetful.schema = None;
+                self.inner
+                    .commit(expected, versions, removals, refs, record, &forgetful)
+            }
             Broken::NonAtomicHead => {
                 // Moves the head (and versions) now, writes the record only later.
                 // Moves the head and writes the versions, but the record is not part of the same
@@ -220,7 +228,7 @@ impl Backend for Mutant {
 #[test]
 fn the_reference_backend_passes_every_case() {
     let report = run(InMemoryBackend::new);
-    assert_eq!(report.cases.len(), 28);
+    assert_eq!(report.cases.len(), 30);
     let failed: Vec<_> = report.cases.iter().filter(|c| !c.ok).collect();
     assert!(failed.is_empty(), "{failed:#?}");
 }
@@ -240,6 +248,7 @@ fn each_broken_backend_fails_its_designated_case() {
         (Broken::CurrentOnlyIndex, "existence_snapshot"),
         (Broken::StaleFieldIndex, "query_index_consistency"),
         (Broken::CurrentOnlyKeys, "query_snapshot"),
+        (Broken::DropsHeadSchema, "schema_history_consistency"),
     ] {
         let report = run(|| Mutant::new(kind));
         let c = report.case(case).unwrap();

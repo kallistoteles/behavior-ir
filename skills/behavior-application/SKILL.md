@@ -1,12 +1,12 @@
 ---
 name: behavior-application
 description: Build the host application around a Behavior model (stores, evaluate and commit, conflicts, replay, custom storage backends, supplying facts), keeping every business rule in behavior. Use when writing services, handlers, jobs or storage code that use a behavior model.
-release: 0.8.0
+release: 0.9.0
 ---
 
 # Building an application on Behavior
 
-This skill describes **Behavior release 0.8.0**. Use only what is described here or listed in the
+This skill describes **Behavior release 0.9.0**. Use only what is described here or listed in the
 release's public API.
 
 > If the public Behavior API cannot express a requirement, record a semantic gap in
@@ -107,6 +107,41 @@ else:
 Committing an identical transition again, for example a retry after a lost acknowledgement, is
 recognized (`.already` is true) and never applied twice. Other refusals raise `CommitRefused`
 with a `code`.
+
+## Changing the schema of a living store
+
+A store is bound to exactly one schema at a time, and each history position keeps its own. When
+the model's declarations change, write a `Migration` (behavior-authoring), verify it
+(behavior-verification), and apply it with `store.migrate(migration, commit_time=...)`. It is
+one atomic transition at the next position. Every entity of a changed type gets a new version;
+history, identities and references carry over, and old states still load exactly as written.
+
+- **`SCHEMA_MISMATCH`** (a `CommitRefused` with `.details`) means the module is not the store's
+  current schema. Pick the module whose `schema_hash` is `store.schema_at().hash`; never convert
+  data in host code.
+- **`MIGRATION_REQUIREMENT_FAILED`** means the data does not fit yet. Backfill with an ordinary
+  action, then apply the same migration again. The other refusals (`MIGRATION_SOURCE_INVALID`,
+  `MIGRATION_TRANSFORM_ERROR`, `MIGRATION_INVALID_RESULT`, `RETIRED_TYPE_NOT_EMPTY`) name the rule
+  and the entities, and the store is unchanged.
+- **Evidence**: an evidence policy can demand more for migrations than for actions (its
+  `migration` section). Use `authorize_migration` with a migration attestation, and pass the
+  evidence to `store.migrate`.
+- **Replay**: `replay_behavior(store, models, migrations=[...])` re-runs every migration.
+
+```python
+# from examples/migrating_a_store.py
+store.migrate(broaden, commit_time=NOW)
+assert [s.since for s in store.schema_history()] == [0, 1]
+current = next(m for m in (v1.model, v2.model, v3.model)
+               if m.schema_hash == store.schema_at().hash)
+try:
+    store.migrate(narrow, commit_time=NOW)
+except CommitRefused as e:
+    assert e.code == "MIGRATION_REQUIREMENT_FAILED" and "Ticket#t1" in str(e)
+store.commit(current, ev.bundle)
+store.migrate(narrow, commit_time=NOW)
+assert replay_behavior(store, [v1.model, v2.model, v3.model], migrations=[broaden, narrow]).ok
+```
 
 ## Custom storage backends
 

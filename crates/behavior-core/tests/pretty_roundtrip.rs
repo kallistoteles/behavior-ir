@@ -392,6 +392,20 @@ fn tree(e: &Expr) -> String {
         ExprKind::Rescale { arg, rounding } => {
             format!("rescale({}, {}, {})", tree(arg), e.ty(), rounding.as_str())
         }
+        ExprKind::StrictUnwrap(a) => format!("strict_unwrap({})", tree(a)),
+        ExprKind::EnumMap {
+            arg,
+            mapping,
+            strict,
+        } => {
+            let m: Vec<String> = mapping.iter().map(|(f, t)| format!("{f}: {t}")).collect();
+            let name = if *strict {
+                "strict_enum_map"
+            } else {
+                "enum_map"
+            };
+            format!("{name}({}, {{{}}})", tree(arg), m.join(", "))
+        }
     }
 }
 
@@ -411,7 +425,9 @@ fn children(e: &Expr) -> Vec<&Expr> {
         | ExprKind::Unwrap(a)
         | ExprKind::Rescale { arg: a, .. }
         | ExprKind::Exists(a)
-        | ExprKind::Referenced(a) => vec![a],
+        | ExprKind::Referenced(a)
+        | ExprKind::StrictUnwrap(a)
+        | ExprKind::EnumMap { arg: a, .. } => vec![a],
         ExprKind::Count(_) | ExprKind::Fold { .. } => Vec::new(),
         _ => vec![],
     }

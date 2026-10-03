@@ -94,7 +94,7 @@ fn run(steps: &[Step]) -> Result<(), TestCaseError> {
         let r = s.backend().record(pos).unwrap().unwrap();
         prop_assert_eq!(&r.evaluated_against, &r.committed_on);
         prop_assert_eq!(&r.committed_on, &prev);
-        for w in &r.bundle.write_set {
+        for w in &r.bundle.as_ref().unwrap().write_set {
             if w.field == "balance" {
                 balances.insert(w.id.clone(), w.new.clone());
             }

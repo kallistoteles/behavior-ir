@@ -35,6 +35,22 @@ class StateRef:
 
 
 @dataclass(frozen=True)
+class SchemaRef:
+    """A store schema in force from a history position on (feature 009): its SchemaHash, entity
+    declarations (name → declaration hash), the position it applies from, and the record that
+    introduced it (the genesis hash for the genesis schema)."""
+
+    hash: str
+    declarations: dict[str, str]
+    since: int
+    migration_record: str
+
+    @staticmethod
+    def of(d: dict[str, Any]) -> SchemaRef:
+        return SchemaRef(d["hash"], dict(d["declarations"]), d["since"], d["migration_record"])
+
+
+@dataclass(frozen=True)
 class Evaluation:
     decision: Decision
     bundle: dict[str, Any] | None  # a commit bundle, only for allowed decisions
@@ -76,7 +92,8 @@ class _Translate:
         if isinstance(e, _engine.EngineStoreConflict):
             raise StateConflict(e.args[0], e.args[1]) from None
         if isinstance(e, _engine.EngineStoreRefused):
-            raise CommitRefused(e.args[0], e.args[1]) from None
+            details = e.args[2] if len(e.args) > 2 else None
+            raise CommitRefused(e.args[0], e.args[1], details) from None
 
 
 def _ref(r: StateRef | dict[str, Any]) -> dict[str, Any]:
@@ -120,6 +137,23 @@ class Store:
         with _Translate():
             return StateRef.of(self._inner.state_at(position))
 
+    def data_version(self, at: StateRef | None = None) -> str:
+        """`store:<id>;state:<state>;position:<n>` of state `at` (default: the current state):
+        what decision records and migration authorizations are bound to."""
+        with _Translate():
+            return str(self._inner.data_version(_ref(at or self.current())))
+
+    def schema_at(self, at: StateRef | None = None) -> SchemaRef:
+        """The schema under which state `at` (default: the current state) is valid."""
+        with _Translate():
+            return SchemaRef.of(self._inner.schema_at(_ref(at or self.current())))
+
+    def schema_history(self) -> list[SchemaRef]:
+        """Every schema this store has had, oldest first, each with the position it applies
+        from."""
+        with _Translate():
+            return [SchemaRef.of(d) for d in self._inner.schema_history()]
+
     def load(self, entity: str, id: str, at: StateRef | None = None) -> dict[str, Any]:
         with _Translate():
             return self._inner.load(entity, id, _ref(at or self.current()))
@@ -155,6 +189,22 @@ class Store:
             r["record_id"], StateRef.of(r["result_state"]), r["already"], r["evidence_trust"]
         )
 
+    def migrate(
+        self, migration: Any, *, commit_time: str, evidence: dict[str, Any] | None = None
+    ) -> CommitResult:
+        """Applies a migration (feature 009) as one atomic transition: the store's schema must be
+        the migration's source; source validity, requirements, transforms and target validity
+        are checked on the complete state. Raises CommitRefused (`MIGRATION_*`,
+        `RETIRED_TYPE_NOT_EMPTY`, `EVIDENCE_REQUIRED`, …) or StateConflict."""
+        with _Translate():
+            r = self._inner.migrate(
+                migration.engine, migration.source.engine, migration.target.engine, commit_time,
+                evidence,
+            )
+        return CommitResult(
+            r["record_id"], StateRef.of(r["result_state"]), r["already"], r["evidence_trust"]
+        )
+
     def transitions(self, from_: StateRef, to: StateRef) -> list[dict[str, Any]]:
         with _Translate():
             return self._inner.transitions(from_.as_dict(), to.as_dict())
@@ -180,10 +230,14 @@ def replay_behavior(
     models: Sequence[BehaviorModule],
     from_: StateRef | None = None,
     to: StateRef | None = None,
+    *,
+    migrations: Sequence[Any] = (),
 ) -> ReplayReport:
-    """Re-evaluates every transition under its recorded behavior version."""
+    """Re-evaluates every transition under its recorded behavior version, and re-runs every
+    migration (feature 009) with the given `Migration` objects."""
     return _report(store._inner.replay_behavior(
-        [m.engine for m in models], _ref(from_ or store.state_at(0)), _ref(to or store.current())
+        [m.engine for m in models], _ref(from_ or store.state_at(0)), _ref(to or store.current()),
+        [(m.engine, m.source.engine, m.target.engine) for m in migrations],
     ))
 
 

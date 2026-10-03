@@ -22,9 +22,9 @@ from pathlib import Path
 from typing import Any
 
 from behavior import (
-    BehaviorError, BehaviorModule, Id, InMemoryBackend, Input, Store, action, admit, count,
-    create, entity, evaluate, field, invariant, nominal, replay, replay_behavior, replay_data,
-    requires, select, sum_, unique, verify,
+    BehaviorError, BehaviorModule, Id, InMemoryBackend, Input, Migration, Store, action, admit,
+    count, create, entity, enum_map, evaluate, field, invariant, nominal, replay,
+    replay_behavior, replay_data, requires, select, sum_, unique, verify,
 )
 
 EXPECT_MISSING_SOLVER = "--expect-missing-solver" in sys.argv[1:]
@@ -85,6 +85,29 @@ model = BehaviorModule(
     invariants=[numbers_unique],
     actions=[place_order, close_customer_check, hire],
 )
+
+
+def widened() -> tuple[BehaviorModule, Migration]:
+    """The next schema (feature 009): orders may also be held; and the migration to it."""
+
+    class OrderStatus(Enum):  # noqa: F811
+        OPEN = "open"
+        CLOSED = "closed"
+        HELD = "held"
+
+    @entity
+    class Order:  # noqa: F811
+        customer = field(Id[Customer])
+        amount = field(Money)
+        status = field(OrderStatus)
+
+    target = BehaviorModule(entities=[Customer, Order, Employee], invariants=[numbers_unique])
+    old_status = globals()["OrderStatus"]
+    migration = Migration(source=model, target=target, transforms={
+        globals()["Order"]: lambda old: {"status": enum_map(old.status, {
+            old_status.OPEN: OrderStatus.OPEN, old_status.CLOSED: OrderStatus.CLOSED})},
+    })
+    return target, migration
 
 
 def emit(label: str, value: Any) -> None:
@@ -151,6 +174,16 @@ def main() -> None:
         emit("transition", r)
     check(replay_data(store).ok, "data replay")
     check(replay_behavior(store, [model]).ok, "behavior replay")
+
+    # 4b. A schema change in place (feature 009): migrate, then replay across it.
+    target, migration = widened()
+    check(migration.admit().ok, f"migration admission: {migration.admit().errors}")
+    emit("migration", {"hash": migration.hash, "summary": migration.summary()})
+    store.migrate(migration, commit_time=now)
+    emit("schema_history", [[s.since, s.hash] for s in store.schema_history()])
+    check(replay_data(store).ok, "data replay across a migration")
+    check(replay_behavior(store, [model, target], migrations=[migration]).ok,
+          "behavior replay across a migration")
 
     # 5. The command-line tool, from this environment's console script.
     cli = str(Path(sys.executable).parent / "behavior")

@@ -17,6 +17,8 @@ pub const TAG_GENESIS: &str = "behavior.store_genesis.v1";
 pub const TAG_COMMIT_BUNDLE: &str = "behavior.commit_bundle.v1";
 pub const TAG_TRANSITION_RECORD: &str = "behavior.transition_record.v1";
 pub const TAG_REPLAY_REPORT: &str = "behavior.replay_report.v1";
+/// The migration bundle of a migration record (feature 009).
+pub const TAG_MIGRATION_BUNDLE: &str = "behavior.migration_bundle.v1";
 
 /// Every store document tag (feature 008: reported by `behavior engine-info`).
 pub const DOCUMENT_TAGS: &[&str] = &[
@@ -28,6 +30,7 @@ pub const DOCUMENT_TAGS: &[&str] = &[
     TAG_COMMIT_BUNDLE,
     TAG_TRANSITION_RECORD,
     TAG_REPLAY_REPORT,
+    TAG_MIGRATION_BUNDLE,
 ];
 
 /// Errors of the store and its documents (data-model.md → Store results and errors).
@@ -44,6 +47,14 @@ pub enum StoreError {
     EntityNotFound(String),
     #[error("ENTITY_DECLARATION_MISMATCH: {0}")]
     EntityDeclarationMismatch(String),
+    /// The module's store schema is not the store's schema at the evaluated position (feature
+    /// 009, FR-005): checked before the action runs, over every entity type.
+    #[error("SCHEMA_MISMATCH: {}", schema_mismatch_text(.store, .module, .differing))]
+    SchemaMismatch {
+        store: String,
+        module: String,
+        differing: Vec<DeclarationDiff>,
+    },
     #[error("BUNDLE_INVALID: {0}")]
     BundleInvalid(String),
     #[error("EVIDENCE_REQUIRED: {0}")]
@@ -60,6 +71,11 @@ pub enum StoreError {
     DanglingReference(String),
     #[error("BACKEND_ERROR: {0}")]
     Backend(String),
+    /// A migration was refused (feature 009): `MIGRATION_SCHEMA_MISMATCH`,
+    /// `MIGRATION_SOURCE_INVALID`, `MIGRATION_REQUIREMENT_FAILED`, `MIGRATION_TRANSFORM_ERROR`,
+    /// `MIGRATION_INVALID_RESULT` or `RETIRED_TYPE_NOT_EMPTY`, naming the rule and the entities.
+    #[error("{0}")]
+    Migration(behavior_core::migration::MigrationRefusal),
 }
 
 impl StoreError {
@@ -70,6 +86,7 @@ impl StoreError {
             StoreError::NothingToCommit(_) => "NOTHING_TO_COMMIT",
             StoreError::EntityNotFound(_) => "ENTITY_NOT_FOUND",
             StoreError::EntityDeclarationMismatch(_) => "ENTITY_DECLARATION_MISMATCH",
+            StoreError::SchemaMismatch { .. } => "SCHEMA_MISMATCH",
             StoreError::BundleInvalid(_) => "BUNDLE_INVALID",
             StoreError::EvidenceRequired(_) => "EVIDENCE_REQUIRED",
             StoreError::EvidenceMismatch(_) => "EVIDENCE_MISMATCH",
@@ -78,11 +95,62 @@ impl StoreError {
             StoreError::EntityIdAlreadyUsed(_) => "ENTITY_ID_ALREADY_USED",
             StoreError::DanglingReference(_) => "DANGLING_REFERENCE",
             StoreError::Backend(_) => "BACKEND_ERROR",
+            StoreError::Migration(r) => r.code,
         }
     }
 }
 
 pub type R<T> = Result<T, StoreError>;
+
+/// One entity type declared differently by a store schema and a module (feature 009): its
+/// declaration hash on each side, absent where the type is not declared.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DeclarationDiff {
+    pub entity: String,
+    pub store: Option<String>,
+    pub module: Option<String>,
+}
+
+impl DeclarationDiff {
+    /// The entity types declared differently by the two maps, sorted by name.
+    pub fn between(
+        store: &BTreeMap<String, String>,
+        module: &BTreeMap<String, String>,
+    ) -> Vec<DeclarationDiff> {
+        let names: std::collections::BTreeSet<&String> =
+            store.keys().chain(module.keys()).collect();
+        names
+            .into_iter()
+            .filter(|n| store.get(*n) != module.get(*n))
+            .map(|n| DeclarationDiff {
+                entity: n.clone(),
+                store: store.get(n).cloned(),
+                module: module.get(n).cloned(),
+            })
+            .collect()
+    }
+}
+
+fn schema_mismatch_text(store: &str, module: &str, differing: &[DeclarationDiff]) -> String {
+    let side = |d: &Option<String>| d.clone().unwrap_or_else(|| "not declared".into());
+    let list: Vec<String> = differing
+        .iter()
+        .map(|d| {
+            format!(
+                "{} (store {}, module {})",
+                d.entity,
+                side(&d.store),
+                side(&d.module)
+            )
+        })
+        .collect();
+    format!(
+        "the store's schema is {store}, the module's is {module}; entity types declared \
+         differently: {}. A different schema needs an explicit migration",
+        list.join(", ")
+    )
+}
 
 /// The domain-tagged hash of a serializable document.
 pub fn hash_of<T: Serialize>(tag: &str, doc: &T) -> R<String> {
@@ -178,6 +246,22 @@ pub struct Head {
     pub acc_num: String,
     pub acc_den: String,
     pub last_record: String,
+    /// The store schema in force since the last migration (feature 009); absent while the store
+    /// is under its genesis schema, so heads of stores that never migrate keep their bytes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub schema: Option<SchemaRef>,
+}
+
+/// A store schema in force from a history position on (feature 009, research R3): its SchemaHash,
+/// its entity declarations, the position from which it applies, and the record that introduced
+/// it (the genesis hash for the genesis schema).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SchemaRef {
+    pub hash: String,
+    pub declarations: BTreeMap<String, String>,
+    pub since: u64,
+    pub migration_record: String,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -195,6 +279,19 @@ pub struct EvidencePolicy {
     pub require: Require,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub trusted_execution_policies: Option<Vec<String>>,
+    /// What a migration needs (feature 009); absent: the same as an action. Existing policies
+    /// keep their bytes and hashes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub migration: Option<MigrationEvidence>,
+}
+
+/// The evidence a migration transition needs (feature 009, FR-019b).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct MigrationEvidence {
+    pub require: Require,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub trusted_execution_policies: Option<Vec<String>>,
 }
 
 impl EvidencePolicy {
@@ -203,6 +300,15 @@ impl EvidencePolicy {
             format: TAG_EVIDENCE_POLICY.into(),
             require: Require::None,
             trusted_execution_policies: None,
+            migration: None,
+        }
+    }
+
+    /// What a migration needs: the `migration` section, or else what an action needs.
+    pub fn for_migration(&self) -> (Require, Option<&Vec<String>>) {
+        match &self.migration {
+            Some(m) => (m.require, m.trusted_execution_policies.as_ref()),
+            None => (self.require, self.trusted_execution_policies.as_ref()),
         }
     }
 
@@ -242,6 +348,17 @@ pub struct Genesis {
 impl Genesis {
     pub fn hash(&self) -> R<String> {
         hash_of(TAG_GENESIS, self)
+    }
+
+    /// The genesis schema (feature 009): computed from the declarations, never stored.
+    pub fn schema(&self) -> R<SchemaRef> {
+        let s = behavior_core::StoreSchema::of(self.entity_declarations.clone());
+        Ok(SchemaRef {
+            hash: s.hash,
+            declarations: s.declarations,
+            since: 0,
+            migration_record: self.hash()?,
+        })
     }
 }
 
@@ -352,14 +469,61 @@ impl CommitBundle {
     }
 }
 
-/// A committed bundle: the commit object. Records form a hash chain from the genesis.
+/// The outcome of one source requirement of a migration (feature 009).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RequirementOutcome {
+    pub name: String,
+    pub held: bool,
+}
+
+/// What a migration transition records (feature 009, FR-015, FR-019c, research R7): the
+/// migration's identity, the source and target SchemaHashes, the target declarations, the schema
+/// in force before it (absent: the genesis schema), the requirement outcomes, the reviewable
+/// report, that runtime validation of the source and the target state passed, and any cited
+/// verification.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct MigrationBundle {
+    pub migration_hash: String,
+    pub source: String,
+    pub target: String,
+    pub target_declarations: BTreeMap<String, String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub previous_schema: Option<SchemaRef>,
+    pub requirements: Vec<RequirementOutcome>,
+    pub report: Json,
+    pub source_validated: bool,
+    pub target_validated: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub verification: Option<Json>,
+    pub commit_time: String,
+}
+
+impl MigrationBundle {
+    pub fn hash(&self) -> R<String> {
+        hash_of(TAG_MIGRATION_BUNDLE, self)
+    }
+}
+
+/// The record kind of a migration transition (feature 009); action records have no `kind`.
+pub const KIND_MIGRATION: &str = "migration";
+
+/// A committed bundle: the commit object. Records form a hash chain from the genesis. An action
+/// record carries its commit bundle; a migration record (feature 009, `kind: "migration"`)
+/// carries its migration bundle instead, so action records keep their bytes.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TransitionRecord {
     pub format: String,
     pub position: u64,
     pub previous_record: String,
-    pub bundle: CommitBundle,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bundle: Option<CommitBundle>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub migration: Option<MigrationBundle>,
     pub bundle_hash: String,
     pub evaluated_against: StateRef,
     pub committed_on: StateRef,
@@ -381,6 +545,24 @@ pub struct TransitionRecord {
 impl TransitionRecord {
     pub fn hash(&self) -> R<String> {
         hash_of(TAG_TRANSITION_RECORD, self)
+    }
+
+    /// The record is exactly one kind: an action record (no `kind`, a bundle, no migration) or a
+    /// migration record (`kind: "migration"`, a migration bundle, no commit bundle).
+    pub fn check_kind(&self) -> R<()> {
+        match (self.kind.as_deref(), &self.bundle, &self.migration) {
+            (None, Some(_), None) | (Some(KIND_MIGRATION), None, Some(_)) => Ok(()),
+            _ => Err(StoreError::BundleInvalid(
+                "a record is either an action record with a commit bundle or a migration record \
+                 with a migration bundle"
+                    .into(),
+            )),
+        }
+    }
+
+    /// Whether this is a migration record (feature 009).
+    pub fn is_migration(&self) -> bool {
+        self.kind.as_deref() == Some(KIND_MIGRATION)
     }
 }
 

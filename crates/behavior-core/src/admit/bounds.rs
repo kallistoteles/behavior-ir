@@ -250,9 +250,11 @@ pub(crate) fn facts(
         ExprKind::Wrap(_) | ExprKind::Rescale { .. } if fixed_scale(e.ty()).is_some() => {
             leaf(e.ty())
         }
-        ExprKind::ToDecimal(a) | ExprKind::Unwrap(a) | ExprKind::Wrap(a) | ExprKind::Some(a) => {
-            facts(a, derived, err)
-        }
+        ExprKind::ToDecimal(a)
+        | ExprKind::Unwrap(a)
+        | ExprKind::Wrap(a)
+        | ExprKind::Some(a)
+        | ExprKind::StrictUnwrap(a) => facts(a, derived, err),
         ExprKind::Rescale { arg, .. } => {
             let _ = facts(arg, derived, err);
             leaf(e.ty())
@@ -278,7 +280,8 @@ pub(crate) fn facts(
         | ExprKind::IsNone(a)
         | ExprKind::IsSome(a)
         | ExprKind::Exists(a)
-        | ExprKind::Referenced(a) => {
+        | ExprKind::Referenced(a)
+        | ExprKind::EnumMap { arg: a, .. } => {
             let _ = facts(a, derived, err);
             NON_NUMERIC
         }

@@ -207,8 +207,9 @@ def _literal_type(value: Any) -> BType | None:
 def lit(t: BType, value: Any) -> Expr:
     """A literal of type `t` (e.g. a nominal literal `Money(Decimal("5"))`)."""
     loc = caller_loc()
-    builder().declare(t)
-    node = call("lit", t.engine(), encode_literal(value), loc=loc)
+    session = builder()
+    session.declare(t)
+    node = call("lit", session.engine_type(t), encode_literal(value), loc=loc)
     return Expr(node, loc, "lit")
 
 
@@ -227,8 +228,9 @@ def lift(value: object, expected: _engine.Type | None = None) -> Expr:
     t = _literal_type(value)
     if t is None:
         raise BehaviorTypeError(f"{value!r} cannot be used in behavior", "TYPE_MISMATCH", *loc)
-    builder().declare(t)
-    return Expr(call("lit", t.engine(), encoded, loc=loc), loc, "lit")
+    session = builder()
+    session.declare(t)
+    return Expr(call("lit", session.engine_type(t), encoded, loc=loc), loc, "lit")
 
 
 def build(op: str, operands: list[Expr]) -> Expr:
@@ -290,8 +292,9 @@ def referenced(e: object) -> Expr:
 
 def wrap(t: NominalT, e: Expr) -> Expr:
     loc = caller_loc()
-    builder().declare(t)
-    return Expr(call("wrap", t.name, e.node, loc=loc), loc, "wrap", (e,))
+    session = builder()
+    session.declare(t)
+    return Expr(call("wrap", session.nominal_name(t), e.node, loc=loc), loc, "wrap", (e,))
 
 
 def rescale(e: Any, target: NominalT, rounding: Rounding) -> Expr:
@@ -307,8 +310,9 @@ def rescale(e: Any, target: NominalT, rounding: Rounding) -> Expr:
             "rescale needs an explicit rounding mode, e.g. Rounding.HALF_EVEN", *loc
         )
     arg = lift(e)
-    builder().declare(target)
-    node = call("rescale", arg.node, target.name, rounding.value, loc=loc)
+    session = builder()
+    session.declare(target)
+    node = call("rescale", arg.node, session.nominal_name(target), rounding.value, loc=loc)
     return Expr(node, loc, "rescale", (arg,))
 
 

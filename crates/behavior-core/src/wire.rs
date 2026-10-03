@@ -318,6 +318,29 @@ pub enum WExprKind {
         param: String,
         body: Box<WExpr>,
     },
+    /// `strict_unwrap(x)` (migration IR only, feature 009).
+    StrictUnwrap(Box<WExpr>),
+    /// `enum_map` / `strict_enum_map` (migration IR only, feature 009): `to` is the target enum.
+    EnumMap {
+        arg: Box<WExpr>,
+        to: WType,
+        mapping: Vec<(String, String)>,
+        strict: bool,
+    },
+}
+
+/// The name prefix of a target-side named type in a migration (feature 009): never an identifier,
+/// so it cannot clash with a source name.
+pub const TARGET_SIDE: &str = "target:";
+
+/// A named type's name on the given side (`"target"` prefixes it with [`TARGET_SIDE`]).
+fn sided(name: String, side: Option<&Value>, path: &str) -> R<String> {
+    match side {
+        None => Ok(name),
+        Some(Value::String(s)) if s == "source" => Ok(name),
+        Some(Value::String(s)) if s == "target" => Ok(format!("{TARGET_SIDE}{name}")),
+        Some(_) => fail(path, "expected \"source\" or \"target\""),
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -340,9 +363,9 @@ pub enum DecodeError {
     NeedsQueryVersion(String),
 }
 
-type R<T> = Result<T, DecodeError>;
+pub(crate) type R<T> = Result<T, DecodeError>;
 
-fn fail<T>(path: &str, message: impl Into<String>) -> R<T> {
+pub(crate) fn fail<T>(path: &str, message: impl Into<String>) -> R<T> {
     Err(DecodeError::Structure {
         path: path.to_string(),
         message: message.into(),
@@ -350,14 +373,14 @@ fn fail<T>(path: &str, message: impl Into<String>) -> R<T> {
 }
 
 /// A JSON object being decoded; `finish` rejects keys that were not consumed.
-struct Obj<'a> {
+pub(crate) struct Obj<'a> {
     map: &'a Map<String, Value>,
     path: String,
     allowed: Vec<&'static str>,
 }
 
 impl<'a> Obj<'a> {
-    fn new(v: &'a Value, path: &str) -> R<Obj<'a>> {
+    pub(crate) fn new(v: &'a Value, path: &str) -> R<Obj<'a>> {
         match v {
             Value::Object(map) => Ok(Obj {
                 map,
@@ -368,11 +391,11 @@ impl<'a> Obj<'a> {
         }
     }
 
-    fn sub(&self, key: &str) -> String {
+    pub(crate) fn sub(&self, key: &str) -> String {
         format!("{}.{key}", self.path)
     }
 
-    fn get(&mut self, key: &'static str) -> R<&'a Value> {
+    pub(crate) fn get(&mut self, key: &'static str) -> R<&'a Value> {
         self.allowed.push(key);
         match self.map.get(key) {
             Some(v) => Ok(v),
@@ -380,12 +403,12 @@ impl<'a> Obj<'a> {
         }
     }
 
-    fn opt(&mut self, key: &'static str) -> Option<&'a Value> {
+    pub(crate) fn opt(&mut self, key: &'static str) -> Option<&'a Value> {
         self.allowed.push(key);
         self.map.get(key)
     }
 
-    fn str(&mut self, key: &'static str) -> R<String> {
+    pub(crate) fn str(&mut self, key: &'static str) -> R<String> {
         let path = self.sub(key);
         match self.get(key)? {
             Value::String(s) => Ok(s.clone()),
@@ -393,7 +416,7 @@ impl<'a> Obj<'a> {
         }
     }
 
-    fn ident(&mut self, key: &'static str) -> R<String> {
+    pub(crate) fn ident(&mut self, key: &'static str) -> R<String> {
         let path = self.sub(key);
         let s = self.str(key)?;
         if !is_identifier(&s) {
@@ -402,7 +425,7 @@ impl<'a> Obj<'a> {
         Ok(s)
     }
 
-    fn arr(&mut self, key: &'static str) -> R<&'a Vec<Value>> {
+    pub(crate) fn arr(&mut self, key: &'static str) -> R<&'a Vec<Value>> {
         let path = self.sub(key);
         match self.get(key)? {
             Value::Array(a) => Ok(a),
@@ -410,13 +433,13 @@ impl<'a> Obj<'a> {
         }
     }
 
-    fn loc(&mut self) -> R<Loc> {
+    pub(crate) fn loc(&mut self) -> R<Loc> {
         let path = self.sub("loc");
         let v = self.get("loc")?;
         decode_loc(v, &path)
     }
 
-    fn finish(self) -> R<()> {
+    pub(crate) fn finish(self) -> R<()> {
         for key in self.map.keys() {
             if !self.allowed.contains(&key.as_str()) {
                 return fail(&self.path, format!("unknown key `{key}`"));
@@ -435,7 +458,7 @@ pub fn is_identifier(s: &str) -> bool {
     chars.all(|c| c.is_ascii_alphanumeric() || c == '_')
 }
 
-fn decode_loc(v: &Value, path: &str) -> R<Loc> {
+pub(crate) fn decode_loc(v: &Value, path: &str) -> R<Loc> {
     let mut o = Obj::new(v, path)?;
     let file = o.str("file")?;
     let line_path = o.sub("line");
@@ -451,6 +474,11 @@ fn decode_loc(v: &Value, path: &str) -> R<Loc> {
 }
 
 pub fn decode_type(v: &Value, path: &str) -> R<WType> {
+    decode_type_in(v, path, false)
+}
+
+/// [`decode_type`]; in a migration (feature 009) a named type may carry `"side"`.
+pub(crate) fn decode_type_in(v: &Value, path: &str, migration: bool) -> R<WType> {
     let mut o = Obj::new(v, path)?;
     let tag_path = o.sub("t");
     let t = o.str("t")?;
@@ -461,15 +489,30 @@ pub fn decode_type(v: &Value, path: &str) -> R<WType> {
         "string" => WType::String,
         "option" => {
             let of_path = o.sub("of");
-            WType::Option(Box::new(decode_type(o.get("of")?, &of_path)?))
+            WType::Option(Box::new(decode_type_in(o.get("of")?, &of_path, migration)?))
         }
-        "enum" => WType::Enum(o.ident("name")?),
-        "nominal" => WType::Nominal(o.ident("name")?),
+        "enum" | "nominal" => {
+            let name = o.ident("name")?;
+            let name = if migration {
+                let side_path = o.sub("side");
+                sided(name, o.opt("side"), &side_path)?
+            } else {
+                name
+            };
+            if t == "enum" {
+                WType::Enum(name)
+            } else {
+                WType::Nominal(name)
+            }
+        }
         "exact" => {
             let name_path = o.sub("name");
+            let side = if migration { o.opt("side") } else { None };
             match o.opt("name") {
                 None => WType::Exact(None),
-                Some(Value::String(s)) if is_identifier(s) => WType::Exact(Some(s.clone())),
+                Some(Value::String(s)) if is_identifier(s) => {
+                    WType::Exact(Some(sided(s.clone(), side, &name_path)?))
+                }
                 Some(_) => return fail(&name_path, "expected an identifier string"),
             }
         }
@@ -482,7 +525,11 @@ pub fn decode_type(v: &Value, path: &str) -> R<WType> {
     Ok(ty)
 }
 
-fn decode_list<T>(items: &[Value], path: &str, f: impl Fn(&Value, &str) -> R<T>) -> R<Vec<T>> {
+pub(crate) fn decode_list<T>(
+    items: &[Value],
+    path: &str,
+    f: impl Fn(&Value, &str) -> R<T>,
+) -> R<Vec<T>> {
     items
         .iter()
         .enumerate()
@@ -490,7 +537,7 @@ fn decode_list<T>(items: &[Value], path: &str, f: impl Fn(&Value, &str) -> R<T>)
         .collect()
 }
 
-fn decode_strings(v: &Value, path: &str, identifiers: bool) -> R<Vec<String>> {
+pub(crate) fn decode_strings(v: &Value, path: &str, identifiers: bool) -> R<Vec<String>> {
     match v {
         Value::Array(items) => decode_list(items, path, |item, p| match item {
             Value::String(s) if !identifiers || is_identifier(s) => Ok(s.clone()),
@@ -561,6 +608,12 @@ pub(crate) fn arity_ok(op: OpName, n: usize) -> bool {
 }
 
 fn decode_expr(v: &Value, path: &str) -> R<WExpr> {
+    decode_expr_in(v, path, false)
+}
+
+/// [`decode_expr`]; a migration expression (feature 009) may also use `strict_unwrap`,
+/// `enum_map`, `strict_enum_map` and side-qualified named types.
+pub(crate) fn decode_expr_in(v: &Value, path: &str, migration: bool) -> R<WExpr> {
     let mut o = Obj::new(v, path)?;
     let op_path = o.sub("op");
     let op = o.str("op")?;
@@ -569,12 +622,12 @@ fn decode_expr(v: &Value, path: &str) -> R<WExpr> {
         let args_path = o.sub("args");
         let _ = path;
         let items = o.arr("args")?;
-        decode_list(items, &args_path, decode_expr)
+        decode_list(items, &args_path, |v, p| decode_expr_in(v, p, migration))
     };
     let kind = match op.as_str() {
         "lit" => {
             let type_path = o.sub("type");
-            let ty = decode_type(o.get("type")?, &type_path)?;
+            let ty = decode_type_in(o.get("type")?, &type_path, migration)?;
             let value = o.get("value")?.clone();
             WExprKind::Lit { ty, value }
         }
@@ -606,6 +659,12 @@ fn decode_expr(v: &Value, path: &str) -> R<WExpr> {
         }
         "wrap" => {
             let nominal = o.ident("nominal")?;
+            let nominal = if migration {
+                let side_path = o.sub("side");
+                sided(nominal, o.opt("side"), &side_path)?
+            } else {
+                nominal
+            };
             let mut args = args_of(&mut o, path)?;
             if args.len() != 1 {
                 return fail(&o.sub("args"), "`wrap` takes exactly one argument");
@@ -632,7 +691,7 @@ fn decode_expr(v: &Value, path: &str) -> R<WExpr> {
             }
             let param = o.ident("param")?;
             let body_path = o.sub("body");
-            let body = decode_expr(o.get("body")?, &body_path)?;
+            let body = decode_expr_in(o.get("body")?, &body_path, migration)?;
             WExprKind::Lambda {
                 op,
                 query: Box::new(args.remove(0)),
@@ -642,6 +701,12 @@ fn decode_expr(v: &Value, path: &str) -> R<WExpr> {
         }
         "rescale" => {
             let nominal = o.ident("nominal")?;
+            let nominal = if migration {
+                let side_path = o.sub("side");
+                sided(nominal, o.opt("side"), &side_path)?
+            } else {
+                nominal
+            };
             let rounding = o.str("rounding")?;
             let mut args = args_of(&mut o, path)?;
             if args.len() != 1 {
@@ -651,6 +716,47 @@ fn decode_expr(v: &Value, path: &str) -> R<WExpr> {
                 nominal,
                 rounding,
                 arg: Box::new(args.remove(0)),
+            }
+        }
+        "strict_unwrap" if migration => {
+            let mut args = args_of(&mut o, path)?;
+            if args.len() != 1 {
+                return fail(&o.sub("args"), "`strict_unwrap` takes exactly one argument");
+            }
+            WExprKind::StrictUnwrap(Box::new(args.remove(0)))
+        }
+        "enum_map" | "strict_enum_map" if migration => {
+            let mut args = args_of(&mut o, path)?;
+            if args.len() != 1 {
+                return fail(&o.sub("args"), format!("`{op}` takes exactly one argument"));
+            }
+            let to_path = o.sub("to");
+            let to = decode_type_in(o.get("to")?, &to_path, migration)?;
+            let mapping_path = o.sub("mapping");
+            let Value::Array(items) = o.get("mapping")? else {
+                return fail(&mapping_path, "expected an array of [source, target] pairs");
+            };
+            let mut mapping = Vec::new();
+            for (i, item) in items.iter().enumerate() {
+                match item.as_array().map(Vec::as_slice) {
+                    Some([Value::String(a), Value::String(b)])
+                        if is_identifier(a) && is_identifier(b) =>
+                    {
+                        mapping.push((a.clone(), b.clone()));
+                    }
+                    _ => {
+                        return fail(
+                            &format!("{mapping_path}[{i}]"),
+                            "expected a [source value, target value] pair",
+                        );
+                    }
+                }
+            }
+            WExprKind::EnumMap {
+                arg: Box::new(args.remove(0)),
+                to,
+                mapping,
+                strict: op == "strict_enum_map",
             }
         }
         other => {
@@ -998,7 +1104,9 @@ fn expr_query_form(e: &WExpr) -> Option<&'static str> {
         WExprKind::Op { args, .. } => args.iter().find_map(expr_query_form),
         WExprKind::In { arg, .. }
         | WExprKind::Wrap { arg, .. }
-        | WExprKind::Rescale { arg, .. } => expr_query_form(arg),
+        | WExprKind::Rescale { arg, .. }
+        | WExprKind::StrictUnwrap(arg)
+        | WExprKind::EnumMap { arg, .. } => expr_query_form(arg),
         WExprKind::Lit { .. }
         | WExprKind::Field { .. }
         | WExprKind::Param(_)
@@ -1036,7 +1144,9 @@ fn expr_lifecycle_form(e: &WExpr) -> Option<&'static str> {
         WExprKind::Lit { ty, .. } => type_lifecycle_form(ty),
         WExprKind::In { arg, .. }
         | WExprKind::Wrap { arg, .. }
-        | WExprKind::Rescale { arg, .. } => expr_lifecycle_form(arg),
+        | WExprKind::Rescale { arg, .. }
+        | WExprKind::StrictUnwrap(arg)
+        | WExprKind::EnumMap { arg, .. } => expr_lifecycle_form(arg),
         WExprKind::Lambda { query, body, .. } => {
             expr_lifecycle_form(query).or_else(|| expr_lifecycle_form(body))
         }
@@ -1103,7 +1213,10 @@ fn expr_uses_fixed_scale(e: &WExpr) -> bool {
         WExprKind::Rescale { .. } => true,
         WExprKind::Lit { ty, .. } => type_uses_fixed_scale(ty),
         WExprKind::Op { args, .. } => args.iter().any(expr_uses_fixed_scale),
-        WExprKind::In { arg, .. } | WExprKind::Wrap { arg, .. } => expr_uses_fixed_scale(arg),
+        WExprKind::In { arg, .. }
+        | WExprKind::Wrap { arg, .. }
+        | WExprKind::StrictUnwrap(arg)
+        | WExprKind::EnumMap { arg, .. } => expr_uses_fixed_scale(arg),
         WExprKind::Lambda { query, body, .. } => {
             expr_uses_fixed_scale(query) || expr_uses_fixed_scale(body)
         }

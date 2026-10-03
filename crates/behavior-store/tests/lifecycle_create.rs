@@ -99,7 +99,7 @@ fn records_without_lifecycle_keep_the_005_shape() {
         b.get("read_facts").is_none() && b.get("write_lifecycle").is_none(),
         "{b}"
     );
-    assert_eq!(rec.bundle.record["record_version"], "0.4");
+    assert_eq!(rec.bundle.as_ref().unwrap().record["record_version"], "0.4");
 }
 
 #[test]

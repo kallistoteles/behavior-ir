@@ -151,7 +151,7 @@ class StaleIndex(DictBackend):
 def test_reference_and_dict_backends_pass_every_case() -> None:
     for factory in (InMemoryBackend, DictBackend):
         report = run_conformance(factory)
-        assert len(report.cases) == 28
+        assert len(report.cases) == 30
         assert report.ok, report.failed()
 
 

@@ -5,17 +5,18 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use serde_json::{Map, Value as Json, json};
 
-use behavior_core::semantic::module::{Kind, Module, ParamRole};
-use behavior_core::semantic::types::{Type, hash_display};
+use behavior_core::semantic::module::{Module, ParamRole};
+use behavior_core::semantic::types::Type;
 use behavior_core::{
-    EvaluationFacts, FactError, IndexPlan, QueryRequest, RefEdge, check_entity,
-    check_global_invariants, decode_entity, evaluate_with, index_hint,
+    EvaluationFacts, FactError, IndexPlan, QueryRequest, RefEdge, StoreSchema, check_entity,
+    check_global_invariants, decode_entity, evaluate_with, index_hint, schema,
 };
 use behavior_verify::hashing::{TAG_TRANSITION, document_hash};
 
 use crate::documents::{
-    CommitBundle, EntityKey, EntityVersion, Evidence, Genesis, Head, LifecycleWrite, R, ReadEntry,
-    RefChange, RemovedEntity, Require, StateRef, StoreError, TAG_COMMIT_BUNDLE, TAG_GENESIS,
+    CommitBundle, DeclarationDiff, EntityKey, EntityVersion, Evidence, Genesis, Head,
+    KIND_MIGRATION, LifecycleWrite, MigrationBundle, R, ReadEntry, RefChange, RemovedEntity,
+    Require, RequirementOutcome, SchemaRef, StateRef, StoreError, TAG_COMMIT_BUNDLE, TAG_GENESIS,
     TAG_TRANSITION_RECORD, TransitionRecord, WriteEntry, data_version, valid_timestamp,
 };
 use crate::muhash::Accumulator;
@@ -47,6 +48,8 @@ pub struct Store<B: Backend> {
     backend: B,
     genesis: std::sync::Arc<Genesis>,
     store_id: String,
+    /// The genesis schema (feature 009), computed once like the store identity.
+    genesis_schema: SchemaRef,
 }
 
 fn backend_err(e: BackendError) -> StoreError {
@@ -57,14 +60,29 @@ fn invalid(msg: impl Into<String>) -> StoreError {
     StoreError::BundleInvalid(msg.into())
 }
 
-/// The semantic declaration hash of every entity of `module`.
+/// The semantic declaration hash of every entity of `module` (its store schema, feature 009).
 pub fn declarations(module: &Module) -> BTreeMap<String, String> {
-    module
-        .name_table()
-        .iter()
-        .filter(|((k, _), _)| *k == Kind::Entity)
-        .map(|((_, n), h)| (n.clone(), hash_display(h)))
-        .collect()
+    behavior_core::schema::declarations(module)
+}
+
+/// The genesis schema of a store whose identity is `store_id` (the genesis hash).
+fn genesis_schema_of(genesis: &Genesis, store_id: &str) -> SchemaRef {
+    let s = StoreSchema::of(genesis.entity_declarations.clone());
+    SchemaRef {
+        hash: s.hash,
+        declarations: s.declarations,
+        since: 0,
+        migration_record: store_id.to_string(),
+    }
+}
+
+/// `SCHEMA_MISMATCH` between the store's schema at a position and a module's (FR-005).
+pub fn schema_mismatch(store: &SchemaRef, module: &StoreSchema) -> StoreError {
+    StoreError::SchemaMismatch {
+        store: store.hash.clone(),
+        module: module.hash.clone(),
+        differing: DeclarationDiff::between(&store.declarations, &module.declarations),
+    }
 }
 
 /// A genesis for `module`'s entity declarations with the given evidence policy and seed.
@@ -313,13 +331,11 @@ impl<B: Backend> Store<B> {
             return Err(bad(format!("genesis format `{}`", genesis.format)));
         }
         genesis.evidence_policy.validate()?;
-        let decls = declarations(module);
-        for (name, h) in &genesis.entity_declarations {
-            if decls.get(name) != Some(h) {
-                return Err(StoreError::EntityDeclarationMismatch(format!(
-                    "`{name}` is declared differently in the behavior than in the genesis"
-                )));
-            }
+        // The genesis schema is exactly the module's store schema (feature 009, FR-005).
+        let genesis_schema = genesis.schema()?;
+        let module_schema = schema(module);
+        if genesis_schema.hash != module_schema.hash {
+            return Err(schema_mismatch(&genesis_schema, &module_schema));
         }
         let mut seen = BTreeSet::new();
         let mut versions = Vec::new();
@@ -385,6 +401,7 @@ impl<B: Backend> Store<B> {
             acc_num: n,
             acc_den: d,
             last_record: genesis.hash()?,
+            schema: None,
         };
         backend
             .create(&genesis, &head, &versions, &seed_refs)
@@ -392,6 +409,7 @@ impl<B: Backend> Store<B> {
         let store_id = genesis.hash()?;
         Ok(Store {
             backend,
+            genesis_schema: genesis_schema_of(&genesis, &store_id),
             genesis: std::sync::Arc::new(genesis),
             store_id,
         })
@@ -406,6 +424,7 @@ impl<B: Backend> Store<B> {
         let store_id = genesis.hash()?;
         Ok(Store {
             backend,
+            genesis_schema: genesis_schema_of(&genesis, &store_id),
             genesis: std::sync::Arc::new(genesis),
             store_id,
         })
@@ -442,6 +461,79 @@ impl<B: Backend> Store<B> {
     /// The current state.
     pub fn current(&self) -> R<StateRef> {
         Ok(self.head()?.state_ref)
+    }
+
+    /// The schema in force at the head: the last migration's, or the genesis schema.
+    fn head_schema(&self, head: &Head) -> R<SchemaRef> {
+        match &head.schema {
+            Some(s) => Ok(s.clone()),
+            None => Ok(self.genesis_schema.clone()),
+        }
+    }
+
+    /// The schema in force at `position` (FR-002): found by walking back from the head through
+    /// migration records only, never by scanning ordinary records (research R3).
+    pub(crate) fn schema_at_position(&self, position: u64) -> R<SchemaRef> {
+        let head = self.head()?;
+        let mut s = self.head_schema(&head)?;
+        while s.since > position {
+            s = self.previous_schema(&s)?;
+        }
+        Ok(s)
+    }
+
+    /// The schema in force before the migration that introduced `s` (the migration record at
+    /// `s.since` names it; absent there means the genesis schema).
+    fn previous_schema(&self, s: &SchemaRef) -> R<SchemaRef> {
+        let rec = self
+            .backend
+            .record(s.since)
+            .map_err(backend_err)?
+            .ok_or_else(|| StoreError::Backend(format!("record {} missing", s.since)))?;
+        match &rec.migration {
+            Some(m) if rec.is_migration() => match &m.previous_schema {
+                Some(p) => Ok(p.clone()),
+                None => Ok(self.genesis_schema.clone()),
+            },
+            _ => Err(StoreError::Backend(format!(
+                "the record at position {} does not introduce a schema",
+                s.since
+            ))),
+        }
+    }
+
+    /// The schema under which state `at` of this store is valid (FR-001, FR-002).
+    pub fn schema_at(&self, at: &StateRef) -> R<SchemaRef> {
+        if self.state_at(at.position)? != *at {
+            return Err(StoreError::EntityNotFound(format!(
+                "{} at position {} is not a state of this store",
+                at.state, at.position
+            )));
+        }
+        self.schema_at_position(at.position)
+    }
+
+    /// Every schema this store has had, oldest first, each with the position it applies from.
+    pub fn schema_history(&self) -> R<Vec<SchemaRef>> {
+        let head = self.head()?;
+        let mut s = self.head_schema(&head)?;
+        let mut out = vec![s.clone()];
+        while s.since > 0 {
+            s = self.previous_schema(&s)?;
+            out.push(s.clone());
+        }
+        out.reverse();
+        Ok(out)
+    }
+
+    /// The store's schema at `position`, which `module` must declare exactly (FR-005).
+    fn bind_schema(&self, module: &Module, position: u64) -> R<SchemaRef> {
+        let at = self.schema_at_position(position)?;
+        let m = schema(module);
+        if m.hash != at.hash {
+            return Err(schema_mismatch(&at, &m));
+        }
+        Ok(at)
     }
 
     /// The state at `position` of this store's history.
@@ -501,12 +593,12 @@ impl<B: Backend> Store<B> {
         }
         let head = self.head()?;
         let at = head.state_ref.clone();
-        let genesis = std::sync::Arc::clone(&self.genesis);
+        // Exact store-schema binding, before anything is evaluated (FR-005).
+        let at_schema = self.bind_schema(module, at.position)?;
         let store = self.store_id.clone();
         let a = module
             .action(action)
             .ok_or_else(|| invalid(format!("unknown action `{action}`")))?;
-        let decls = declarations(module);
         let mut state = Map::new();
         let mut loaded: BTreeMap<String, EntityVersion> = BTreeMap::new();
         for p in a.params() {
@@ -516,12 +608,6 @@ impl<B: Backend> Store<B> {
             let Type::Entity(entity) = p.ty() else {
                 continue;
             };
-            if decls.get(entity) != genesis.entity_declarations.get(entity) {
-                return Err(StoreError::EntityDeclarationMismatch(format!(
-                    "`{entity}` is declared differently in behavior {} than in the store",
-                    module.behavior_version()
-                )));
-            }
             let id = bindings.get(p.name()).ok_or_else(|| {
                 StoreError::EntityNotFound(format!("no binding for state parameter `{}`", p.name()))
             })?;
@@ -568,13 +654,7 @@ impl<B: Backend> Store<B> {
         }
         let mut touched = BTreeMap::new();
         for entity in touched_types(module, a) {
-            if decls.get(&entity) != genesis.entity_declarations.get(&entity) {
-                return Err(StoreError::EntityDeclarationMismatch(format!(
-                    "`{entity}` is declared differently in behavior {} than in the store",
-                    module.behavior_version()
-                )));
-            }
-            if let Some(d) = genesis.entity_declarations.get(&entity) {
+            if let Some(d) = at_schema.declarations.get(&entity) {
                 touched.insert(entity, d.clone());
             }
         }
@@ -616,6 +696,9 @@ impl<B: Backend> Store<B> {
         if bundle.store != store {
             return Err(invalid("the bundle was evaluated against another store"));
         }
+        // Exact store-schema binding at the evaluated position, before the module is used
+        // (FR-005).
+        let at_schema = self.bind_schema(module, bundle.evaluated_state.position)?;
         if bundle.record["result"] != "ALLOW" {
             return Err(StoreError::NothingToCommit(format!(
                 "the decision is {}",
@@ -644,7 +727,9 @@ impl<B: Backend> Store<B> {
             .record(parent.position + 1)
             .map_err(backend_err)?
             && r.committed_on == *parent
-            && r.bundle.transition_hash == bundle.transition_hash
+            && r.bundle
+                .as_ref()
+                .is_some_and(|b| b.transition_hash == bundle.transition_hash)
         {
             return Ok(Committed {
                 record_id: r.hash()?,
@@ -671,26 +756,20 @@ impl<B: Backend> Store<B> {
             return Err(invalid("commit time is not RFC 3339 UTC"));
         }
         // Declarations: derived from the action's entity parameters, never taken from the bundle.
-        // Every touched entity must be declared identically by the module and the genesis, and the
-        // bundle's list must be exactly that set.
-        let decls = declarations(module);
+        // Every touched entity must be declared by the store's schema at the parent (which the
+        // module declares exactly), and the bundle's list must be exactly that set.
         let action_name = bundle.record["action"]["name"].as_str().unwrap_or_default();
         let action = module
             .action(action_name)
             .ok_or_else(|| invalid(format!("unknown action `{action_name}`")))?;
         let mut touched = BTreeMap::new();
         for entity in touched_types(module, action) {
-            let entity = &entity;
-            let in_store = genesis.entity_declarations.get(entity);
-            if in_store.is_none() || decls.get(entity) != in_store {
+            let Some(d) = at_schema.declarations.get(&entity) else {
                 return Err(StoreError::EntityDeclarationMismatch(format!(
-                    "`{entity}` is declared differently in behavior {} than in the store",
-                    module.behavior_version()
+                    "`{entity}` is not an entity type of the store's schema"
                 )));
-            }
-            if let Some(d) = in_store {
-                touched.insert(entity.clone(), d.clone());
-            }
+            };
+            touched.insert(entity, d.clone());
         }
         if bundle.entity_declarations != touched {
             return Err(invalid(
@@ -698,7 +777,7 @@ impl<B: Backend> Store<B> {
             ));
         }
         let (parent_versions, derived_reads, derived_writes, derived_facts) =
-            self.rederive(module, &genesis, parent, &bundle.record)?;
+            self.rederive(module, &at_schema.declarations, parent, &bundle.record)?;
         if derived_facts != bundle.read_facts {
             return Err(invalid(
                 "the read facts are not the ones the evaluation observed at the parent",
@@ -780,7 +859,9 @@ impl<B: Backend> Store<B> {
                     ref_changes.push(edge(t.clone(), &key, f, "add"));
                 }
             }
-            let decl = &genesis.entity_declarations[&key.entity];
+            let decl = at_schema.declarations.get(&key.entity).ok_or_else(|| {
+                StoreError::EntityDeclarationMismatch(format!("`{}`", key.entity))
+            })?;
             let mut v = EntityVersion {
                 content_hash: String::new(),
                 entity: key.entity.clone(),
@@ -805,8 +886,8 @@ impl<B: Backend> Store<B> {
                 return Err(invalid("malformed lifecycle entry"));
             };
             let k = key(entity, id);
-            let decl = genesis
-                .entity_declarations
+            let decl = at_schema
+                .declarations
                 .get(entity)
                 .ok_or_else(|| StoreError::EntityDeclarationMismatch(format!("`{entity}`")))?;
             match op {
@@ -873,7 +954,9 @@ impl<B: Backend> Store<B> {
             format: TAG_TRANSITION_RECORD.into(),
             position,
             previous_record: head.last_record.clone(),
-            bundle: bundle.clone(),
+            kind: None,
+            bundle: Some(bundle.clone()),
+            migration: None,
             bundle_hash: bundle.hash()?,
             evaluated_against: parent.clone(),
             committed_on: parent.clone(),
@@ -892,6 +975,7 @@ impl<B: Backend> Store<B> {
             acc_num: n,
             acc_den: d,
             last_record: record_id.clone(),
+            schema: head.schema.clone(),
         };
         // 5. The atomic compare-and-set.
         let mut versions = new_versions;
@@ -918,6 +1002,231 @@ impl<B: Backend> Store<B> {
                 let now = self.head()?;
                 Err(self.conflict(&now, parent))
             }
+        }
+    }
+
+    /// Applies `migration` from `source` to `target` as one atomic transition at the next position
+    /// (feature 009, FR-011, research R6). The store's current schema must be the migration's
+    /// source; every entity at the head is read, the migration is applied to that complete,
+    /// immutable universe (source validation, requirements, entity-local transforms, target
+    /// validation, none of which any policy can skip), and the new versions, reference-index
+    /// changes, migration record and a head naming the new schema are committed with one
+    /// compare-and-set.
+    pub fn migrate(
+        &mut self,
+        migration: &behavior_core::migration::Migration,
+        source: &Module,
+        target: &Module,
+        commit_time: &str,
+        evidence: Option<Evidence>,
+    ) -> R<Committed> {
+        use behavior_core::migration::{MigrationRefusal, SourceEntity, apply_migration};
+        if !valid_timestamp(commit_time) {
+            return Err(invalid(format!(
+                "commit time `{commit_time}` is not RFC 3339 UTC"
+            )));
+        }
+        let head = self.head()?;
+        let parent = head.state_ref.clone();
+        let current = self.head_schema(&head)?;
+        if current.hash != migration.source_schema() {
+            return Err(StoreError::Migration(MigrationRefusal {
+                code: "MIGRATION_SCHEMA_MISMATCH",
+                message: format!(
+                    "the store's current schema is {}; migration {} applies to {}",
+                    current.hash,
+                    migration.hash(),
+                    migration.source_schema()
+                ),
+                rule: None,
+                entities: Vec::new(),
+                count: 0,
+            }));
+        }
+        // The complete source universe at the head.
+        let mut parent_versions: BTreeMap<EntityKey, EntityVersion> = BTreeMap::new();
+        let mut entities = Vec::new();
+        for t in current.declarations.keys() {
+            let mut keys = self
+                .backend
+                .keys_at(t, parent.position)
+                .map_err(backend_err)?;
+            keys.sort();
+            for k in keys {
+                let v = self
+                    .backend
+                    .version_at(&k, parent.position)
+                    .map_err(backend_err)?
+                    .ok_or_else(|| StoreError::EntityNotFound(k.to_string()))?;
+                entities.push(SourceEntity {
+                    entity: k.entity.clone(),
+                    value: v.value.clone(),
+                });
+                parent_versions.insert(k, v);
+            }
+        }
+        let out =
+            apply_migration(migration, source, target, &entities).map_err(StoreError::Migration)?;
+        let (_, target_schema) = migration.schemas();
+        let evidence_policy = self.genesis.evidence_policy.hash()?;
+        let authorization = self.migration_evidence(evidence.as_ref(), migration, &parent)?;
+        let verification = evidence
+            .as_ref()
+            .map(|e| e.authorization["verification"].clone())
+            .filter(|v| !v.is_null());
+        // New versions under the target declarations, and the reference-index changes.
+        let position = parent.position + 1;
+        let mut acc = Accumulator::from_hex(&head.acc_num, &head.acc_den)?;
+        let mut new_versions = Vec::new();
+        let mut ref_changes: Vec<RefChange> = Vec::new();
+        for m in out.entities.iter().filter(|m| m.migrated) {
+            let k = key(&m.entity, &m.id);
+            let old = parent_versions
+                .get(&k)
+                .ok_or_else(|| StoreError::EntityNotFound(k.to_string()))?;
+            let decl = target_schema
+                .declarations
+                .get(&m.entity)
+                .ok_or_else(|| StoreError::EntityDeclarationMismatch(format!("`{}`", m.entity)))?;
+            let mut v = EntityVersion {
+                content_hash: String::new(),
+                entity: m.entity.clone(),
+                id: m.id.clone(),
+                revision: old.revision + 1,
+                created_at: position,
+                value: m.value.clone(),
+            };
+            v.content_hash = v.content(decl).hash()?;
+            acc.remove(&old.content_hash)?;
+            acc.insert(&v.content_hash)?;
+            let before = references_of(source, &k.entity, &old.value);
+            let after = references_of(target, &k.entity, &v.value);
+            for (f, t) in &before {
+                if !after.contains(&(f.clone(), t.clone())) {
+                    ref_changes.push(RefChange {
+                        target: t.clone(),
+                        source: k.clone(),
+                        field: f.clone(),
+                        op: "drop".into(),
+                    });
+                }
+            }
+            for (f, t) in &after {
+                if !before.contains(&(f.clone(), t.clone())) {
+                    ref_changes.push(RefChange {
+                        target: t.clone(),
+                        source: k.clone(),
+                        field: f.clone(),
+                        op: "add".into(),
+                    });
+                }
+            }
+            new_versions.push(v);
+        }
+        ref_changes.sort();
+        let result_state = StateRef {
+            state: acc.state_id()?,
+            position,
+        };
+        let bundle = MigrationBundle {
+            migration_hash: migration.hash(),
+            source: current.hash.clone(),
+            target: target_schema.hash.clone(),
+            target_declarations: target_schema.declarations.clone(),
+            previous_schema: head.schema.clone(),
+            requirements: out
+                .requirements
+                .iter()
+                .map(|r| RequirementOutcome {
+                    name: r.name.clone(),
+                    held: r.held,
+                })
+                .collect(),
+            report: out.report.clone(),
+            source_validated: true,
+            target_validated: true,
+            verification,
+            commit_time: commit_time.to_string(),
+        };
+        let record = TransitionRecord {
+            format: TAG_TRANSITION_RECORD.into(),
+            position,
+            previous_record: head.last_record.clone(),
+            kind: Some(KIND_MIGRATION.into()),
+            bundle: None,
+            bundle_hash: bundle.hash()?,
+            migration: Some(bundle),
+            evaluated_against: parent.clone(),
+            committed_on: parent.clone(),
+            result_state: result_state.clone(),
+            new_versions: new_versions.clone(),
+            evidence_policy,
+            authorization,
+            created: Vec::new(),
+            removed: Vec::new(),
+            ref_changes: ref_changes.clone(),
+        };
+        let record_id = record.hash()?;
+        let (n, d) = acc.normalize()?.to_hex();
+        let new_head = Head {
+            state_ref: result_state.clone(),
+            acc_num: n,
+            acc_den: d,
+            last_record: record_id.clone(),
+            schema: Some(SchemaRef {
+                hash: target_schema.hash.clone(),
+                declarations: target_schema.declarations.clone(),
+                since: position,
+                migration_record: record_id.clone(),
+            }),
+        };
+        match self
+            .backend
+            .commit(
+                &head.last_record,
+                &new_versions,
+                &[],
+                &ref_changes,
+                &record,
+                &new_head,
+            )
+            .map_err(backend_err)?
+        {
+            CasOutcome::Applied => Ok(Committed {
+                record_id,
+                result_state,
+                already: false,
+                evidence_trust: record.authorization.as_ref().map(|_| "structural"),
+            }),
+            CasOutcome::HeadMoved => {
+                let now = self.head()?;
+                Err(self.conflict(&now, &parent))
+            }
+        }
+    }
+
+    /// The governance evidence a migration needs under the store's evidence policy (FR-019b):
+    /// its `migration` section, or what actions need. Returns the bound authorization's hash.
+    fn migration_evidence(
+        &self,
+        evidence: Option<&Evidence>,
+        migration: &behavior_core::migration::Migration,
+        parent: &StateRef,
+    ) -> R<Option<String>> {
+        let (require, trusted) = self.genesis.evidence_policy.for_migration();
+        match (evidence, require) {
+            (None, Require::None) => Ok(None),
+            (None, Require::CommitAuthorization) => Err(StoreError::EvidenceRequired(format!(
+                "evidence policy {} requires a commit authorization for migrations",
+                self.genesis.evidence_policy.hash()?
+            ))),
+            (Some(e), _) => evidence::check_migration(
+                &data_version(&self.store_id, parent),
+                migration,
+                trusted,
+                e,
+            )
+            .map(Some),
         }
     }
 
@@ -981,14 +1290,17 @@ impl<B: Backend> Store<B> {
         let mut changed = BTreeSet::new();
         for pos in (parent.position + 1)..=head.state_ref.position {
             if let Ok(Some(r)) = self.backend.record(pos) {
-                for w in &r.bundle.write_set {
-                    changed.insert(EntityKey {
-                        entity: w.entity.clone(),
-                        id: w.id.clone(),
-                    });
+                if let Some(b) = &r.bundle {
+                    for w in &b.write_set {
+                        changed.insert(key(&w.entity, &w.id));
+                    }
+                    for l in &b.write_lifecycle {
+                        changed.insert(key(&l.entity, &l.id));
+                    }
                 }
-                for l in &r.bundle.write_lifecycle {
-                    changed.insert(key(&l.entity, &l.id));
+                // A migration rewrites every entity of its changed types (feature 009).
+                for v in &r.new_versions {
+                    changed.insert(v.key());
                 }
             }
         }
@@ -1005,7 +1317,7 @@ impl<B: Backend> Store<B> {
     pub(crate) fn rederive(
         &self,
         module: &Module,
-        genesis: &Genesis,
+        declarations: &BTreeMap<String, String>,
         parent: &StateRef,
         record: &Json,
     ) -> R<(
@@ -1029,7 +1341,7 @@ impl<B: Backend> Store<B> {
             let Type::Entity(entity) = p.ty() else {
                 continue;
             };
-            if !genesis.entity_declarations.contains_key(entity) {
+            if !declarations.contains_key(entity) {
                 return Err(StoreError::EntityDeclarationMismatch(format!(
                     "`{entity}` is not an entity of this store"
                 )));
@@ -1196,6 +1508,51 @@ pub(crate) mod evidence {
     /// within the current trust boundary: who issued the authorization is not proven (FR-023).
     pub(crate) fn check(genesis: &Genesis, bundle: &CommitBundle, e: &Evidence) -> R<String> {
         let auth = &e.authorization;
+        let actual = sealed(auth)?;
+        if auth.get("kind").is_some() {
+            return Err(mismatch("the authorization is not for an action"));
+        }
+        if auth["transition_hash"] != bundle.transition_hash.as_str() {
+            return Err(mismatch("the authorization is for another transition"));
+        }
+        if auth["behavior_version"] != bundle.behavior_version.as_str() {
+            return Err(mismatch(
+                "the authorization is for another behavior version",
+            ));
+        }
+        cited(
+            genesis.evidence_policy.trusted_execution_policies.as_ref(),
+            e,
+        )?;
+        Ok(actual)
+    }
+
+    /// Checks migration evidence (feature 009): the authorization must be for this migration on
+    /// this store state (`data_version`), from a trusted execution policy, citing the supplied
+    /// documents.
+    pub(crate) fn check_migration(
+        data_version: &str,
+        migration: &behavior_core::migration::Migration,
+        trusted: Option<&Vec<String>>,
+        e: &Evidence,
+    ) -> R<String> {
+        let auth = &e.authorization;
+        let actual = sealed(auth)?;
+        if auth["kind"] != "migration" {
+            return Err(mismatch("the authorization is not for a migration"));
+        }
+        if auth["migration_hash"] != migration.hash().as_str() {
+            return Err(mismatch("the authorization is for another migration"));
+        }
+        if auth["data_version"] != data_version {
+            return Err(mismatch("the authorization is for another store or state"));
+        }
+        cited(trusted, e)?;
+        Ok(actual)
+    }
+
+    /// The authorization's hash, if it matches its content and allows the commit.
+    fn sealed(auth: &Json) -> R<String> {
         let claimed = auth["hash"].as_str().unwrap_or_default();
         let actual = document_hash(TAG_AUTHORIZATION, auth).map_err(|x| mismatch(x.to_string()))?;
         if claimed != actual {
@@ -1209,16 +1566,14 @@ pub(crate) mod evidence {
                 auth["decision"]
             )));
         }
-        if auth["transition_hash"] != bundle.transition_hash.as_str() {
-            return Err(mismatch("the authorization is for another transition"));
-        }
-        if auth["behavior_version"] != bundle.behavior_version.as_str() {
-            return Err(mismatch(
-                "the authorization is for another behavior version",
-            ));
-        }
+        Ok(actual)
+    }
+
+    /// The execution policy is trusted, and every supplied document is the one cited.
+    fn cited(trusted: Option<&Vec<String>>, e: &Evidence) -> R<()> {
+        let auth = &e.authorization;
         let policy_hash = auth["policy_hash"].as_str().unwrap_or_default();
-        if let Some(allowed) = &genesis.evidence_policy.trusted_execution_policies
+        if let Some(allowed) = trusted
             && !allowed.iter().any(|p| p == policy_hash)
         {
             return Err(mismatch(format!(
@@ -1263,6 +1618,6 @@ pub(crate) mod evidence {
                 return Err(mismatch("the supplied waivers are not the ones cited"));
             }
         }
-        Ok(actual)
+        Ok(())
     }
 }

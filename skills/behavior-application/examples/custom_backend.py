@@ -104,4 +104,4 @@ class DictBackend:
 
 report = run_conformance(DictBackend)
 assert report.ok, report.failed()
-assert len(report.cases) == 28
+assert len(report.cases) == 30

@@ -24,6 +24,8 @@ enum Command {
     Admit { wire: String },
     /// Print the behavior version of wire IR.
     Version { wire: String },
+    /// Print the SchemaHash of the store schema wire IR declares (feature 009).
+    SchemaHash { wire: String },
     /// Print the name → item hash table of wire IR.
     Hashes { wire: String },
     /// Evaluate a request.
@@ -56,6 +58,11 @@ enum Command {
     },
     /// Print the release's versions (engine, wire IR, records, store documents, verifier).
     EngineInfo,
+    /// Admit, verify or apply a migration between two schemas (feature 009).
+    Migration {
+        #[command(subcommand)]
+        command: MigrationCommand,
+    },
     /// Decide whether a decision record's transition may be committed under a policy.
     Authorize {
         wire: String,
@@ -91,6 +98,152 @@ fn read(path: &str) -> Result<String, u8> {
         eprintln!("behavior: cannot read {path}: {e}");
         USAGE
     })
+}
+
+#[derive(Subcommand)]
+enum MigrationCommand {
+    /// Admit a migration document against its source and target wire IR; print the resolved
+    /// migration, its hash and its reviewable summary.
+    Admit {
+        source: String,
+        target: String,
+        migration: String,
+    },
+    /// Verify a migration with the SMT solver and print its attestation.
+    Verify {
+        source: String,
+        target: String,
+        migration: String,
+        #[arg(long)]
+        profile: Option<String>,
+    },
+    /// Apply a migration to a supplied source universe (a JSON array of {entity, value}); there
+    /// is no store on the command line.
+    Apply {
+        source: String,
+        target: String,
+        migration: String,
+        facts: String,
+    },
+}
+
+/// The source and target modules and the admitted migration, or the exit code after printing
+/// the admission errors.
+fn migration_inputs(
+    source: &str,
+    target: &str,
+    migration: &str,
+) -> Result<
+    (
+        behavior_core::semantic::module::Module,
+        behavior_core::semantic::module::Module,
+        behavior_core::migration::Migration,
+    ),
+    u8,
+> {
+    let admit = |path: &str| match behavior_core::admit(&read(path)?) {
+        Ok(m) => Ok(m),
+        Err(r) => {
+            emit(&r.to_json_string(), false);
+            Err(2)
+        }
+    };
+    let (s, t) = (admit(source)?, admit(target)?);
+    match behavior_core::migration::admit_migration(&s, &t, &read(migration)?) {
+        Ok(m) => Ok((s, t, m)),
+        Err(r) => {
+            emit(&r.to_json_string(), false);
+            Err(2)
+        }
+    }
+}
+
+fn migration_command(command: MigrationCommand) -> Result<u8, u8> {
+    let canonical = |v: &serde_json::Value| {
+        behavior_core::canonical::to_canonical_string(v).unwrap_or_default()
+    };
+    match command {
+        MigrationCommand::Admit {
+            source,
+            target,
+            migration,
+        } => {
+            let (_, _, m) = match migration_inputs(&source, &target, &migration) {
+                Ok(x) => x,
+                Err(code) => return Ok(code),
+            };
+            let out = serde_json::json!({
+                "ok": true, "hash": m.hash(), "summary": m.summary(), "resolved": m.resolved(),
+            });
+            emit(&canonical(&out), true);
+            Ok(0)
+        }
+        MigrationCommand::Verify {
+            source,
+            target,
+            migration,
+            profile,
+        } => {
+            let profile = match profile {
+                Some(p) => behavior_verify::Profile::from_json(&read(&p)?).map_err(|e| {
+                    eprintln!("behavior: {e}");
+                    USAGE
+                })?,
+                None => behavior_verify::Profile::default(),
+            };
+            let (s, t, m) = match migration_inputs(&source, &target, &migration) {
+                Ok(x) => x,
+                Err(code) => return Ok(code),
+            };
+            let solver = behavior_verify::solver::Z3Process::from_env()
+                .map_err(|e| {
+                    eprintln!("behavior: {e}");
+                    3
+                })?
+                .with_guard(std::time::Duration::from_millis(
+                    profile.wall_clock_guard_ms,
+                ));
+            if let Some(notice) = solver.version_mismatch() {
+                eprintln!("behavior: warning: {notice}");
+            }
+            let a = behavior_verify::verify_migration(&m, &s, &t, &profile, None, &solver);
+            emit(&a.to_json_string(), false);
+            Ok(if a.result == "verified" { 0 } else { 1 })
+        }
+        MigrationCommand::Apply {
+            source,
+            target,
+            migration,
+            facts,
+        } => {
+            let (s, t, m) = match migration_inputs(&source, &target, &migration) {
+                Ok(x) => x,
+                Err(code) => return Ok(code),
+            };
+            let universe: Vec<serde_json::Value> =
+                serde_json::from_str(&read(&facts)?).map_err(|e| {
+                    eprintln!("behavior: {facts}: {e}");
+                    2
+                })?;
+            let mut entities = Vec::new();
+            for e in universe {
+                let (Some(entity), Some(value)) = (e["entity"].as_str(), e.get("value")) else {
+                    eprintln!("behavior: {facts}: every item needs `entity` and `value`");
+                    return Ok(2);
+                };
+                entities.push(behavior_core::migration::SourceEntity {
+                    entity: entity.to_string(),
+                    value: value.clone(),
+                });
+            }
+            let r = behavior_core::migration::apply_migration(&m, &s, &t, &entities);
+            emit(
+                &canonical(&behavior_core::migration::outcome_json(&r)),
+                true,
+            );
+            Ok(if r.is_ok() { 0 } else { 1 })
+        }
+    }
 }
 
 fn emit(text: &str, newline: bool) {
@@ -152,6 +305,7 @@ fn invalid(e: behavior_verify::governance::GovernanceError) -> u8 {
 
 fn dispatch(cli: Cli) -> Result<u8, u8> {
     match cli.command {
+        Command::Migration { command } => migration_command(command),
         Command::EngineInfo => {
             emit(
                 &behavior_core::canonical::to_canonical_string(&engine_info()).unwrap_or_default(),
@@ -235,6 +389,16 @@ fn dispatch(cli: Cli) -> Result<u8, u8> {
                 }
             }
         }
+        Command::SchemaHash { wire } => match behavior_core::admit(&read(&wire)?) {
+            Ok(m) => {
+                emit(&behavior_core::schema(&m).hash, true);
+                Ok(0)
+            }
+            Err(r) => {
+                emit(&r.to_json_string(), false);
+                Ok(2)
+            }
+        },
         Command::Hashes { wire } => {
             let r = behavior_core::admission_report(&read(&wire)?);
             if r.ok {

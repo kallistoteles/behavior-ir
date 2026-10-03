@@ -216,7 +216,15 @@ fn a_query_history_replays_both_ways() {
     let (from, to) = ends(s);
     let with_queries = (1..=N)
         .filter(|&p| {
-            s.backend().record(p).unwrap().unwrap().bundle.record["facts"]["queries"].is_array()
+            s.backend()
+                .record(p)
+                .unwrap()
+                .unwrap()
+                .bundle
+                .as_ref()
+                .unwrap()
+                .record["facts"]["queries"]
+                .is_array()
         })
         .count();
     assert_eq!(with_queries, N as usize);
@@ -243,39 +251,44 @@ fn eligible(kind: Tampering) -> Vec<u64> {
     (2..N)
         .filter(|&p| {
             let r = s.backend().record(p).unwrap().unwrap();
-            let facts = &r.bundle.record["facts"];
+            let facts = &r.bundle.as_ref().unwrap().record["facts"];
             match kind {
                 Tampering::Member => facts["queries"].as_array().is_some_and(|qs| {
                     qs.iter()
                         .any(|q| !q["members"].as_array().unwrap().is_empty())
                 }),
                 Tampering::FieldValue => facts["fields"].is_array(),
-                Tampering::ResultHash => r.bundle.read_facts["queries"].is_array(),
+                Tampering::ResultHash => {
+                    r.bundle.as_ref().unwrap().read_facts["queries"].is_array()
+                }
             }
         })
         .collect()
 }
 
 fn consistent(r: &mut TransitionRecord) {
-    r.bundle.transition_hash = transition_hash(&r.bundle.record).unwrap();
-    let hashes: Vec<Value> = r.bundle.read_facts["queries"]
+    r.bundle.as_mut().unwrap().transition_hash =
+        transition_hash(&r.bundle.as_ref().unwrap().record).unwrap();
+    let hashes: Vec<Value> = r.bundle.as_ref().unwrap().read_facts["queries"]
         .as_array()
         .map(|qs| qs.iter().map(|q| q["result_hash"].clone()).collect())
         .unwrap_or_default();
-    r.bundle.read_facts = r.bundle.record["facts"].clone();
-    if let Some(qs) = r.bundle.read_facts["queries"].as_array_mut() {
+    r.bundle.as_mut().unwrap().read_facts = r.bundle.as_ref().unwrap().record["facts"].clone();
+    if let Some(qs) = r.bundle.as_mut().unwrap().read_facts["queries"].as_array_mut() {
         for (q, h) in qs.iter_mut().zip(hashes) {
             q["result_hash"] = h;
         }
     }
-    r.bundle_hash = r.bundle.hash().unwrap();
+    r.bundle_hash = r.bundle.as_ref().unwrap().hash().unwrap();
 }
 
 fn tamper(kind: Tampering, rec: &TransitionRecord) -> TransitionRecord {
     let mut r = rec.clone();
     match kind {
         Tampering::Member => {
-            let qs = r.bundle.record["facts"]["queries"].as_array_mut().unwrap();
+            let qs = r.bundle.as_mut().unwrap().record["facts"]["queries"]
+                .as_array_mut()
+                .unwrap();
             let q = qs
                 .iter_mut()
                 .find(|q| !q["members"].as_array().unwrap().is_empty())
@@ -284,7 +297,7 @@ fn tamper(kind: Tampering, rec: &TransitionRecord) -> TransitionRecord {
             consistent(&mut r);
         }
         Tampering::FieldValue => {
-            let f = &mut r.bundle.record["facts"]["fields"][0]["value"];
+            let f = &mut r.bundle.as_mut().unwrap().record["facts"]["fields"][0]["value"];
             *f = if f.is_string() && f != "0.01" {
                 json!("0.01")
             } else {
@@ -293,8 +306,8 @@ fn tamper(kind: Tampering, rec: &TransitionRecord) -> TransitionRecord {
             consistent(&mut r);
         }
         Tampering::ResultHash => {
-            r.bundle.read_facts["queries"][0]["result_hash"] = json!("sha256:00");
-            r.bundle_hash = r.bundle.hash().unwrap();
+            r.bundle.as_mut().unwrap().read_facts["queries"][0]["result_hash"] = json!("sha256:00");
+            r.bundle_hash = r.bundle.as_ref().unwrap().hash().unwrap();
         }
     }
     r

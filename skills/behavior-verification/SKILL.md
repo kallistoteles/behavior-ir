@@ -1,12 +1,12 @@
 ---
 name: behavior-verification
 description: Run Behavior verification and act on its results (proven, counterexample, inconclusive), fixing the model rather than weakening checks, and telling verifier precision debt from a missing requirement. Use after writing or changing a behavior model, and whenever an attestation is not verified.
-release: 0.8.0
+release: 0.9.0
 ---
 
 # Verifying behavior
 
-This skill describes **Behavior release 0.8.0**. Use only what is described here or listed in the
+This skill describes **Behavior release 0.9.0**. Use only what is described here or listed in the
 release's public API.
 
 > If the public Behavior API cannot express a requirement, record a semantic gap in
@@ -139,7 +139,36 @@ assert outcome([non_negative_amount]) == "inconclusive"  # stated: precision deb
    postcondition, excluding a check kind from the profile, or moving the rule into host code.
    Each of these hides a real problem.
 
-## Precision debt catalogue (release 0.8.0)
+## Verifying a migration
+
+`verify_migration(migration)` checks a migration before it touches a store. For every migrated
+type it assumes a valid source entity (the source rules, plus every source requirement). It then
+checks:
+
+- every narrowing (`migration_narrowing`) and every other evaluation error (`evaluation_error`);
+- every target constraint and invariant on the transformed value (`migration_constraint`);
+- `referential_integrity` and target `module_invariant`s.
+
+Outcomes are read as for actions. A counterexample names a source entity and the refusal that
+running its transform gives. A proof that needs a requirement lists it in the check's `under`: it
+holds for every source state the requirement admits, which the store checks when the migration is
+applied. Referential integrity is proven when references are carried over unchanged. A module
+invariant is proven when the source states it too and the migration copies every field it reads.
+Anything else is inconclusive (precision debt) and is still checked in full on application.
+
+```python
+# from examples/verifying_a_migration.py
+narrowing = next(c for c in proven.checks if c["kind"] == "migration_narrowing")
+assert narrowing["outcome"] == "proven" and narrowing["under"] == ["every_ticket_has_region"]
+cx = next(f for f in unproven.findings if f["kind"] == "migration_narrowing")["counterexample"]
+assert cx["value"]["region"] is None and cx["refusal"]["code"] == "MIGRATION_TRANSFORM_ERROR"
+check = next(c for c in debt.checks if c["kind"] == "module_invariant")
+assert check["outcome"] == "inconclusive" and not debt.verified
+```
+
+The command line has `behavior migration verify <source> <target> <migration>`.
+
+## Precision debt catalogue (release 0.9.0)
 
 These properties can hold and still be inconclusive. They are verifier limits, not model errors.
 

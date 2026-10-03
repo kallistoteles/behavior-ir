@@ -675,6 +675,7 @@ pub fn evaluation_errors(ctx: &Ctx<'_>, action: &str) -> Vec<CheckResult> {
                 let error = match o.kind {
                     ErrKind::DivisionByZero => "division_by_zero",
                     ErrKind::Overflow => "overflow",
+                    ErrKind::Narrowing => "narrowing",
                 };
                 let message = format!("{} in {}", o.kind.message(), o.text);
                 let mut depends = deps.clone();

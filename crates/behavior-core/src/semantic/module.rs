@@ -60,6 +60,14 @@ pub struct Param {
 }
 
 impl Param {
+    /// A parameter (feature 009: the verifier binds a migration's old entity as one).
+    pub fn new(name: impl Into<String>, role: ParamRole, ty: Type) -> Param {
+        Param {
+            name: name.into(),
+            role,
+            ty,
+        }
+    }
     pub fn name(&self) -> &str {
         &self.name
     }

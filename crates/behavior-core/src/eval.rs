@@ -61,7 +61,7 @@ fn check_fixed(ty: &Type, v: &Value, path: &str, problems: &mut Vec<InputProblem
 }
 
 /// JSON of a parameter value with its type, including the field types of entities.
-fn encode_param(module: &Module, ty: &Type, v: &Value) -> Json {
+pub(crate) fn encode_param(module: &Module, ty: &Type, v: &Value) -> Json {
     match (ty, v) {
         (Type::Entity(entity), Value::Entity(fields)) => match module.entity(entity) {
             Some(item) => Json::Object(
@@ -79,7 +79,7 @@ fn encode_param(module: &Module, ty: &Type, v: &Value) -> Json {
     }
 }
 
-type Vals = BTreeMap<String, Value>;
+pub(crate) type Vals = BTreeMap<String, Value>;
 type Reads = BTreeMap<String, Json>;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -1245,6 +1245,25 @@ impl Evaluator<'_> {
                 Value::Int(i) => Ok(Value::Dec(Dec::from_i64(i))),
                 _ => Err(bad()),
             },
+            // Narrowing sites of migrations (feature 009): a failure is an evaluation error.
+            ExprKind::StrictUnwrap(a) => match self.eval(a, vals, phase, reads)? {
+                Value::None => Err(format!(
+                    "`{}` is absent: strict_unwrap needs a value",
+                    pretty::text(a)
+                )),
+                v => Ok(v),
+            },
+            ExprKind::EnumMap { arg, mapping, .. } => match self.eval(arg, vals, phase, reads)? {
+                Value::None => Ok(Value::None),
+                Value::Str(v) => match mapping.iter().find(|(from, _)| *from == v) {
+                    Some((_, to)) => Ok(Value::Str(to.clone())),
+                    None => Err(format!(
+                        "`{}` is {v}, which the strict enum map does not map",
+                        pretty::text(arg)
+                    )),
+                },
+                _ => Err(bad()),
+            },
             ExprKind::Count(q) => {
                 let n = self.members(q, vals, phase)?.len();
                 let v = Value::Int(i64::try_from(n).map_err(|_| "internal: count".to_string())?);
@@ -1479,7 +1498,11 @@ pub fn canonical_entity(module: &Module, entity: &str, raw: &Json) -> Result<Jso
     Ok(value)
 }
 
-fn decode_value(module: &Module, entity: &str, raw: &Json) -> Result<Value, Vec<String>> {
+pub(crate) fn decode_value(
+    module: &Module,
+    entity: &str,
+    raw: &Json,
+) -> Result<Value, Vec<String>> {
     if module.entity(entity).is_none() {
         return Err(vec![format!("unknown entity `{entity}`")]);
     }
@@ -1825,6 +1848,101 @@ pub enum IndexPlan {
     Eq { field: String, value: Json },
     /// The candidates of either plan.
     Union(Box<IndexPlan>, Box<IndexPlan>),
+}
+
+/// Evaluates one expression in `vals` against `facts` on S (feature 009: migration transforms and
+/// requirements). A missing fact is reported as such.
+pub(crate) fn eval_in(
+    module: &Module,
+    e: &Expr,
+    vals: &Vals,
+    facts: &dyn EvaluationFacts,
+) -> Result<Value, String> {
+    let mut ev = Evaluator::new(module, facts);
+    let r = ev.eval(e, vals, Phase::S, &mut None);
+    match (r, ev.fact_error.take()) {
+        (Err(_), Some(m)) => Err(format!("{m}: the evaluation needs this fact")),
+        (r, _) => r,
+    }
+}
+
+/// Every entity rule of `entity` evaluated on a decoded value (feature 009): its constraints,
+/// including the synthesized reference constraints (answered by `facts`), and its invariants.
+/// Returns the violated rules as `(rule, message)`, in name order.
+pub(crate) fn entity_rule_failures(
+    module: &Module,
+    entity: &str,
+    value: &Value,
+    facts: &dyn EvaluationFacts,
+) -> Vec<(String, String)> {
+    let mut ev = Evaluator::new(module, facts);
+    let mut failed = Vec::new();
+    for (name, c) in module.constraints_for(entity) {
+        let vals = Vals::from([(c.param().to_string(), value.clone())]);
+        match ev.predicate(c.body(), &vals, Phase::S).0 {
+            Ok(true) => {}
+            Ok(false) => failed.push((name.clone(), format!("constraint `{name}` is violated"))),
+            Err(e) => failed.push((name.clone(), format!("constraint `{name}`: {e}"))),
+        }
+    }
+    for (name, i) in module.invariants_for(entity) {
+        let vals = Vals::from([(i.param().to_string(), value.clone())]);
+        match ev.predicate(i.body(), &vals, Phase::S).0 {
+            Ok(true) => {}
+            Ok(false) => failed.push((name.clone(), format!("invariant `{name}` is violated"))),
+            Err(e) => failed.push((name.clone(), format!("invariant `{name}`: {e}"))),
+        }
+    }
+    failed
+}
+
+/// The members that violate a quantified requirement (feature 009): for `all(q, p)` the members
+/// of `q` where `p` is false, for `not any(q, p)` those where `p` is true. Returns the entity
+/// type and the sorted ids, or `None` for any other shape.
+pub(crate) fn violators(
+    module: &Module,
+    e: &Expr,
+    vals: &Vals,
+    facts: &dyn EvaluationFacts,
+) -> Option<Result<(String, Vec<String>), String>> {
+    use crate::semantic::expr::FoldOp;
+    let (query, body, violating) = match &e.kind {
+        ExprKind::Fold {
+            op: FoldOp::All,
+            query,
+            body,
+            ..
+        } => (query, body, false),
+        ExprKind::Not(inner) => match &inner.kind {
+            ExprKind::Fold {
+                op: FoldOp::Any,
+                query,
+                body,
+                ..
+            } => (query, body, true),
+            _ => return None,
+        },
+        _ => return None,
+    };
+    let mut ev = Evaluator::new(module, facts);
+    let t = query.entity().to_string();
+    let run = |ev: &mut Evaluator<'_>| -> Result<(String, Vec<String>), String> {
+        let members = ev.members(query, vals, Phase::S)?;
+        let mut out = Vec::new();
+        for id in members {
+            ev.candidate = Some((t.clone(), id.clone()));
+            let b = ev
+                .eval(body, vals, Phase::S, &mut None)?
+                .as_bool()
+                .ok_or_else(|| "internal: predicate is not Bool".to_string())?;
+            if b == violating {
+                out.push(id);
+            }
+        }
+        out.sort();
+        Ok((t.clone(), out))
+    };
+    Some(run(&mut ev))
 }
 
 /// Checks every module-level invariant on a state described by `facts` alone (feature 007: a

@@ -60,6 +60,9 @@ impl Term {
 pub enum ErrKind {
     DivisionByZero,
     Overflow,
+    /// A migration narrowing site (feature 009) that does not succeed: `strict_unwrap` of an
+    /// absent value, or a value a strict enum map does not map.
+    Narrowing,
 }
 
 impl ErrKind {
@@ -68,6 +71,7 @@ impl ErrKind {
         match self {
             ErrKind::DivisionByZero => "division by zero",
             ErrKind::Overflow => "numeric overflow",
+            ErrKind::Narrowing => "a failed narrowing",
         }
     }
 }
@@ -133,7 +137,7 @@ fn or_all(items: &[String]) -> String {
     }
 }
 
-fn not(t: &str) -> String {
+pub(crate) fn not(t: &str) -> String {
     format!("(not {t})")
 }
 
@@ -315,7 +319,7 @@ impl<'m> Encoder<'m> {
     }
 
     /// `ex_T(t)` without registering a counterexample fact (axioms about bound entities).
-    fn fact_free_exists(&mut self, entity: &str, t: &str) -> String {
+    pub(crate) fn fact_free_exists(&mut self, entity: &str, t: &str) -> String {
         self.ensure_facts(entity);
         format!("(ex!{entity} {t})")
     }
@@ -536,7 +540,7 @@ impl<'m> Encoder<'m> {
         self.axioms.push(t);
     }
 
-    fn lit(t: &Type, v: &Value) -> R<Term> {
+    pub(crate) fn lit(t: &Type, v: &Value) -> R<Term> {
         let plain = |t: &Type, v: &Value| -> R<String> {
             Ok(match (t, v) {
                 (_, Value::Bool(b)) => b.to_string(),
@@ -837,6 +841,74 @@ impl<'m> Encoder<'m> {
                 ));
                 Ok(Encoded {
                     term: Term::Plain(format!("(/ (to_real {k}) {})", pow10_real(s))),
+                    obligations,
+                })
+            }
+            ExprKind::StrictUnwrap(a) => {
+                let r = self.encode(a, env)?;
+                let Term::Opt { some, val } = &r.term else {
+                    return Err(EncodeError::Unsupported(
+                        "strict_unwrap on a non-option".into(),
+                    ));
+                };
+                let mut obligations = r.obligations.clone();
+                obligations.push(Self::obligation(e, ErrKind::Narrowing, not(some)));
+                Ok(Encoded {
+                    term: Term::Plain(val.clone()),
+                    obligations,
+                })
+            }
+            ExprKind::EnumMap {
+                arg,
+                mapping,
+                strict,
+            } => {
+                let enum_of = |t: &Type| match t {
+                    Type::Enum(x) => Some(x.clone()),
+                    Type::Option(inner) => match inner.as_ref() {
+                        Type::Enum(x) => Some(x.clone()),
+                        _ => None,
+                    },
+                    _ => None,
+                };
+                let (Some(from), Some(to)) = (enum_of(arg.ty()), enum_of(e.ty())) else {
+                    return Err(EncodeError::Unsupported("enum map of a non-enum".into()));
+                };
+                let index = |vals: &[String], v: &str| {
+                    vals.iter().position(|x| x == v).map(|i| i.to_string())
+                };
+                let r = self.encode(arg, env)?;
+                let (some, x) = match &r.term {
+                    Term::Opt { some, val } => (Some(some.clone()), val.clone()),
+                    Term::Plain(t) => (None, t.clone()),
+                };
+                let mut term = "0".to_string();
+                let mut mapped = Vec::new();
+                for (f, t) in mapping.iter().rev() {
+                    let (Some(fi), Some(ti)) = (index(&from.values, f), index(&to.values, t))
+                    else {
+                        return Err(EncodeError::Unsupported(format!("enum map {f} → {t}")));
+                    };
+                    mapped.push(format!("(= {x} {fi})"));
+                    term = format!("(ite (= {x} {fi}) {ti} {term})");
+                }
+                let mut obligations = r.obligations.clone();
+                if *strict {
+                    let unmapped = not(&or_all(&mapped));
+                    let cond = match &some {
+                        Some(flag) => and_all(&[flag.clone(), unmapped]),
+                        None => unmapped,
+                    };
+                    obligations.push(Self::obligation(e, ErrKind::Narrowing, cond));
+                }
+                Ok(Encoded {
+                    term: match some {
+                        Some(flag) => Term::Opt {
+                            some: flag,
+                            val: term,
+                        },
+                        None => Term::Plain(term),
+                    },
                     obligations,
                 })
             }

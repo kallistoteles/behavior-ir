@@ -1,0 +1,144 @@
+{
+  "about": "Feature 009: expected migration verification outcomes. Each case names its modules and migration (tests/fixtures/migration) and a variant the test builds; every listed check must have the outcome, `under` lists the requirements a proof relies on.",
+  "cases": [
+    {
+      "name": "broaden",
+      "source": "cultures_v1",
+      "target": "cultures_v2",
+      "migration": "cultures_v1_to_v2",
+      "variant": "as_is",
+      "result": "not_verified",
+      "checks": [
+        {
+          "check": "migration_constraint",
+          "subject": "Culture.ph_not_negative",
+          "outcome": "proven",
+          "under": []
+        },
+        {
+          "check": "evaluation_error",
+          "subject": "Culture.price",
+          "outcome": "counterexample"
+        },
+        {
+          "check": "evaluation_error",
+          "subject": "Culture.fee",
+          "outcome": "proven",
+          "under": []
+        },
+        {
+          "check": "referential_integrity",
+          "subject": "Order.buyer",
+          "outcome": "proven",
+          "under": []
+        }
+      ]
+    },
+    {
+      "name": "narrow_under_requirement",
+      "source": "cultures_v2",
+      "target": "cultures_v3",
+      "migration": "region_required",
+      "variant": "as_is",
+      "result": "verified",
+      "checks": [
+        {
+          "check": "migration_narrowing",
+          "subject": "Order.region",
+          "outcome": "proven",
+          "under": [
+            "every_order_has_region"
+          ]
+        },
+        {
+          "check": "referential_integrity",
+          "subject": "Order.buyer",
+          "outcome": "proven",
+          "under": []
+        }
+      ]
+    },
+    {
+      "name": "narrow_without_requirement",
+      "source": "cultures_v2",
+      "target": "cultures_v3",
+      "migration": "region_required",
+      "variant": "no_requirements",
+      "result": "not_verified",
+      "checks": [
+        {
+          "check": "migration_narrowing",
+          "subject": "Order.region",
+          "outcome": "counterexample"
+        }
+      ]
+    },
+    {
+      "name": "constraint_violated",
+      "source": "cultures_v1",
+      "target": "cultures_v2",
+      "migration": "cultures_v1_to_v2",
+      "variant": "ph_minus_ten",
+      "result": "not_verified",
+      "checks": [
+        {
+          "check": "migration_constraint",
+          "subject": "Culture.ph_not_negative",
+          "outcome": "counterexample"
+        }
+      ]
+    },
+    {
+      "name": "module_invariant_over_a_changed_type",
+      "source": "cultures_v1",
+      "target": "cultures_v2",
+      "migration": "cultures_v1_to_v2",
+      "variant": "target_unique_order_qty",
+      "result": "not_verified",
+      "checks": [
+        {
+          "check": "module_invariant",
+          "subject": "quantities_unique",
+          "outcome": "inconclusive"
+        }
+      ]
+    },
+    {
+      "name": "module_invariant_over_identical_copies",
+      "source": "cultures_v1",
+      "target": "cultures_v2",
+      "migration": "cultures_v1_to_v2",
+      "variant": "both_unique_order_qty",
+      "result": "not_verified",
+      "checks": [
+        {
+          "check": "module_invariant",
+          "subject": "quantities_unique",
+          "outcome": "proven",
+          "under": []
+        }
+      ]
+    },
+    {
+      "name": "new_rule_on_an_unchanged_type",
+      "source": "cultures_v2",
+      "target": "cultures_v3",
+      "migration": "region_required",
+      "variant": "target_new_culture_rules",
+      "result": "not_verified",
+      "checks": [
+        {
+          "check": "migration_constraint",
+          "subject": "Culture.ph_positive",
+          "outcome": "counterexample"
+        },
+        {
+          "check": "migration_constraint",
+          "subject": "Culture.ph_above_minus_one",
+          "outcome": "proven",
+          "under": []
+        }
+      ]
+    }
+  ]
+}

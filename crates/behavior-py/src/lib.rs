@@ -231,6 +231,24 @@ impl PyType_ {
         }
     }
 
+    /// The same type with its named types on the target side of a migration (feature 009).
+    #[staticmethod]
+    fn on_target(t: PyType_) -> Self {
+        fn side(t: WType) -> WType {
+            let target = |n: String| format!("{}{n}", behavior_core::wire::TARGET_SIDE);
+            match t {
+                WType::Option(inner) => WType::Option(Box::new(side(*inner))),
+                WType::Enum(n) => WType::Enum(target(n)),
+                WType::Nominal(n) => WType::Nominal(target(n)),
+                WType::Exact(Some(n)) => WType::Exact(Some(target(n))),
+                other => other,
+            }
+        }
+        PyType_ {
+            inner: side(t.inner),
+        }
+    }
+
     fn is_option(&self) -> bool {
         matches!(self.inner, WType::Option(_))
     }
@@ -435,6 +453,12 @@ impl EngineModule {
         self.inner.behavior_version()
     }
 
+    /// The SchemaHash of the store schema the module declares (feature 009).
+    #[getter]
+    fn schema_hash(&self) -> String {
+        behavior_core::schema(&self.inner).hash
+    }
+
     fn admission(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
         admission_dict(py, &behavior_core::admission_result(&self.inner))
     }
@@ -583,6 +607,170 @@ impl EngineModule {
         let r = behavior_core::replay(&self.inner, record_json);
         (r.matches, r.diff)
     }
+}
+
+/// The admission report of an admitted migration.
+fn migration_admission(m: &behavior_core::migration::Migration) -> Value {
+    json!({"ok": true, "errors": [], "hash": m.hash(), "summary": m.summary()})
+}
+
+/// An admitted migration (feature 009).
+#[pyclass(name = "Migration", frozen, module = "behavior._engine")]
+struct EngineMigration {
+    inner: behavior_core::migration::Migration,
+}
+
+#[pymethods]
+impl EngineMigration {
+    /// Admits a migration document between two modules: (migration or None, admission dict).
+    #[staticmethod]
+    fn from_json(
+        py: Python<'_>,
+        source: PyRef<'_, EngineModule>,
+        target: PyRef<'_, EngineModule>,
+        text: &str,
+    ) -> PyResult<(Option<EngineMigration>, Py<PyAny>)> {
+        match behavior_core::migration::admit_migration(&source.inner, &target.inner, text) {
+            Ok(m) => {
+                let report = to_py(py, &migration_admission(&m))?;
+                Ok((Some(EngineMigration { inner: m }), report))
+            }
+            Err(r) => Ok((None, admission_dict(py, &r)?)),
+        }
+    }
+
+    #[getter]
+    fn hash(&self) -> String {
+        self.inner.hash()
+    }
+
+    #[getter]
+    fn name(&self) -> String {
+        self.inner.name().to_string()
+    }
+
+    #[getter]
+    fn source_schema(&self) -> String {
+        self.inner.source_schema().to_string()
+    }
+
+    #[getter]
+    fn target_schema(&self) -> String {
+        self.inner.target_schema().to_string()
+    }
+
+    fn summary(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        to_py(py, &self.inner.summary())
+    }
+
+    /// Verifies the migration with the pinned solver (feature 009).
+    #[pyo3(signature = (source, target, checks, rlimit, wall_clock_guard_ms))]
+    fn verify(
+        &self,
+        source: PyRef<'_, EngineModule>,
+        target: PyRef<'_, EngineModule>,
+        checks: Option<Vec<String>>,
+        rlimit: u64,
+        wall_clock_guard_ms: u64,
+    ) -> PyResult<PyAttestation> {
+        let mut profile = behavior_verify::Profile {
+            rlimit,
+            wall_clock_guard_ms,
+            ..Default::default()
+        };
+        if let Some(names) = checks {
+            profile.checks = names
+                .iter()
+                .map(|n| {
+                    behavior_verify::CheckKind::parse(n)
+                        .ok_or_else(|| PyValueError::new_err(format!("unknown check `{n}`")))
+                })
+                .collect::<PyResult<_>>()?;
+        }
+        let solver = behavior_verify::solver::Z3Process::from_env()
+            .map_err(|e| EngineError::new_err(("SOLVER_UNAVAILABLE", e.to_string())))?
+            .with_guard(std::time::Duration::from_millis(wall_clock_guard_ms));
+        let a = behavior_verify::verify_migration(
+            &self.inner,
+            &source.inner,
+            &target.inner,
+            &profile,
+            None,
+            &solver,
+        );
+        Ok(PyAttestation {
+            json: a.to_json_string(),
+            data: a.value,
+        })
+    }
+
+    /// Decides whether this migration may be committed on the store state `data_version` under
+    /// an execution policy (feature 009).
+    fn authorize(
+        &self,
+        policy: &Bound<'_, PyAny>,
+        data_version: &str,
+        attestation_json: Option<&str>,
+        waivers: Vec<Bound<'_, PyAny>>,
+        signatures: Vec<Bound<'_, PyAny>>,
+        now: &str,
+    ) -> PyResult<PyAuthorization> {
+        let texts = |items: &[Bound<'_, PyAny>]| -> PyResult<Vec<String>> {
+            items
+                .iter()
+                .map(|i| object(i).map(|v| v.to_string()))
+                .collect()
+        };
+        let a = behavior_verify::governance::authorize_migration(
+            &object(policy)?.to_string(),
+            &self.inner,
+            data_version,
+            attestation_json,
+            &texts(&waivers)?,
+            &texts(&signatures)?,
+            now,
+        )
+        .map_err(governance_err)?;
+        Ok(PyAuthorization {
+            json: a.to_json_string(),
+            data: a.value,
+        })
+    }
+
+    /// The resolved migration document (migration IR 0.1), canonical JSON.
+    fn resolved_json(&self) -> String {
+        behavior_core::canonical::to_canonical_string(&self.inner.resolved()).unwrap_or_default()
+    }
+}
+
+/// Applies a migration to a supplied source universe (plain mode, feature 009): a dict with
+/// `result` ("MIGRATED" or the refusal code) and the target entities, requirement outcomes and
+/// report, or the refusal's message and entities.
+#[pyfunction]
+fn apply_migration(
+    py: Python<'_>,
+    migration: PyRef<'_, EngineMigration>,
+    source: PyRef<'_, EngineModule>,
+    target: PyRef<'_, EngineModule>,
+    entities: &Bound<'_, PyAny>,
+) -> PyResult<Py<PyAny>> {
+    let items: Vec<SeedEntity> = doc("source universe", entities)?;
+    let universe: Vec<behavior_core::migration::SourceEntity> = items
+        .into_iter()
+        .map(|e| behavior_core::migration::SourceEntity {
+            entity: e.entity,
+            value: e.value,
+        })
+        .collect();
+    to_py(
+        py,
+        &behavior_core::migration::outcome_json(&behavior_core::migration::apply_migration(
+            &migration.inner,
+            &source.inner,
+            &target.inner,
+            &universe,
+        )),
+    )
 }
 
 /// The engine's construction API; every node is type-checked as it is built.
@@ -786,6 +974,90 @@ impl PyBuilder {
         Ok(PyNode { inner })
     }
 
+    /// A builder for a migration from `source` to `target` (feature 009).
+    #[staticmethod]
+    fn for_migration(source: PyRef<'_, EngineModule>, target: PyRef<'_, EngineModule>) -> Self {
+        PyBuilder {
+            inner: Builder::for_migration(&source.inner, &target.inner),
+        }
+    }
+
+    fn push_transform(&mut self, entity: &str, file: String, line: u64) -> PyResult<()> {
+        self.inner
+            .push_transform(entity, loc(file, line))
+            .map_err(build_err)
+    }
+
+    fn push_requirement(&mut self) -> PyResult<()> {
+        self.inner.push_requirement().map_err(build_err)
+    }
+
+    fn strict_unwrap(&mut self, arg: PyNode, file: String, line: u64) -> PyResult<PyNode> {
+        let inner = self
+            .inner
+            .strict_unwrap(arg.inner, loc(file, line))
+            .map_err(build_err)?;
+        Ok(PyNode { inner })
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn enum_map(
+        &mut self,
+        arg: PyNode,
+        to: PyType_,
+        mapping: Vec<(String, String)>,
+        strict: bool,
+        file: String,
+        line: u64,
+    ) -> PyResult<PyNode> {
+        let inner = self
+            .inner
+            .enum_map(arg.inner, to.inner, mapping, strict, loc(file, line))
+            .map_err(build_err)?;
+        Ok(PyNode { inner })
+    }
+
+    fn set_field(&mut self, entity: &str, field: &str, value: PyNode) -> PyResult<()> {
+        self.inner
+            .set_field(entity, field, value.inner)
+            .map_err(build_err)
+    }
+
+    fn drop_field(&mut self, entity: &str, field: &str) -> PyResult<()> {
+        self.inner.drop_field(entity, field).map_err(build_err)
+    }
+
+    fn add_requirement(
+        &mut self,
+        name: &str,
+        body: PyNode,
+        file: String,
+        line: u64,
+    ) -> PyResult<()> {
+        self.inner
+            .add_requirement(name, body.inner, loc(file, line))
+            .map_err(build_err)
+    }
+
+    fn retire(&mut self, entity: &str) -> PyResult<()> {
+        self.inner.retire(entity).map_err(build_err)
+    }
+
+    /// Admits the built migration: (migration or None, admission dict).
+    fn finish_migration(
+        &self,
+        py: Python<'_>,
+        name: &str,
+    ) -> PyResult<(Option<EngineMigration>, Py<PyAny>)> {
+        match self.inner.finish_migration(name) {
+            Ok(m) => {
+                let report = to_py(py, &migration_admission(&m))?;
+                Ok((Some(EngineMigration { inner: m }), report))
+            }
+            Err(r) => Ok((None, admission_dict(py, &r)?)),
+        }
+    }
+
     fn wrap(&mut self, nominal: &str, arg: PyNode, file: String, line: u64) -> PyResult<PyNode> {
         let inner = self
             .inner
@@ -951,7 +1223,7 @@ use behavior_store::documents::{
     CommitBundle, EntityKey, EntityVersion, Evidence, EvidencePolicy, Genesis, Head, RefChange,
     SeedEntity, StateRef, StoreError, TransitionRecord, decode,
 };
-use behavior_store::replay::{replay_behavior, replay_data};
+use behavior_store::replay::replay_data;
 use behavior_store::{Backend, BackendError, CasOutcome, InMemoryBackend, RefEdge, Store};
 
 fn to_json<T: serde::Serialize>(t: &T) -> Value {
@@ -968,6 +1240,15 @@ fn store_err(py: Python<'_>, e: StoreError) -> PyErr {
             let current = to_py(py, &to_json(&current)).unwrap_or_else(|_| py.None());
             let changed = to_py(py, &to_json(&changed)).unwrap_or_else(|_| py.None());
             EngineStoreConflict::new_err((current, changed))
+        }
+        StoreError::SchemaMismatch {
+            ref store,
+            ref module,
+            ref differing,
+        } => {
+            let details = json!({"store": store, "module": module, "differing": differing});
+            let details = to_py(py, &details).unwrap_or_else(|_| py.None());
+            EngineStoreRefused::new_err((e.code().to_string(), e.to_string(), details))
         }
         e => EngineStoreRefused::new_err((e.code().to_string(), e.to_string())),
     }
@@ -1387,6 +1668,62 @@ impl PyStore {
         to_py(py, &to_json(&rs))
     }
 
+    /// Applies a migration as one atomic transition at the next position (feature 009).
+    #[pyo3(signature = (migration, source, target, commit_time, evidence=None))]
+    fn migrate(
+        &mut self,
+        py: Python<'_>,
+        migration: PyRef<'_, EngineMigration>,
+        source: PyRef<'_, EngineModule>,
+        target: PyRef<'_, EngineModule>,
+        commit_time: &str,
+        evidence: Option<&Bound<'_, PyAny>>,
+    ) -> PyResult<Py<PyAny>> {
+        let evidence: Option<Evidence> = match evidence {
+            Some(e) if !e.is_none() => Some(doc("evidence", e)?),
+            _ => None,
+        };
+        let c = self
+            .inner
+            .migrate(
+                &migration.inner,
+                &source.inner,
+                &target.inner,
+                commit_time,
+                evidence,
+            )
+            .map_err(|e| store_err(py, e))?;
+        to_py(
+            py,
+            &json!({"record_id": c.record_id, "result_state": to_json(&c.result_state),
+                    "already": c.already, "evidence_trust": c.evidence_trust}),
+        )
+    }
+
+    /// `store:<id>;state:<state>;position:<n>` of state `at`: what an authorization binds.
+    fn data_version(&self, py: Python<'_>, at: &Bound<'_, PyAny>) -> PyResult<String> {
+        let store = self.inner.store_id().map_err(|e| store_err(py, e))?;
+        Ok(behavior_store::documents::data_version(
+            &store,
+            &state_ref(at)?,
+        ))
+    }
+
+    /// The schema under which state `at` is valid (feature 009).
+    fn schema_at(&self, py: Python<'_>, at: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
+        let s = self
+            .inner
+            .schema_at(&state_ref(at)?)
+            .map_err(|e| store_err(py, e))?;
+        to_py(py, &to_json(&s))
+    }
+
+    /// Every schema the store has had, oldest first (feature 009).
+    fn schema_history(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        let h = self.inner.schema_history().map_err(|e| store_err(py, e))?;
+        to_py(py, &to_json(&h))
+    }
+
     fn replay_data(
         &self,
         py: Python<'_>,
@@ -1403,22 +1740,39 @@ impl PyStore {
         )
     }
 
+    /// `migrations`: (migration, source module, target module) triples (feature 009).
+    #[pyo3(signature = (modules, from, to, migrations=Vec::new()))]
     fn replay_behavior(
         &self,
         py: Python<'_>,
         modules: Vec<PyRef<'_, EngineModule>>,
         from: &Bound<'_, PyAny>,
         to: &Bound<'_, PyAny>,
+        migrations: Vec<(
+            PyRef<'_, EngineMigration>,
+            PyRef<'_, EngineModule>,
+            PyRef<'_, EngineModule>,
+        )>,
     ) -> PyResult<Py<PyAny>> {
         let modules = modules
             .iter()
             .map(|m| (m.inner.behavior_version(), m.inner.clone()))
             .collect();
+        let migrations = migrations
+            .iter()
+            .map(|(m, s, t)| {
+                (
+                    m.inner.hash(),
+                    (m.inner.clone(), s.inner.clone(), t.inner.clone()),
+                )
+            })
+            .collect();
         to_py(
             py,
-            &to_json(&replay_behavior(
+            &to_json(&behavior_store::replay::replay_behavior_with(
                 &self.inner,
                 &modules,
+                &migrations,
                 &state_ref(from)?,
                 &state_ref(to)?,
             )),
@@ -1488,6 +1842,9 @@ fn _engine(m: &Bound<'_, pyo3::types::PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(waiver_hash, m)?)?;
     m.add_function(wrap_pyfunction!(sign_waiver, m)?)?;
     m.add_class::<PyStore>()?;
+    m.add_class::<EngineMigration>()?;
+    m.add_function(wrap_pyfunction!(apply_migration, m)?)?;
+    m.add("TARGET_SIDE", behavior_core::wire::TARGET_SIDE)?;
     m.add_class::<PyInMemoryBackend>()?;
     m.add_function(wrap_pyfunction!(run_conformance, m)?)?;
     m.add(

@@ -41,29 +41,84 @@ fn arith_name(a: ArithOp) -> &'static str {
     }
 }
 
+/// Which named types of a migration expression are the target schema's (feature 009): a named
+/// type is the source's when the source module declares it identically, otherwise the target's.
+pub(crate) struct Sides<'a> {
+    pub source: &'a Module,
+}
+
+impl Sides<'_> {
+    fn is_target(&self, t: &Type) -> bool {
+        match t {
+            Type::Enum(e) => self.source.enums.get(&e.name) != Some(e),
+            Type::Nominal(n) | Type::Exact(crate::semantic::types::Unit::Nominal(n)) => {
+                self.source.nominals.get(&n.name) != Some(n)
+            }
+            _ => false,
+        }
+    }
+}
+
+/// The wire JSON of a type, with `"side": "target"` on target-side named types.
+fn type_json(t: &Type, sides: Option<&Sides>) -> Json {
+    match t {
+        Type::Option(inner) => json!({"t": "option", "of": type_json(inner, sides)}),
+        t => {
+            let mut j = t.to_wire_json();
+            if let (Some(s), Json::Object(o)) = (sides, &mut j)
+                && s.is_target(t)
+            {
+                o.insert("side".into(), json!("target"));
+            }
+            j
+        }
+    }
+}
+
+/// Marks a `wrap`/`rescale` node whose nominal is the target's.
+fn mark_side(node: &mut Json, t: &Type, sides: Option<&Sides>) {
+    if let (Some(s), Json::Object(o)) = (sides, node)
+        && s.is_target(t)
+    {
+        o.insert("side".into(), json!("target"));
+    }
+}
+
+/// The wire form of a migration type (feature 009): target-side named types are marked.
+pub(crate) fn migration_type(t: &Type, sides: &Sides) -> Json {
+    type_json(t, Some(sides))
+}
+
+/// The wire form of a migration expression (feature 009): target-side named types are marked.
+pub(crate) fn migration_expr(e: &Expr, sides: &Sides) -> Json {
+    expr_in(e, None, Some(sides))
+}
+
 fn expr(e: &Expr) -> Json {
-    expr_in(e, None)
+    expr_in(e, None, None)
 }
 
 /// The wire form of a query (feature 007).
-fn query(q: &QueryNode) -> Json {
+fn query(q: &QueryNode, sides: Option<&Sides>) -> Json {
     let l = q.loc();
     match q.kind() {
         QueryKind::Select => json!({"op": "select", "entity": q.entity(), "loc": loc(l)}),
         QueryKind::Where { base, param, body } => json!({
-            "op": "where", "args": [query(base)], "param": param,
-            "body": expr_in(body, Some(param)), "loc": loc(l),
+            "op": "where", "args": [query(base, sides)], "param": param,
+            "body": expr_in(body, Some(param), sides), "loc": loc(l),
         }),
-        QueryKind::Set { op, a, b } => op_node(op.as_str(), vec![query(a), query(b)], l),
+        QueryKind::Set { op, a, b } => {
+            op_node(op.as_str(), vec![query(a, sides), query(b, sides)], l)
+        }
     }
 }
 
 /// [`expr`] inside a lambda body whose candidate is written as `cand`.
-fn expr_in(e: &Expr, cand: Option<&str>) -> Json {
+fn expr_in(e: &Expr, cand: Option<&str>, sides: Option<&Sides>) -> Json {
     let l = e.loc();
     match e.kind() {
         ExprKind::Lit(v) => {
-            json!({"op": "lit", "type": e.ty().to_wire_json(), "value": encode(e.ty(), v), "loc": loc(l)})
+            json!({"op": "lit", "type": type_json(e.ty(), sides), "value": encode(e.ty(), v), "loc": loc(l)})
         }
         ExprKind::Field { param, field } => {
             let param = if param == CANDIDATE {
@@ -87,55 +142,96 @@ fn expr_in(e: &Expr, cand: Option<&str>) -> Json {
                 .collect();
             json!({"op": "derived", "name": name, "args": args, "loc": loc(l)})
         }
-        ExprKind::Cmp(c, a, b) => {
-            op_node(cmp_name(*c), vec![expr_in(a, cand), expr_in(b, cand)], l)
-        }
-        ExprKind::Arith(o, a, b) => {
-            op_node(arith_name(*o), vec![expr_in(a, cand), expr_in(b, cand)], l)
-        }
-        ExprKind::And(xs) => op_node("and", xs.iter().map(|x| expr_in(x, cand)).collect(), l),
-        ExprKind::Or(xs) => op_node("or", xs.iter().map(|x| expr_in(x, cand)).collect(), l),
-        ExprKind::Not(a) => op_node("not", vec![expr_in(a, cand)], l),
+        ExprKind::Cmp(c, a, b) => op_node(
+            cmp_name(*c),
+            vec![expr_in(a, cand, sides), expr_in(b, cand, sides)],
+            l,
+        ),
+        ExprKind::Arith(o, a, b) => op_node(
+            arith_name(*o),
+            vec![expr_in(a, cand, sides), expr_in(b, cand, sides)],
+            l,
+        ),
+        ExprKind::And(xs) => op_node(
+            "and",
+            xs.iter().map(|x| expr_in(x, cand, sides)).collect(),
+            l,
+        ),
+        ExprKind::Or(xs) => op_node(
+            "or",
+            xs.iter().map(|x| expr_in(x, cand, sides)).collect(),
+            l,
+        ),
+        ExprKind::Not(a) => op_node("not", vec![expr_in(a, cand, sides)], l),
         ExprKind::In(a, values) => json!({
             "op": "in",
-            "args": [expr_in(a, cand)],
+            "args": [expr_in(a, cand, sides)],
             "values": values.iter().map(|v| encode(a.ty(), v)).collect::<Vec<_>>(),
             "loc": loc(l),
         }),
-        ExprKind::IsNone(a) => op_node("is_none", vec![expr_in(a, cand)], l),
-        ExprKind::IsSome(a) => op_node("is_some", vec![expr_in(a, cand)], l),
-        ExprKind::ValueOr(a, d) => op_node("value_or", vec![expr_in(a, cand), expr_in(d, cand)], l),
-        ExprKind::Some(a) => op_node("some", vec![expr_in(a, cand)], l),
-        ExprKind::ToDecimal(a) => op_node("to_decimal", vec![expr_in(a, cand)], l),
-        ExprKind::Unwrap(a) => op_node("unwrap", vec![expr_in(a, cand)], l),
-        ExprKind::Rescale { arg, rounding } => json!({
-            "op": "rescale",
-            "nominal": match e.ty() {
-                Type::Nominal(n) => n.name.clone(),
-                other => other.to_string(),
-            },
-            "rounding": rounding.as_str(),
-            "args": [expr_in(arg, cand)],
-            "loc": loc(l),
-        }),
+        ExprKind::IsNone(a) => op_node("is_none", vec![expr_in(a, cand, sides)], l),
+        ExprKind::IsSome(a) => op_node("is_some", vec![expr_in(a, cand, sides)], l),
+        ExprKind::ValueOr(a, d) => op_node(
+            "value_or",
+            vec![expr_in(a, cand, sides), expr_in(d, cand, sides)],
+            l,
+        ),
+        ExprKind::Some(a) => op_node("some", vec![expr_in(a, cand, sides)], l),
+        ExprKind::ToDecimal(a) => op_node("to_decimal", vec![expr_in(a, cand, sides)], l),
+        ExprKind::Unwrap(a) => op_node("unwrap", vec![expr_in(a, cand, sides)], l),
+        ExprKind::Rescale { arg, rounding } => {
+            let mut o = json!({
+                "op": "rescale",
+                "nominal": match e.ty() {
+                    Type::Nominal(n) => n.name.clone(),
+                    other => other.to_string(),
+                },
+                "rounding": rounding.as_str(),
+                "args": [expr_in(arg, cand, sides)],
+                "loc": loc(l),
+            });
+            mark_side(&mut o, e.ty(), sides);
+            o
+        }
         ExprKind::Wrap(a) => {
             let nominal = match e.ty() {
                 Type::Nominal(n) => n.name.clone(),
+                Type::Exact(crate::semantic::types::Unit::Nominal(n)) => n.name.clone(),
                 other => other.to_string(),
             };
-            json!({"op": "wrap", "nominal": nominal, "args": [expr_in(a, cand)], "loc": loc(l)})
+            let mut o = json!({"op": "wrap", "nominal": nominal, "args": [expr_in(a, cand, sides)], "loc": loc(l)});
+            mark_side(&mut o, e.ty(), sides);
+            o
         }
-        ExprKind::Exists(a) => op_node("exists", vec![expr_in(a, cand)], l),
-        ExprKind::Referenced(a) => op_node("referenced", vec![expr_in(a, cand)], l),
-        ExprKind::Count(q) => op_node("count", vec![query(q)], l),
+        ExprKind::StrictUnwrap(a) => op_node("strict_unwrap", vec![expr_in(a, cand, sides)], l),
+        ExprKind::EnumMap {
+            arg,
+            mapping,
+            strict,
+        } => {
+            let to = match e.ty() {
+                Type::Option(inner) => inner.as_ref(),
+                t => t,
+            };
+            json!({
+                "op": if *strict { "strict_enum_map" } else { "enum_map" },
+                "args": [expr_in(arg, cand, sides)],
+                "to": type_json(to, sides),
+                "mapping": mapping.iter().map(|(f, t)| json!([f, t])).collect::<Vec<_>>(),
+                "loc": loc(l),
+            })
+        }
+        ExprKind::Exists(a) => op_node("exists", vec![expr_in(a, cand, sides)], l),
+        ExprKind::Referenced(a) => op_node("referenced", vec![expr_in(a, cand, sides)], l),
+        ExprKind::Count(q) => op_node("count", vec![query(q, sides)], l),
         ExprKind::Fold {
             op,
             query: q,
             param,
             body,
         } => json!({
-            "op": op.as_str(), "args": [query(q)], "param": param,
-            "body": expr_in(body, Some(param)), "loc": loc(l),
+            "op": op.as_str(), "args": [query(q, sides)], "param": param,
+            "body": expr_in(body, Some(param), sides), "loc": loc(l),
         }),
     }
 }

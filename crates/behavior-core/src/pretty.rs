@@ -81,6 +81,15 @@ fn wrap_name(t: &Type) -> String {
     }
 }
 
+/// The enum of an `Enum` or `Option<Enum>` type.
+fn enum_name(t: &Type) -> String {
+    match t {
+        Type::Enum(e) => e.name.clone(),
+        Type::Option(inner) => enum_name(inner),
+        t => t.to_string(),
+    }
+}
+
 /// Readable text of an expression with the fewest parentheses that keep its tree unambiguous.
 pub fn text(e: &Expr) -> String {
     text_in(e, None)
@@ -171,6 +180,28 @@ fn text_in(e: &Expr, cand: Option<&str>) -> String {
                 text_in(arg, cand),
                 e.ty,
                 rounding.as_str()
+            )
+        }
+        ExprKind::StrictUnwrap(a) => format!("strict_unwrap({})", text_in(a, cand)),
+        ExprKind::EnumMap {
+            arg,
+            mapping,
+            strict,
+        } => {
+            let (from, to) = (enum_name(&arg.ty), enum_name(&e.ty));
+            let pairs: Vec<String> = mapping
+                .iter()
+                .map(|(f, t)| format!("{from}.{f}: {to}.{t}"))
+                .collect();
+            format!(
+                "{}({}, {{{}}})",
+                if *strict {
+                    "strict_enum_map"
+                } else {
+                    "enum_map"
+                },
+                text_in(arg, cand),
+                pairs.join(", ")
             )
         }
         ExprKind::Exists(a) => format!("exists({})", text_in(a, cand)),

@@ -21,12 +21,12 @@ def _engine_info() -> dict[str, object]:
 
 
 def test_the_binding_version_is_the_release_version() -> None:
-    assert behavior.__version__ == "0.8.0"
+    assert behavior.__version__ == "0.9.0"
 
 
 def test_versions_are_the_engine_info_plus_the_binding() -> None:
     expected = _engine_info()
-    expected["binding"] = {"python": "0.8.0"}
+    expected["binding"] = {"python": "0.9.0"}
     assert behavior.versions() == expected
 
 

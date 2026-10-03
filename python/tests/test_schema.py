@@ -43,3 +43,34 @@ def test_documents_use_their_minimal_version() -> None:
         version = json.loads(path.read_text())["ir_version"]
         want = {"accounts.json": "0.5", "orders.json": "0.6"}.get(path.name, "0.4")
         assert version == want, path.name
+
+
+MIGRATION_SCHEMA = json.loads((REPO_ROOT / "schema" / "migration-ir-0.1.schema.json").read_text())
+MIGRATIONS = sorted(
+    p for p in (FIXTURES / "migration").glob("*/*.json")
+    if p.parent.name in ("valid", "invalid") and not p.name.endswith(".expected.json")
+)
+
+
+def test_the_migration_schema_is_valid() -> None:
+    jsonschema.Draft202012Validator.check_schema(MIGRATION_SCHEMA)
+
+
+def test_there_are_valid_migration_fixtures() -> None:
+    assert MIGRATIONS, "tests/fixtures/migration/valid/ has no migration documents"
+
+
+@pytest.mark.parametrize("path", MIGRATIONS, ids=lambda p: p.name)
+def test_migration_file_conforms(path) -> None:  # type: ignore[no-untyped-def]
+    doc = json.loads(path.read_text())
+    jsonschema.validate(doc, MIGRATION_SCHEMA, cls=jsonschema.Draft202012Validator)
+
+
+def test_migration_schema_rejects_module_only_and_unknown_forms() -> None:
+    doc = {"migration_ir": "0.1", "name": "m", "source": "sha256:" + "0" * 64,
+           "target": "sha256:" + "1" * 64,
+           "transforms": [{"entity": "E", "loc": {"file": "m.py", "line": 1},
+                           "fields": {"x": {"op": "frobnicate", "args": [],
+                                            "loc": {"file": "m.py", "line": 1}}}}]}
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(doc, MIGRATION_SCHEMA, cls=jsonschema.Draft202012Validator)

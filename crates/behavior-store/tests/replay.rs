@@ -195,23 +195,30 @@ fn tampered(kind: Tampering, k: u64) -> impl Fn(u64) -> Option<Option<Transition
                 let mut r = rec(k).unwrap();
                 match kind {
                     Tampering::WriteValue => {
-                        if let Some(w) = r.bundle.write_set.first_mut() {
+                        if let Some(w) = r.bundle.as_mut().unwrap().write_set.first_mut() {
                             w.new = serde_json::json!("0.00");
                         } else {
-                            r.bundle.commit_time = "2000-01-01T00:00:00Z".into();
+                            r.bundle.as_mut().unwrap().commit_time = "2000-01-01T00:00:00Z".into();
                         }
                     }
                     Tampering::Input => {
-                        r.bundle.record["input"] = serde_json::json!({"amount": "0.01"})
+                        r.bundle.as_mut().unwrap().record["input"] =
+                            serde_json::json!({"amount": "0.01"})
                     }
                     Tampering::InputRehashed => {
-                        r.bundle.record["input"] = serde_json::json!({"amount": "0.02"});
-                        r.bundle.transition_hash = transition_hash(&r.bundle.record).unwrap();
-                        r.bundle_hash = r.bundle.hash().unwrap();
+                        r.bundle.as_mut().unwrap().record["input"] =
+                            serde_json::json!({"amount": "0.02"});
+                        r.bundle.as_mut().unwrap().transition_hash =
+                            transition_hash(&r.bundle.as_ref().unwrap().record).unwrap();
+                        r.bundle_hash = r.bundle.as_ref().unwrap().hash().unwrap();
                     }
-                    Tampering::Context => r.bundle.record["context"] = serde_json::json!({"x": 1}),
+                    Tampering::Context => {
+                        r.bundle.as_mut().unwrap().record["context"] = serde_json::json!({"x": 1})
+                    }
                     Tampering::ResultState => r.result_state.state = "sha256:00".into(),
-                    Tampering::BehaviorVersion => r.bundle.behavior_version = "sha256:00".into(),
+                    Tampering::BehaviorVersion => {
+                        r.bundle.as_mut().unwrap().behavior_version = "sha256:00".into()
+                    }
                     Tampering::Invariant => r.committed_on.state = "sha256:11".into(),
                     Tampering::Swap | Tampering::Drop => unreachable!(),
                 }

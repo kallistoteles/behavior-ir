@@ -864,7 +864,10 @@ fn evidence_atomicity<B: Backend>(f: &dyn Fn() -> B) -> Result<(), String> {
         r.authorization.as_deref() == Some(auth_hash.as_str()),
         "the record cites the authorization",
     )?;
-    ensure(r.bundle.evidence.is_some(), "the record keeps the evidence")?;
+    ensure(
+        r.bundle.as_ref().is_some_and(|b| b.evidence.is_some()),
+        "the record keeps the evidence",
+    )?;
     ensure(
         head.last_record == r.hash().map_err(e)?,
         "the head points at that record",
@@ -1683,9 +1686,178 @@ fn module_invariant_preserved<B: Backend>(f: &dyn Fn() -> B) -> Result<(), Strin
     }
 }
 
+// --- feature 009: schema evolution -------------------------------------------------------------
+
+pub const CULTURES_V1_WIRE: &str =
+    include_str!("../../../tests/fixtures/migration/modules/cultures_v1.json");
+pub const CULTURES_V2_WIRE: &str =
+    include_str!("../../../tests/fixtures/migration/modules/cultures_v2.json");
+pub const CULTURES_V1_TO_V2: &str =
+    include_str!("../../../tests/fixtures/migration/valid/cultures_v1_to_v2.json");
+
+/// The cultures modules V1 and V2 and the migration between them.
+fn cultures() -> Result<(Module, Module, behavior_core::migration::Migration), String> {
+    let v1 = behavior_core::admit(CULTURES_V1_WIRE).map_err(|r| format!("{:?}", r.errors))?;
+    let v2 = behavior_core::admit(CULTURES_V2_WIRE).map_err(|r| format!("{:?}", r.errors))?;
+    let m = behavior_core::migration::admit_migration(&v1, &v2, CULTURES_V1_TO_V2)
+        .map_err(|r| format!("{:?}", r.errors))?;
+    Ok((v1, v2, m))
+}
+
+fn cultures_seed(note: bool) -> Vec<SeedEntity> {
+    let mut seed = vec![
+        SeedEntity {
+            entity: "Customer".into(),
+            value: json!({"id": "c1", "name": "Ada", "email": "ada@x"}),
+        },
+        SeedEntity {
+            entity: "Culture".into(),
+            value: json!({"id": "k1", "medium": "WPM", "status": "ACTIVE", "ph": 7,
+                          "legacy_code": "L1", "price": "1.50", "fee": "0.1235"}),
+        },
+        SeedEntity {
+            entity: "Order".into(),
+            value: json!({"id": "o1", "customer": "c1", "region": null, "qty": 3}),
+        },
+    ];
+    if note {
+        seed.push(SeedEntity {
+            entity: "AuditNote".into(),
+            value: json!({"id": "n1", "text": "keep"}),
+        });
+    }
+    seed
+}
+
+fn cultures_store<B: Backend>(backend: B, note: bool) -> Result<Store<B>, String> {
+    let (v1, _, _) = cultures()?;
+    Store::create(
+        backend,
+        &v1,
+        genesis_for(&v1, EvidencePolicy::none(), cultures_seed(note)),
+    )
+    .map_err(e)
+}
+
+/// A migration is all-or-nothing (FR-011): a refused one writes nothing; a crash before the
+/// write leaves the store under its old schema, a crash after it leaves the store fully migrated.
+fn migration_atomicity<B: Backend>(f: &dyn Fn() -> B) -> Result<(), String> {
+    let (v1, v2, m) = cultures()?;
+    const T: &str = "2026-10-02T10:00:00Z";
+    // A refusal (a retired type still holds an entity) writes nothing.
+    let mut s = cultures_store(f(), true)?;
+    let before = s.backend().head().map_err(|x| x.0)?;
+    match s.migrate(&m, &v1, &v2, T, None) {
+        Err(err) if err.code() == "RETIRED_TYPE_NOT_EMPTY" => {}
+        other => return Err(format!("expected RETIRED_TYPE_NOT_EMPTY, got {other:?}")),
+    }
+    ensure(
+        s.backend().head().map_err(|x| x.0)? == before,
+        "a refused migration leaves the head as it was",
+    )?;
+    ensure(
+        s.backend().record(1).map_err(|x| x.0)?.is_none(),
+        "a refused migration writes no record",
+    )?;
+    // A crash before the write: nothing changed.
+    let mut s = cultures_store(FaultInjector::new(f()), false)?;
+    s.backend_mut().next = Some(Fault::BeforeWrite);
+    ensure(
+        s.migrate(&m, &v1, &v2, T, None).is_err(),
+        "the injected fault is reported",
+    )?;
+    let s = Store::open(s.into_backend()).map_err(e)?;
+    ensure(
+        s.current().map_err(e)?.position == 0 && s.schema_history().map_err(e)?.len() == 1,
+        "after a crash before the write the store is unmigrated",
+    )?;
+    // A crash after the write: everything is there.
+    let mut s = cultures_store(FaultInjector::new(f()), false)?;
+    s.backend_mut().next = Some(Fault::AfterWrite);
+    ensure(
+        s.migrate(&m, &v1, &v2, T, None).is_err(),
+        "the injected fault is reported",
+    )?;
+    let s = Store::open(s.into_backend()).map_err(e)?;
+    let at = s.current().map_err(e)?;
+    ensure(
+        at.position == 1,
+        "after a crash after the write the store is migrated",
+    )?;
+    for (entity, id) in [("Customer", "c1"), ("Culture", "k1"), ("Order", "o1")] {
+        let v = s.load(&akey(entity, id), &at).map_err(e)?;
+        ensure(
+            v.created_at == 1,
+            format!("{entity}#{id} has its migrated version"),
+        )?;
+    }
+    s.backend()
+        .record(1)
+        .map_err(|x| x.0)?
+        .filter(|r| r.is_migration())
+        .ok_or("the migration record was written with the versions")?;
+    Ok(())
+}
+
+/// The schema at every position is recoverable (FR-002): after a migration and a reopen, the head
+/// names the new schema, the history walks back to the genesis schema, and the store binds
+/// behavior to the schema of the position it evaluates.
+fn schema_history_consistency<B: Backend>(f: &dyn Fn() -> B) -> Result<(), String> {
+    let (v1, v2, m) = cultures()?;
+    let mut s = cultures_store(f(), false)?;
+    let c = s
+        .migrate(&m, &v1, &v2, "2026-10-02T10:00:00Z", None)
+        .map_err(e)?;
+    let s = Store::open(s.into_backend()).map_err(e)?;
+    let head = s
+        .backend()
+        .head()
+        .map_err(|x| x.0)?
+        .ok_or("the store has no head")?;
+    let named = head
+        .schema
+        .ok_or("the head of a migrated store names its schema")?;
+    ensure(
+        named.hash == behavior_core::schema(&v2).hash
+            && named.since == 1
+            && named.migration_record == c.record_id,
+        "the head names the migrated schema and the record that introduced it",
+    )?;
+    let history: Vec<(u64, String)> = s
+        .schema_history()
+        .map_err(e)?
+        .into_iter()
+        .map(|h| (h.since, h.hash))
+        .collect();
+    ensure(
+        history
+            == vec![
+                (0, behavior_core::schema(&v1).hash),
+                (1, behavior_core::schema(&v2).hash),
+            ],
+        format!("the schema history is the genesis and the migration: {history:?}"),
+    )?;
+    let ev = s
+        .evaluate(
+            &v1,
+            "kill",
+            &bind(&[("culture", "k1")]),
+            &json!({}),
+            &json!({}),
+            "2026-10-02T11:00:00Z",
+            None,
+        )
+        .err()
+        .map(|err| err.code());
+    ensure(
+        ev == Some("SCHEMA_MISMATCH"),
+        "behavior of the old schema is refused after the migration",
+    )
+}
+
 /// Runs every named case against backends from `factory`.
 pub fn run<B: Backend>(factory: impl Fn() -> B) -> ConformanceReport {
-    let cases: [(&'static str, Case<B>); 28] = [
+    let cases: [(&'static str, Case<B>); 30] = [
         ("create_and_open", create_and_open),
         ("commit_new_state", commit_new_state),
         ("conflict_on_outdated_parent", conflict_on_outdated_parent),
@@ -1720,6 +1892,8 @@ pub fn run<B: Backend>(factory: impl Fn() -> B) -> ConformanceReport {
         ("query_index_consistency", query_index_consistency),
         ("query_order_independence", query_order_independence),
         ("module_invariant_preserved", module_invariant_preserved),
+        ("migration_atomicity", migration_atomicity),
+        ("schema_history_consistency", schema_history_consistency),
     ];
     let cases = cases
         .into_iter()

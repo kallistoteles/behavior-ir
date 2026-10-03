@@ -90,7 +90,9 @@ fn record() -> TransitionRecord {
         format: TAG_TRANSITION_RECORD.into(),
         position: 4,
         previous_record: "sha256:ff".into(),
-        bundle: bundle(),
+        kind: None,
+        bundle: Some(bundle()),
+        migration: None,
         bundle_hash: bundle().hash().unwrap(),
         evaluated_against: state_ref(),
         committed_on: state_ref(),
@@ -125,6 +127,61 @@ fn hashing_vectors_are_frozen() {
     }
     let want: Value = serde_json::from_str(&common::read(&path)).unwrap();
     assert_eq!(got, want, "store hash vectors changed");
+}
+
+/// Feature 009: an action record keeps its bytes (no `kind`, no `migration`), and both record
+/// kinds round-trip strictly.
+#[test]
+fn action_records_keep_their_bytes_and_migration_records_round_trip() {
+    let v = serde_json::to_value(record()).unwrap();
+    let keys: Vec<&str> = v.as_object().unwrap().keys().map(String::as_str).collect();
+    assert!(
+        !keys.contains(&"kind") && !keys.contains(&"migration"),
+        "{keys:?}"
+    );
+    assert!(keys.contains(&"bundle"));
+    let back: TransitionRecord = decode("record", &v).unwrap();
+    assert_eq!(back, record());
+    assert_eq!(
+        serde_json::to_string(&back).unwrap(),
+        serde_json::to_string(&record()).unwrap()
+    );
+    assert!(back.check_kind().is_ok());
+
+    let mut m = record();
+    m.kind = Some("migration".into());
+    m.bundle = None;
+    m.migration = Some(MigrationBundle {
+        migration_hash: "sha256:aa".into(),
+        source: "sha256:01".into(),
+        target: "sha256:02".into(),
+        target_declarations: BTreeMap::from([("Account".to_string(), "sha256:dd".to_string())]),
+        previous_schema: None,
+        requirements: vec![RequirementOutcome {
+            name: "r".into(),
+            held: true,
+        }],
+        report: json!({"types": {}}),
+        source_validated: true,
+        target_validated: true,
+        verification: None,
+        commit_time: "2026-10-02T10:00:00Z".into(),
+    });
+    let v = serde_json::to_value(&m).unwrap();
+    assert!(v.get("bundle").is_none(), "{v}");
+    let back: TransitionRecord = decode("record", &v).unwrap();
+    assert_eq!(back, m);
+    assert!(back.check_kind().is_ok());
+    // A record that is neither one kind nor the other is refused.
+    let mut confused = m.clone();
+    confused.bundle = Some(bundle());
+    assert!(confused.check_kind().is_err());
+    let mut bare = record();
+    bare.bundle = None;
+    assert!(bare.check_kind().is_err());
+    let mut unknown = m;
+    unknown.kind = Some("other".into());
+    assert!(unknown.check_kind().is_err());
 }
 
 #[test]

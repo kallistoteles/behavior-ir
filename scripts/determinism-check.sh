@@ -97,7 +97,36 @@ if [ "$(tail -n 2 "$tmp/query_a" | grep -c '"ok":true')" -ne 2 ]; then
   fail=1
 fi
 
+# Schema evolution (feature 009): a fixed history crossing two migrations, its records and its
+# data and behavior replay reports; and admission and plain application of every migration.
+cargo run -q -p behavior-store --example migration_history >"$tmp/migration_a" 2>/dev/null || fail=1
+cargo run -q -p behavior-store --example migration_history >"$tmp/migration_b" 2>/dev/null || fail=1
+if ! cmp -s "$tmp/migration_a" "$tmp/migration_b" || [ ! -s "$tmp/migration_a" ]; then
+  echo "NOT DETERMINISTIC: migration history" >&2
+  fail=1
+fi
+if [ "$(tail -n 2 "$tmp/migration_a" | grep -c '"ok":true')" -ne 2 ]; then
+  echo "MIGRATION REPLAY FAILED" >&2
+  fail=1
+fi
+for m in tests/fixtures/migration/valid/*.json; do
+  case "$m" in *.expected.json) continue ;; esac
+  e="${m%.json}.expected.json"
+  src="tests/fixtures/migration/modules/$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["source"])' "$e").json"
+  dst="tests/fixtures/migration/modules/$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["target"])' "$e").json"
+  run_twice "migration admit $m" "$BIN" migration admit "$src" "$dst" "$m"
+  rc=0; "$BIN" migration admit "$src" "$dst" "$m" >/dev/null || rc=$?
+  if [ "$rc" -ne 0 ]; then echo "MIGRATION ADMISSION FAILED: $m" >&2; fail=1; fi
+done
+
 if command -v "${BEHAVIOR_Z3:-z3}" >/dev/null 2>&1; then
+  for m in tests/fixtures/migration/valid/*.json; do
+    case "$m" in *.expected.json) continue ;; esac
+    e="${m%.json}.expected.json"
+    src="tests/fixtures/migration/modules/$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["source"])' "$e").json"
+    dst="tests/fixtures/migration/modules/$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["target"])' "$e").json"
+    run_twice "migration verify $m" "$BIN" migration verify "$src" "$dst" "$m"
+  done
   for f in tests/fixtures/verify/*.json tests/fixtures/wire/valid/*.json; do
     case "$f" in *.expected.json) continue ;; esac
     run_twice "verify $f" "$BIN" verify "$f"

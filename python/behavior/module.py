@@ -26,6 +26,9 @@ class CompileSession:
         self.builder = _engine.Builder()
         self.started: set[int] = set()
         self._declared: set[str] = set()
+        #: Every enum and nominal type declared to the builder, by name (feature 009: a
+        #: migration tells the two schemas' types apart with them).
+        self.types: dict[str, BType] = {}
 
     def declare(self, t: BType) -> None:
         """Declares enum and nominal types to the builder (idempotent)."""
@@ -38,6 +41,7 @@ class CompileSession:
             return
         if not isinstance(t, (EnumT, NominalT)) or t.name in self._declared:
             return
+        self.types[t.name] = t
         file, line = t.loc or ("<unknown>", 1)
         try:
             if isinstance(t, EnumT):
@@ -49,6 +53,14 @@ class CompileSession:
         except _engine.EngineError as e:
             raise engine_error(e, (file, line)) from None
         self._declared.add(t.name)
+
+    def engine_type(self, t: BType) -> Any:
+        """The engine type of `t` (a migration session marks target-side types)."""
+        return t.engine()
+
+    def nominal_name(self, t: NominalT) -> str:
+        """The engine name of a nominal type (a migration session marks the target side)."""
+        return t.name
 
     def push_scope(self, fn: BehaviorFn, params: list[ParamInfo]) -> None:
         for p in params:
@@ -144,6 +156,8 @@ class BehaviorModule:
         finally:
             _SESSION.reset(token)
 
+        #: The enum and nominal types this module declares, by name (feature 009).
+        self.declared_types: dict[str, BType] = dict(session.types)
         self._module, self._admission = session.builder.finish(root)
 
     @staticmethod
@@ -216,3 +230,9 @@ class BehaviorModule:
     @property
     def behavior_version(self) -> str | None:
         return None if self._module is None else str(self._module.behavior_version)
+
+    @property
+    def schema_hash(self) -> str:
+        """The SchemaHash of the store schema this module declares (feature 009): its entity
+        declarations, independent of actions, rules and derived values."""
+        return str(self.engine.schema_hash)

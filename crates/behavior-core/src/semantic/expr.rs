@@ -53,6 +53,19 @@ pub enum ExprKind {
         param: String,
         body: Box<Expr>,
     },
+    /// `strict_unwrap(x)` (migrations only, feature 009): the value of an `Option<T>`; absent is
+    /// an evaluation error. A narrowing site: a verification obligation and a runtime check.
+    StrictUnwrap(Box<Expr>),
+    /// `enum_map(x, mapping)` / `strict_enum_map` (migrations only, feature 009): maps the values
+    /// of a source enum to values of the target enum (the result type). `mapping` is in the
+    /// source enum's value order; a total map covers every source value, a strict one may omit
+    /// some (a narrowing site: an unmapped value is an evaluation error). An absent option stays
+    /// absent.
+    EnumMap {
+        arg: Box<Expr>,
+        mapping: Vec<(String, String)>,
+        strict: bool,
+    },
 }
 
 /// The name of the candidate inside lambda bodies (not an identifier, so it cannot clash).
@@ -216,7 +229,9 @@ impl Expr {
             | ExprKind::Unwrap(a)
             | ExprKind::Rescale { arg: a, .. }
             | ExprKind::Exists(a)
-            | ExprKind::Referenced(a) => vec![a],
+            | ExprKind::Referenced(a)
+            | ExprKind::StrictUnwrap(a)
+            | ExprKind::EnumMap { arg: a, .. } => vec![a],
             ExprKind::Count(q) => q.bodies(),
             ExprKind::Fold { query, body, .. } => {
                 let mut out = query.bodies();

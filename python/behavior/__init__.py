@@ -21,11 +21,15 @@ from .query import Query, all_, any_, count, max_, min_, select, sum_, unique
 from .results import AdmissionError, AdmissionResult, Change, Decision, ReplayResult, TraceStep
 from .statements import create, ensures, remove, requires, set_
 from .types import Context, Exact, Id, Input, Option, Ref, Rounding, nominal
-from .governance import Authorization, authorize, sign_waiver, waiver_hash
+from .governance import Authorization, authorize, authorize_migration, sign_waiver, waiver_hash
 from .verify import Attestation, Profile, verify
+from .migration import (
+    Migration, MigrationAdmission, apply_migration, enum_map, strict_enum_map, strict_unwrap,
+    verify_migration,
+)
 from .store import (
-    CommitResult, ConformanceReport, Evaluation, InMemoryBackend, ReplayReport, StateRef, Store,
-    replay_behavior, replay_data, run_conformance,
+    CommitResult, ConformanceReport, Evaluation, InMemoryBackend, ReplayReport, SchemaRef,
+    StateRef, Store, replay_behavior, replay_data, run_conformance,
 )
 
 
@@ -120,8 +124,8 @@ def replay(model: BehaviorModule, record_json: str) -> ReplayResult:
 
 __all__ = [
     "CommitRefused", "CommitResult", "ConformanceReport", "Evaluation", "InMemoryBackend",
-    "ReplayReport", "StateConflict", "StateRef", "Store", "replay_behavior", "replay_data",
-    "run_conformance",
+    "ReplayReport", "SchemaRef", "StateConflict", "StateRef", "Store", "replay_behavior",
+    "replay_data", "run_conformance",
     "Exact", "Rounding", "rescale",
     "Attestation", "Authorization", "Profile", "authorize", "sign_waiver", "verify", "waiver_hash",
     "AdmissionError", "AdmissionResult", "Change", "Decision", "ReplayResult", "TraceStep",
@@ -132,4 +136,6 @@ __all__ = [
     "underlying", "Ref", "create", "remove", "exists", "referenced",
     "Query", "select", "count", "any_", "all_", "sum_", "min_", "max_", "unique",
     "versions", "__version__",
+    "Migration", "MigrationAdmission", "apply_migration", "authorize_migration", "enum_map", "strict_enum_map",
+    "strict_unwrap", "verify_migration",
 ]

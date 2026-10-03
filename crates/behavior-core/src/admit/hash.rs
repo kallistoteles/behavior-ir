@@ -24,6 +24,10 @@ pub const TAG_INVARIANT: &str = "behavior.invariant.v1";
 pub const TAG_ACTION: &str = "behavior.action.v1";
 pub const TAG_CONSTRAINT: &str = "behavior.constraint.v1";
 pub const TAG_MODULE: &str = "behavior.module.v1";
+/// The store schema (feature 009): the sorted entity declarations.
+pub const TAG_STORE_SCHEMA: &str = "behavior.store_schema.v1";
+/// A resolved migration (feature 009).
+pub const TAG_MIGRATION: &str = "behavior.migration.v1";
 
 /// Body encoder.
 #[derive(Default)]
@@ -287,6 +291,21 @@ pub fn expr(kind: &ExprKind, ty: &Type) -> Hash {
             op(&mut e, 0x80);
             e.href(&q.hash);
         }
+        ExprKind::StrictUnwrap(a) => {
+            op(&mut e, 0xa0);
+            e.href(&a.hash);
+        }
+        ExprKind::EnumMap {
+            arg,
+            mapping,
+            strict,
+        } => {
+            op(&mut e, if *strict { 0xa2 } else { 0xa1 });
+            e.href(&arg.hash).u32(mapping.len());
+            for (from, to) in mapping {
+                e.str(from).str(to);
+            }
+        }
         ExprKind::Fold {
             op: fold,
             query,
@@ -421,4 +440,60 @@ pub fn module<'a>(entries: impl ExactSizeIterator<Item = (&'a (Kind, String), &'
         e.u8(*kind as u8).str(name).href(h);
     }
     e.finish(TAG_MODULE)
+}
+
+/// A store schema (feature 009, research R1): the entity declarations, sorted by name, each with
+/// its declaration hash in display form.
+pub fn store_schema(declarations: &std::collections::BTreeMap<String, String>) -> Hash {
+    let mut e = Enc::default();
+    e.u32(declarations.len());
+    for (name, decl) in declarations {
+        e.str(name).str(decl);
+    }
+    e.finish(TAG_STORE_SCHEMA)
+}
+
+/// One resolved target field of a migration transform: copied from a source field, or computed by
+/// an expression (its hash).
+pub enum MigrationField<'a> {
+    Copy(&'a str),
+    Expr(&'a Hash),
+}
+
+/// A resolved migration (feature 009, FR-010): its source and target schemas, constants (name,
+/// type, value), requirements (name, body hash), transforms (entity, fields in target declaration
+/// order, sorted drops), and retired types. Callers pass every list in canonical order; the
+/// migration's name and source locations are not part of it.
+#[allow(clippy::type_complexity)]
+pub fn migration(
+    source: &str,
+    target: &str,
+    constants: &[(&str, &Type, &Value)],
+    requirements: &[(&str, &Hash)],
+    transforms: &[(&str, Vec<(&str, MigrationField<'_>)>, &[String])],
+    retire: &[String],
+) -> Hash {
+    let mut e = Enc::default();
+    e.str(source).str(target).u32(constants.len());
+    for (name, ty, v) in constants {
+        e.str(name).ty(ty).value(ty, v);
+    }
+    e.u32(requirements.len());
+    for (name, h) in requirements {
+        e.str(name).href(h);
+    }
+    e.u32(transforms.len());
+    for (entity, fields, drops) in transforms {
+        e.str(entity).u32(fields.len());
+        for (name, f) in fields {
+            e.str(name);
+            match f {
+                MigrationField::Copy(from) => e.u8(0).str(from),
+                MigrationField::Expr(h) => e.u8(1).href(h),
+            };
+        }
+        e.strs(drops);
+    }
+    e.strs(retire);
+    e.finish(TAG_MIGRATION)
 }

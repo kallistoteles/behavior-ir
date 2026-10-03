@@ -1,0 +1,12 @@
+{
+  "accounts.json": "sha256:13a3229bad4eae3e6000ba586f81a05fc2d3e07564d8343be1eea391515da42a",
+  "constraints.json": "sha256:10cfa8e9ceb8cea1c16894acf2218edfb8e1a557798d8ffa879b751c42bbc5f9",
+  "empty.json": "sha256:c0e4bc2c289aac47604a338d6ede6245f5277de8b73a3224886eaa60a8d9f764",
+  "exact_bound_ok.json": "sha256:385f6159872b4c21a9d3b3d11fcbe720a57251fa9c028347e42f246e679302ca",
+  "exact_closure.json": "sha256:b424adbba496b9a42836a55cedc0888aa0cfd60fc2c15c1365f252f351d517a1",
+  "fixed_scale.json": "sha256:d40dc4c683d820bcd3e6daf93251cfa05fccf383b81fca4a20dfe6a08304ee83",
+  "invoice.json": "sha256:b9bb6b9fe801470f3175213616ccdf9c668179dda789a6861fa2b1b8f36562b8",
+  "ledger.json": "sha256:8fa6f55a4e49ff5a18ee69d5adf5aacb217d9d0896ed42e1adb9ced00673554f",
+  "orders.json": "sha256:6d13b23a5dab0fc532e61d8fa31c093a6fe64535915191c8065b52e594207b8d",
+  "project_margin.json": "sha256:a09267ae12b4ba4dba62b2cec25b830f7deadc02bd76509dbb45c638ca0ade78"
+}

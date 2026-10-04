@@ -76,3 +76,5 @@ assert as_manager.result == "ALLOW", as_manager.reasons
 negative = dict(state["invoice"], amount=Decimal("250.001"))
 assert evaluate(model, "approve", state=dict(state, invoice=negative), data_version="1",
                 facts=facts).result == "INVALID_INPUT"  # three decimals do not fit Money
+
+raise AssertionError("T079 deliberately broken skill example")

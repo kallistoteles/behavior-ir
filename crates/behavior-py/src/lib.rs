@@ -5,6 +5,7 @@
 //! Values cross the boundary as Python objects; JSON appears only for artifacts (wire files,
 //! the canonical serialization, decision records). No behavior logic lives here.
 
+use behavior_core as _;
 use behavior_engine::builder::{BuildError, Builder, Node, ScopeSite};
 use behavior_engine::semantic::Module;
 use behavior_engine::wire::{DerivedKind, Loc, Role, WField, WLifecycle, WParam, WType};

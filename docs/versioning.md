@@ -6,9 +6,9 @@ change for different reasons, and every one of them is reported, never implied
 
 | Kind | Example | What it identifies | Where it lives |
 |---|---|---|---|
-| **Release** | `0.10.3` | this repository's release: the Python package and everything it bundles | `[workspace.package] version` in `Cargo.toml`, the single source |
+| **Release** | `0.10.4` | this repository's release: the Python package and everything it bundles | `[workspace.package] version` in `Cargo.toml`, the single source |
 | **Core** | `0.10.2`, commit `aaded16…` | the exact Core Release the package is built against and bundles (feature 011) | `core-release.json`; `behavior.versions()["core"]` |
-| **Binding** | `python 0.10.3` | the installable package of the Python binding | the release version in Python's form (PEP 440); the package requires *exactly* the core in `core-release.json` (checked at import) |
+| **Binding** | `python 0.10.4` | the installable package of the Python binding | the release version in Python's form (PEP 440); the package requires *exactly* the core in `core-release.json` (checked at import) |
 | **Formats and verifier** | wire IR `0.1` … `0.7`, records `0.4` … `0.6`, verifier `0.6.0` | the document formats and the verification encoding | defined by the core: [its versioning](https://github.com/kallistoteles/behavior-ir-core/blob/v0.10.2/docs/versioning.md); reported by `behavior engine-info` |
 
 A module document, a record or a store document says which format version it is written in.
@@ -29,6 +29,12 @@ While the release is below 1.0, the **minor** number marks anything a consumer m
   - documentation and skills.
 
 After 1.0, the same rules apply with **major** in place of minor.
+
+Release 0.10.4 makes the package reproducible across machines (SC-011): maturin's generated
+Rust SBOM recorded the absolute build directory, so the wheel built in CI and one built locally
+from the same commit differed in that file alone. The SBOM is off until a path-independent one is
+produced, and the release check refuses any wheel member that embeds a build directory. Still
+bundles Core Release 0.10.2.
 
 Release 0.10.3 is the first published release of the ecosystem as its own repository, bundling
 Core Release 0.10.2. The tag `v0.10.2` exists but was never released: its release check failed

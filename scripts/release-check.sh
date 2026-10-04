@@ -47,6 +47,17 @@ wheel="$(ls "$dist"/*.whl 2>/dev/null | head -n 1)"
 step "2 wheel compliance"
 auditwheel show "$wheel" >"$tmp/auditwheel.txt" 2>&1 || fail "auditwheel: $(cat "$tmp/auditwheel.txt")"
 grep -q 'manylinux_2_28_x86_64' "$tmp/auditwheel.txt" || fail "not manylinux_2_28: $(cat "$tmp/auditwheel.txt")"
+# No member records where it was built (feature 011, SC-011): an absolute build path makes two
+# builds of one commit on different machines differ.
+python3 - "$wheel" "$PWD" <<'PY' || fail "a wheel member embeds the build directory"
+import sys, zipfile
+wheel, build_dir = sys.argv[1:3]
+z = zipfile.ZipFile(wheel)
+bad = [n for n in z.namelist()
+       if any(x in z.read(n) for x in (build_dir.encode(), b"/home/runner/work/"))]
+if bad:
+    sys.exit("wheel members embed a build directory: " + ", ".join(bad))
+PY
 # The bundled core CLI is exactly the pinned release's asset, and executable.
 python3 - "$wheel" <<'PY' || fail "the wheel does not bundle the pinned core CLI"
 import hashlib, json, sys, zipfile
@@ -140,4 +151,6 @@ scripts/release-build.sh "$version" "$tmp/again-b" >/dev/null 2>&1 || fail "rebu
 cmp -s "$tmp/again-a/SHA256SUMS" "$tmp/again-b/SHA256SUMS" ||
   fail "two builds differ: $(diff "$tmp/again-a/SHA256SUMS" "$tmp/again-b/SHA256SUMS" | head -n 4)"
 
+# The checksums, for comparison with a build on another machine (scripts/release-verify.sh).
+sed 's/^/release-check: SHA256SUMS /' "$dist/SHA256SUMS" >&2
 echo "release-check: OK ($(basename "$wheel"))" >&2

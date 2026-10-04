@@ -35,6 +35,7 @@ filter-repo path list is every `core` and `both` rule.
 | 22 | `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml`, `rustfmt.toml`, `flake.nix`, `flake.lock`, `.gitignore`, `LICENSE`, `README.md` | both | each repository has its own; the ecosystem's workspace holds only `behavior-py` |
 | 23 | `.github/workflows/core-*.yml` | core | |
 | 24 | `.github/workflows/ecosystem-*.yml` | ecosystem | |
+| 25 | `core-release.json`, `models/**` | ecosystem | the core pin (FR-017); the models area (US5) |
 
 ## Checks
 

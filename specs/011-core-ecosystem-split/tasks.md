@@ -169,7 +169,7 @@ five criteria.
   `cargo build --release -p behavior-cli` and copies `target/release/behavior` to
   `python/behavior/_bin/behavior` with mode 0755. Call it from `scripts/release-build.sh` before
   `maturin build`. For the wheel, build with
-  `cargo zigbuild --release --target x86_64-unknown-linux-gnu.2.28 -p behavior-cli`. Document
+  `cargo zigbuild --release --target x86_64-unknown-linux-musl -p behavior-cli (static)`. Document
   `scripts/stage-cli.sh` as a step before `maturin develop` in `README.md`. Make T015 and every
   `python/tests/test_cli_entry.py` test pass.
 - [X] T018 Split `scripts/determinism-check.sh` by ownership (research R10) into `--core`
@@ -239,7 +239,7 @@ its conformance suite with no reference to the ecosystem.
 
 ### Implementation for User Story 1
 
-- [ ] T024 [US1] Generate the extraction list:
+- [X] T024 [US1] Generate the extraction list:
   `scripts/check-ownership.py --list core > /tmp/core-paths.txt`. Then:
   1. Take a fresh `git clone --no-local` of this repository at the head after T023 (the preflight
      plus `consumer/` and `check-consumer.sh`) into a temp directory.
@@ -247,40 +247,40 @@ its conformance suite with no reference to the ecosystem.
      /tmp/core-paths.txt` there.
   3. Check that `git log --oneline -- crates/behavior-core/src/read.rs` shows more than one
      commit.
-- [ ] T025 [US1] In `../behavior-ir-core`:
+- [X] T025 [US1] In `../behavior-ir-core`:
   1. `git fetch <temp-clone> HEAD`.
   2. `git merge --allow-unrelated-histories FETCH_HEAD -m "Extract Behavior Core from behavior-ir
      <ecosystem sha> (feature 011)"`.
   3. Resolve the `README.md` and `LICENSE` conflicts: keep MIT, and keep the core README's
      tagline on top.
   4. Push to a branch `011-core-extraction`, not `main`, until Phase 4 is green.
-- [ ] T026 [US1] Trim the core-side copies of the "both" files:
+- [X] T026 [US1] Trim the core-side copies of the "both" files:
   - `core:Cargo.toml`: members are `behavior-core`, `-verify`, `-store`, `-cli` and `-engine`;
     remove `behavior-py`; keep `exclude = ["consumer"]`.
   - `core:Cargo.lock`: regenerate with `cargo metadata` offline; no version changes.
   - `core:.gitignore`: drop the Python-only entries except `.venv/`.
   - `core:flake.nix`: drop maturin and auditwheel; keep rust, z3, zig, cargo-zigbuild, python3
     (the scripts use it) and gh.
-- [ ] T027 [US1] In `core:scripts/determinism-check.sh`, drop the `--ecosystem` section
+- [X] T027 [US1] In `core:scripts/determinism-check.sh`, drop the `--ecosystem` section
   (T018). The default runs the core section. In `core:scripts/gates.sh`, drop steps 5–8
   (stage-cli, maturin, pytest, mypy) and step 12, and add `scripts/check-consumer.sh`.
-- [ ] T028 [P] [US1] Rewrite `core:README.md`:
+- [X] T028 [P] [US1] Rewrite `core:README.md`:
   - what the core is, with the tagline;
   - how to build and test (`nix develop -c scripts/gates.sh`);
   - the public contract: `behavior-engine`, the CLI, `schema/`, conformance fixtures;
   - "Specifications: core features are numbered 012 onward; 001–007, 009, 010 live here;
     ecosystem features (500+) live in behavior-ir";
   - a link to the ecosystem for the Python package.
-- [ ] T029 [P] [US1] Trim `core:docs/versioning.md`. Keep the version table, the release version
+- [X] T029 [P] [US1] Trim `core:docs/versioning.md`. Keep the version table, the release version
   policy, the compatibility promise and the releases section for the engine. Add
   `behavior-engine` and `api/engine-surface.txt` to the "removing or changing a public API
   element" rule. Remove `api/public-api.json` and the Python binding row; replace them with
   "Bindings: versioned by the ecosystem (behavior-ir)".
-- [ ] T030 [P] [US1] In `core:.claude/skills/behavior-engine-development/SKILL.md`, replace paths
+- [X] T030 [P] [US1] In `core:.claude/skills/behavior-engine-development/SKILL.md`, replace paths
   and commands that assume the Python package (maturin, pytest) with the core gates. Add a
   section "The public door": every item a consumer needs goes through `behavior-engine` and
   `api/engine-surface.txt`.
-- [ ] T031 [US1] Add Spec Kit to the core:
+- [X] T031 [US1] Add Spec Kit to the core:
   - Copy `.specify/` (minus `feature.json`) and `.claude/skills/speckit-*` from this repository,
     so the Spec Kit version is identical.
   - Keep `core:.specify/memory/constitution.md` at 1.0.0 unchanged, apart from adding
@@ -288,7 +288,7 @@ its conformance suite with no reference to the ecosystem.
     via `/speckit-constitution` in the core.
   - Copy `specs/011-core-ecosystem-split/` to `core:specs/011-core-ecosystem-split/`, with a
     first line "Reference copy; owned by behavior-ir".
-- [ ] T032 [US1] Run in a fresh clone of the `011-core-extraction` branch (quickstart §2):
+- [X] T032 [US1] Run in a fresh clone of the `011-core-extraction` branch (quickstart §2):
   - `scripts/gates.sh`;
   - `scripts/check-consumer.sh`;
   - `scripts/conformance-digest.sh | diff - specs/011-core-ecosystem-split/digest-before.json`,
@@ -314,7 +314,7 @@ before building. A local `release-verify` matches the published checksums.
 
 ### Tests for User Story 6 (core)
 
-- [ ] T033 [P] [US6] Write `core:scripts/check-tag.sh <ref>`. It refuses (exit 1) and names the
+- [X] T033 [P] [US6] Write `core:scripts/check-tag.sh <ref>`. It refuses (exit 1) and names the
   values in each of these cases:
   - the tag is not annotated (`git cat-file -t` ≠ `tag`);
   - `${ref#v}` ≠ `[workspace.package] version`, naming both versions;
@@ -328,11 +328,11 @@ before building. A local `release-verify` matches the published checksums.
   `core:scripts/tests/test_check_tag.sh`. They build a temp repository with each case,
   including a stubbed `gh` that reports a green and a red check run, and must fail before the
   script exists.
-- [ ] T034 [P] [US6] Write `core:scripts/tests/test_release_build.sh`. It runs
+- [X] T034 [P] [US6] Write `core:scripts/tests/test_release_build.sh`. It runs
   `scripts/release-build.sh 0.10.1 <tmp>` twice and asserts:
   - identical `SHA256SUMS`;
   - the presence of `release-manifest.json`, `SHA256SUMS`, `behavior-conformance-0.10.1.tar.gz`
-    and `behavior-0.10.1-x86_64-linux-manylinux_2_28`;
+    and `behavior-0.10.1-x86_64-linux-musl`;
   - that the manifest has
     `format == "behavior.core_release_manifest.v1"`, `release`, `tag`, `commit`, `versions`
     equal to `behavior engine-info`, `public_surface.crate == "behavior-engine"`,
@@ -345,19 +345,19 @@ before building. A local `release-verify` matches the published checksums.
 
 ### Implementation for User Story 6 (core)
 
-- [ ] T035 [US6] Rewrite `core:scripts/release-build.sh <version> <out>`. It runs under
+- [X] T035 [US6] Rewrite `core:scripts/release-build.sh <version> <out>`. It runs under
   `SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)`,
   `RUSTFLAGS="--remap-path-prefix=$PWD=/build --remap-path-prefix=${CARGO_HOME:-$HOME/.cargo}=/cargo"`
   and `CARGO_INCREMENTAL=0`. It builds:
-  1. the CLI with `cargo zigbuild --release --target x86_64-unknown-linux-gnu.2.28 -p
-     behavior-cli`, copied to `<out>/behavior-<v>-x86_64-linux-manylinux_2_28`;
+  1. the CLI with `cargo zigbuild --release --target x86_64-unknown-linux-musl -p
+     behavior-cli` (a static binary), copied to `<out>/behavior-<v>-x86_64-linux-musl`;
   2. `behavior-conformance-<v>.tar.gz` from `schema/`, `tests/fixtures/` and `README.md` with
      `tar --sort=name --mtime=@$SOURCE_DATE_EPOCH --owner=0 --group=0 --numeric-owner | gzip -n`;
   3. `SHA256SUMS`;
   4. `release-manifest.json` per `data-model.md`.
 
   Make T034 pass.
-- [ ] T036 [US6] Rewrite `core:scripts/release-check.sh <version> [--skip-gates]`:
+- [X] T036 [US6] Rewrite `core:scripts/release-check.sh <version> [--skip-gates]`:
   - step 1: `scripts/gates.sh` and `scripts/check-consumer.sh`;
   - step 2: build twice into temp directories and compare `SHA256SUMS` (reproducibility);
   - step 3: the built CLI's `engine-info` reports `engine == <version>`;
@@ -367,18 +367,18 @@ before building. A local `release-verify` matches the published checksums.
     `scripts/conformance-digest.sh` over the tree.
 
   Drop every Python step from today's script.
-- [ ] T037 [US6] Rewrite `core:scripts/release.sh <version>`:
+- [X] T037 [US6] Rewrite `core:scripts/release.sh <version>`:
   `check-tag.sh v<version>` → `release-check.sh` → `release-build.sh <v> dist/v<v>`, and write
   `dist/v<v>/NOTES.md`, which lists the versions from the manifest. It neither tags nor
   publishes.
-- [ ] T038 [P] [US6] Write `core:scripts/release-verify.sh v<version>`. It downloads the release
+- [X] T038 [P] [US6] Write `core:scripts/release-verify.sh v<version>`. It downloads the release
   assets with `gh release download`, rebuilds from the tag in a `git worktree`, and diffs the
   `SHA256SUMS`. It prints `release-verify: identical` or the differing files.
-- [ ] T039 [P] [US6] Write `core:scripts/check-workflows.sh`. It fails if any
+- [X] T039 [P] [US6] Write `core:scripts/check-workflows.sh`. It fails if any
   `.github/workflows/*.yml`, or a script it calls, references `.specify`, `.claude`, `specs/` or
   `feature.json` (FR-035). It also fails if any `uses:` is not pinned by a 40-hex SHA. Add it to
   `core:scripts/gates.sh`.
-- [ ] T040 [US6] Write `core:.github/workflows/core-ci.yml` per `contracts/workflows.md`:
+- [X] T040 [US6] Write `core:.github/workflows/core-ci.yml` per `contracts/workflows.md`:
   - triggers: `pull_request` and `push` to `main` and `dev`;
   - `permissions: contents: read`;
   - concurrency cancels superseded runs;
@@ -388,7 +388,7 @@ before building. A local `release-verify` matches the published checksums.
     `actions/checkout@<sha>`.
 
   No other logic.
-- [ ] T041 [US6] Write `core:.github/workflows/core-release.yml`:
+- [X] T041 [US6] Write `core:.github/workflows/core-release.yml`:
   - trigger: `push: tags: ['v*']` only;
   - `permissions: contents: write`;
   - no concurrency cancel;
@@ -400,16 +400,16 @@ before building. A local `release-verify` matches the published checksums.
     "$GITHUB_REF_NAME^{commit}")"` (FR-006d). It needs the pushed tag, so it runs after
     publishing. If it fails, the workflow fails, and the fix is a new patch release; the tag is
     never moved.
-- [ ] T042 [US6] Bump `core:Cargo.toml` `[workspace.package] version` to `0.10.1`. Add a
+- [X] T042 [US6] Bump `core:Cargo.toml` `[workspace.package] version` to `0.10.1`. Add a
   "Release 0.10.1 is a patch release" paragraph to `core:docs/versioning.md`: additive public
   Rust surface; no identity, format or verifier change. Update the version pins in the core tests
   that assert the release version (`core:crates/behavior-core/tests/versions.rs`,
   `core:crates/behavior-cli/tests/cli_engine_info.rs`).
-- [ ] T043 [US6] Configure branch protection on `core:main` requiring `gates` and `consumer`.
+- [X] T043 [US6] Configure branch protection on `core:main` requiring `gates` and `consumer`.
   This is a precondition of T044. Then merge `011-core-extraction` into `core:main` through a
   pull request and confirm that `core-ci` is green. Push a test tag `v0.10.2` and confirm that `core-release` refuses before building,
   naming 0.10.2 and 0.10.1. Delete only that unreleased test tag.
-- [ ] T044 [US6] Tag `git tag -a v0.10.1 -m "Behavior Core 0.10.1"` on the green `main` commit
+- [X] T044 [US6] Tag `git tag -a v0.10.1 -m "Behavior Core 0.10.1"` on the green `main` commit
   and push it. Confirm that the GitHub Release has the four assets. Run
   `scripts/check-consumer.sh --rev <v0.10.1 sha>` locally; it must pass. Run
   `scripts/release-verify.sh v0.10.1` locally; it must print identical (SC-011, core). Record the
@@ -430,7 +430,7 @@ gates. Each of the three negative checks fails and names its offender.
 
 ### Tests for User Story 2
 
-- [ ] T045 [P] [US2] Write `scripts/tests/test_check_core_pin.sh`. It covers four cases:
+- [X] T045 [P] [US2] Write `scripts/tests/test_check_core_pin.sh`. It covers four cases:
   - a matching pin passes;
   - a `Cargo.toml` rev ≠ `core-release.json` commit fails, naming both;
   - a `Cargo.lock` source rev ≠ commit fails;
@@ -439,7 +439,7 @@ gates. Each of the three negative checks fails and names its offender.
     `BEHAVIOR_DEV_CORE_PATH` set while `CI` is unset.
 
   It fails before T049.
-- [ ] T046 [P] [US2] Write `scripts/tests/test_fetch_core.sh`. With a local fake release
+- [X] T046 [P] [US2] Write `scripts/tests/test_fetch_core.sh`. With a local fake release
   directory (`BEHAVIOR_CORE_RELEASE_DIR`) it checks:
   - matching checksums unpack into `.core/0.10.1/` and install the CLI at
     `python/behavior/_bin/behavior` with mode 0755;
@@ -447,7 +447,7 @@ gates. Each of the three negative checks fails and names its offender.
   - a CLI whose `engine-info` engine ≠ the pinned version fails, naming both.
 
   It fails before T050.
-- [ ] T047 [P] [US2] Write `python/tests/test_versions.py::test_a_skewed_core_is_refused`. It
+- [X] T047 [P] [US2] Write `python/tests/test_versions.py::test_a_skewed_core_is_refused`. It
   monkeypatches the compiled engine's version and the declared core version so they differ, then
   imports through `behavior._versions.check_core()`. It asserts an `ImportError` whose message
   names both versions. It also writes
@@ -458,7 +458,7 @@ gates. Each of the three negative checks fails and names its offender.
 
 ### Implementation for User Story 2
 
-- [ ] T048 [US2] Remove the core paths in one commit, "Move Behavior Core to behavior-ir-core
+- [X] T048 [US2] Remove the core paths in one commit, "Move Behavior Core to behavior-ir-core
   (feature 011)". Delete every path whose owner is `core` in `contracts/ownership.md`, using
   `scripts/check-ownership.py --list core-only`. Add `--list core-only` to the script: it
   excludes `both` rules. Keep `specs/011-*`. Workspace changes:
@@ -466,12 +466,12 @@ gates. Each of the three negative checks fails and names its offender.
     `behavior-engine = { git = "https://github.com/kallistoteles/behavior-ir-core", rev =
     "<v0.10.1 sha>" }`;
   - `Cargo.lock`: regenerate with `cargo update -p behavior-engine` only.
-- [ ] T049 [US2] Write `core-release.json` at the repository root, exactly per `data-model.md`:
+- [X] T049 [US2] Write `core-release.json` at the repository root, exactly per `data-model.md`:
   `format` is `behavior.core_pin.v1`, plus `version`, `tag`, `commit`, `repository`, and
   `assets.conformance` and `assets.cli`, each with `file` and `sha256` from T044. It is
   canonical JSON. Write `scripts/check-core-pin.sh`, which checks invariants 1–4 of
   `data-model.md`, using `cargo metadata` for the resolved source. Make T045 pass.
-- [ ] T050 [US2] Write `scripts/fetch-core.sh`. It reads `core-release.json`, downloads both
+- [X] T050 [US2] Write `scripts/fetch-core.sh`. It reads `core-release.json`, downloads both
   assets with `gh release download <tag> -R kallistoteles/behavior-ir-core`, or copies them from
   `BEHAVIOR_CORE_RELEASE_DIR`. It then:
   1. verifies the checksums;
@@ -482,14 +482,14 @@ gates. Each of the three negative checks fails and names its offender.
 
   Add `.core/` to `.gitignore`. Make T046 pass. Replace `scripts/stage-cli.sh` with a call to
   `fetch-core.sh`, and delete `stage-cli.sh`.
-- [ ] T051 [US2] Point the Python tests at the fetched core. In `python/tests/conftest.py`, set
+- [X] T051 [US2] Point the Python tests at the fetched core. In `python/tests/conftest.py`, set
   `CORE_DIR = Path(os.environ.get("BEHAVIOR_CORE_DIR", REPO_ROOT / ".core" / <pinned version>))`
   and `FIXTURES = CORE_DIR / "tests" / "fixtures"`. Fail with an instruction to run
   `scripts/fetch-core.sh` when the directory is missing. Update the hard-coded `ROOT / "tests" /
   "fixtures"` and `ROOT / "schema"` uses in `python/tests/test_binding_equivalence.py` and
   `python/tests/test_schema.py`, and any other `rg 'tests/fixtures|"schema"' python/tests` hits,
   to use `CORE_DIR`.
-- [ ] T052 [US2] Make the core version visible and refuse skew:
+- [X] T052 [US2] Make the core version visible and refuse skew:
   - `scripts/release-build.sh` and `maturin develop` (via a `build.rs` in
     `crates/behavior-py` reading `../../core-release.json`) embed the declared core version and
     commit as `env!("BEHAVIOR_CORE_VERSION")` and `env!("BEHAVIOR_CORE_COMMIT")`.
@@ -505,10 +505,10 @@ gates. Each of the three negative checks fails and names its offender.
 
   Update `python/behavior/_engine.pyi` and the `versions` entry in `api/public-api.json`. Make
   T047 pass.
-- [ ] T053 [US2] Extend `scripts/check-public-surface.sh --consumer` (now the ecosystem's only
+- [X] T053 [US2] Extend `scripts/check-public-surface.sh --consumer` (now the ecosystem's only
   mode). It also fails if any tracked ecosystem file matches ownership rules 2–8, 10, 12, 14, 15
   or 19, which would be a copied core file. Remove the provider mode from the ecosystem copy.
-- [ ] T054 [US2] Trim the ecosystem's copies of the "both" files:
+- [X] T054 [US2] Trim the ecosystem's copies of the "both" files:
   - `scripts/determinism-check.sh`: keep only the `--ecosystem` section, using
     `$BEHAVIOR_CORE_DIR` and the bundled CLI.
   - `scripts/gates.sh`: `check-core-pin.sh`, `check-public-surface.sh --consumer`,
@@ -700,7 +700,7 @@ concepts.
   state machine dict to a DSL module using only public `behavior` API (`entity`, `action`,
   `requires`, `set_`, `ensures`). Make T073 pass. Add `models` to `testpaths` in
   `pyproject.toml`.
-- [ ] T075 [P] [US5] Write `core:ARCHITECTURE.md`:
+- [X] T075 [P] [US5] Write `core:ARCHITECTURE.md`:
   - the layer diagram;
   - the terminology (Core, Binding, Model, Adapter);
   - the dependency direction with the forbidden edges;

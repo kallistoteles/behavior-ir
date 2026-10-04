@@ -14,7 +14,7 @@ Release assets.
 | version | `[workspace.package] version` | equals the tag without `v` (checked before building) |
 | tag | `v<version>` | annotated, never moved or deleted (FR-028) |
 | commit | `git rev-parse HEAD` | reachable from `main` |
-| assets | `dist/v<version>/` | `release-manifest.json`, `SHA256SUMS`, `behavior-conformance-<v>.tar.gz`, `behavior-<v>-x86_64-linux-manylinux_2_28` |
+| assets | `dist/v<version>/` | `release-manifest.json`, `SHA256SUMS`, `behavior-conformance-<v>.tar.gz`, `behavior-<v>-x86_64-linux-musl` |
 
 ### Core `release-manifest.json` (`behavior.core_release_manifest.v1`)
 
@@ -52,7 +52,7 @@ requires (FR-017).
   "repository": "https://github.com/kallistoteles/behavior-ir-core",
   "assets": {
     "conformance": { "file": "behavior-conformance-0.10.1.tar.gz", "sha256": "<64 hex>" },
-    "cli":         { "file": "behavior-0.10.1-x86_64-linux-manylinux_2_28", "sha256": "<64 hex>" }
+    "cli":         { "file": "behavior-0.10.1-x86_64-linux-musl", "sha256": "<64 hex>" }
   }
 }
 ```

@@ -388,3 +388,18 @@ Record these, do not approximate them:
 
 A partial measure, such as a precondition on the one action you know about, may be taken only if
 it is recorded in the gap entry's `What was done instead`, with its risk.
+
+## Where does it belong?
+
+When a requirement seems to need a new concept, such as a state machine, a workflow, an approval
+flow or a convenience API, ask one question: **must the evaluator understand this construct for
+its semantics to be correct?**
+
+- **No:** it is a model, a library or application code. Build it from what this skill describes,
+  so that it lowers completely to ordinary Behavior: preconditions, effects, postconditions,
+  queries and reads.
+- **Yes:** it is a gap in the language. Record a semantic gap (see `skills/README.md`); do not
+  emulate it in host code.
+
+The rules for models, and a worked state-machine lowering, are in the `models/` area of the
+Behavior repository (behavior-ir).

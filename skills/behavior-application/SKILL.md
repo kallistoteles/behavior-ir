@@ -300,3 +300,18 @@ of this automatically, so prefer a store for anything that changes state.
 | an action without effects, and a placeholder entity, just to answer a question | a declared read (`store.read`), with no binding beyond what the question is about |
 | handing an agent a read record, or letting it send an expression | `store.read_intent`, forwarding only `response` |
 | importing the package's private modules (any name starting with `_`) or anything from the Behavior repository | only `from behavior import …` of the pinned release |
+
+## Where does it belong?
+
+When a requirement seems to need a new concept, such as a state machine, a workflow, an approval
+flow or a convenience API, ask one question: **must the evaluator understand this construct for
+its semantics to be correct?**
+
+- **No:** it is a model, a library or application code. Build it from what this skill describes,
+  so that it lowers completely to ordinary Behavior: preconditions, effects, postconditions,
+  queries and reads.
+- **Yes:** it is a gap in the language. Record a semantic gap (see `skills/README.md`); do not
+  emulate it in host code.
+
+The rules for models, and a worked state-machine lowering, are in the `models/` area of the
+Behavior repository (behavior-ir).

@@ -154,3 +154,85 @@ pushed**.
   exercised the refuse-before-build path in CI.
 - **Follow-up:** the published release carries `NOTES.md` as a fifth asset, because the workflow
   uploads `dist/v<v>/*`. Write the notes outside the asset directory in a later patch.
+
+## Ecosystem
+
+The move commit is `Move Behavior Core to behavior-ir-core`: 773 files, of which 736 are
+core-owned deletions; the history stays.
+
+- **Pin:** core **v0.10.2** (commit `aaded16…`, the first published Core Release), not v0.10.1.
+  The ecosystem release is 0.10.2, in step.
+- **Fresh clone, isolated:** no `../behavior-ir-core` exists beside it.
+  - `scripts/gates.sh` passes: the pin and surface checks, fetching the core from the GitHub
+    Release, fmt, clippy, `maturin develop`, 232 Python tests, mypy, the determinism check,
+    ownership and the script tests.
+  - `behavior-engine` resolves from
+    `git+https://github.com/kallistoteles/behavior-ir-core?rev=aaded16…`.
+- **Conformance digest (SC-003, SC-008):** 475 keys, all equal to `digest-before.json`:
+  - all 459 fixture and schema files, taken from the released archive;
+  - the bundled CLI's 10 admissions, under the core's labels;
+  - the 6 outputs of the smoke scenario and examples.
+- **Negative checks (US2), each failing and naming its offender:**
+  - `use behavior_core::admit;` gives `internal core crate used: crates/behavior-py/src/lib.rs:1`;
+    a copied `docs/persistence.md` gives `core-owned file in the ecosystem`;
+  - `rev` = `1baea68…` gives `Cargo.toml pins behavior-engine at 1baea68…, core-release.json
+    declares aaded16…`;
+  - a declared core of 0.10.9 gives `ImportError: behavior: built against core 0.10.2 but
+    declares core 0.10.9`.
+- **Tests seen failing first:**
+  - `test_check_core_pin.sh`: 6 of 6 cases before the script existed;
+  - `test_fetch_core.sh`: 5 of 5;
+  - the three core-version tests in `test_versions.py`: an `AttributeError` and a missing pin
+    file.
+- **Adapted tests:**
+  - The engine-skill test asserts that the skill now lives with the core.
+  - The backend-trait test reads the pinned core's `behavior-store` source through
+    `cargo metadata`.
+  - Fixture and schema paths read `CORE_DIR` (`$BEHAVIOR_CORE_DIR`, default `.core/<version>`).
+- **Removed here:** the core-only tools `check-boundary`, `check-consumer` and `preflight`
+  (its job is done), and `stage-cli`, which `fetch-core` replaces.
+- **The ecosystem's determinism check** runs the bundled core CLI over the released wire
+  fixtures twice, with the core's digest labels, plus the smoke scenario and examples.
+
+## Equivalence, package, models (local)
+
+- **Equivalence (US3, SC-004):** `test_binding_equivalence.py` has 21 tests.
+  - It covers the five domains plus three new pairs, each written in the DSL to reproduce a core
+    fixture (`python/tests/fixtures/`):
+    - `lab_model.py` against `reads/modules/lab.json`;
+    - `cultures_v1.py` and `cultures_v2.py` against `migration/modules/`;
+    - `cultures_migration.py` against `migration/valid/cultures_v1_to_v2.json`.
+  - Every behavior version and item hash is identical, and so is the migration admission
+    (excluding source locations).
+  - The existing examples (`lab_reads`, `schema_evolution`) were not the same modules as the
+    core's fixtures, which were written independently. The core fixtures stayed authoritative and
+    unchanged (FR-021); the DSL counterparts were added.
+  - A drift fails naming the fixture, the item and both hashes
+    (`test_drift_names_the_fixture_and_item`, seen failing first).
+  - `test_every_wire_form_has_a_pair` covers: entities and types, lifecycle, queries, module
+    invariants, exact arithmetic, reads and migrations.
+  - T061 was already covered by `test_wire.py`, which compares the DSL output byte for byte with
+    the core's frozen `wire/python` fixtures, now read from the pinned release.
+- **One install (US4, SC-005):** `scripts/release-check.sh` (full, with gates) printed
+  `release-check: OK (behavior-0.10.2-cp313-abi3-manylinux_2_28_x86_64.whl)`.
+  - Gates: 247 tests, including the slow release-script tests.
+  - The wheel's `behavior/_bin/behavior` is byte-identical to the core's CLI asset and
+    executable.
+  - In a clean environment, `behavior.versions()` equals the manifest, including `core`.
+  - The smoke scenario's new step 6 checks `versions()["core"]` and `behavior engine-info`. It
+    only checks and emits nothing, so its output stays comparable.
+  - Step 11: two rebuilds give identical `SHA256SUMS`.
+- **Models (US5):**
+  - `models/README.md` holds the rules (FR-009–FR-012) and the placement question.
+  - `models/examples/state_machine/` contains the lowering and its 3 tests, seen failing first.
+    One test expectation was corrected to the wire's `{"expr": …}` condition shape.
+  - `models` is a pytest path.
+  - `check-terms.sh` with its test is in the gates.
+  - "Where does it belong?" sections were added to the authoring and application skills.
+- **Workflows:** `ecosystem-ci` (jobs `pin`, `surface`, `gates`, `package`) and
+  `ecosystem-release` (fetches the annotated tag, `check-tag` requires the four checks green,
+  `release.sh`, publishes the wheel, `SHA256SUMS` and the manifest, with notes naming the bundled
+  core). `check-workflows.sh` and its test are in the gates. `release.sh` no longer tags; it
+  checks and builds an existing tag, as in the core.
+- **Constitution:** 1.1.0 (MINOR), with a new section "Bindings and Packaging", `scripts/gates.sh`
+  and the 500+ range.

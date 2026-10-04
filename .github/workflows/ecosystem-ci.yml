@@ -1,0 +1,46 @@
+# Validation of the Behavior ecosystem (feature 011, contracts/workflows.md). The core comes only
+# from the pinned Core Release (a Git dependency on its commit and its published assets), never
+# from a checkout. The workflow only orchestrates repository scripts that run the same way
+# locally inside `nix develop`.
+name: ecosystem-ci
+
+on:
+  pull_request:
+  push:
+    branches: [main, dev]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ecosystem-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pin:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea # v19
+      - run: nix develop -c scripts/check-core-pin.sh
+
+  surface:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea # v19
+      - run: nix develop -c scripts/check-public-surface.sh
+
+  gates:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea # v19
+      - run: nix develop -c scripts/gates.sh
+
+  package:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea # v19
+      - run: nix develop -c scripts/release-check.sh --skip-gates

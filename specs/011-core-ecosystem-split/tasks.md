@@ -522,7 +522,7 @@ gates. Each of the three negative checks fails and names its offender.
     `maturin develop`), the local core override (`BEHAVIOR_DEV_CORE_PATH` plus an untracked
     `.cargo/config.toml` patch, never in CI), and "Specifications: ecosystem features are
     numbered 500 onward; 008 and 011 live here; core features live in behavior-ir-core".
-- [ ] T055 [US2] Run quickstart §4 in a fresh clone of this repository, with no
+- [X] T055 [US2] Run quickstart §4 in a fresh clone of this repository, with no
   `../behavior-ir-core` visible (`mv` it away temporarily):
   - `scripts/gates.sh` passes;
   - `scripts/conformance-digest.sh --core-dir .core/0.10.1` matches `digest-before.json` except
@@ -545,13 +545,13 @@ drift names the fixture and the item.
 **Independent Test**: quickstart §5. `test_binding_equivalence.py` passes, and an injected DSL
 change fails with the fixture and item hash named.
 
-- [ ] T056 [P] [US3] Write
+- [X] T056 [P] [US3] Write
   `python/tests/test_binding_equivalence.py::test_drift_names_the_fixture_and_item`. It
   monkeypatches one DSL emission, for example reversing an entity's field order, then runs the
   comparison helper. It asserts that the failure message contains the fixture name and the
   differing item name and hash. It fails if the current helper reports only a boolean or a whole
   document diff.
-- [ ] T057 [P] [US3] Write `python/tests/test_binding_equivalence.py::test_every_wire_form_has_a_pair`.
+- [X] T057 [P] [US3] Write `python/tests/test_binding_equivalence.py::test_every_wire_form_has_a_pair`.
   It asserts that `DOMAINS` covers, by inspecting each pair's wire document, at least one module
   with each of these:
   - entities and types;
@@ -562,19 +562,19 @@ change fails with the fixture and item hash named.
   - a declared read.
 
   It fails on migrations and reads.
-- [ ] T058 [US3] Make the comparison helper in `python/tests/test_binding_equivalence.py` report
+- [X] T058 [US3] Make the comparison helper in `python/tests/test_binding_equivalence.py` report
   per item: compute both admitted modules' item hash maps and report the first differing
   `(kind, name, wire hash, python hash)` with the fixture name. Make T056 pass.
-- [ ] T059 [US3] Add the reads pair: `examples/lab_reads/model.py` against
+- [X] T059 [US3] Add the reads pair: `examples/lab_reads/model.py` against
   `$BEHAVIOR_CORE_DIR/tests/fixtures/reads/modules/lab.json`. Compare behavior versions and every
   item hash, including `Kind::Read` items. If the DSL output differs, the wire fixture is the
   authority. Fix the DSL emission only if it is a binding bug. Otherwise record the difference as
   a finding and do not change core fixtures (FR-021).
-- [ ] T060 [US3] Add the migrations pair: `examples/schema_evolution/` (the Python migration
+- [X] T060 [US3] Add the migrations pair: `examples/schema_evolution/` (the Python migration
   definition) against the matching `$BEHAVIOR_CORE_DIR/tests/fixtures/migration/` document.
   Compare the migration's canonical identity and the source and target behavior versions. Make
   T057 pass.
-- [ ] T061 [US3] Write `python/tests/test_binding_equivalence.py::test_dsl_reproduces_frozen_python_fixtures`.
+- [X] T061 [US3] Write `python/tests/test_binding_equivalence.py::test_dsl_reproduces_frozen_python_fixtures`.
   For each `$BEHAVIOR_CORE_DIR/tests/fixtures/wire/python/*.json`, build the same module from
   `python/tests/fixtures/*_model.py` and assert byte equality of the canonical wire (ownership
   rule 6).
@@ -591,11 +591,11 @@ and reports both releases.
 **Independent Test**: quickstart §6. A clean-venv install, then the smoke scenario, the skill
 examples, `versions()["core"]` and `behavior engine-info`, which agree.
 
-- [ ] T062 [P] [US4] Extend `release/smoke.py` to assert that `behavior.versions()["core"]`
+- [X] T062 [P] [US4] Extend `release/smoke.py` to assert that `behavior.versions()["core"]`
   matches `core-release.json`, and that `subprocess.run(["behavior", "engine-info"])` reports
   `engine == versions()["core"]["version"]`. Run it against the current dev install; it fails
   until T063 is done.
-- [ ] T063 [US4] Update `scripts/release-build.sh` (ecosystem):
+- [X] T063 [US4] Update `scripts/release-build.sh` (ecosystem):
   - run under the reproducibility environment of T035 (`SOURCE_DATE_EPOCH`, `RUSTFLAGS` remaps);
   - call `scripts/fetch-core.sh` before `maturin build`, so the verified core CLI is in the
     wheel;
@@ -605,7 +605,7 @@ examples, `versions()["core"]` and `behavior engine-info`, which agree.
   - replace the assertion `versions["engine"] == <release version>` with
     `versions["engine"] == core-release.json version`. The release version (the ecosystem's)
     is checked against `Cargo.toml` `[workspace.package] version`.
-- [ ] T064 [US4] Update `scripts/release-check.sh` (ecosystem):
+- [X] T064 [US4] Update `scripts/release-check.sh` (ecosystem):
   - step 1: `scripts/gates.sh`;
   - step 2: also run `auditwheel show` on the bundled CLI inside the unpacked wheel;
   - new step: the wheel's `behavior/_bin/behavior` is byte-identical to the pinned CLI asset;
@@ -615,7 +615,7 @@ examples, `versions()["core"]` and `behavior engine-info`, which agree.
 
   Make `python/tests/test_release_scripts.py` match the new steps: update the expected step
   names first, and see the test fail.
-- [ ] T065 [US4] Run `scripts/release-check.sh 0.10.1`. It must print `release-check: OK`. Then
+- [X] T065 [US4] Run `scripts/release-check.sh 0.10.1`. It must print `release-check: OK`. Then
   run quickstart §6 in a clean venv and record the `versions()["core"]` and `engine-info` output
   in `checklists/implementation-review.md` (SC-005).
 
@@ -631,13 +631,13 @@ ecosystem release, `v0.10.1`, states the core it bundles.
 **Independent Test**: An ecosystem pull request runs the four jobs with no core checkout. A
 wrong tag is refused before building. Local and published checksums match.
 
-- [ ] T066 [P] [US6] Copy `core:scripts/check-tag.sh` with its tests to `scripts/check-tag.sh`
+- [X] T066 [P] [US6] Copy `core:scripts/check-tag.sh` with its tests to `scripts/check-tag.sh`
   and `scripts/tests/test_check_tag.sh`, adapted to read the version from `Cargo.toml`
   `[workspace.package]`. Run the tests; the copy carries its own tests and must pass.
-- [ ] T067 [P] [US6] Copy `core:scripts/check-workflows.sh` and `core:scripts/release-verify.sh`
+- [X] T067 [P] [US6] Copy `core:scripts/check-workflows.sh` and `core:scripts/release-verify.sh`
   to `scripts/`, adapted to the ecosystem's assets. Add `check-workflows.sh` to
   `scripts/gates.sh`.
-- [ ] T068 [US6] Write `.github/workflows/ecosystem-ci.yml` per `contracts/workflows.md`:
+- [X] T068 [US6] Write `.github/workflows/ecosystem-ci.yml` per `contracts/workflows.md`:
   - triggers: `pull_request` and `push` to `main` and `dev`;
   - `permissions: contents: read`;
   - jobs `pin` (`check-core-pin.sh`), `surface` (`check-public-surface.sh --consumer`), `gates`
@@ -646,12 +646,12 @@ wrong tag is refused before building. Local and published checksums match.
   - `GH_TOKEN: ${{ secrets.CORE_READ_TOKEN || github.token }}` for `fetch-core.sh` and for
     cargo's git fetch, with `CARGO_NET_GIT_FETCH_WITH_CLI: true`;
   - actions pinned by SHA.
-- [ ] T069 [US6] Write `.github/workflows/ecosystem-release.yml`:
+- [X] T069 [US6] Write `.github/workflows/ecosystem-release.yml`:
   - trigger: tags `v*` only;
   - `permissions: contents: write`;
   - steps: `check-tag.sh`, `fetch-core.sh`, `release.sh <v>`, then `gh release create` with
     notes that state the bundled core version, tag and commit (FR-029).
-- [ ] T070 [US6] Amend the ecosystem constitution through `/speckit-constitution` to 1.1.0 (MINOR).
+- [X] T070 [US6] Amend the ecosystem constitution through `/speckit-constitution` to 1.1.0 (MINOR).
   Add the section "Bindings and Packaging":
   - bindings never implement core semantics;
   - the only core dependency is `behavior-engine`;
@@ -685,7 +685,7 @@ down, and a tested state-machine lowering shows a model compiling to plain IR.
 **Independent Test**: quickstart §7. The lowering test passes. The document classifies the 12
 concepts.
 
-- [ ] T073 [P] [US5] Write `models/examples/state_machine/test_state_machine.py`. Given a state
+- [X] T073 [P] [US5] Write `models/examples/state_machine/test_state_machine.py`. Given a state
   machine `{states: [DRAFT, SUBMITTED], transitions: [{name: submit, from: DRAFT, to:
   SUBMITTED}]}` over an `Order.status` enum, it asserts:
   - `lower(sm)` returns a module whose `submit` action has exactly one precondition
@@ -696,7 +696,7 @@ concepts.
   - lowering twice gives byte-identical wire.
 
   It fails because `lower` does not exist.
-- [ ] T074 [US5] Write `models/examples/state_machine/lower.py`. It is a pure function from the
+- [X] T074 [US5] Write `models/examples/state_machine/lower.py`. It is a pure function from the
   state machine dict to a DSL module using only public `behavior` API (`entity`, `action`,
   `requires`, `set_`, `ensures`). Make T073 pass. Add `models` to `testpaths` in
   `pyproject.toml`.
@@ -714,7 +714,7 @@ concepts.
 
   It never uses "plugin" or "extension" for models (FR-013). Add a reference from
   `core:PRINCIPLES.md` (new closing section "Where a concept belongs").
-- [ ] T076 [P] [US5] Write `models/README.md`:
+- [X] T076 [P] [US5] Write `models/README.md`:
   - models lower deterministically and completely (FR-009);
   - one authoritative lowering per model (FR-010);
   - the procedure for a non-lowerable construct: redesign it, or propose a core primitive in a
@@ -722,10 +722,10 @@ concepts.
   - optional model identity, with the module hash authoritative (FR-012);
   - a link to the core's `ARCHITECTURE.md`;
   - a pointer to `examples/state_machine/`.
-- [ ] T077 [P] [US5] Add a short "Where does it belong?" section to
+- [X] T077 [P] [US5] Add a short "Where does it belong?" section to
   `skills/behavior-authoring/SKILL.md` and `skills/behavior-application/SKILL.md`. It states the
   criterion and links `models/README.md`. Run the skill checks (`python/tests/test_skills.py`).
-- [ ] T078 [US5] Add a check to `scripts/check-workflows.sh`'s sibling,
+- [X] T078 [US5] Add a check to `scripts/check-workflows.sh`'s sibling,
   `scripts/check-terms.sh`, called from `gates.sh` in both repositories: `rg -i
   '\b(plugin|extension)s?\b'` over `models/` (ecosystem) and `ARCHITECTURE.md` (core) must find
   nothing. Write the check, see it fail on a planted word, then remove the word.

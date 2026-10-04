@@ -89,10 +89,34 @@ Rationale: every AI call and every layer adds surface for nondeterminism and fai
 - Floating-point math that affects decisions MUST have its determinism considered (fixed
   ordering of reductions, or integer/decimal types where exactness matters).
 
+## Bindings and Packaging
+
+This repository is the Behavior ecosystem: bindings, models, examples, skills and the
+installable package. Behavior Core (behavior-ir-core) defines meaning; this repository defines
+ways to author and use it.
+
+- A binding MUST NOT implement core semantics: typing, evaluation, hashing, verification,
+  persistence and replay come from the core. A binding provides authoring syntax and access only.
+- The only core dependency is the public `behavior-engine` crate, pinned by the exact commit of
+  one Core Release declared in `core-release.json`. Internal core crates, path dependencies and
+  copies of core files are forbidden (`scripts/check-public-surface.sh`,
+  `scripts/check-core-pin.sh`).
+- Core fixtures and schemas come from the pinned release (`scripts/fetch-core.sh`); they are
+  never copied into this repository.
+- Every authoring path is checked against the core's conformance fixtures: equivalent
+  definitions MUST give identical admitted IR and item hashes (the equivalence pairs).
+- A model lowers completely to Behavior IR and never introduces runtime semantics (`models/`).
+- The user-facing package bundles the core it was built against and names it exactly; it refuses
+  to run on any other core.
+
 ## Development Workflow and Quality Gates
 
 - Work follows the Spec Kit flow: specify → clarify → plan → tasks → implement. Each plan
-  MUST include a Constitution Check against the principles above.
+  MUST include a Constitution Check against the principles above. Ecosystem features are
+  numbered from 500; core features (012+) are specified in behavior-ir-core, and a feature that
+  needs both lands in the core first, as a Core Release.
+- The quality gates below are the script `scripts/gates.sh`. Spec Kit's implement phase, the
+  release check and CI run exactly it.
 - A change MUST NOT merge unless: all tests pass, fmt and clippy are clean, replay fixtures
   exist for any new or changed AI interaction, and a determinism check (running the test
   suite's replay cases twice and comparing outputs) passes.
@@ -114,4 +138,4 @@ document wins.
 - Compliance is checked at planning (Constitution Check) and at code review. Unjustified
   violations block merge.
 
-**Version**: 1.0.0 | **Ratified**: 2026-09-23 | **Last Amended**: 2026-09-23
+**Version**: 1.1.0 | **Ratified**: 2026-09-23 | **Last Amended**: 2026-10-04

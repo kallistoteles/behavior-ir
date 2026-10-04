@@ -1,0 +1,39 @@
+# Release of the Behavior package (feature 011, contracts/workflows.md): only a pushed `v*` tag
+# starts it; merges never release. The tag is checked before anything is built, the release check
+# reruns every gate, and the wheel is published with the exact Core Release it bundles named in
+# the notes. A tag is never moved; a broken release is replaced by a new patch version.
+name: ecosystem-release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ github.token }}
+      CHECK_TAG_REQUIRED: pin surface gates package
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+      - uses: DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea # v19
+      # actions/checkout fetches the pushed tag as a lightweight ref; fetch the tag object itself
+      # so the annotation can be checked.
+      - name: Fetch the annotated tag
+        run: git fetch --force origin "+refs/tags/$GITHUB_REF_NAME:refs/tags/$GITHUB_REF_NAME"
+      - name: Check the tag
+        run: nix develop -c scripts/check-tag.sh "$GITHUB_REF_NAME"
+      - name: Check and build
+        run: nix develop -c scripts/release.sh "${GITHUB_REF_NAME#v}"
+      - name: Publish
+        run: >-
+          gh release create "$GITHUB_REF_NAME"
+          dist/"$GITHUB_REF_NAME"/*.whl dist/"$GITHUB_REF_NAME"/SHA256SUMS
+          dist/"$GITHUB_REF_NAME"/release-manifest.json
+          --verify-tag --title "Behavior ${GITHUB_REF_NAME#v}"
+          --notes-file dist/"$GITHUB_REF_NAME"/NOTES.md

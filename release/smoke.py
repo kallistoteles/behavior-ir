@@ -26,6 +26,7 @@ from behavior import (
     count, create, entity, enum_map, evaluate, field, invariant, nominal, replay,
     replay_behavior, replay_data, requires, select, sum_, unique, verify,
 )
+from behavior import versions as behavior_versions
 
 EXPECT_MISSING_SOLVER = "--expect-missing-solver" in sys.argv[1:]
 PREREQUISITE = "verification needs the Z3 SMT solver"
@@ -218,6 +219,17 @@ def main() -> None:
     else:
         check(results["verify"].returncode in (0, 1), f"behavior verify: {results['verify'].stderr}")
         emit("cli_verify", json.loads(results["verify"].stdout))
+    # 6. One install (feature 011, US4): the package names the exact core it bundles, and its
+    # command line is that core's own tool. Checked only, never emitted, so the output stays
+    # comparable across releases.
+    versions = behavior_versions()
+    core = versions.get("core", {})
+    check(set(core) == {"version", "commit"} and len(str(core.get("commit"))) == 40,
+          f"the package names its core: {core}")
+    check(versions["engine"] == core.get("version"), f"engine {versions['engine']} is the core")
+    info = subprocess.run([cli, "engine-info"], capture_output=True, text=True)
+    check(info.returncode == 0 and json.loads(info.stdout)["engine"] == core.get("version"),
+          f"behavior engine-info reports the bundled core: {info.stdout or info.stderr}")
     print("smoke: OK", file=sys.stderr)
 
 

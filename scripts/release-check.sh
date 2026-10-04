@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# The release check (feature 008, research R9). Given a built dist directory (or building one into
-# a temporary directory), it proves the release installs and behaves as documented outside this
-# repository, without the engine toolchain. Any failure stops the check and names the step.
+# The release check (feature 008, research R9; feature 011). Given a built dist directory (or
+# building one into a temporary directory), it proves the release installs and behaves as
+# documented outside this repository, without the engine toolchain, bundles exactly the pinned
+# Core Release, and rebuilds to the same bytes. Any failure stops the check and names the step.
 #
 #   scripts/release-check.sh [--skip-gates] [dist-dir]
 set -euo pipefail
@@ -46,6 +47,19 @@ wheel="$(ls "$dist"/*.whl 2>/dev/null | head -n 1)"
 step "2 wheel compliance"
 auditwheel show "$wheel" >"$tmp/auditwheel.txt" 2>&1 || fail "auditwheel: $(cat "$tmp/auditwheel.txt")"
 grep -q 'manylinux_2_28_x86_64' "$tmp/auditwheel.txt" || fail "not manylinux_2_28: $(cat "$tmp/auditwheel.txt")"
+# The bundled core CLI is exactly the pinned release's asset, and executable.
+python3 - "$wheel" <<'PY' || fail "the wheel does not bundle the pinned core CLI"
+import hashlib, json, sys, zipfile
+pin = json.load(open("core-release.json"))
+with zipfile.ZipFile(sys.argv[1]) as z:
+    info = z.getinfo("behavior/_bin/behavior")
+    data = z.read(info)
+mode = (info.external_attr >> 16) & 0o777
+if hashlib.sha256(data).hexdigest() != pin["assets"]["cli"]["sha256"]:
+    sys.exit("behavior/_bin/behavior differs from " + pin["assets"]["cli"]["file"])
+if not mode & 0o111:
+    sys.exit(f"behavior/_bin/behavior is not executable (mode {mode:o})")
+PY
 
 started=$SECONDS
 step "3 clean environment"
@@ -79,7 +93,9 @@ step "7 versions"
 import json, sys
 import behavior
 manifest = json.load(open(sys.argv[1]))
-expected = dict(manifest["versions"], binding={"python": manifest["bindings"]["python"]["version"]})
+core = {"version": manifest["core"]["version"], "commit": manifest["core"]["commit"]}
+expected = dict(manifest["versions"], core=core,
+                binding={"python": manifest["bindings"]["python"]["version"]})
 if behavior.versions() != expected:
     sys.exit(f"{behavior.versions()} != {expected}")
 PY
@@ -116,5 +132,12 @@ for t in test_skills.py test_public_api.py test_binding_equivalence.py; do
 done
 env PATH="$repo_venv/bin:$PATH" "$repo_py" -m pytest -q -p no:cacheprovider "${tests[@]}" ||
   fail "skills, public API or binding equivalence"
+
+step "11 reproducible"
+# Two more builds of this commit give the same bytes (feature 011, SC-011).
+scripts/release-build.sh "$version" "$tmp/again-a" >/dev/null 2>&1 || fail "rebuild"
+scripts/release-build.sh "$version" "$tmp/again-b" >/dev/null 2>&1 || fail "rebuild"
+cmp -s "$tmp/again-a/SHA256SUMS" "$tmp/again-b/SHA256SUMS" ||
+  fail "two builds differ: $(diff "$tmp/again-a/SHA256SUMS" "$tmp/again-b/SHA256SUMS" | head -n 4)"
 
 echo "release-check: OK ($(basename "$wheel"))" >&2

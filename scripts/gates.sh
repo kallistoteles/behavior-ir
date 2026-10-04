@@ -24,5 +24,7 @@ gate "pytest" python -m pytest -q python/tests
 gate "mypy" mypy
 gate "determinism check" scripts/determinism-check.sh
 gate "ownership" python3 scripts/check-ownership.py
+gate "terms" scripts/check-terms.sh
+gate "workflows" scripts/check-workflows.sh
 gate "script tests" sh -c 'for t in scripts/tests/test_*.sh; do "$t" || exit 1; done'
 echo "gates: OK" >&2

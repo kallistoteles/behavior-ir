@@ -19,7 +19,7 @@ manifest-path = "crates/behavior-py/Cargo.toml"
 include = [{ path = "python/behavior/_bin/behavior", format = "wheel" }]
 
 [tool.pytest.ini_options]
-testpaths = ["python/tests"]
+testpaths = ["python/tests", "models"]
 pythonpath = ["."]
 
 [tool.mypy]

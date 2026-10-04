@@ -1,6 +1,6 @@
 ---
 name: behavior-engine-development
-description: Change the Behavior engine itself in this repository (the Rust core, verifier, store, CLI, the Python binding, wire, record and store formats) under the project constitution and the Spec Kit workflow. Use for any change inside crates/, python/behavior/, schema/ or the fixtures; never for applications built on Behavior.
+description: Change the Behavior engine itself in this repository (the Rust core, verifier, store, CLI, the public `behavior-engine` crate, wire, record and store formats) under the project constitution and the Spec Kit workflow. Use for any change inside crates/, schema/ or the fixtures; never for bindings or applications built on Behavior (those live in the ecosystem repository, behavior-ir).
 ---
 
 # Developing the Behavior engine
@@ -76,8 +76,8 @@ scripts/release-check.sh                          # a clean install of the wheel
   - Regenerating must leave existing fixtures unchanged.
   - The canonical modules of the example domains (`tests/fixtures/bindings/`) are what every
     language binding must reproduce, identities and decisions alike.
-- **Bindings carry no semantics.** The Python layer (`python/behavior/`) only builds nodes and
-  calls the engine. Arithmetic, membership, invariants, hashing, verification and persistence
+- **Bindings carry no semantics.** A binding (the Python one lives in the ecosystem repository)
+  only builds nodes and calls the engine through `behavior-engine`. Arithmetic, membership, invariants, hashing, verification and persistence
   live in the Rust crates.
 - **The public surface is a document.**
   - `api/public-api.json` lists the Python names, CLI commands, formats and backend methods of a

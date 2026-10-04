@@ -5,7 +5,9 @@ members = [
     "crates/behavior-cli",
     "crates/behavior-py",
     "crates/behavior-store",
+    "crates/behavior-engine",
 ]
+exclude = ["consumer"]
 resolver = "3"
 
 [workspace.package]
@@ -21,3 +23,4 @@ expect_used = "deny"
 behavior-core = { path = "crates/behavior-core" }
 behavior-verify = { path = "crates/behavior-verify" }
 behavior-store = { path = "crates/behavior-store" }
+behavior-engine = { path = "crates/behavior-engine" }

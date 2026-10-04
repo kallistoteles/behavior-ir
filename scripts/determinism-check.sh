@@ -1,11 +1,23 @@
 #!/usr/bin/env bash
 # Determinism gate (constitution: Development Workflow and Quality Gates).
 # Runs every deterministic operation twice and compares the outputs byte for byte.
+#
+#   scripts/determinism-check.sh [--core | --ecosystem]
+#
+# `--core` runs the engine's part (command line and store examples), `--ecosystem` the Python
+# binding's part (the smoke scenario and the examples); without a flag both run (feature 011).
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
+do_core=1 do_ecosystem=1
+case "${1:-}" in
+  "") ;;
+  --core) do_ecosystem=0 ;;
+  --ecosystem) do_core=0 ;;
+  *) echo "usage: scripts/determinism-check.sh [--core | --ecosystem]" >&2; exit 2 ;;
+esac
 BIN="${BEHAVIOR_BIN:-target/debug/behavior}"
-if [ ! -x "$BIN" ]; then
+if [ "$do_core" -eq 1 ] && [ ! -x "$BIN" ]; then
   echo "determinism-check: $BIN not found; run 'cargo build --workspace' first" >&2
   exit 1
 fi
@@ -13,6 +25,19 @@ fi
 fail=0
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
+
+# The section of the check the following outputs belong to (feature 011): `core` outputs are
+# the engine's, `ecosystem` outputs come from the Python binding and its examples.
+section=core
+
+# digest <label> <file>: with BEHAVIOR_DIGEST_DIR set, records the output's SHA-256 under its
+# section and label (scripts/conformance-digest.sh), so a move can prove it changed no output.
+digest() {
+  if [ -n "${BEHAVIOR_DIGEST_DIR:-}" ]; then
+    printf '%s\t%s\t%s\n' "$section" "$1" "$(sha256sum <"$2" | cut -d' ' -f1)" \
+      >>"$BEHAVIOR_DIGEST_DIR/outputs.tsv"
+  fi
+}
 
 # run_twice <label> <command...>: exit codes and stdout must match between runs.
 run_twice() {
@@ -24,8 +49,10 @@ run_twice() {
     echo "NOT DETERMINISTIC: $label" >&2
     fail=1
   fi
+  digest "$label" "$tmp/a"
 }
 
+if [ "$do_core" -eq 1 ]; then
 # Admission of every valid wire fixture.
 for f in tests/fixtures/wire/valid/*.json; do
   run_twice "admit $f" "$BIN" admit "$f"
@@ -64,6 +91,7 @@ done
 # Persistence (feature 005): a fixed store history, its records and replay reports (SC-005).
 cargo run -q -p behavior-store --example history >"$tmp/history_a" 2>/dev/null || fail=1
 cargo run -q -p behavior-store --example history >"$tmp/history_b" 2>/dev/null || fail=1
+digest "store example history" "$tmp/history_a"
 if ! cmp -s "$tmp/history_a" "$tmp/history_b" || [ ! -s "$tmp/history_a" ]; then
   echo "NOT DETERMINISTIC: store history" >&2
   fail=1
@@ -76,6 +104,7 @@ fi
 # and its data, behavior and reference replay reports.
 cargo run -q -p behavior-store --example lifecycle_history >"$tmp/lifecycle_a" 2>/dev/null || fail=1
 cargo run -q -p behavior-store --example lifecycle_history >"$tmp/lifecycle_b" 2>/dev/null || fail=1
+digest "store example lifecycle" "$tmp/lifecycle_a"
 if ! cmp -s "$tmp/lifecycle_a" "$tmp/lifecycle_b" || [ ! -s "$tmp/lifecycle_a" ]; then
   echo "NOT DETERMINISTIC: lifecycle history" >&2
   fail=1
@@ -88,6 +117,7 @@ fi
 # data and behavior replay reports.
 cargo run -q -p behavior-store --example query_history >"$tmp/query_a" 2>/dev/null || fail=1
 cargo run -q -p behavior-store --example query_history >"$tmp/query_b" 2>/dev/null || fail=1
+digest "store example query" "$tmp/query_a"
 if ! cmp -s "$tmp/query_a" "$tmp/query_b" || [ ! -s "$tmp/query_a" ]; then
   echo "NOT DETERMINISTIC: query history" >&2
   fail=1
@@ -101,6 +131,7 @@ fi
 # data and behavior replay reports; and admission and plain application of every migration.
 cargo run -q -p behavior-store --example migration_history >"$tmp/migration_a" 2>/dev/null || fail=1
 cargo run -q -p behavior-store --example migration_history >"$tmp/migration_b" 2>/dev/null || fail=1
+digest "store example migration" "$tmp/migration_a"
 if ! cmp -s "$tmp/migration_a" "$tmp/migration_b" || [ ! -s "$tmp/migration_a" ]; then
   echo "NOT DETERMINISTIC: migration history" >&2
   fail=1
@@ -172,8 +203,11 @@ else
   echo "determinism-check: z3 not found; skipping verification checks" >&2
 fi
 
+fi
+
 # The Python examples print records; two runs must be byte-identical.
-if python3 -c "import behavior._engine" 2>/dev/null; then
+section=ecosystem
+if [ "$do_ecosystem" -eq 1 ] && python3 -c "import behavior._engine" 2>/dev/null; then
   # The consumer smoke scenario of a release (feature 008), run from outside the repository.
   cp release/smoke.py "$tmp/smoke.py"
   run_twice "release/smoke.py" python3 "$tmp/smoke.py"

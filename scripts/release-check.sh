@@ -29,14 +29,8 @@ version="$(python3 -c 'import tomllib; print(tomllib.load(open("Cargo.toml", "rb
 
 step "1 gates"
 if [ "$skip_gates" -eq 0 ]; then
-  cargo fmt --all --check || fail "cargo fmt"
-  cargo clippy --workspace --all-targets -- -D warnings || fail "clippy"
-  cargo test -q --workspace || fail "cargo test"
-  maturin develop -q || fail "maturin develop"
-  BEHAVIOR_RELEASE_TESTS=1 python -m pytest -q python/tests || fail "pytest"
-  mypy || fail "mypy"
-  cargo build -q --workspace || fail "cargo build"
-  scripts/determinism-check.sh || fail "determinism check"
+  # The constitution's gates, the same list Spec Kit and CI run (feature 011, FR-034).
+  BEHAVIOR_RELEASE_TESTS=1 scripts/gates.sh || fail "gates (see the gate named above)"
 else
   echo "release-check: gates skipped" >&2
 fi

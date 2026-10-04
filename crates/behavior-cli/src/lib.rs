@@ -157,13 +157,13 @@ fn migration_inputs(
     migration: &str,
 ) -> Result<
     (
-        behavior_core::semantic::module::Module,
-        behavior_core::semantic::module::Module,
-        behavior_core::migration::Migration,
+        behavior_engine::semantic::module::Module,
+        behavior_engine::semantic::module::Module,
+        behavior_engine::migration::Migration,
     ),
     u8,
 > {
-    let admit = |path: &str| match behavior_core::admit(&read(path)?) {
+    let admit = |path: &str| match behavior_engine::admit(&read(path)?) {
         Ok(m) => Ok(m),
         Err(r) => {
             emit(&r.to_json_string(), false);
@@ -171,7 +171,7 @@ fn migration_inputs(
         }
     };
     let (s, t) = (admit(source)?, admit(target)?);
-    match behavior_core::migration::admit_migration(&s, &t, &read(migration)?) {
+    match behavior_engine::migration::admit_migration(&s, &t, &read(migration)?) {
         Ok(m) => Ok((s, t, m)),
         Err(r) => {
             emit(&r.to_json_string(), false);
@@ -182,7 +182,7 @@ fn migration_inputs(
 
 fn migration_command(command: MigrationCommand) -> Result<u8, u8> {
     let canonical = |v: &serde_json::Value| {
-        behavior_core::canonical::to_canonical_string(v).unwrap_or_default()
+        behavior_engine::canonical::to_canonical_string(v).unwrap_or_default()
     };
     match command {
         MigrationCommand::Admit {
@@ -207,17 +207,19 @@ fn migration_command(command: MigrationCommand) -> Result<u8, u8> {
             profile,
         } => {
             let profile = match profile {
-                Some(p) => behavior_verify::Profile::from_json(&read(&p)?).map_err(|e| {
-                    eprintln!("behavior: {e}");
-                    USAGE
-                })?,
-                None => behavior_verify::Profile::default(),
+                Some(p) => {
+                    behavior_engine::verify::Profile::from_json(&read(&p)?).map_err(|e| {
+                        eprintln!("behavior: {e}");
+                        USAGE
+                    })?
+                }
+                None => behavior_engine::verify::Profile::default(),
             };
             let (s, t, m) = match migration_inputs(&source, &target, &migration) {
                 Ok(x) => x,
                 Err(code) => return Ok(code),
             };
-            let solver = behavior_verify::solver::Z3Process::from_env()
+            let solver = behavior_engine::verify::solver::Z3Process::from_env()
                 .map_err(|e| {
                     eprintln!("behavior: {e}");
                     3
@@ -228,7 +230,7 @@ fn migration_command(command: MigrationCommand) -> Result<u8, u8> {
             if let Some(notice) = solver.version_mismatch() {
                 eprintln!("behavior: warning: {notice}");
             }
-            let a = behavior_verify::verify_migration(&m, &s, &t, &profile, None, &solver);
+            let a = behavior_engine::verify::verify_migration(&m, &s, &t, &profile, None, &solver);
             emit(&a.to_json_string(), false);
             Ok(if a.result == "verified" { 0 } else { 1 })
         }
@@ -253,14 +255,14 @@ fn migration_command(command: MigrationCommand) -> Result<u8, u8> {
                     eprintln!("behavior: {facts}: every item needs `entity` and `value`");
                     return Ok(2);
                 };
-                entities.push(behavior_core::migration::SourceEntity {
+                entities.push(behavior_engine::migration::SourceEntity {
                     entity: entity.to_string(),
                     value: value.clone(),
                 });
             }
-            let r = behavior_core::migration::apply_migration(&m, &s, &t, &entities);
+            let r = behavior_engine::migration::apply_migration(&m, &s, &t, &entities);
             emit(
-                &canonical(&behavior_core::migration::outcome_json(&r)),
+                &canonical(&behavior_engine::migration::outcome_json(&r)),
                 true,
             );
             Ok(if r.is_ok() { 0 } else { 1 })
@@ -284,20 +286,20 @@ fn verify(
     out: Option<&str>,
 ) -> Result<u8, u8> {
     let profile = match profile {
-        Some(p) => behavior_verify::Profile::from_json(&read(p)?).map_err(|e| {
+        Some(p) => behavior_engine::verify::Profile::from_json(&read(p)?).map_err(|e| {
             eprintln!("behavior: {e}");
             USAGE
         })?,
-        None => behavior_verify::Profile::default(),
+        None => behavior_engine::verify::Profile::default(),
     };
-    let module = match behavior_core::admit(&read(wire)?) {
+    let module = match behavior_engine::admit(&read(wire)?) {
         Ok(m) => m,
         Err(r) => {
             emit(&r.to_json_string(), false);
             return Ok(2);
         }
     };
-    let solver = behavior_verify::solver::Z3Process::from_env()
+    let solver = behavior_engine::verify::solver::Z3Process::from_env()
         .map_err(|e| {
             eprintln!("behavior: {e}");
             3
@@ -308,7 +310,12 @@ fn verify(
     if let Some(notice) = solver.version_mismatch() {
         eprintln!("behavior: warning: {notice}");
     }
-    let a = behavior_verify::verify(&module, &profile, cache.map(std::path::Path::new), &solver);
+    let a = behavior_engine::verify::verify(
+        &module,
+        &profile,
+        cache.map(std::path::Path::new),
+        &solver,
+    );
     let text = a.to_json_string();
     if let Some(path) = out {
         std::fs::write(path, &text).map_err(|e| {
@@ -320,7 +327,7 @@ fn verify(
     Ok(if a.result == "verified" { 0 } else { 1 })
 }
 
-fn invalid(e: behavior_verify::governance::GovernanceError) -> u8 {
+fn invalid(e: behavior_engine::verify::governance::GovernanceError) -> u8 {
     eprintln!("behavior: {e}");
     2
 }
@@ -330,21 +337,24 @@ fn dispatch(cli: Cli) -> Result<u8, u8> {
         Command::Migration { command } => migration_command(command),
         Command::EngineInfo => {
             emit(
-                &behavior_core::canonical::to_canonical_string(&engine_info()).unwrap_or_default(),
+                &behavior_engine::canonical::to_canonical_string(&behavior_engine::engine_info())
+                    .unwrap_or_default(),
                 true,
             );
             Ok(0)
         }
         Command::WaiverHash { waiver } => {
-            let h = behavior_verify::governance::waiver_hash(&read(&waiver)?).map_err(invalid)?;
+            let h = behavior_engine::verify::governance::waiver_hash(&read(&waiver)?)
+                .map_err(invalid)?;
             emit(&h, true);
             Ok(0)
         }
         Command::SignWaiver { waiver, seed } => {
-            let signed = behavior_verify::governance::sign_waiver(&read(&seed)?, &read(&waiver)?)
-                .map_err(invalid)?;
+            let signed =
+                behavior_engine::verify::governance::sign_waiver(&read(&seed)?, &read(&waiver)?)
+                    .map_err(invalid)?;
             emit(
-                &behavior_core::canonical::to_canonical_string(&signed).unwrap_or_default(),
+                &behavior_engine::canonical::to_canonical_string(&signed).unwrap_or_default(),
                 false,
             );
             Ok(0)
@@ -358,7 +368,7 @@ fn dispatch(cli: Cli) -> Result<u8, u8> {
             signatures,
             now,
         } => {
-            let module = match behavior_core::admit(&read(&wire)?) {
+            let module = match behavior_engine::admit(&read(&wire)?) {
                 Ok(m) => m,
                 Err(r) => {
                     emit(&r.to_json_string(), false);
@@ -374,7 +384,7 @@ fn dispatch(cli: Cli) -> Result<u8, u8> {
                 .iter()
                 .map(|s| read(s))
                 .collect::<Result<Vec<_>, _>>()?;
-            let a = behavior_verify::governance::authorize(
+            let a = behavior_engine::verify::governance::authorize(
                 &read(&policy)?,
                 &module,
                 &read(&record)?,
@@ -394,12 +404,12 @@ fn dispatch(cli: Cli) -> Result<u8, u8> {
             out,
         } => verify(&wire, profile.as_deref(), cache.as_deref(), out.as_deref()),
         Command::Admit { wire } => {
-            let r = behavior_core::admission_report(&read(&wire)?);
+            let r = behavior_engine::admission_report(&read(&wire)?);
             emit(&r.to_json_string(), false);
             Ok(if r.ok { 0 } else { 2 })
         }
         Command::Version { wire } => {
-            let r = behavior_core::admission_report(&read(&wire)?);
+            let r = behavior_engine::admission_report(&read(&wire)?);
             match r.behavior_version {
                 Some(v) if r.ok => {
                     emit(&v, true);
@@ -411,9 +421,9 @@ fn dispatch(cli: Cli) -> Result<u8, u8> {
                 }
             }
         }
-        Command::SchemaHash { wire } => match behavior_core::admit(&read(&wire)?) {
+        Command::SchemaHash { wire } => match behavior_engine::admit(&read(&wire)?) {
             Ok(m) => {
-                emit(&behavior_core::schema(&m).hash, true);
+                emit(&behavior_engine::schema(&m).hash, true);
                 Ok(0)
             }
             Err(r) => {
@@ -422,11 +432,11 @@ fn dispatch(cli: Cli) -> Result<u8, u8> {
             }
         },
         Command::Hashes { wire } => {
-            let r = behavior_core::admission_report(&read(&wire)?);
+            let r = behavior_engine::admission_report(&read(&wire)?);
             if r.ok {
                 let items = serde_json::to_value(&r.items).unwrap_or_default();
                 emit(
-                    &behavior_core::canonical::to_canonical_string(&items).unwrap_or_default(),
+                    &behavior_engine::canonical::to_canonical_string(&items).unwrap_or_default(),
                     false,
                 );
                 Ok(0)
@@ -436,38 +446,38 @@ fn dispatch(cli: Cli) -> Result<u8, u8> {
             }
         }
         Command::Eval { wire, request } => {
-            let module = match behavior_core::admit(&read(&wire)?) {
+            let module = match behavior_engine::admit(&read(&wire)?) {
                 Ok(m) => m,
                 Err(r) => {
                     emit(&r.to_json_string(), false);
                     return Ok(2);
                 }
             };
-            let record = behavior_core::evaluate(&module, &read(&request)?);
+            let record = behavior_engine::evaluate(&module, &read(&request)?);
             emit(&record.to_json_string(), false);
             Ok(result_code(record.result()))
         }
         Command::Replay { wire, record } => {
-            let module = match behavior_core::admit(&read(&wire)?) {
+            let module = match behavior_engine::admit(&read(&wire)?) {
                 Ok(m) => m,
                 Err(r) => {
                     emit(&r.to_json_string(), false);
                     return Ok(2);
                 }
             };
-            let r = behavior_core::replay(&module, &read(&record)?);
+            let r = behavior_engine::replay(&module, &read(&record)?);
             emit(&r.to_json_string(), false);
             Ok(if r.matches { 0 } else { 2 })
         }
         Command::Read { wire, request } => {
-            let module = match behavior_core::admit(&read(&wire)?) {
+            let module = match behavior_engine::admit(&read(&wire)?) {
                 Ok(m) => m,
                 Err(r) => {
                     emit(&r.to_json_string(), false);
                     return Ok(2);
                 }
             };
-            match behavior_core::read::evaluate_read_request(&module, &read(&request)?) {
+            match behavior_engine::read::evaluate_read_request(&module, &read(&request)?) {
                 Ok(x) => {
                     emit(&x.record.to_json_string(), false);
                     Ok(read_code(x.record.result()))
@@ -479,14 +489,14 @@ fn dispatch(cli: Cli) -> Result<u8, u8> {
             }
         }
         Command::ReadReplay { wire, record } => {
-            let module = match behavior_core::admit(&read(&wire)?) {
+            let module = match behavior_engine::admit(&read(&wire)?) {
                 Ok(m) => m,
                 Err(r) => {
                     emit(&r.to_json_string(), false);
                     return Ok(2);
                 }
             };
-            let r = behavior_core::read::replay_read(&module, &read(&record)?);
+            let r = behavior_engine::read::replay_read(&module, &read(&record)?);
             emit(&r.to_json_string(), false);
             Ok(if r.matches { 0 } else { 2 })
         }
@@ -496,15 +506,18 @@ fn dispatch(cli: Cli) -> Result<u8, u8> {
             host,
             record,
         } => {
-            let module = match behavior_core::admit(&read(&wire)?) {
+            let module = match behavior_engine::admit(&read(&wire)?) {
                 Ok(m) => m,
                 Err(r) => {
                     emit(&r.to_json_string(), false);
                     return Ok(2);
                 }
             };
-            match behavior_core::read::evaluate_read_intent(&module, &read(&intent)?, &read(&host)?)
-            {
+            match behavior_engine::read::evaluate_read_intent(
+                &module,
+                &read(&intent)?,
+                &read(&host)?,
+            ) {
                 Ok(x) => {
                     if let Some(path) = record {
                         std::fs::write(&path, x.record.to_json_string()).map_err(|e| {
@@ -522,14 +535,14 @@ fn dispatch(cli: Cli) -> Result<u8, u8> {
             }
         }
         Command::Intent { wire, intent, host } => {
-            let module = match behavior_core::admit(&read(&wire)?) {
+            let module = match behavior_engine::admit(&read(&wire)?) {
                 Ok(m) => m,
                 Err(r) => {
                     emit(&r.to_json_string(), false);
                     return Ok(2);
                 }
             };
-            match behavior_core::evaluate_intent(&module, &read(&intent)?, &read(&host)?) {
+            match behavior_engine::evaluate_intent(&module, &read(&intent)?, &read(&host)?) {
                 Ok(record) => {
                     emit(&record.to_json_string(), false);
                     Ok(result_code(record.result()))
@@ -541,23 +554,6 @@ fn dispatch(cli: Cli) -> Result<u8, u8> {
             }
         }
     }
-}
-
-/// Every version of this release (feature 008, research R2): the engine and its formats, the
-/// store document tags, and the verifier.
-pub fn engine_info() -> serde_json::Value {
-    let mut v = behavior_core::format_versions();
-    if let serde_json::Value::Object(m) = &mut v {
-        m.insert(
-            "store_documents".into(),
-            serde_json::json!(behavior_store::documents::DOCUMENT_TAGS),
-        );
-        m.insert(
-            "verifier".into(),
-            serde_json::json!(behavior_verify::VERIFIER_VERSION),
-        );
-    }
-    v
 }
 
 /// Runs the command line `args` (the program name first) and returns the exit code. Output is

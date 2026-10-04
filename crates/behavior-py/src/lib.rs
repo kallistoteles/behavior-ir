@@ -5,9 +5,9 @@
 //! Values cross the boundary as Python objects; JSON appears only for artifacts (wire files,
 //! the canonical serialization, decision records). No behavior logic lives here.
 
-use behavior_core::builder::{BuildError, Builder, Node, ScopeSite};
-use behavior_core::semantic::Module;
-use behavior_core::wire::{DerivedKind, Loc, Role, WField, WLifecycle, WParam, WType};
+use behavior_engine::builder::{BuildError, Builder, Node, ScopeSite};
+use behavior_engine::semantic::Module;
+use behavior_engine::wire::{DerivedKind, Loc, Role, WField, WLifecycle, WParam, WType};
 
 /// A lifecycle effect from Python: `(kind, entity or param, id node, fields, file, line)`.
 type LifecycleArg = (
@@ -235,7 +235,7 @@ impl PyType_ {
     #[staticmethod]
     fn on_target(t: PyType_) -> Self {
         fn side(t: WType) -> WType {
-            let target = |n: String| format!("{}{n}", behavior_core::wire::TARGET_SIDE);
+            let target = |n: String| format!("{}{n}", behavior_engine::wire::TARGET_SIDE);
             match t {
                 WType::Option(inner) => WType::Option(Box::new(side(*inner))),
                 WType::Enum(n) => WType::Enum(target(n)),
@@ -348,7 +348,7 @@ impl PyRecord {
 #[pyclass(name = "ReadItem", frozen, module = "behavior._engine")]
 #[derive(Clone)]
 struct PyReadItem {
-    inner: behavior_core::semantic::module::ReadItem,
+    inner: behavior_engine::semantic::module::ReadItem,
 }
 
 #[pymethods]
@@ -359,7 +359,7 @@ impl PyReadItem {
     }
     #[getter]
     fn hash(&self) -> String {
-        behavior_core::semantic::types::hash_display(self.inner.hash())
+        behavior_engine::semantic::types::hash_display(self.inner.hash())
     }
 }
 
@@ -393,7 +393,7 @@ impl PyReadExecution {
     }
 }
 
-fn read_execution(x: behavior_core::read::ReadExecution) -> PyReadExecution {
+fn read_execution(x: behavior_engine::read::ReadExecution) -> PyReadExecution {
     let response_json = x.response.to_json_string();
     PyReadExecution {
         record: x.record.as_json().clone(),
@@ -404,7 +404,7 @@ fn read_execution(x: behavior_core::read::ReadExecution) -> PyReadExecution {
 }
 
 /// An intent rejection as a Python exception (its errors as a list of dicts).
-fn intent_rejected(py: Python<'_>, rejection: &behavior_core::IntentRejection) -> PyErr {
+fn intent_rejected(py: Python<'_>, rejection: &behavior_engine::IntentRejection) -> PyErr {
     let errors = serde_json::to_value(&rejection.errors).unwrap_or(Value::Null);
     match to_py(py, &errors) {
         Ok(e) => EngineIntentRejected::new_err((e,)),
@@ -413,8 +413,8 @@ fn intent_rejected(py: Python<'_>, rejection: &behavior_core::IntentRejection) -
 }
 
 /// A read source from Python: a declared read's name, or an admitted ad-hoc read.
-fn read_source(source: &Bound<'_, PyAny>) -> PyResult<behavior_core::read::ReadSource> {
-    use behavior_core::read::ReadSource;
+fn read_source(source: &Bound<'_, PyAny>) -> PyResult<behavior_engine::read::ReadSource> {
+    use behavior_engine::read::ReadSource;
     if let Ok(name) = source.extract::<String>() {
         return Ok(ReadSource::Declared(name));
     }
@@ -426,14 +426,14 @@ fn read_source(source: &Bound<'_, PyAny>) -> PyResult<behavior_core::read::ReadS
     ))
 }
 
-fn record(r: behavior_core::DecisionRecord) -> PyRecord {
+fn record(r: behavior_engine::DecisionRecord) -> PyRecord {
     PyRecord {
         json: r.to_json_string(),
         data: r.as_json().clone(),
     }
 }
 
-fn admission_dict(py: Python<'_>, r: &behavior_core::AdmissionResult) -> PyResult<Py<PyAny>> {
+fn admission_dict(py: Python<'_>, r: &behavior_engine::AdmissionResult) -> PyResult<Py<PyAny>> {
     to_py(py, &serde_json::to_value(r).unwrap_or(Value::Null))
 }
 
@@ -493,21 +493,23 @@ impl PyAuthorization {
     }
 }
 
-fn governance_err(e: behavior_verify::governance::GovernanceError) -> PyErr {
+fn governance_err(e: behavior_engine::verify::governance::GovernanceError) -> PyErr {
     EngineError::new_err(("INVALID_GOVERNANCE_INPUT", e.to_string()))
 }
 
 /// The content hash of a waiver.
 #[pyfunction]
 fn waiver_hash(waiver: &Bound<'_, PyAny>) -> PyResult<String> {
-    behavior_verify::governance::waiver_hash(&object(waiver)?.to_string()).map_err(governance_err)
+    behavior_engine::verify::governance::waiver_hash(&object(waiver)?.to_string())
+        .map_err(governance_err)
 }
 
 /// A detached Ed25519 signed attestation over a waiver's hash (seed: 32 bytes as hex).
 #[pyfunction]
 fn sign_waiver(py: Python<'_>, waiver: &Bound<'_, PyAny>, seed: &str) -> PyResult<Py<PyAny>> {
-    let signed = behavior_verify::governance::sign_waiver(seed, &object(waiver)?.to_string())
-        .map_err(governance_err)?;
+    let signed =
+        behavior_engine::verify::governance::sign_waiver(seed, &object(waiver)?.to_string())
+            .map_err(governance_err)?;
     to_py(py, &signed)
 }
 
@@ -522,9 +524,9 @@ impl EngineModule {
     /// Admits wire JSON (a file's contents); returns (module or None, admission dict).
     #[staticmethod]
     fn from_wire(py: Python<'_>, wire: &str) -> PyResult<(Option<EngineModule>, Py<PyAny>)> {
-        match behavior_core::admit(wire) {
+        match behavior_engine::admit(wire) {
             Ok(m) => {
-                let report = admission_dict(py, &behavior_core::admission_result(&m))?;
+                let report = admission_dict(py, &behavior_engine::admission_result(&m))?;
                 Ok((Some(EngineModule { inner: m }), report))
             }
             Err(r) => Ok((None, admission_dict(py, &r)?)),
@@ -539,16 +541,16 @@ impl EngineModule {
     /// The SchemaHash of the store schema the module declares (feature 009).
     #[getter]
     fn schema_hash(&self) -> String {
-        behavior_core::schema(&self.inner).hash
+        behavior_engine::schema(&self.inner).hash
     }
 
     fn admission(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
-        admission_dict(py, &behavior_core::admission_result(&self.inner))
+        admission_dict(py, &behavior_engine::admission_result(&self.inner))
     }
 
     /// Canonical wire JSON serialized from the admitted module.
     fn wire_json(&self) -> String {
-        behavior_core::serialize::to_wire_json(&self.inner)
+        behavior_engine::serialize::to_wire_json(&self.inner)
     }
 
     /// Decides whether the transition in a decision record may be committed under a policy.
@@ -568,7 +570,7 @@ impl EngineModule {
                 .map(|i| object(i).map(|v| v.to_string()))
                 .collect()
         };
-        let a = behavior_verify::governance::authorize(
+        let a = behavior_engine::verify::governance::authorize(
             &object(policy)?.to_string(),
             &self.inner,
             record_json,
@@ -593,7 +595,7 @@ impl EngineModule {
         wall_clock_guard_ms: u64,
         cache: Option<String>,
     ) -> PyResult<PyAttestation> {
-        let mut profile = behavior_verify::Profile {
+        let mut profile = behavior_engine::verify::Profile {
             rlimit,
             wall_clock_guard_ms,
             ..Default::default()
@@ -602,15 +604,15 @@ impl EngineModule {
             profile.checks = names
                 .iter()
                 .map(|n| {
-                    behavior_verify::CheckKind::parse(n)
+                    behavior_engine::verify::CheckKind::parse(n)
                         .ok_or_else(|| PyValueError::new_err(format!("unknown check `{n}`")))
                 })
                 .collect::<PyResult<_>>()?;
         }
-        let solver = behavior_verify::solver::Z3Process::from_env()
+        let solver = behavior_engine::verify::solver::Z3Process::from_env()
             .map_err(|e| EngineError::new_err(("SOLVER_UNAVAILABLE", e.to_string())))?
             .with_guard(std::time::Duration::from_millis(wall_clock_guard_ms));
-        let a = behavior_verify::verify(
+        let a = behavior_engine::verify::verify(
             &self.inner,
             &profile,
             cache.as_deref().map(std::path::Path::new),
@@ -649,7 +651,7 @@ impl EngineModule {
         if let (Some(f), Value::Object(m)) = (facts, &mut request) {
             m.insert("facts".into(), to_value(f)?);
         }
-        Ok(record(behavior_core::evaluate(
+        Ok(record(behavior_engine::evaluate(
             &self.inner,
             &request.to_string(),
         )))
@@ -676,7 +678,8 @@ impl EngineModule {
             m.insert("git_revision".into(), json!(g));
         }
         let intent = object(intent)?;
-        match behavior_core::evaluate_intent(&self.inner, &intent.to_string(), &host.to_string()) {
+        match behavior_engine::evaluate_intent(&self.inner, &intent.to_string(), &host.to_string())
+        {
             Ok(r) => Ok(record(r)),
             Err(rejection) => {
                 let errors = serde_json::to_value(&rejection.errors).unwrap_or(Value::Null);
@@ -707,7 +710,7 @@ impl EngineModule {
         if let (Some(f), Value::Object(m)) = (facts, &mut request) {
             m.insert("facts".into(), to_value(f)?);
         }
-        Ok(read_execution(behavior_core::read::evaluate_read(
+        Ok(read_execution(behavior_engine::read::evaluate_read(
             &self.inner,
             &source,
             &request.to_string(),
@@ -723,7 +726,7 @@ impl EngineModule {
         host: &Bound<'_, PyAny>,
     ) -> PyResult<PyReadExecution> {
         let intent = object(intent)?;
-        match behavior_core::read::evaluate_read_intent(
+        match behavior_engine::read::evaluate_read_intent(
             &self.inner,
             &intent.to_string(),
             &to_value(host)?.to_string(),
@@ -735,26 +738,26 @@ impl EngineModule {
 
     /// Replays a read record (feature 010) from its own facts; returns (matches, diff).
     fn replay_read(&self, record_json: &str) -> (bool, Option<String>) {
-        let r = behavior_core::read::replay_read(&self.inner, record_json);
+        let r = behavior_engine::read::replay_read(&self.inner, record_json);
         (r.matches, r.diff)
     }
 
     /// Replays a decision record (its canonical JSON text); returns (matches, diff).
     fn replay(&self, record_json: &str) -> (bool, Option<String>) {
-        let r = behavior_core::replay(&self.inner, record_json);
+        let r = behavior_engine::replay(&self.inner, record_json);
         (r.matches, r.diff)
     }
 }
 
 /// The admission report of an admitted migration.
-fn migration_admission(m: &behavior_core::migration::Migration) -> Value {
+fn migration_admission(m: &behavior_engine::migration::Migration) -> Value {
     json!({"ok": true, "errors": [], "hash": m.hash(), "summary": m.summary()})
 }
 
 /// An admitted migration (feature 009).
 #[pyclass(name = "Migration", frozen, module = "behavior._engine")]
 struct EngineMigration {
-    inner: behavior_core::migration::Migration,
+    inner: behavior_engine::migration::Migration,
 }
 
 #[pymethods]
@@ -767,7 +770,7 @@ impl EngineMigration {
         target: PyRef<'_, EngineModule>,
         text: &str,
     ) -> PyResult<(Option<EngineMigration>, Py<PyAny>)> {
-        match behavior_core::migration::admit_migration(&source.inner, &target.inner, text) {
+        match behavior_engine::migration::admit_migration(&source.inner, &target.inner, text) {
             Ok(m) => {
                 let report = to_py(py, &migration_admission(&m))?;
                 Ok((Some(EngineMigration { inner: m }), report))
@@ -810,7 +813,7 @@ impl EngineMigration {
         rlimit: u64,
         wall_clock_guard_ms: u64,
     ) -> PyResult<PyAttestation> {
-        let mut profile = behavior_verify::Profile {
+        let mut profile = behavior_engine::verify::Profile {
             rlimit,
             wall_clock_guard_ms,
             ..Default::default()
@@ -819,15 +822,15 @@ impl EngineMigration {
             profile.checks = names
                 .iter()
                 .map(|n| {
-                    behavior_verify::CheckKind::parse(n)
+                    behavior_engine::verify::CheckKind::parse(n)
                         .ok_or_else(|| PyValueError::new_err(format!("unknown check `{n}`")))
                 })
                 .collect::<PyResult<_>>()?;
         }
-        let solver = behavior_verify::solver::Z3Process::from_env()
+        let solver = behavior_engine::verify::solver::Z3Process::from_env()
             .map_err(|e| EngineError::new_err(("SOLVER_UNAVAILABLE", e.to_string())))?
             .with_guard(std::time::Duration::from_millis(wall_clock_guard_ms));
-        let a = behavior_verify::verify_migration(
+        let a = behavior_engine::verify::verify_migration(
             &self.inner,
             &source.inner,
             &target.inner,
@@ -858,7 +861,7 @@ impl EngineMigration {
                 .map(|i| object(i).map(|v| v.to_string()))
                 .collect()
         };
-        let a = behavior_verify::governance::authorize_migration(
+        let a = behavior_engine::verify::governance::authorize_migration(
             &object(policy)?.to_string(),
             &self.inner,
             data_version,
@@ -876,7 +879,7 @@ impl EngineMigration {
 
     /// The resolved migration document (migration IR 0.1), canonical JSON.
     fn resolved_json(&self) -> String {
-        behavior_core::canonical::to_canonical_string(&self.inner.resolved()).unwrap_or_default()
+        behavior_engine::canonical::to_canonical_string(&self.inner.resolved()).unwrap_or_default()
     }
 }
 
@@ -892,16 +895,16 @@ fn apply_migration(
     entities: &Bound<'_, PyAny>,
 ) -> PyResult<Py<PyAny>> {
     let items: Vec<SeedEntity> = doc("source universe", entities)?;
-    let universe: Vec<behavior_core::migration::SourceEntity> = items
+    let universe: Vec<behavior_engine::migration::SourceEntity> = items
         .into_iter()
-        .map(|e| behavior_core::migration::SourceEntity {
+        .map(|e| behavior_engine::migration::SourceEntity {
             entity: e.entity,
             value: e.value,
         })
         .collect();
     to_py(
         py,
-        &behavior_core::migration::outcome_json(&behavior_core::migration::apply_migration(
+        &behavior_engine::migration::outcome_json(&behavior_engine::migration::apply_migration(
             &migration.inner,
             &source.inner,
             &target.inner,
@@ -1416,7 +1419,7 @@ impl PyBuilder {
     ) -> PyResult<(Option<EngineModule>, Py<PyAny>)> {
         match self.inner.finish(root.as_deref()) {
             Ok(m) => {
-                let report = admission_dict(py, &behavior_core::admission_result(&m))?;
+                let report = admission_dict(py, &behavior_engine::admission_result(&m))?;
                 Ok((Some(EngineModule { inner: m }), report))
             }
             Err(r) => Ok((None, admission_dict(py, &r)?)),
@@ -1434,8 +1437,8 @@ fn projection_read(
     items: Vec<(String, String)>,
     file: String,
     line: u64,
-) -> PyResult<behavior_core::wire::WRead> {
-    use behavior_core::wire::WItem;
+) -> PyResult<behavior_engine::wire::WRead> {
+    use behavior_engine::wire::WItem;
     let over = match (over, over_param) {
         (Some(node), None) => Ok(node.inner),
         (None, Some(param)) => Err(param),
@@ -1466,7 +1469,7 @@ fn projection_read(
 }
 
 impl PyBuilder {
-    fn admit_adhoc(&mut self, r: &behavior_core::wire::WRead) -> PyResult<PyReadItem> {
+    fn admit_adhoc(&mut self, r: &behavior_engine::wire::WRead) -> PyResult<PyReadItem> {
         match self.inner.admit_read(r) {
             Ok(inner) => Ok(PyReadItem { inner }),
             Err(result) => Err(build_err(
@@ -1486,13 +1489,13 @@ impl PyBuilder {
 
 // --- persistence (feature 005) ------------------------------------------------------------
 
-use behavior_store::conformance::run as run_store_conformance;
-use behavior_store::documents::{
+use behavior_engine::store::conformance::run as run_store_conformance;
+use behavior_engine::store::documents::{
     CommitBundle, EntityKey, EntityVersion, Evidence, EvidencePolicy, Genesis, Head, RefChange,
     SeedEntity, StateRef, StoreError, TransitionRecord, decode,
 };
-use behavior_store::replay::replay_data;
-use behavior_store::{Backend, BackendError, CasOutcome, InMemoryBackend, RefEdge, Store};
+use behavior_engine::store::replay::replay_data;
+use behavior_engine::store::{Backend, BackendError, CasOutcome, InMemoryBackend, RefEdge, Store};
 
 fn to_json<T: serde::Serialize>(t: &T) -> Value {
     serde_json::to_value(t).unwrap_or(Value::Null)
@@ -1799,7 +1802,7 @@ impl PyStore {
         };
         to_py(
             py,
-            &to_json(&behavior_store::store::genesis_for(
+            &to_json(&behavior_engine::store::store::genesis_for(
                 &module.inner,
                 policy,
                 seed,
@@ -1892,7 +1895,7 @@ impl PyStore {
             )
             .map_err(|e| store_err(py, e))?;
         let rec = PyRecord {
-            json: behavior_core::canonical::to_canonical_string(&ev.record).unwrap_or_default(),
+            json: behavior_engine::canonical::to_canonical_string(&ev.record).unwrap_or_default(),
             data: ev.record,
         };
         let bundle = match &ev.bundle {
@@ -2043,7 +2046,7 @@ impl PyStore {
     /// `store:<id>;state:<state>;position:<n>` of state `at`: what an authorization binds.
     fn data_version(&self, py: Python<'_>, at: &Bound<'_, PyAny>) -> PyResult<String> {
         let store = self.inner.store_id().map_err(|e| store_err(py, e))?;
-        Ok(behavior_store::documents::data_version(
+        Ok(behavior_engine::store::documents::data_version(
             &store,
             &state_ref(at)?,
         ))
@@ -2109,7 +2112,7 @@ impl PyStore {
             .collect();
         to_py(
             py,
-            &to_json(&behavior_store::replay::replay_behavior_with(
+            &to_json(&behavior_engine::store::replay::replay_behavior_with(
                 &self.inner,
                 &modules,
                 &migrations,
@@ -2144,24 +2147,13 @@ fn run_conformance(factory: &Bound<'_, PyAny>) -> PyResult<Vec<(String, bool, St
 /// the verifier. The binding adds its own version in Python.
 #[pyfunction]
 fn engine_info(py: Python<'_>) -> PyResult<Py<PyAny>> {
-    to_py(py, &behavior_cli::engine_info())
-}
-
-/// The `behavior` command line (feature 008): the engine's own CLI, run in this process with
-/// `args` (without the program name). Returns the exit code.
-#[pyfunction]
-fn cli(py: Python<'_>, args: Vec<String>) -> u8 {
-    let argv: Vec<std::ffi::OsString> = std::iter::once("behavior".to_string())
-        .chain(args)
-        .map(Into::into)
-        .collect();
-    py.detach(|| behavior_cli::run(argv))
+    to_py(py, &behavior_engine::engine_info())
 }
 
 /// A notice if the solver verification would use is not the supported version (feature 008).
 #[pyfunction]
 fn solver_notice() -> Option<String> {
-    behavior_verify::solver::Z3Process::from_env()
+    behavior_engine::verify::solver::Z3Process::from_env()
         .ok()
         .and_then(|z| z.version_mismatch())
 }
@@ -2170,7 +2162,6 @@ fn solver_notice() -> Option<String> {
 fn _engine(m: &Bound<'_, pyo3::types::PyModule>) -> PyResult<()> {
     m.add("ENGINE_VERSION", env!("CARGO_PKG_VERSION"))?;
     m.add_function(wrap_pyfunction!(engine_info, m)?)?;
-    m.add_function(wrap_pyfunction!(cli, m)?)?;
     m.add_function(wrap_pyfunction!(solver_notice, m)?)?;
     m.add_class::<PyType_>()?;
     m.add_class::<PyBuilder>()?;
@@ -2186,7 +2177,7 @@ fn _engine(m: &Bound<'_, pyo3::types::PyModule>) -> PyResult<()> {
     m.add_class::<PyStore>()?;
     m.add_class::<EngineMigration>()?;
     m.add_function(wrap_pyfunction!(apply_migration, m)?)?;
-    m.add("TARGET_SIDE", behavior_core::wire::TARGET_SIDE)?;
+    m.add("TARGET_SIDE", behavior_engine::wire::TARGET_SIDE)?;
     m.add_class::<PyInMemoryBackend>()?;
     m.add_function(wrap_pyfunction!(run_conformance, m)?)?;
     m.add(

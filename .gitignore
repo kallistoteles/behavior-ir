@@ -12,3 +12,6 @@ dist/
 **/*.rs.bk
 *.pdb
 **/mutants.out*/
+
+# The bundled core CLI (feature 011), staged by scripts/stage-cli.sh or scripts/fetch-core.sh.
+python/behavior/_bin/

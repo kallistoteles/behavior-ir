@@ -23,7 +23,7 @@
         in
         {
           default = pkgs.mkShell {
-            packages = [ rust python pkgs.maturin pkgs.z3 pkgs.zig ];
+            packages = [ rust python pkgs.maturin pkgs.z3 pkgs.zig pkgs.cargo-zigbuild pkgs.gh ];
             shellHook = ''
               if [ ! -d .venv ]; then
                 ${python}/bin/python -m venv --system-site-packages .venv

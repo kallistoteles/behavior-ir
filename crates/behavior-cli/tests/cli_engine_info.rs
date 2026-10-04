@@ -57,3 +57,15 @@ fn version_of_a_module_is_unchanged() {
     assert_eq!(code, 0);
     assert!(out.trim().starts_with("sha256:"), "{out}");
 }
+
+/// Feature 011 (FR-006c): the versions come from the engine's public door, and the command line
+/// only prints them.
+#[test]
+fn engine_info_comes_from_the_engine() {
+    let (code, out) = run(&["engine-info"]);
+    assert_eq!(code, 0, "{out}");
+    assert_eq!(
+        out.trim_end(),
+        behavior_core::canonical::to_canonical_string(&behavior_engine::engine_info()).unwrap()
+    );
+}

@@ -1,0 +1,15 @@
+# An external consumer of Behavior Core (feature 011, FR-006d): a crate outside the core
+# workspace whose only core dependency is the public `behavior-engine` crate. If a capability a
+# binding needs is not exported, this crate does not compile. scripts/check-consumer.sh builds it
+# against this checkout, or against a pushed revision with `--rev`.
+[package]
+name = "behavior-engine-consumer"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[dependencies]
+behavior-engine = { path = "../crates/behavior-engine" }
+serde_json = "1"

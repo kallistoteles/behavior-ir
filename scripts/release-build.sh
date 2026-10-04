@@ -9,6 +9,8 @@ out="${2:?usage: scripts/release-build.sh <version> <out>}"
 
 rm -rf "$out"
 mkdir -p "$out"
+# The core's command-line tool goes into the wheel as a binary (feature 011, FR-006c, FR-018).
+scripts/stage-cli.sh --release
 maturin build --release --zig --compatibility manylinux_2_28 --out "$out" >&2
 wheel="$(cd "$out" && ls ./*.whl)"
 (cd "$out" && sha256sum ./*.whl | sed 's# \./# #' >SHA256SUMS)

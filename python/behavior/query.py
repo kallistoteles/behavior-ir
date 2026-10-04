@@ -104,6 +104,80 @@ def _lambda(op: str, q: Query, fn: Callable[[Any], Any], loc: tuple[str, int]) -
     return call("lambda_", op, q.node, name, body.node, loc=loc)
 
 
+class Projection:
+    """A projection (feature 010): the body of a read, never a value. It ranges over a query
+    (a list of records) or a bound entity parameter (one record); its items are fields of the
+    member and derived values over the member alone."""
+
+    __slots__ = ("query", "param", "member", "items", "loc")
+
+    def __init__(self, query: Query | None, param: str | None, member: str,
+                 items: list[tuple[str, str]], loc: tuple[str, int]) -> None:
+        self.query = query
+        self.param = param
+        self.member = member
+        self.items = items
+        self.loc = loc
+
+    def __bool__(self) -> bool:
+        raise BehaviorDefinitionError("a projection is the body of a read, not a value",
+                                      *caller_loc())
+
+
+_ITEM = ("UNKNOWN_PROJECTION_ITEM: a projection item is a field of the member or a derived value "
+         "over the member alone")
+
+
+def project(over: Any, items: Callable[[Any], Any]) -> Projection:
+    """The body of a read that returns records (feature 010): `over` is a query (zero or more
+    records, in identity order) or a bound entity parameter (exactly one record); `items` is a
+    lambda over the member that lists its fields and derived values, for example
+    `lambda o: [o.status, o.amount, total(o)]`. Every record also has its `id`."""
+    from .expr import DerivedCall
+
+    loc = caller_loc()
+    if isinstance(over, Query):
+        decl, query, param = over.decl, over, None
+    elif isinstance(over, EntityVar):
+        decl, query, param = over._decl, None, over._name
+    else:
+        raise BehaviorDefinitionError(
+            "INVALID_PROJECTION: project() ranges over a query or a bound entity parameter", *loc
+        )
+    if not callable(items):
+        raise BehaviorDefinitionError("project() needs a lambda listing the items", *loc)
+    names = list(inspect.signature(items).parameters)
+    if len(names) != 1:
+        raise BehaviorDefinitionError("the lambda of project() takes exactly one parameter", *loc)
+    member = names[0]
+    session = builder()
+    try:
+        session.builder.push_scope("derived", [(member, None, _engine.Type.entity(decl.name))],
+                                   *loc)
+    except _engine.EngineError as e:
+        raise engine_error(e, loc) from None
+    try:
+        listed = items(EntityVar(member, decl, "read"))
+    except BehaviorTypeError as e:
+        if e.code == "UNKNOWN_PARAM":
+            raise BehaviorDefinitionError(_ITEM, *loc) from None
+        raise
+    finally:
+        session.builder.pop_scope()
+    if not isinstance(listed, (list, tuple)):
+        raise BehaviorDefinitionError("the lambda of project() returns a list of items", *loc)
+    out: list[tuple[str, str]] = []
+    for item in listed:
+        if (isinstance(item, Expr) and item.op == "field" and item.target is not None
+                and item.target[0] == member):
+            out.append(("field", item.target[1]))
+        elif isinstance(item, DerivedCall) and item.call[1] == [member]:
+            out.append(("derived", item.call[0]))
+        else:
+            raise BehaviorDefinitionError(_ITEM, *loc)
+    return Projection(query, param, member, out, loc)
+
+
 def _fold(op: str, q: object, fn: Callable[[Any], Any]) -> Expr:
     loc = caller_loc()
     query = _query(q, op, loc)

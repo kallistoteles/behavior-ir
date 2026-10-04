@@ -37,6 +37,7 @@ to them should be treated with suspicion.
 Expression  : Environment → typed value         (environment = S, I, C as in scope)
 Predicate   : Expression<Bool>
 Transition  : S × I × C → ΔS
+Read        : S × I × C → value + evidence     (ΔS = ∅)
 Invariant   : S → Bool
 
 Valid transition:
@@ -306,3 +307,24 @@ Development:  human → AI → proposed behavior → type check → verification
 
 The AI reaches the system only through declared **capabilities**. It never has direct access
 to data or business logic, and every AI output is checked like any other untrusted input.
+
+## 14. Observing the world is not changing it
+
+A **read** evaluates one typed, pure expression, or a projection of named fields and derived
+values, against one exact state, and returns a value. It produces no ΔS, no commit and no
+transition record, and it never needs an entity to bind just to be able to run. Its record
+is evidence: it names the exact state, the inputs, everything the read observed and the
+result, and it replays byte for byte. It is never part of the store's history.
+
+Observation, decision and change are three different operations. Asking a question is a read
+capability; asking to change something is a transition capability.
+
+**Capabilities are entry points, not building blocks.** Derived values compose semantics;
+declared reads and actions expose capabilities. No expression in a module calls a declared
+read: shared computation lives in a derived value that reads and actions both use, so
+dependencies run one way, from capabilities into semantics.
+
+**Capabilities expose declared information; records preserve complete evidence.** A caller of
+a declared read receives the declared result and the identity of the record that produced it.
+What the evaluation observed along the way stays in the record for the trusted host, so a
+capability never reveals more than it declares.

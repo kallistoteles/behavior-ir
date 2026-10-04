@@ -29,7 +29,7 @@ def op(name: str, *args: dict, **extra: object) -> dict:
     return {"op": name, "args": list(args), "loc": L, **extra}
 
 
-def base(**parts: list) -> dict:
+def base(**parts: object) -> dict:
     m = {
         "ir_version": "0.4", "constraints": [],
         "enums": [{"name": "Status", "values": ["a", "b"], "loc": L}],
@@ -97,9 +97,30 @@ def main() -> None:
         "entities": [{"name": "U", "loc": L, "fields": [{"name": "name", "type": S, "loc": L}]}]}})
     vectors.append({"name": "empty_module", "wire": {
         "ir_version": "0.4", "constraints": [], "enums": [], "nominals": [], "entities": [], "derived": [], "invariants": [], "actions": []}})
+    # Declared reads (feature 010): a value read, an entity projection and a query projection.
+    v_derived = derived(op("add", f("i"), lit(I, 1)), "v")
+    select_e = {"op": "select", "entity": "E", "loc": L}
+    e_param = {"name": "e", "role": "state", "type": {"t": "entity", "name": "E"}}
+    vectors.append({"name": "read_value", "wire": base(ir_version="0.7", reads=[
+        {"name": "n", "params": [], "loc": L, "body": {"value": op("count", select_e)}}])})
+    vectors.append({"name": "read_project_entity", "wire": base(ir_version="0.7", derived=[v_derived], reads=[
+        {"name": "view", "params": [e_param], "loc": L, "body": {"project": {
+            "over": {"op": "param", "param": "e", "loc": L}, "param": "x",
+            "items": [{"field": "i"}, {"derived": "v"}]}}}])})
+    vectors.append({"name": "read_project_query", "wire": base(ir_version="0.7", reads=[
+        {"name": "listing", "params": [], "loc": L, "body": {"project": {
+            "over": {"op": "where", "args": [select_e], "param": "x", "loc": L,
+                     "body": {"op": "field", "param": "x", "field": "b", "loc": L}},
+            "param": "x", "items": [{"field": "s"}]}}}])})
+    # Existing expectations are frozen: keep every one whose wire is unchanged.
+    old = {v["name"]: v for v in json.loads(OUT.read_text())["vectors"]} if OUT.exists() else {}
+    for v in vectors:
+        prev = old.get(v["name"])
+        if prev is not None and prev["wire"] == v["wire"] and "expect" in prev:
+            v["expect"] = prev["expect"]
     OUT.write_text(json.dumps({
         "_comment": "Frozen content-hash vectors (contracts/hashing.md). Any change requires new hash tags.",
-        "vectors": vectors}, indent=1) + "\n")
+        "vectors": vectors}, indent=2, sort_keys=True, ensure_ascii=False) + "\n")
 
 
 if __name__ == "__main__":

@@ -182,5 +182,6 @@ fn a_migration_attestation_is_content_addressed() {
         a.value["verifier_version"],
         json!(behavior_verify::VERIFIER_VERSION)
     );
-    assert_eq!(behavior_verify::VERIFIER_VERSION, "0.5.0");
+    // 0.5.0 added migration verification (feature 009); 0.6.0 declared reads (feature 010).
+    assert_eq!(behavior_verify::VERIFIER_VERSION, "0.6.0");
 }

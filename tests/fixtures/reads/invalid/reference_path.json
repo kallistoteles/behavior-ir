@@ -1,0 +1,1 @@
+{"ir_version":"0.7","read":{"body":{"project":{"items":[{"field":"customer.name"}],"over":{"entity":"Order","loc":{"file":"lab.py","line":111},"op":"select"},"param":"o"}},"loc":{"file":"lab.py","line":111},"name":"buyers","params":[]}}

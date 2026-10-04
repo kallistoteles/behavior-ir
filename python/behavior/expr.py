@@ -31,7 +31,12 @@ _CONTROL_FLOW = (
 )
 
 # Engine error codes that describe misuse of the DSL rather than an ill-typed expression.
-_DEFINITION_CODES = {"EFFECT_ON_READONLY", "RESERVED_NAME", "DECODE_ERROR", "DUPLICATE_NAME"}
+_DEFINITION_CODES = {
+    "EFFECT_ON_READONLY", "RESERVED_NAME", "DECODE_ERROR", "DUPLICATE_NAME",
+    # Reads (feature 010).
+    "UNKNOWN_PROJECTION_ITEM", "DUPLICATE_PROJECTION_ITEM", "INVALID_PROJECTION",
+    "READ_CALL_NOT_ALLOWED", "DUPLICATE_CAPABILITY",
+}
 
 
 def engine_error(err: Exception, loc: tuple[str, int]) -> Exception:
@@ -324,6 +329,17 @@ def underlying(e: Expr) -> Expr:
 def param_ref(name: str) -> Expr:
     loc = caller_loc()
     return Expr(call("param", name, loc=loc), loc, "param")
+
+
+class DerivedCall(Expr):
+    """A call of a derived value: an expression that also names the call (feature 010: a
+    projection item is a derived value over the member)."""
+
+    __slots__ = ("call",)
+
+    def __init__(self, node: Any, loc: tuple[str, int], name: str, args: list[str]) -> None:
+        super().__init__(node, loc, "derived")
+        self.call = (name, list(args))
 
 
 def field_ref(param: str, field: str) -> Expr:

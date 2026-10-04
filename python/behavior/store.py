@@ -14,7 +14,7 @@ from typing import Any, Callable, Iterator, Sequence
 from . import _engine
 from .errors import CommitRefused, StateConflict
 from .module import BehaviorModule
-from .results import Decision
+from .results import Decision, ReplayResult
 
 InMemoryBackend = _engine.InMemoryBackend
 
@@ -204,6 +204,62 @@ class Store:
         return CommitResult(
             r["record_id"], StateRef.of(r["result_state"]), r["already"], r["evidence_trust"]
         )
+
+    def read(
+        self,
+        model: BehaviorModule,
+        r: Any,
+        *,
+        bindings: dict[str, str] | None = None,
+        input: dict[str, Any] | None = None,  # noqa: A002
+        context: dict[str, Any] | None = None,
+        at: StateRef | None = None,
+    ) -> Any:
+        """Reads (feature 010) at `at` or the current state, read once; never writes. `r` is a
+        declared read (name or function) or an ad-hoc `@read` function; `bindings` names the
+        entity id of each bound entity. An id that does not exist there gives a result of
+        `INVALID_BINDING`; a schema mismatch raises CommitRefused."""
+        from .reads import _result, read_source
+
+        source = read_source(model, r)
+        with _Translate():
+            x = self._inner.read(
+                model.engine, source, bindings or {}, input or {}, context or {},
+                _ref(at) if at is not None else None,
+            )
+        return _result(x)
+
+    def read_intent(
+        self,
+        model: BehaviorModule,
+        intent: dict[str, Any],
+        *,
+        context: dict[str, Any] | None = None,
+        at: StateRef | None = None,
+    ) -> Any:
+        """A read intent (feature 010) at `at` or the current state: the capability boundary
+        for untrusted callers. Raises IntentRejected listing every problem (including targets
+        that do not exist there); forward only the execution's `response`."""
+        from .errors import IntentRejected
+        from .reads import _execution
+
+        try:
+            with _Translate():
+                x = self._inner.read_intent(
+                    model.engine, intent, context or {}, _ref(at) if at is not None else None
+                )
+        except _engine.EngineIntentRejected as e:
+            raise IntentRejected(e.args[0]) from None
+        return _execution(x)
+
+    def replay_read(self, model: BehaviorModule, record: Any) -> ReplayResult:
+        """Replays a read record against this store (feature 010): its state must be a state of
+        this store; the read is evaluated again there and compared byte for byte."""
+        from .reads import record_json
+
+        with _Translate():
+            matches, diff = self._inner.replay_read(model.engine, record_json(record))
+        return ReplayResult(matches, diff)
 
     def transitions(self, from_: StateRef, to: StateRef) -> list[dict[str, Any]]:
         with _Translate():

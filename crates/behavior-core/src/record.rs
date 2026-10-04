@@ -43,7 +43,8 @@ pub struct ReplayResult {
 }
 
 impl ReplayResult {
-    fn mismatch(diff: String) -> Self {
+    /// A replay that did not reproduce the record, with the first difference.
+    pub fn mismatch(diff: String) -> Self {
         ReplayResult {
             matches: false,
             diff: Some(diff),
@@ -52,6 +53,17 @@ impl ReplayResult {
 
     pub fn to_json_string(&self) -> String {
         canonical::canonical(self).unwrap_or_default()
+    }
+}
+
+/// Compares a stored record with its replay (feature 010 shares this with read records).
+pub fn compare(stored: &Json, replayed: &Json) -> ReplayResult {
+    match first_difference("", stored, replayed) {
+        None => ReplayResult {
+            matches: true,
+            diff: None,
+        },
+        Some(d) => ReplayResult::mismatch(d),
     }
 }
 

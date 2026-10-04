@@ -11,7 +11,8 @@ from typing import Any, Sequence
 
 from . import _engine
 from .decl import (
-    ActionFn, BehaviorFn, ConstraintFn, DerivedFn, EntityDecl, InvariantFn, ParamInfo, entity_decl,
+    ActionFn, BehaviorFn, ConstraintFn, DerivedFn, EntityDecl, InvariantFn, ParamInfo, ReadFn,
+    entity_decl,
 )
 from .errors import BehaviorDefinitionError, BehaviorInvalid
 from .expr import engine_error, lift
@@ -65,7 +66,7 @@ class CompileSession:
     def push_scope(self, fn: BehaviorFn, params: list[ParamInfo]) -> None:
         for p in params:
             self.declare(p.type)
-        site = "action" if fn.kind == "action" else "derived"
+        site = fn.kind if fn.kind in ("action", "read") else "derived"
         if fn.kind == "invariant" and not params:
             site = "closed"  # a module invariant (feature 007)
         try:
@@ -105,6 +106,38 @@ def current_session() -> CompileSession | None:
     return _SESSION.get()
 
 
+def trace_read(session: CompileSession, fn: ReadFn, declared: bool) -> Any:
+    """Traces a read (feature 010): a declared read is added to the session's module; an ad-hoc
+    read is admitted against the session's module and returned (an engine read item)."""
+    from .query import Projection
+
+    params = fn.params()
+    session.push_scope(fn, params)
+    token = CURRENT.set(Frame("read"))
+    try:
+        result = fn.call_symbolic(params)
+        body = None if isinstance(result, Projection) else lift(result)
+    finally:
+        CURRENT.reset(token)
+        session.builder.pop_scope()
+    ps = fn.engine_params(params)
+    try:
+        if isinstance(result, Projection):
+            over = result.query.node if result.query is not None else None
+            args = (fn.name, ps, over, result.param, result.member, result.items, *fn.loc)
+            if declared:
+                session.builder.add_read_projection(*args)
+                return None
+            return session.builder.adhoc_read_projection(*args)
+        assert body is not None
+        if declared:
+            session.builder.add_read_value(fn.name, ps, body.node, *fn.loc)
+            return None
+        return session.builder.adhoc_read_value(fn.name, ps, body.node, *fn.loc)
+    except _engine.EngineError as e:
+        raise engine_error(e, fn.loc if body is None else body.loc) from None
+
+
 class BehaviorModule:
     """A behavior module compiled by the engine. Construction traces every body."""
 
@@ -118,6 +151,7 @@ class BehaviorModule:
         enums: Sequence[Any] = (),
         nominals: Sequence[NominalT] = (),
         root: str | None = None,
+        reads: Sequence[ReadFn] = (),
     ) -> None:
         decls: list[EntityDecl] = []
         for cls in entities:
@@ -153,9 +187,13 @@ class BehaviorModule:
                 self._trace_invariant(session, con)
             for act in actions:
                 self._trace_action(session, act)
+            for r in reads:
+                trace_read(session, r, declared=True)
         finally:
             _SESSION.reset(token)
 
+        #: The declared reads (feature 010): the module's read capabilities.
+        self.reads: list[ReadFn] = list(reads)
         #: The enum and nominal types this module declares, by name (feature 009).
         self.declared_types: dict[str, BType] = dict(session.types)
         self._module, self._admission = session.builder.finish(root)

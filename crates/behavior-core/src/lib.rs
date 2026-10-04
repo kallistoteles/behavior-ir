@@ -12,6 +12,7 @@ pub mod facts;
 pub mod intent;
 pub mod migration;
 pub mod pretty;
+pub mod read;
 pub mod record;
 pub mod schema;
 pub mod semantic;
@@ -39,7 +40,7 @@ pub fn format_versions() -> serde_json::Value {
     use eval::{RECORD_VERSION, RECORD_VERSION_LIFECYCLE, RECORD_VERSION_QUERIES};
     use wire::{
         IR_VERSION, IR_VERSION_CONSTRAINTS, IR_VERSION_EXACT, IR_VERSION_FIXED_SCALE,
-        IR_VERSION_LIFECYCLE, IR_VERSION_QUERIES,
+        IR_VERSION_LIFECYCLE, IR_VERSION_QUERIES, IR_VERSION_READS,
     };
     serde_json::json!({
         "engine": env!("CARGO_PKG_VERSION"),
@@ -50,7 +51,9 @@ pub fn format_versions() -> serde_json::Value {
             IR_VERSION_EXACT,
             IR_VERSION_LIFECYCLE,
             IR_VERSION_QUERIES,
+            IR_VERSION_READS,
         ],
         "records": [RECORD_VERSION, RECORD_VERSION_LIFECYCLE, RECORD_VERSION_QUERIES],
+        "read_records": [read::READ_RECORD_FORMAT],
     })
 }

@@ -12,3 +12,4 @@ Review the agent's repository against each item. Every item must hold.
 | 6 | Replay | the restart test reopens with `Store.open` and `replay_data` / `replay_behavior` succeed |
 | 7 | Consumer boundary | imports only `behavior` public names; no path into the Behavior repository; the release pinned by hash |
 | 8 | Gaps recorded, not worked around | anything the agent could not express appears in `SEMANTIC_GAPS.md` with all fields |
+| 9 | Questions are reads | `open_total` uses `store.read` of a declared read; no action without effects; `ask` uses `store.read_intent` and returns only `response`, never the record |

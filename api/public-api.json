@@ -48,6 +48,20 @@
    "apply",
    "verify"
   ],
+  "read": [
+   "<wire>",
+   "<request>"
+  ],
+  "read-intent": [
+   "<wire>",
+   "<intent>",
+   "<host>",
+   "--record"
+  ],
+  "read-replay": [
+   "<wire>",
+   "<record>"
+  ],
   "replay": [
    "<wire>",
    "<record>"
@@ -95,8 +109,12 @@
    "0.3": "schema/wire-ir-0.3.schema.json",
    "0.4": "schema/wire-ir-0.4.schema.json",
    "0.5": "schema/wire-ir-0.5.schema.json",
-   "0.6": "schema/wire-ir-0.6.schema.json"
-  }
+   "0.6": "schema/wire-ir-0.6.schema.json",
+   "0.7": "schema/wire-ir-0.7.schema.json"
+  },
+  "read_records": [
+   "behavior.read_record.v1"
+  ]
  },
  "python": {
   "module": "behavior",
@@ -126,7 +144,12 @@
    "MigrationAdmission": "class",
    "Option": "type",
    "Profile": "class",
+   "Projection": "class",
    "Query": "class",
+   "ReadExecution": "class",
+   "ReadRecord": "class",
+   "ReadResponse": "class",
+   "ReadResult": "class",
    "Ref": "type",
    "ReplayReport": "class",
    "ReplayResult": "class",
@@ -154,6 +177,7 @@
    "enum_map": "function",
    "evaluate": "function",
    "evaluate_intent": "function",
+   "evaluate_read": "function",
    "exists": "function",
    "field": "function",
    "invariant": "decorator",
@@ -163,11 +187,15 @@
    "none": "value",
    "not_": "function",
    "or_": "function",
+   "project": "function",
+   "read": "decorator",
+   "read_intent": "function",
    "referenced": "function",
    "remove": "function",
    "replay": "function",
    "replay_behavior": "function",
    "replay_data": "function",
+   "replay_read": "function",
    "requires": "function",
    "rescale": "function",
    "rule": "decorator",
@@ -186,7 +214,7 @@
    "waiver_hash": "function"
   }
  },
- "release": "0.9.0",
+ "release": "0.10.0",
  "solver": {
   "name": "z3",
   "version": "4.16.0"

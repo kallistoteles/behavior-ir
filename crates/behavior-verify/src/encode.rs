@@ -48,7 +48,7 @@ pub enum Term {
 }
 
 impl Term {
-    fn plain(&self) -> R<&str> {
+    pub(crate) fn plain(&self) -> R<&str> {
         match self {
             Term::Plain(t) => Ok(t),
             Term::Opt { .. } => Err(EncodeError::Unsupported("option used as a value".into())),

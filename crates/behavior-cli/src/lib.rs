@@ -1,7 +1,7 @@
 //! `behavior` command-line interface over the engine API (contracts/engine-api.md), as a library
 //! (feature 008): the binary and the Python binding's console script run the same `run`.
 //!
-//! Exit codes: 0 admitted / ALLOW / replay match / verified / authorized; 1 DENY /
+//! Exit codes: 0 admitted / ALLOW / VALUE / replay match / verified / authorized; 1 DENY /
 //! ENTITY_ID_ALREADY_USED / LIFECYCLE_CONFLICT / not verified / refused; 2 admission failure, INVALID_INPUT, INVALID_STATE, intent rejected, replay mismatch,
 //! or invalid governance input; 3 ERROR or solver unavailable; 64 usage error.
 #![forbid(unsafe_code)]
@@ -38,6 +38,19 @@ enum Command {
     },
     /// Replay a decision record.
     Replay { wire: String, record: String },
+    /// Evaluate a read in plain mode (feature 010) and print its read record.
+    Read { wire: String, request: String },
+    /// Replay a read record from its own facts (feature 010).
+    ReadReplay { wire: String, record: String },
+    /// Evaluate a read intent with a host context (feature 010): print only the response for
+    /// the caller; `--record` writes the full read record for the host.
+    ReadIntent {
+        wire: String,
+        intent: String,
+        host: String,
+        #[arg(long)]
+        record: Option<String>,
+    },
     /// Verify wire IR with the SMT solver and print the verification attestation.
     Verify {
         wire: String,
@@ -89,6 +102,15 @@ fn result_code(result: &str) -> u8 {
         // Lifecycle refusals (feature 006) are decisions, like DENY.
         "DENY" | "ENTITY_ID_ALREADY_USED" | "LIFECYCLE_CONFLICT" => 1,
         "ERROR" => 3,
+        _ => 2,
+    }
+}
+
+/// Exit code for a read result (feature 010), in the same convention as decisions.
+fn read_code(result: &str) -> u8 {
+    match result {
+        "VALUE" => 0,
+        "EVALUATION_ERROR" => 3,
         _ => 2,
     }
 }
@@ -436,6 +458,68 @@ fn dispatch(cli: Cli) -> Result<u8, u8> {
             let r = behavior_core::replay(&module, &read(&record)?);
             emit(&r.to_json_string(), false);
             Ok(if r.matches { 0 } else { 2 })
+        }
+        Command::Read { wire, request } => {
+            let module = match behavior_core::admit(&read(&wire)?) {
+                Ok(m) => m,
+                Err(r) => {
+                    emit(&r.to_json_string(), false);
+                    return Ok(2);
+                }
+            };
+            match behavior_core::read::evaluate_read_request(&module, &read(&request)?) {
+                Ok(x) => {
+                    emit(&x.record.to_json_string(), false);
+                    Ok(read_code(x.record.result()))
+                }
+                Err(r) => {
+                    emit(&r.to_json_string(), false);
+                    Ok(2)
+                }
+            }
+        }
+        Command::ReadReplay { wire, record } => {
+            let module = match behavior_core::admit(&read(&wire)?) {
+                Ok(m) => m,
+                Err(r) => {
+                    emit(&r.to_json_string(), false);
+                    return Ok(2);
+                }
+            };
+            let r = behavior_core::read::replay_read(&module, &read(&record)?);
+            emit(&r.to_json_string(), false);
+            Ok(if r.matches { 0 } else { 2 })
+        }
+        Command::ReadIntent {
+            wire,
+            intent,
+            host,
+            record,
+        } => {
+            let module = match behavior_core::admit(&read(&wire)?) {
+                Ok(m) => m,
+                Err(r) => {
+                    emit(&r.to_json_string(), false);
+                    return Ok(2);
+                }
+            };
+            match behavior_core::read::evaluate_read_intent(&module, &read(&intent)?, &read(&host)?)
+            {
+                Ok(x) => {
+                    if let Some(path) = record {
+                        std::fs::write(&path, x.record.to_json_string()).map_err(|e| {
+                            eprintln!("behavior: cannot write {path}: {e}");
+                            USAGE
+                        })?;
+                    }
+                    emit(&x.response.to_json_string(), false);
+                    Ok(read_code(x.response.result()))
+                }
+                Err(rejection) => {
+                    emit(&rejection.to_json_string(), false);
+                    Ok(2)
+                }
+            }
         }
         Command::Intent { wire, intent, host } => {
             let module = match behavior_core::admit(&read(&wire)?) {

@@ -1,0 +1,1 @@
+{"ir_version":"0.7","read":{"body":{"project":{"items":[{"field":"name"}],"over":{"loc":{"file":"lab.py","line":116},"op":"param","param":"n"},"param":"x"}},"loc":{"file":"lab.py","line":116},"name":"inputs","params":[{"name":"n","role":"input","type":{"t":"int"}}]}}

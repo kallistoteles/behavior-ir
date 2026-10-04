@@ -1,4 +1,4 @@
-# The persistence contract (features 005–007, 009)
+# The persistence contract (features 005–007, 009, 010)
 
 > **The engine defines the canonical state-transition and persistence contract; hosts choose how
 > that contract is stored.**
@@ -193,6 +193,27 @@ it is not a standalone (non-)membership proof.
   `migration_atomicity`, `schema_history_consistency`.
 
 Details: `specs/009-schema-evolution/`.
+
+## Reads (feature 010)
+
+A read observes one exact state and changes nothing. `Store::read(&self, …)` takes a shared
+reference, and every write of the backend needs `&mut`, so a read cannot write. It reads the head
+once, or the `StateRef` it is given, which must be a state of this store; the module's schema must
+equal the schema at that position (`SCHEMA_MISMATCH` otherwise). Bound entities are loaded at the
+position; an identity that does not exist there gives a record with `INVALID_BINDING`, not an
+error. Facts come from the backend as of the position, as for transitions.
+
+- **Read records are evidence, never history.** The store never keeps them, and a store with any
+  number of reads has the same head, records and state identities as without them. A host keeps
+  the records it needs.
+- **Replay.** `Store::replay_read` checks a record against the store: its `data_version` must
+  name a state of this store, and the read is evaluated again there and compared byte for byte.
+  `replay_read` checks a record from its own facts, without a store.
+- **Read intents.** `Store::read_intent` is the capability boundary for untrusted callers: it
+  names a declared read, its targets must exist at the position (`UNKNOWN_TARGET`), and every
+  problem is listed before anything is evaluated.
+- **One version read per member.** A projection fetches each member's version once
+  (`EvaluationFacts::entity`) and records only the fields it uses.
 
 ## Evidence
 

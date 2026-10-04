@@ -1,12 +1,12 @@
 ---
 name: behavior-verification
 description: Run Behavior verification and act on its results (proven, counterexample, inconclusive), fixing the model rather than weakening checks, and telling verifier precision debt from a missing requirement. Use after writing or changing a behavior model, and whenever an attestation is not verified.
-release: 0.9.0
+release: 0.10.0
 ---
 
 # Verifying behavior
 
-This skill describes **Behavior release 0.9.0**. Use only what is described here or listed in the
+This skill describes **Behavior release 0.10.0**. Use only what is described here or listed in the
 release's public API.
 
 > If the public Behavior API cannot express a requirement, record a semantic gap in
@@ -40,7 +40,7 @@ outcome = {c["action"]["name"]: c["outcome"] for c in attestation.checks}
 |---|---|---|
 | `preservation` | `preservation`, `referential_integrity` | Can an allowed transition end in a state that breaks an entity constraint, an invariant, a module invariant, or leave a `Ref` pointing at a removed entity? |
 | `postcondition` | `postcondition` | Can an allowed transition violate an `ensures`? |
-| `evaluation_error` | `evaluation_error` | Can evaluation fail (division by zero, overflow, a fixed-scale range) on a reachable path? |
+| `evaluation_error` | `evaluation_error` | Can evaluation fail (division by zero, overflow, a fixed-scale range) on a reachable path? This includes every declared read (`action` is `read:<name>`) |
 | `dead_action` | `dead_action` | Is an action impossible to run? (a warning) |
 | `redundancy` | `redundant_precondition` | Is a precondition always true when reached? (a warning) |
 | `vacuity` | `always_true`, `always_false` | Is a `@rule` constant for every valid entity? (a warning) |
@@ -139,6 +139,23 @@ assert outcome([non_negative_amount]) == "inconclusive"  # stated: precision deb
    postcondition, excluding a check kind from the profile, or moving the rule into host code.
    Each of these hides a real problem.
 
+## Verifying declared reads
+
+`evaluation_error` also checks every declared read, over every valid state. Its checks have
+`action` named `read:<name>`. A projection's derived values are checked for a member that passes
+the query's filter, so a filter that excludes the failing case proves the read. A counterexample
+holds the read record that failed.
+
+```python
+# from examples/verifying_reads.py
+attestation = verify(model, Profile(checks=["evaluation_error"]))
+division = {c["action"]["name"]: c["outcome"] for c in attestation.checks
+            if "division by zero" in c["subject"]["name"]}
+assert division == {"read:all_averages": "counterexample",
+                    "read:measured_averages": "proven",
+                    "read:average_ph": "counterexample"}
+```
+
 ## Verifying a migration
 
 `verify_migration(migration)` checks a migration before it touches a store. For every migrated
@@ -168,7 +185,7 @@ assert check["outcome"] == "inconclusive" and not debt.verified
 
 The command line has `behavior migration verify <source> <target> <migration>`.
 
-## Precision debt catalogue (release 0.9.0)
+## Precision debt catalogue (release 0.10.0)
 
 These properties can hold and still be inconclusive. They are verifier limits, not model errors.
 

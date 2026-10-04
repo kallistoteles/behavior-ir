@@ -10,14 +10,14 @@ from typing import Any
 
 from . import _engine
 from ._versions import python_version
-from .decl import action, constraint, derived, entity, field, invariant, rule
+from .decl import action, constraint, derived, entity, field, invariant, read, rule
 from .errors import (
     BehaviorDefinitionError, BehaviorError, BehaviorInvalid, BehaviorTypeError, CommitRefused,
     IntentRejected, StateConflict,
 )
 from .expr import and_, exists, none, not_, or_, referenced, rescale, underlying
 from .module import BehaviorModule
-from .query import Query, all_, any_, count, max_, min_, select, sum_, unique
+from .query import Projection, Query, all_, any_, count, max_, min_, project, select, sum_, unique
 from .results import AdmissionError, AdmissionResult, Change, Decision, ReplayResult, TraceStep
 from .statements import create, ensures, remove, requires, set_
 from .types import Context, Exact, Id, Input, Option, Ref, Rounding, nominal
@@ -26,6 +26,9 @@ from .verify import Attestation, Profile, verify
 from .migration import (
     Migration, MigrationAdmission, apply_migration, enum_map, strict_enum_map, strict_unwrap,
     verify_migration,
+)
+from .reads import (
+    ReadExecution, ReadRecord, ReadResponse, ReadResult, evaluate_read, read_intent, replay_read,
 )
 from .store import (
     CommitResult, ConformanceReport, Evaluation, InMemoryBackend, ReplayReport, SchemaRef,
@@ -138,4 +141,6 @@ __all__ = [
     "versions", "__version__",
     "Migration", "MigrationAdmission", "apply_migration", "authorize_migration", "enum_map", "strict_enum_map",
     "strict_unwrap", "verify_migration",
+    "read", "evaluate_read", "ReadRecord", "ReadResponse", "ReadResult", "project", "Projection",
+    "replay_read", "read_intent", "ReadExecution",
 ]

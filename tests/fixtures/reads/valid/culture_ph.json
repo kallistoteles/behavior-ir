@@ -1,0 +1,1 @@
+{"ir_version":"0.7","read":{"body":{"value":{"args":["culture"],"loc":{"file":"lab.py","line":92},"name":"ph_avg","op":"derived"}},"loc":{"file":"lab.py","line":92},"name":"culture_ph","params":[{"name":"culture","role":"state","type":{"name":"Culture","t":"entity"}}]}}

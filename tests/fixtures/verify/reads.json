@@ -1,0 +1,422 @@
+{
+ "ir_version": "0.7",
+ "enums": [],
+ "nominals": [],
+ "invariants": [],
+ "actions": [],
+ "entities": [
+  {
+   "name": "Culture",
+   "loc": {
+    "file": "readsv.py",
+    "line": 3
+   },
+   "fields": [
+    {
+     "name": "measurements",
+     "type": {
+      "t": "int"
+     },
+     "loc": {
+      "file": "readsv.py",
+      "line": 4
+     }
+    },
+    {
+     "name": "ph_total",
+     "type": {
+      "t": "int"
+     },
+     "loc": {
+      "file": "readsv.py",
+      "line": 5
+     }
+    }
+   ]
+  }
+ ],
+ "constraints": [
+  {
+   "name": "counted",
+   "entity": "Culture",
+   "param": "c",
+   "loc": {
+    "file": "readsv.py",
+    "line": 7
+   },
+   "body": {
+    "op": "ge",
+    "args": [
+     {
+      "op": "field",
+      "param": "c",
+      "field": "measurements",
+      "loc": {
+       "file": "readsv.py",
+       "line": 7
+      }
+     },
+     {
+      "op": "lit",
+      "type": {
+       "t": "int"
+      },
+      "value": 0,
+      "loc": {
+       "file": "lab.py",
+       "line": 7
+      }
+     }
+    ],
+    "loc": {
+     "file": "readsv.py",
+     "line": 7
+    }
+   }
+  },
+  {
+   "name": "bounded",
+   "entity": "Culture",
+   "param": "c",
+   "loc": {
+    "file": "readsv.py",
+    "line": 8
+   },
+   "body": {
+    "op": "le",
+    "args": [
+     {
+      "op": "field",
+      "param": "c",
+      "field": "measurements",
+      "loc": {
+       "file": "readsv.py",
+       "line": 8
+      }
+     },
+     {
+      "op": "lit",
+      "type": {
+       "t": "int"
+      },
+      "value": 1000000,
+      "loc": {
+       "file": "lab.py",
+       "line": 8
+      }
+     }
+    ],
+    "loc": {
+     "file": "readsv.py",
+     "line": 8
+    }
+   }
+  }
+ ],
+ "derived": [
+  {
+   "name": "avg",
+   "kind": "derived",
+   "loc": {
+    "file": "readsv.py",
+    "line": 10
+   },
+   "params": [
+    {
+     "name": "c",
+     "type": {
+      "t": "entity",
+      "name": "Culture"
+     }
+    }
+   ],
+   "body": {
+    "op": "div",
+    "args": [
+     {
+      "op": "field",
+      "param": "c",
+      "field": "ph_total",
+      "loc": {
+       "file": "readsv.py",
+       "line": 11
+      }
+     },
+     {
+      "op": "field",
+      "param": "c",
+      "field": "measurements",
+      "loc": {
+       "file": "readsv.py",
+       "line": 11
+      }
+     }
+    ],
+    "loc": {
+     "file": "readsv.py",
+     "line": 11
+    }
+   }
+  }
+ ],
+ "reads": [
+  {
+   "name": "average_ph",
+   "params": [],
+   "loc": {
+    "file": "readsv.py",
+    "line": 20
+   },
+   "body": {
+    "value": {
+     "op": "div",
+     "args": [
+      {
+       "op": "sum",
+       "args": [
+        {
+         "op": "select",
+         "entity": "Culture",
+         "loc": {
+          "file": "readsv.py",
+          "line": 20
+         }
+        }
+       ],
+       "param": "c",
+       "body": {
+        "op": "field",
+        "param": "c",
+        "field": "ph_total",
+        "loc": {
+         "file": "readsv.py",
+         "line": 20
+        }
+       },
+       "loc": {
+        "file": "readsv.py",
+        "line": 20
+       }
+      },
+      {
+       "op": "count",
+       "args": [
+        {
+         "op": "select",
+         "entity": "Culture",
+         "loc": {
+          "file": "readsv.py",
+          "line": 20
+         }
+        }
+       ],
+       "loc": {
+        "file": "readsv.py",
+        "line": 20
+       }
+      }
+     ],
+     "loc": {
+      "file": "readsv.py",
+      "line": 20
+     }
+    }
+   }
+  },
+  {
+   "name": "smoothed_ph",
+   "loc": {
+    "file": "readsv.py",
+    "line": 22
+   },
+   "params": [
+    {
+     "name": "culture",
+     "role": "state",
+     "type": {
+      "t": "entity",
+      "name": "Culture"
+     }
+    }
+   ],
+   "body": {
+    "value": {
+     "op": "div",
+     "loc": {
+      "file": "readsv.py",
+      "line": 22
+     },
+     "args": [
+      {
+       "op": "field",
+       "param": "culture",
+       "field": "ph_total",
+       "loc": {
+        "file": "readsv.py",
+        "line": 22
+       }
+      },
+      {
+       "op": "add",
+       "loc": {
+        "file": "readsv.py",
+        "line": 22
+       },
+       "args": [
+        {
+         "op": "field",
+         "param": "culture",
+         "field": "measurements",
+         "loc": {
+          "file": "readsv.py",
+          "line": 22
+         }
+        },
+        {
+         "op": "lit",
+         "type": {
+          "t": "int"
+         },
+         "value": 1,
+         "loc": {
+          "file": "lab.py",
+          "line": 22
+         }
+        }
+       ]
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "all_averages",
+   "params": [],
+   "loc": {
+    "file": "readsv.py",
+    "line": 24
+   },
+   "body": {
+    "project": {
+     "over": {
+      "op": "select",
+      "entity": "Culture",
+      "loc": {
+       "file": "readsv.py",
+       "line": 20
+      }
+     },
+     "param": "c",
+     "items": [
+      {
+       "derived": "avg"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "name": "measured_averages",
+   "params": [],
+   "loc": {
+    "file": "readsv.py",
+    "line": 26
+   },
+   "body": {
+    "project": {
+     "param": "c",
+     "items": [
+      {
+       "derived": "avg"
+      }
+     ],
+     "over": {
+      "op": "where",
+      "args": [
+       {
+        "op": "select",
+        "entity": "Culture",
+        "loc": {
+         "file": "readsv.py",
+         "line": 20
+        }
+       }
+      ],
+      "param": "c",
+      "loc": {
+       "file": "readsv.py",
+       "line": 26
+      },
+      "body": {
+       "op": "gt",
+       "args": [
+        {
+         "op": "field",
+         "param": "c",
+         "field": "measurements",
+         "loc": {
+          "file": "readsv.py",
+          "line": 26
+         }
+        },
+        {
+         "op": "lit",
+         "type": {
+          "t": "int"
+         },
+         "value": 0,
+         "loc": {
+          "file": "lab.py",
+          "line": 26
+         }
+        }
+       ],
+       "loc": {
+        "file": "readsv.py",
+        "line": 26
+       }
+      }
+     }
+    }
+   }
+  },
+  {
+   "name": "culture_view",
+   "loc": {
+    "file": "readsv.py",
+    "line": 28
+   },
+   "params": [
+    {
+     "name": "culture",
+     "role": "state",
+     "type": {
+      "t": "entity",
+      "name": "Culture"
+     }
+    }
+   ],
+   "body": {
+    "project": {
+     "over": {
+      "op": "param",
+      "param": "culture",
+      "loc": {
+       "file": "readsv.py",
+       "line": 28
+      }
+     },
+     "param": "c",
+     "items": [
+      {
+       "field": "ph_total"
+      },
+      {
+       "derived": "avg"
+      }
+     ]
+    }
+   }
+  }
+ ]
+}

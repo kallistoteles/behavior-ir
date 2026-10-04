@@ -119,6 +119,18 @@ for m in tests/fixtures/migration/valid/*.json; do
   if [ "$rc" -ne 0 ]; then echo "MIGRATION ADMISSION FAILED: $m" >&2; fail=1; fi
 done
 
+# First-class reads (feature 010): every golden read request, read twice and replayed.
+for r in tests/fixtures/reads/requests/*.json; do
+  w=tests/fixtures/reads/modules/lab.json
+  run_twice "read $r" "$BIN" read "$w" "$r"
+  "$BIN" read "$w" "$r" >"$tmp/read.json" 2>/dev/null || true
+  if ! cmp -s "$tmp/read.json" "tests/fixtures/reads/records/$(basename "${r%.json}").expected.json"; then
+    echo "READ RECORD DIFFERS FROM GOLDEN: $r" >&2; fail=1
+  fi
+  rc=0; "$BIN" read-replay "$w" "$tmp/read.json" >/dev/null 2>&1 || rc=$?
+  if [ "$rc" -ne 0 ]; then echo "READ REPLAY MISMATCH: $r" >&2; fail=1; fi
+done
+
 if command -v "${BEHAVIOR_Z3:-z3}" >/dev/null 2>&1; then
   for m in tests/fixtures/migration/valid/*.json; do
     case "$m" in *.expected.json) continue ;; esac
@@ -175,6 +187,7 @@ if python3 -c "import behavior._engine" 2>/dev/null; then
   run_twice "examples.project_margin.run" python3 -m examples.project_margin.run
   run_twice "examples.accounts.run" python3 -m examples.accounts.run
   run_twice "examples.orders.run" python3 -m examples.orders.run
+  run_twice "examples.lab_reads.run" python3 -m examples.lab_reads.run
 fi
 
 if [ "$fail" -ne 0 ]; then

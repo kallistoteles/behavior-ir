@@ -1,12 +1,12 @@
 ---
 name: behavior-application
-description: Build the host application around a Behavior model (stores, evaluate and commit, conflicts, replay, custom storage backends, supplying facts), keeping every business rule in behavior. Use when writing services, handlers, jobs or storage code that use a behavior model.
-release: 0.9.0
+description: Build the host application around a Behavior model (stores, evaluate and commit, reads and read intents for agents, conflicts, replay, custom storage backends, supplying facts), keeping every business rule in behavior. Use when writing services, handlers, jobs or storage code that use a behavior model.
+release: 0.10.0
 ---
 
 # Building an application on Behavior
 
-This skill describes **Behavior release 0.9.0**. Use only what is described here or listed in the
+This skill describes **Behavior release 0.10.0**. Use only what is described here or listed in the
 release's public API.
 
 > If the public Behavior API cannot express a requirement, record a semantic gap in
@@ -25,9 +25,10 @@ The behavior model decides and the host serves it.
 
 The rules of the boundary:
 
-1. **Every business decision is a behavior action.** A condition checked only in host code (an
-   `if` before calling the engine, a filter in a SQL query) is a hidden rule. Either move it into
-   the model or record it as a semantic gap.
+1. **Every business decision is a behavior action, and every question a read.** A condition
+   checked only in host code (an `if` before calling the engine, a filter in a SQL query) is a
+   hidden rule. Either move it into the model or record it as a semantic gap. A question the
+   application answers is a declared read, never an action without effects.
 2. **Every state change goes evaluate → commit.** Never write entity state any other way.
 3. **Supply identities and time.** Never ask the engine to invent them. Never reuse an identity:
    it is used forever, even after removal.
@@ -84,6 +85,64 @@ assert replay_behavior(store, [model]).ok
 
 A denied decision has no bundle: report its `decision.reasons` to the user. There is nothing to
 commit.
+
+## Reads: asking without changing
+
+A question about the state is a **read**: the model declares it (`@read`, see the authoring
+skill) and the host evaluates it. A read changes nothing: no commit, no record in the store's
+history, and nothing to bind except what the question is about.
+
+```python
+# from examples/reading_state.py
+total = store.read(model, "open_total", bindings={"customer": "k1"})
+assert total.value == 120 and store.current().position == 2
+rows = store.read(model, "open_orders")
+assert [r["id"] for r in rows.value] == ["o1", "o2"]  # identity order
+```
+
+- **`store.read(model, read, bindings=…, input=…, context=…, at=…)`** returns a `ReadResult`:
+  - `result`: `VALUE`, `EVALUATION_ERROR`, `INVALID_INPUT` or `INVALID_BINDING` (an id that does
+    not exist at that state);
+  - `value`: a value, a list of records (a query projection, in identity order) or one record
+    (an entity projection); an absent field is `None`, never left out;
+  - `record`: the full evidence, and `record_id`, its identity.
+- **The past.** `at=store.state_at(p)` (or any earlier `StateRef`) reads that state exactly as it
+  was, under its own schema.
+- **A schema mismatch** raises `CommitRefused` with `SCHEMA_MISMATCH`, as for evaluation.
+- **Evidence.** A read record names the exact state, the inputs, everything the read observed,
+  and the result. `store.replay_read(model, record)` checks it against the store;
+  `replay_read(model, record)` checks it on its own. The store never keeps read records: keep the
+  ones you need.
+
+```python
+# from examples/reading_state.py
+assert store.read(model, "open_total", bindings={"customer": "k1"}, at=before).value == 30
+
+# The record is evidence: it replays against the store and on its own.
+assert store.replay_read(model, total.record).matches
+assert replay_read(model, total.record).matches
+```
+
+### Agents and other untrusted callers
+
+An agent asks through **`store.read_intent(model, {"capability", "targets", "input"})`**. It may
+name only a declared read, and every problem is listed at once (`IntentRejected`), including
+targets that do not exist. The result is a `ReadExecution`:
+
+- **`response`** holds the declared result and the record identity. Forward only this.
+- **`record`** holds the evidence, including what derived values read internally. Keep it on the
+  host side.
+
+```python
+# from examples/reading_state.py
+x = store.read_intent(model, {"capability": "customer_summary", "targets": {"customer": "k1"}})
+assert x.response.value == {"id": "k1", "name": "Ada", "in_good_standing": False}
+assert "credit_limit" not in x.response.to_json()  # what the read observed stays in x.record
+```
+
+Asking is a read capability and changing is a transition capability. An action name is not a
+read capability (`UNKNOWN_CAPABILITY`), and an agent can never send an expression of its own:
+ad-hoc reads (`store.read(model, some_read_function)`) are for trusted host code only.
 
 ## Conflicts
 
@@ -238,4 +297,6 @@ of this automatically, so prefer a store for anything that changes state.
 | retrying `commit` with the same bundle after `StateConflict` | re-evaluate on `store.current()`, then commit the new bundle |
 | generating ids inside the model or deriving them from time | the host chooses ids and passes them as inputs |
 | filtering entities in the database before evaluation | a query in the model (the store answers it as of the evaluated state) |
+| an action without effects, and a placeholder entity, just to answer a question | a declared read (`store.read`), with no binding beyond what the question is about |
+| handing an agent a read record, or letting it send an expression | `store.read_intent`, forwarding only `response` |
 | importing the package's private modules (any name starting with `_`) or anything from the Behavior repository | only `from behavior import …` of the pinned release |

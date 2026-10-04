@@ -25,6 +25,9 @@ pub const IR_VERSION_LIFECYCLE: &str = "0.5";
 /// `any`, `all`, `sum`, `min`, `max`, `unique`, and module-level invariants. Any use of one of
 /// them needs 0.6; earlier documents without them are still accepted.
 pub const IR_VERSION_QUERIES: &str = "0.6";
+/// The IR version with declared reads and read documents (feature 010). A module with a `reads`
+/// section needs 0.7; earlier documents without one are still accepted.
+pub const IR_VERSION_READS: &str = "0.7";
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 pub struct Loc {
@@ -188,6 +191,36 @@ pub struct WAction {
     pub loc: Loc,
 }
 
+/// A projection item (wire 0.7): a stored field of the projected entity type, or a derived value
+/// over it, named.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum WItem {
+    Field(String),
+    Derived(String),
+}
+
+/// The body of a read (wire 0.7): a value expression, or a projection of named items over a query
+/// or over an entity parameter (`over`), with `param` naming the member.
+#[derive(Debug, Clone)]
+pub enum WReadBody {
+    Value(WExpr),
+    Project {
+        over: WExpr,
+        param: String,
+        items: Vec<WItem>,
+    },
+}
+
+/// A read (wire 0.7): a declared read in a module's `reads` section, or the read of a read
+/// document (an ad-hoc read).
+#[derive(Debug, Clone)]
+pub struct WRead {
+    pub name: String,
+    pub params: Vec<WParam>,
+    pub body: WReadBody,
+    pub loc: Loc,
+}
+
 #[derive(Debug, Clone)]
 pub struct WModule {
     pub enums: Vec<WEnum>,
@@ -199,6 +232,8 @@ pub struct WModule {
     pub global_invariants: Vec<WGlobalInvariant>,
     pub constraints: Vec<WConstraint>,
     pub actions: Vec<WAction>,
+    /// Declared reads (wire 0.7), in document order.
+    pub reads: Vec<WRead>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -361,6 +396,8 @@ pub enum DecodeError {
     NeedsLifecycleVersion(String),
     /// A document below 0.6 uses a form introduced by wire 0.6 (named).
     NeedsQueryVersion(String),
+    /// A document below 0.7 uses a form introduced by wire 0.7 (named).
+    NeedsReadVersion(String),
 }
 
 pub(crate) type R<T> = Result<T, DecodeError>;
@@ -848,6 +885,83 @@ fn decode_effect(v: &Value, path: &str) -> R<Decoded> {
     }))
 }
 
+/// A read (wire 0.7): `{name, params, body, loc}`.
+fn decode_read(v: &Value, path: &str) -> R<WRead> {
+    let mut o = Obj::new(v, path)?;
+    let name = o.ident("name")?;
+    let params_path = o.sub("params");
+    let params = decode_list(o.arr("params")?, &params_path, decode_param)?;
+    let body_path = o.sub("body");
+    let body = decode_read_body(o.get("body")?, &body_path)?;
+    let loc = o.loc()?;
+    o.finish()?;
+    Ok(WRead {
+        name,
+        params,
+        body,
+        loc,
+    })
+}
+
+/// A read body: exactly one of `value` (an expression) and `project`.
+fn decode_read_body(v: &Value, path: &str) -> R<WReadBody> {
+    let mut b = Obj::new(v, path)?;
+    let value = b.opt("value");
+    let project = b.opt("project");
+    b.finish()?;
+    match (value, project) {
+        (Some(e), None) => Ok(WReadBody::Value(decode_expr(e, &format!("{path}.value"))?)),
+        (None, Some(p)) => {
+            let project_path = format!("{path}.project");
+            let mut o = Obj::new(p, &project_path)?;
+            let over_path = o.sub("over");
+            let over = decode_expr(o.get("over")?, &over_path)?;
+            let param = o.ident("param")?;
+            let items_path = o.sub("items");
+            let items = decode_list(o.arr("items")?, &items_path, decode_item)?;
+            o.finish()?;
+            Ok(WReadBody::Project { over, param, items })
+        }
+        _ => fail(path, "a read body has exactly one of `value` and `project`"),
+    }
+}
+
+/// A projection item: exactly one of `field` and `derived`, with a non-empty name.
+fn decode_item(v: &Value, path: &str) -> R<WItem> {
+    let mut o = Obj::new(v, path)?;
+    let field = o.opt("field");
+    let derived = o.opt("derived");
+    o.finish()?;
+    // Names are checked by admission: a reference path such as `customer.name` is refused there
+    // as an unknown projection item, with guidance.
+    match (field, derived) {
+        (Some(Value::String(f)), None) if !f.is_empty() => Ok(WItem::Field(f.clone())),
+        (None, Some(Value::String(d))) if !d.is_empty() => Ok(WItem::Derived(d.clone())),
+        _ => fail(
+            path,
+            "a projection item is exactly one of `field` and `derived`, naming an item",
+        ),
+    }
+}
+
+/// Decodes a read document (wire 0.7): `{"ir_version": "0.7", "read": {...}}`, an ad-hoc read
+/// admitted against a module on use.
+pub fn decode_read_document(text: &str) -> R<WRead> {
+    let root: Value = match serde_json::from_str(text) {
+        Ok(v) => v,
+        Err(e) => return fail("$", format!("invalid JSON: {e}")),
+    };
+    let mut o = Obj::new(&root, "$")?;
+    match o.get("ir_version")? {
+        Value::String(v) if v == IR_VERSION_READS => {}
+        Value::String(v) => return Err(DecodeError::UnsupportedVersion(v.clone())),
+        _ => return fail("$.ir_version", "expected a string"),
+    }
+    let read = decode_read(o.get("read")?, "$.read")?;
+    o.finish()?;
+    Ok(read)
+}
+
 /// Decodes a wire IR document. The version is checked before anything else.
 pub fn decode_module(text: &str) -> R<WModule> {
     let root: Value = match serde_json::from_str(text) {
@@ -855,10 +969,11 @@ pub fn decode_module(text: &str) -> R<WModule> {
         Err(e) => return fail("$", format!("invalid JSON: {e}")),
     };
     let mut o = Obj::new(&root, "$")?;
-    let (with_constraints, fixed_scale, lifecycle, queries) = match o.get("ir_version")? {
-        Value::String(v) if v == IR_VERSION_EXACT => (true, true, false, false),
-        Value::String(v) if v == IR_VERSION_LIFECYCLE => (true, true, true, false),
-        Value::String(v) if v == IR_VERSION_QUERIES => (true, true, true, true),
+    let (with_constraints, fixed_scale, lifecycle, queries, reads_ok) = match o.get("ir_version")? {
+        Value::String(v) if v == IR_VERSION_EXACT => (true, true, false, false, false),
+        Value::String(v) if v == IR_VERSION_LIFECYCLE => (true, true, true, false, false),
+        Value::String(v) if v == IR_VERSION_QUERIES => (true, true, true, true, false),
+        Value::String(v) if v == IR_VERSION_READS => (true, true, true, true, true),
         Value::String(v) => return Err(DecodeError::UnsupportedVersion(v.clone())),
         _ => return fail("$.ir_version", "expected a string"),
     };
@@ -1032,7 +1147,17 @@ pub fn decode_module(text: &str) -> R<WModule> {
         })
     })?;
 
+    let reads_present = o.opt("reads").is_some();
+    let reads = match o.opt("reads") {
+        None => Vec::new(),
+        Some(Value::Array(items)) => decode_list(items, "$.reads", decode_read)?,
+        Some(_) => return fail("$.reads", "expected an array"),
+    };
+
     o.finish()?;
+    if reads_present && !reads_ok {
+        return Err(DecodeError::NeedsReadVersion("reads".into()));
+    }
     let module = WModule {
         enums,
         nominals,
@@ -1042,6 +1167,7 @@ pub fn decode_module(text: &str) -> R<WModule> {
         global_invariants,
         constraints,
         actions,
+        reads,
     };
     if !fixed_scale && uses_fixed_scale(&module) {
         return fail(

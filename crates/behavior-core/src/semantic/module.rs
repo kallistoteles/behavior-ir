@@ -3,7 +3,7 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use crate::semantic::expr::Expr;
+use crate::semantic::expr::{Expr, QueryNode};
 use crate::semantic::types::{EnumInfo, Hash, NominalInfo, Type};
 use crate::wire::{DerivedKind, Loc, Role};
 
@@ -17,6 +17,9 @@ pub enum Kind {
     Invariant = 5,
     Action = 6,
     Constraint = 7,
+    /// A declared read (feature 010): a capability, part of the behavior version, never of the
+    /// schema.
+    Read = 8,
 }
 
 impl Kind {
@@ -29,6 +32,7 @@ impl Kind {
             Kind::Invariant => "invariant",
             Kind::Action => "action",
             Kind::Constraint => "constraint",
+            Kind::Read => "read",
         }
     }
 }
@@ -379,6 +383,132 @@ impl ActionItem {
     }
 }
 
+/// A projection item (feature 010): a stored field of the projected entity type, or a derived
+/// value whose only parameter is that entity type.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Item {
+    Field(String),
+    Derived { name: String, target: Hash },
+}
+
+impl Item {
+    /// The item's name: the key of its value in every projected record.
+    pub fn name(&self) -> &str {
+        match self {
+            Item::Field(n) | Item::Derived { name: n, .. } => n,
+        }
+    }
+}
+
+/// What a projection ranges over (feature 010): a query (zero or more records) or one entity
+/// bound by a `state` parameter of the read (exactly one record).
+#[derive(Debug, Clone)]
+pub enum Over {
+    Query(QueryNode),
+    Param { name: String, loc: Loc },
+}
+
+/// A projection (feature 010): named items of every member of `over`, of entity type `entity`.
+/// `member` is the source name of the member variable (display and serialization only).
+#[derive(Debug, Clone)]
+pub struct Projection {
+    pub(crate) over: Over,
+    pub(crate) entity: String,
+    pub(crate) member: String,
+    pub(crate) items: Vec<Item>,
+}
+
+impl Projection {
+    pub fn over(&self) -> &Over {
+        &self.over
+    }
+    pub fn entity(&self) -> &str {
+        &self.entity
+    }
+    pub fn member(&self) -> &str {
+        &self.member
+    }
+    pub fn items(&self) -> &[Item] {
+        &self.items
+    }
+
+    /// Where the projection is written (the location of its `over`).
+    pub fn loc(&self) -> &Loc {
+        match &self.over {
+            Over::Query(q) => q.loc(),
+            Over::Param { loc, .. } => loc,
+        }
+    }
+
+    /// The expression of `item` over the member named `param`: a field read, or a call of the
+    /// derived value with the member (feature 010: evaluation and verification of a projection
+    /// use exactly these expressions).
+    pub fn item_expr(&self, module: &Module, item: &Item, param: &str) -> Option<Expr> {
+        use crate::semantic::expr::ExprKind;
+        let loc = self.loc().clone();
+        Some(match item {
+            Item::Field(f) => Expr::new(
+                ExprKind::Field {
+                    param: param.to_string(),
+                    field: f.clone(),
+                },
+                module.entity(&self.entity)?.field_type(f)?.clone(),
+                loc,
+            ),
+            Item::Derived { name, target } => Expr::new(
+                ExprKind::DerivedRef {
+                    name: name.clone(),
+                    target: *target,
+                    args: vec![param.to_string()],
+                },
+                module.derived(name)?.body().ty.clone(),
+                loc,
+            ),
+        })
+    }
+}
+
+/// The body of a read (feature 010).
+#[derive(Debug, Clone)]
+pub enum ReadBody {
+    Value(Expr),
+    Project(Projection),
+}
+
+/// A read (feature 010): a pure, typed observation of one state. A declared read is a module item
+/// and a capability; an ad-hoc read is admitted against a module per call and never enters it.
+#[derive(Debug, Clone)]
+pub struct ReadItem {
+    pub(crate) name: String,
+    pub(crate) params: Vec<Param>,
+    pub(crate) body: ReadBody,
+    pub(crate) hash: Hash,
+    pub(crate) declared: bool,
+    pub(crate) loc: Loc,
+}
+
+impl ReadItem {
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+    pub fn params(&self) -> &[Param] {
+        &self.params
+    }
+    pub fn body(&self) -> &ReadBody {
+        &self.body
+    }
+    pub fn hash(&self) -> &Hash {
+        &self.hash
+    }
+    /// Whether this read is declared in a module (a capability), not an ad-hoc read.
+    pub fn declared(&self) -> bool {
+        self.declared
+    }
+    pub fn loc(&self) -> &Loc {
+        &self.loc
+    }
+}
+
 /// An admitted behavior module. Its hash is the behavior version.
 #[derive(Debug, Clone)]
 pub struct Module {
@@ -390,6 +520,8 @@ pub struct Module {
     pub(crate) global_invariants: BTreeMap<String, GlobalInvariantItem>,
     pub(crate) constraints: BTreeMap<String, ConstraintItem>,
     pub(crate) actions: BTreeMap<String, ActionItem>,
+    /// Declared reads (feature 010), by name.
+    pub(crate) reads: BTreeMap<String, ReadItem>,
     pub(crate) name_table: BTreeMap<(Kind, String), Hash>,
     pub(crate) evaluation_order: Vec<String>,
     /// Source metadata (outside the hash).
@@ -444,6 +576,13 @@ impl Module {
     }
     pub fn derived(&self, name: &str) -> Option<&DerivedItem> {
         self.derived.get(name)
+    }
+    /// Declared reads (feature 010), in name order.
+    pub fn reads(&self) -> &BTreeMap<String, ReadItem> {
+        &self.reads
+    }
+    pub fn read(&self, name: &str) -> Option<&ReadItem> {
+        self.reads.get(name)
     }
     /// Entity constraints of the given entity type, in name order.
     pub fn constraints_for<'a>(

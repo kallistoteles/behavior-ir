@@ -1,0 +1,1 @@
+{"context":{},"data_version":"golden:1","facts":{"universe":[{"entity":"Order","members":[{"amount":30,"customer":"k1","id":"o1","status":"OPEN"},{"amount":12,"customer":"k1","id":"o2","status":"CLOSED"},{"amount":7,"customer":"k2","id":"o3","status":"OPEN"}]}]},"input":{},"read":"customer_summary","state":{"customer":{"credit_limit":100,"id":"k1","name":"Ada"}}}

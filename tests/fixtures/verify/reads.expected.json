@@ -1,0 +1,50 @@
+{
+ "_comment": "Feature 010 (FR-017): evaluation errors of declared reads. A projection's derived item is checked for a member that satisfies the query's filter. average_ph also overflows: a sum of Int fields can exceed the Int range (a real finding, confirmed by evaluating the read).",
+ "profile": [
+  "evaluation_error"
+ ],
+ "checks": [
+  {
+   "kind": "evaluation_error",
+   "action": "read:average_ph",
+   "subject": "decimal(sum(select(Culture), c, c.ph_total)) / decimal(count(select(Culture))) (division by zero)",
+   "outcome": "counterexample"
+  },
+  {
+   "kind": "evaluation_error",
+   "action": "read:average_ph",
+   "subject": "$c.ph_total (numeric overflow)",
+   "outcome": "counterexample"
+  },
+  {
+   "kind": "evaluation_error",
+   "action": "read:smoothed_ph",
+   "subject": "decimal(culture.ph_total) / decimal(culture.measurements + 1) (division by zero)",
+   "outcome": "proven"
+  },
+  {
+   "kind": "evaluation_error",
+   "action": "read:smoothed_ph",
+   "subject": "culture.measurements + 1 (numeric overflow)",
+   "outcome": "proven"
+  },
+  {
+   "kind": "evaluation_error",
+   "action": "read:all_averages",
+   "subject": "decimal(c.ph_total) / decimal(c.measurements) (division by zero)",
+   "outcome": "counterexample"
+  },
+  {
+   "kind": "evaluation_error",
+   "action": "read:measured_averages",
+   "subject": "decimal(c.ph_total) / decimal(c.measurements) (division by zero)",
+   "outcome": "proven"
+  },
+  {
+   "kind": "evaluation_error",
+   "action": "read:culture_view",
+   "subject": "decimal(c.ph_total) / decimal(c.measurements) (division by zero)",
+   "outcome": "counterexample"
+  }
+ ]
+}

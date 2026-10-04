@@ -1,0 +1,1 @@
+{"ir_version":"0.7","read":{"body":{"value":{"loc":{"file":"lab.py","line":102},"op":"lit","type":{"t":"int"},"value":1}},"loc":{"file":"lab.py","line":102},"name":"nothing","params":[{"name":"x","role":"input","type":{"name":"Nope","t":"enum"}}]}}

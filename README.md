@@ -246,6 +246,36 @@ proves migrations, `behavior migration admit|verify|apply` covers the command li
 examples.schema_evolution.run`, `docs/persistence.md`, `docs/verification.md` and
 `specs/009-schema-evolution/`.
 
+### First-class reads (feature 010)
+
+The runtime has three operations, each with its own record:
+
+| Operation | Changes | Recorded as |
+|---|---|---|
+| **Read** | nothing | a read record: evidence, reproducible, never part of history |
+| **Transition** | state, within one schema | a transition record |
+| **Migration** | the schema under which state is valid | a migration record |
+
+A question is a read, never an action without effects. A module declares its questions with
+`@read`: a value, or a projection of named fields and derived values over a query (a list of
+records) or over one bound entity (one record):
+
+```python
+@read
+def customer_summary(customer: Customer):
+    return project(customer, lambda c: [c.name, standing(c)])
+
+store.read(model, "open_total", bindings={"customer": "k1"}, at=store.state_at(4))
+store.read_intent(model, {"capability": "customer_summary", "targets": {"customer": "k1"}})
+```
+
+Declared reads are capabilities: an agent names one through `read_intent` and receives only the
+declared result and the record's identity, never what the read observed internally. They are
+entry points, not building blocks: shared computation is a derived value. `behavior read`,
+`read-intent` and `read-replay` cover the command line, and `verify` checks every declared read
+for evaluation errors. See `python -m examples.lab_reads.run`, `PRINCIPLES.md` (14),
+`docs/persistence.md` and `specs/010-first-class-reads/`.
+
 ## Using a release (feature 008)
 
 Applications use Behavior through a **release**: an immutable tag `vX.Y.Z` of this repository
@@ -254,7 +284,7 @@ pinned by file and hash; no Rust toolchain is needed:
 
 ```text
 # requirements.txt of the application
-behavior @ file:///path/to/behavior-0.9.0-cp313-abi3-manylinux_2_28_x86_64.whl --hash=sha256:<from SHA256SUMS>
+behavior @ file:///path/to/behavior-0.10.0-cp313-abi3-manylinux_2_28_x86_64.whl --hash=sha256:<from SHA256SUMS>
 ```
 
 - **Install.** Run `pip install --require-hashes -r requirements.txt`. The wheel also installs

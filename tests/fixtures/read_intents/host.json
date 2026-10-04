@@ -1,0 +1,1 @@
+{"context":{},"data_version":"intent:1","facts":{"universe":[{"entity":"Culture","members":[{"active":true,"id":"c1","measurements":1,"name":"Basil","ph_total":7,"stage":null}]},{"entity":"Order","members":[{"amount":30,"customer":"k1","id":"o1","status":"OPEN"}]}]},"state":{"customer":{"credit_limit":100,"id":"k1","name":"Ada"}}}

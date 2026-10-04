@@ -1,0 +1,1 @@
+{"ir_version":"0.7","read":{"body":{"project":{"items":[{"field":"colour"}],"over":{"entity":"Culture","loc":{"file":"lab.py","line":110},"op":"select"},"param":"c"}},"loc":{"file":"lab.py","line":110},"name":"colours","params":[]}}

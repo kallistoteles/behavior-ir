@@ -67,6 +67,7 @@ pub(crate) fn merged_decls(source: &Module, target: &Module) -> Decls {
         enums,
         nominals,
         entities,
+        reads: BTreeSet::new(),
     }
 }
 

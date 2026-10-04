@@ -329,6 +329,15 @@ pub fn expr(kind: &ExprKind, ty: &Type) -> Hash {
 }
 
 pub const TAG_QUERY: &str = "behavior.query.v1";
+pub const TAG_READ: &str = "behavior.read.v1";
+pub const TAG_PROJECTION: &str = "behavior.projection.v1";
+/// The read record (feature 010): its format tag, and the tag of its identity.
+pub const TAG_READ_RECORD: &str = "behavior.read_record.v1";
+
+/// The identity of a read record: its canonical JSON without `record_id`.
+pub fn read_record(canonical_json: &str) -> Hash {
+    Enc::default().str(canonical_json).finish(TAG_READ_RECORD)
+}
 pub const TAG_GLOBAL_INVARIANT: &str = "behavior.invariant.global.v1";
 pub const TAG_QUERY_INSTANCE: &str = "behavior.query_instance.v1";
 
@@ -430,6 +439,55 @@ pub fn action(
         .refs(effects.iter())
         .refs(post.iter())
         .finish(TAG_ACTION)
+}
+
+/// What a projection ranges over, for hashing (feature 010).
+pub enum ProjectionSource<'a> {
+    Query(&'a Hash),
+    Param(&'a str),
+}
+
+/// A projection item, for hashing: a field by name, a derived value by name and hash (its name
+/// is the item's key in every record; a derived value's own hash leaves the name out).
+pub enum ProjectionItem<'a> {
+    Field(&'a str),
+    Derived(&'a str, &'a Hash),
+}
+
+/// A projection (feature 010): its source, entity type and items in order. The member variable's
+/// name is not part of it (like lambda parameter names).
+pub fn projection(over: ProjectionSource<'_>, entity: &str, items: &[ProjectionItem<'_>]) -> Hash {
+    let mut e = Enc::default();
+    match over {
+        ProjectionSource::Query(h) => e.u8(0).href(h),
+        ProjectionSource::Param(p) => e.u8(1).str(p),
+    };
+    e.str(entity).u32(items.len());
+    for item in items {
+        match item {
+            ProjectionItem::Field(f) => e.u8(0).str(f),
+            ProjectionItem::Derived(n, h) => e.u8(1).str(n).href(h),
+        };
+    }
+    e.finish(TAG_PROJECTION)
+}
+
+/// The body of a read, for hashing: a value expression's hash or a projection's hash.
+pub enum ReadBodyHash<'a> {
+    Value(&'a Hash),
+    Projection(&'a Hash),
+}
+
+/// A read (feature 010): its parameters and body. Its name and location are not part of it, so a
+/// declared read and the same ad-hoc read have one identity.
+pub fn read(ps: &[(String, ParamRole, Type)], body: ReadBodyHash<'_>) -> Hash {
+    let mut e = Enc::default();
+    params(&mut e, ps);
+    match body {
+        ReadBodyHash::Value(h) => e.u8(0).href(h),
+        ReadBodyHash::Projection(h) => e.u8(1).href(h),
+    };
+    e.finish(TAG_READ)
 }
 
 /// `entries` must already be sorted by `(kind, name bytes)`.

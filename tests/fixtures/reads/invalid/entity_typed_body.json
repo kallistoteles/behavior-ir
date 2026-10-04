@@ -1,0 +1,1 @@
+{"ir_version":"0.7","read":{"body":{"value":{"loc":{"file":"lab.py","line":100},"op":"param","param":"culture"}},"loc":{"file":"lab.py","line":100},"name":"whole","params":[{"name":"culture","role":"state","type":{"name":"Culture","t":"entity"}}]}}

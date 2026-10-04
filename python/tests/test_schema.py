@@ -11,7 +11,7 @@ from .conftest import FIXTURES, REPO_ROOT
 
 SCHEMAS = {
     v: json.loads((REPO_ROOT / "schema" / f"wire-ir-{v}.schema.json").read_text())
-    for v in ("0.1", "0.2", "0.3", "0.4", "0.5", "0.6")
+    for v in ("0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7")
 }
 SCHEMA = SCHEMAS["0.4"]
 FILES = sorted((FIXTURES / "wire" / "valid").glob("*.json")) + sorted(
@@ -74,3 +74,41 @@ def test_migration_schema_rejects_module_only_and_unknown_forms() -> None:
                                             "loc": {"file": "m.py", "line": 1}}}}]}
     with pytest.raises(jsonschema.ValidationError):
         jsonschema.validate(doc, MIGRATION_SCHEMA, cls=jsonschema.Draft202012Validator)
+
+
+READ_FILES = sorted((FIXTURES / "reads" / "modules").glob("*.json")) + sorted(
+    (FIXTURES / "reads" / "valid").glob("*.json")
+)
+
+
+def test_there_are_read_fixtures() -> None:
+    assert any(p.parent.name == "valid" for p in READ_FILES), "no ad-hoc read documents"
+    assert any(p.name == "lab.json" for p in READ_FILES), "no module with declared reads"
+
+
+@pytest.mark.parametrize("path", READ_FILES, ids=lambda p: f"{p.parent.name}/{p.name}")
+def test_read_fixture_conforms(path) -> None:  # type: ignore[no-untyped-def]
+    # Modules with reads and read documents (feature 010) conform to their version's schema.
+    doc = json.loads(path.read_text())
+    jsonschema.validate(doc, SCHEMAS[doc["ir_version"]], cls=jsonschema.Draft202012Validator)
+
+
+def test_reads_need_wire_ir_0_7() -> None:
+    doc = json.loads((FIXTURES / "reads" / "modules" / "lab.json").read_text())
+    doc["ir_version"] = "0.6"
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(doc, SCHEMAS["0.6"], cls=jsonschema.Draft202012Validator)
+
+
+def test_read_schema_rejects_malformed_bodies() -> None:
+    doc = json.loads((FIXTURES / "reads" / "valid" / "customer_count.json").read_text())
+    both = json.loads(json.dumps(doc))
+    both["read"]["body"]["project"] = {"over": both["read"]["body"]["value"], "param": "x",
+                                       "items": []}
+    two_keys = json.loads((FIXTURES / "reads" / "valid" / "orders_over.json").read_text())
+    two_keys["read"]["body"]["project"]["items"][0]["derived"] = "x"
+    bad_role = json.loads((FIXTURES / "reads" / "valid" / "orders_over.json").read_text())
+    bad_role["read"]["params"][0]["role"] = "read"
+    for bad in (both, two_keys, bad_role):
+        with pytest.raises(jsonschema.ValidationError):
+            jsonschema.validate(bad, SCHEMAS["0.7"], cls=jsonschema.Draft202012Validator)

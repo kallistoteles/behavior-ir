@@ -8,10 +8,12 @@ use serde_json::{Map, Value as Json, json};
 
 use crate::canonical;
 use crate::semantic::expr::{CANDIDATE, Expr, ExprKind, QueryKind, QueryNode};
-use crate::semantic::module::{Module, ParamRole};
+use crate::semantic::module::{Item, Module, Over, ParamRole, ReadBody, ReadItem};
 use crate::semantic::types::{ArithOp, CmpOp, Type, ops};
 use crate::semantic::value::encode;
-use crate::wire::{DerivedKind, IR_VERSION_EXACT, IR_VERSION_LIFECYCLE, IR_VERSION_QUERIES, Loc};
+use crate::wire::{
+    DerivedKind, IR_VERSION_EXACT, IR_VERSION_LIFECYCLE, IR_VERSION_QUERIES, IR_VERSION_READS, Loc,
+};
 
 fn loc(l: &Loc) -> Json {
     json!({"file": l.file, "line": l.line})
@@ -402,8 +404,10 @@ pub fn to_wire_value(m: &Module) -> Json {
             })
         })
         .collect();
-    let doc = json!({
-        "ir_version": if uses_queries(m) {
+    let mut doc = json!({
+        "ir_version": if !m.reads.is_empty() {
+            IR_VERSION_READS
+        } else if uses_queries(m) {
             IR_VERSION_QUERIES
         } else if uses_lifecycle(m) {
             IR_VERSION_LIFECYCLE
@@ -418,7 +422,46 @@ pub fn to_wire_value(m: &Module) -> Json {
         "actions": actions,
         "constraints": constraints,
     });
+    // Declared reads (feature 010): the section exists only in modules that have reads.
+    if let (false, Json::Object(map)) = (m.reads.is_empty(), &mut doc) {
+        map.insert(
+            "reads".into(),
+            Json::Array(m.reads.values().map(read_value).collect()),
+        );
+    }
     doc
+}
+
+/// The wire form of a read (feature 010), as it appears in a module's `reads` section.
+fn read_value(r: &ReadItem) -> Json {
+    let body = match r.body() {
+        ReadBody::Value(e) => json!({"value": expr(e)}),
+        ReadBody::Project(p) => {
+            let over = match p.over() {
+                Over::Query(q) => query(q, None),
+                Over::Param { name, loc: l } => {
+                    json!({"op": "param", "param": name, "loc": loc(l)})
+                }
+            };
+            let items: Vec<Json> = p
+                .items()
+                .iter()
+                .map(|i| match i {
+                    Item::Field(f) => json!({"field": f}),
+                    Item::Derived { name, .. } => json!({"derived": name}),
+                })
+                .collect();
+            json!({"project": {"over": over, "param": p.member(), "items": items}})
+        }
+    };
+    json!({"name": r.name(), "params": params(r.params(), true), "body": body,
+           "loc": loc(r.loc())})
+}
+
+/// The canonical read document of a read (feature 010): what an ad-hoc read's record carries as
+/// its definition, admitted again on replay.
+pub fn read_document(r: &ReadItem) -> Json {
+    json!({"ir_version": IR_VERSION_READS, "read": read_value(r)})
 }
 
 fn expr_uses_fixed_scale(e: &Expr) -> bool {

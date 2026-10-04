@@ -1,12 +1,12 @@
 ---
 name: behavior-authoring
-description: Model a domain as Behavior with the Python binding (entities, field types, actions, creation and removal, references, queries over sets, entity constraints, module invariants, exact arithmetic). Use when writing or changing a behavior model.
-release: 0.9.0
+description: Model a domain as Behavior with the Python binding (entities, field types, actions, creation and removal, references, queries over sets, entity constraints, module invariants, exact arithmetic, declared reads and projections). Use when writing or changing a behavior model.
+release: 0.10.0
 ---
 
 # Authoring behavior
 
-This skill describes **Behavior release 0.9.0**. Use only what is described here or listed in the
+This skill describes **Behavior release 0.10.0**. Use only what is described here or listed in the
 release's public API (`behavior.versions()` reports the installed release). Everything is imported
 from the `behavior` package.
 
@@ -212,6 +212,53 @@ def has_open_orders(customer: Customer):
     return open_order_count(customer) > 0
 ```
 
+## Reads: the questions a model answers
+
+**`@read`** declares a question. A read returns a value or a projection, and changes nothing:
+`set_`, `create`, `remove`, `requires` and `ensures` are refused in it. Entity parameters are
+bound by identity; `Input[...]` and `Context[...]` work as in actions. List reads in
+`BehaviorModule(reads=[...])`.
+
+```python
+# from examples/declaring_reads.py
+@read
+def active_count():
+    return count(select(Culture).where(lambda c: c.active))
+
+
+@read
+def measured_cultures(*, at_least: Input[int]):
+    measured = select(Culture).where(lambda c: c.measurements >= at_least)
+    return project(measured, lambda c: [c.name, ph_avg(c)])
+
+
+@read
+def culture_view(culture: Culture):
+    return project(culture, lambda c: [c.name, c.active])
+```
+
+- **`project(over, lambda m: [items])`** returns records. Over a query it gives every member, in
+  identity order; over a bound entity it gives exactly that one record. Every record has its
+  `id`.
+- **An item** is a field of the member or a derived value over the member alone. A computation
+  (`c.ph_total * 2`) or a reference traversal is `UNKNOWN_PROJECTION_ITEM`: declare a derived
+  value and project it. If one member's derived value fails, the whole read fails.
+- **Reads are entry points, not building blocks.** Nothing in the model may call a read
+  (`READ_CALL_NOT_ALLOWED`); share the computation as a `@derived` value that reads and actions
+  both use.
+- **Names.** A read may not have the name of an action or a derived value
+  (`DUPLICATE_CAPABILITY`).
+- **Identity.** Adding or changing reads changes `behavior_version`, never `schema_hash`: no
+  migration is needed.
+
+```python
+# from examples/declaring_reads.py
+# Adding reads changes the behavior version, never the schema: no migration is needed.
+plain = BehaviorModule(entities=[Culture], derived=[ph_avg], actions=[retire])
+assert plain.schema_hash == model.schema_hash
+assert plain.behavior_version != model.behavior_version
+```
+
 ## Exact arithmetic
 
 - **Arithmetic is exact.** Fixed-scale values never round silently, and a ratio (`a / b`) is an
@@ -326,7 +373,7 @@ refused = BehaviorModule(entities=[Customer, Order], constraints=[few_orders])
 assert [e.code for e in admit(refused).errors] == ["QUERY_NOT_ALLOWED"]
 ```
 
-## Requirements that are semantic gaps in 0.9.0
+## Requirements that are semantic gaps in 0.10.0
 
 Record these, do not approximate them:
 
@@ -336,7 +383,7 @@ Record these, do not approximate them:
 | "an order never exceeds **its customer's** credit limit" as a standing rule | invariants over two related entities |
 | "orders **of customers in region R**" | cross-entity filters (joins or semijoins) |
 | "close **all** open orders of a customer" | bulk effects (for-each over a query). A query has no fields, so `set_` on one fails with a plain Python `AttributeError` |
-| "the **newest** order", pagination, "top 10" | ordering; sets have no order |
+| "the **newest** order", pagination, "top 10" | ordering; sets have no order, and projections list members in identity order |
 | any entity lookup beyond `select`, a bound parameter or an identity | nothing: the host binds entities explicitly |
 
 A partial measure, such as a precondition on the one action you know about, may be taken only if

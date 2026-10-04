@@ -57,6 +57,15 @@ pub trait EvaluationFacts {
             describe(entity, id)
         )))
     }
+    /// The whole value of an entity at the evaluated state, in its canonical encoding (feature
+    /// 010): lets evaluation fetch a member once. It is never recorded itself; evaluation records
+    /// each field it uses as a field fact. Without it, evaluation asks `field` per field.
+    fn entity(&self, entity: &str, id: &str) -> Result<Json, FactError> {
+        Err(FactError(format!(
+            "no entity fact for {}",
+            describe(entity, id)
+        )))
+    }
 }
 
 /// A query instance to answer (feature 007): the query, its identity, and the captured values it
@@ -172,6 +181,14 @@ impl EvaluationFacts for Facts {
                     q.node.entity()
                 ))
             })
+    }
+    /// A member of a supplied universe (feature 010).
+    fn entity(&self, entity: &str, id: &str) -> Result<Json, FactError> {
+        self.universe
+            .get(entity)
+            .and_then(|m| m.get(id))
+            .cloned()
+            .ok_or_else(|| FactError(format!("no entity fact for {}", describe(entity, id))))
     }
     fn field(&self, entity: &str, id: &str, field: &str) -> Result<Json, FactError> {
         let k = (entity.to_string(), id.to_string(), field.to_string());

@@ -9,6 +9,7 @@ pub mod encode;
 pub mod governance;
 pub mod hashing;
 pub mod migration;
+pub mod reads;
 pub mod smt;
 pub mod solver;
 
@@ -26,7 +27,7 @@ use crate::solver::Solver;
 pub use migration::verify_migration;
 
 /// Version of the verifier; part of every check key and attestation.
-pub const VERIFIER_VERSION: &str = "0.5.0";
+pub const VERIFIER_VERSION: &str = "0.6.0";
 
 /// The kinds of checks a profile can select (research R6).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -234,6 +235,12 @@ pub fn verify(
         }
         if kinds.contains(&CheckKind::EvaluationError) {
             results.extend(checks::evaluation_errors(&ctx, action));
+        }
+    }
+    // Declared reads (feature 010): their evaluation errors.
+    if kinds.contains(&CheckKind::EvaluationError) {
+        for read in module.reads().keys() {
+            results.extend(reads::evaluation_errors(&ctx, read));
         }
     }
     results.sort_by(|a, b| sort_key(a).cmp(&sort_key(b)));

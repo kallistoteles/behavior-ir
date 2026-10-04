@@ -5,6 +5,11 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use serde_json::{Map, Value as Json, json};
 
+use behavior_core::intent::{IntentError, IntentRejection};
+use behavior_core::read::{
+    ReadExecution, ReadSource, check_read_intent, evaluate_read_with, record_source, resolve,
+};
+use behavior_core::record::{ReplayResult, compare};
 use behavior_core::semantic::module::{Module, ParamRole};
 use behavior_core::semantic::types::Type;
 use behavior_core::{
@@ -188,6 +193,14 @@ impl<B: Backend + ?Sized> EvaluationFacts for StoreFacts<'_, B> {
             }
         }
         Ok(out)
+    }
+    /// One version read for the whole entity (feature 010, research R8).
+    fn entity(&self, entity: &str, id: &str) -> Result<Json, FactError> {
+        self.backend
+            .version_at(&key(entity, id), self.position)
+            .map_err(|e| FactError(e.0))?
+            .map(|v| v.value)
+            .ok_or_else(|| FactError(format!("{entity}#{id} is not in the state")))
     }
     fn field(&self, entity: &str, id: &str, field: &str) -> Result<Json, FactError> {
         self.backend
@@ -570,6 +583,224 @@ impl<B: Backend> Store<B> {
             .version_at(key, at.position)
             .map_err(backend_err)?
             .ok_or_else(|| StoreError::EntityNotFound(key.to_string()))
+    }
+
+    /// Reads (feature 010): evaluates `source` against one exact state of this store, `at` or the
+    /// head (read once), and returns its record. A read never writes: it takes `&self`, and every
+    /// write of the backend needs `&mut` (FR-012). `bindings` maps each `state` parameter to an
+    /// entity id; an id that does not exist at the position gives an `INVALID_BINDING` record.
+    /// A schema mismatch, or a position that is not a state of this store, is an error with no
+    /// record (FR-009, FR-013).
+    pub fn read(
+        &self,
+        module: &Module,
+        source: &ReadSource,
+        bindings: &BTreeMap<String, String>,
+        input: &Json,
+        context: &Json,
+        at: Option<&StateRef>,
+    ) -> R<ReadExecution> {
+        let at = match at {
+            None => self.head()?.state_ref,
+            Some(a) => {
+                if self.state_at(a.position)? != *a {
+                    return Err(StoreError::EntityNotFound(format!(
+                        "{} at position {} is not a state of this store",
+                        a.state, a.position
+                    )));
+                }
+                a.clone()
+            }
+        };
+        self.bind_schema(module, at.position)?;
+        let mut state = Map::new();
+        if let Some(read) = resolve(module, source) {
+            for b in bindings.keys() {
+                let is_state = read
+                    .params()
+                    .iter()
+                    .any(|p| p.name() == b && p.role() == ParamRole::State);
+                if !is_state {
+                    return Err(invalid(format!(
+                        "`{b}` is not a state parameter of read `{}`",
+                        read.name()
+                    )));
+                }
+            }
+            for p in read.params() {
+                let (ParamRole::State, Type::Entity(entity)) = (p.role(), p.ty()) else {
+                    continue;
+                };
+                let Some(id) = bindings.get(p.name()) else {
+                    continue;
+                };
+                let key = EntityKey {
+                    entity: entity.clone(),
+                    id: id.clone(),
+                };
+                let value = if exists_at(&self.backend, &key, at.position).map_err(backend_err)? {
+                    self.backend
+                        .version_at(&key, at.position)
+                        .map_err(backend_err)?
+                        .map(|v| v.value)
+                } else {
+                    None
+                };
+                // An identity that does not exist is bound by id alone; evaluation refuses it.
+                state.insert(
+                    p.name().to_string(),
+                    value.unwrap_or_else(|| json!({"id": id})),
+                );
+            }
+        }
+        let request = json!({
+            "data_version": data_version(&self.store_id, &at),
+            "state": state,
+            "input": input,
+            "context": context,
+        });
+        let facts = StoreFacts {
+            backend: &self.backend,
+            position: at.position,
+        };
+        Ok(evaluate_read_with(
+            module,
+            source,
+            &request.to_string(),
+            &facts,
+        ))
+    }
+
+    /// A read intent (feature 010) against this store, at `at` or the head: the capability
+    /// boundary for untrusted callers. The intent is validated against the declared read, and
+    /// every target must exist at the position (`UNKNOWN_TARGET`); all problems are listed
+    /// before anything is evaluated. Context comes from the host.
+    pub fn read_intent(
+        &self,
+        module: &Module,
+        intent: &str,
+        context: &Json,
+        at: Option<&StateRef>,
+    ) -> R<Result<ReadExecution, IntentRejection>> {
+        let at = match at {
+            None => self.head()?.state_ref,
+            Some(a) => {
+                if self.state_at(a.position)? != *a {
+                    return Err(StoreError::EntityNotFound(format!(
+                        "{} at position {} is not a state of this store",
+                        a.state, a.position
+                    )));
+                }
+                a.clone()
+            }
+        };
+        let (parsed, mut errors) = check_read_intent(module, intent, None);
+        if let Some(i) = &parsed
+            && let Some(read) = module.read(&i.capability)
+        {
+            for (param, id) in &i.targets {
+                let Some(Type::Entity(entity)) = read
+                    .params()
+                    .iter()
+                    .find(|p| p.name() == param && p.role() == ParamRole::State)
+                    .map(|p| p.ty())
+                else {
+                    continue;
+                };
+                let key = EntityKey {
+                    entity: entity.clone(),
+                    id: id.clone(),
+                };
+                if !exists_at(&self.backend, &key, at.position).map_err(backend_err)? {
+                    errors.push(IntentError {
+                        code: "UNKNOWN_TARGET".into(),
+                        message: format!("{key} does not exist at the read's state"),
+                        path: format!("targets.{param}"),
+                    });
+                }
+            }
+        }
+        let intent = match parsed {
+            Some(i) if errors.is_empty() => i,
+            _ => return Ok(Err(IntentRejection::of(errors))),
+        };
+        self.read(
+            module,
+            &ReadSource::Declared(intent.capability),
+            &intent.targets,
+            &intent.input,
+            context,
+            Some(&at),
+        )
+        .map(Ok)
+    }
+
+    /// Replays a read record against this store (FR-011): the record's `data_version` must name
+    /// a state of this store; the read is evaluated again at that position, with facts derived
+    /// from the store, and compared byte for byte. Differences, including a foreign store or
+    /// state, are reported in the result; only backend failures are errors.
+    pub fn replay_read(&self, module: &Module, record: &str) -> R<ReplayResult> {
+        let stored: Json = match serde_json::from_str(record) {
+            Ok(v) => v,
+            Err(e) => {
+                return Ok(ReplayResult::mismatch(format!(
+                    "record is not valid JSON: {e}"
+                )));
+            }
+        };
+        let dv = stored["data_version"].as_str().unwrap_or_default();
+        let Some(at) = self.state_of_data_version(dv)? else {
+            return Ok(ReplayResult::mismatch(format!(
+                "data_version: \"{dv}\" is not a state of this store"
+            )));
+        };
+        let source = match record_source(module, &stored) {
+            Ok(s) => s,
+            Err(diff) => return Ok(ReplayResult::mismatch(diff)),
+        };
+        let mut bindings = BTreeMap::new();
+        if let Some(state) = stored["state"].as_object() {
+            for (param, value) in state {
+                if let Some(id) = value.get("id").and_then(Json::as_str) {
+                    bindings.insert(param.clone(), id.to_string());
+                }
+            }
+        }
+        let empty = json!({});
+        match self.read(
+            module,
+            &source,
+            &bindings,
+            stored.get("input").unwrap_or(&empty),
+            stored.get("context").unwrap_or(&empty),
+            Some(&at),
+        ) {
+            Ok(x) => Ok(compare(&stored, x.record.as_json())),
+            Err(StoreError::Backend(m)) => Err(StoreError::Backend(m)),
+            Err(e) => Ok(ReplayResult::mismatch(format!("the read was refused: {e}"))),
+        }
+    }
+
+    /// The state a `data_version` names, if it is a state of this store.
+    fn state_of_data_version(&self, dv: &str) -> R<Option<StateRef>> {
+        let parts: Vec<&str> = dv.split(';').collect();
+        let [store, state, position] = parts.as_slice() else {
+            return Ok(None);
+        };
+        let (Some(store), Some(state), Some(position)) = (
+            store.strip_prefix("store:"),
+            state.strip_prefix("state:"),
+            position
+                .strip_prefix("position:")
+                .and_then(|p| p.parse::<u64>().ok()),
+        ) else {
+            return Ok(None);
+        };
+        if store != self.store_id || position > self.head()?.state_ref.position {
+            return Ok(None);
+        }
+        let at = self.state_at(position)?;
+        Ok((at.state == state).then_some(at))
     }
 
     /// Evaluates `action` against one consistent snapshot: the head is read once and every bound

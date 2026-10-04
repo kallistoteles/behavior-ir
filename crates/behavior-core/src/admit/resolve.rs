@@ -14,6 +14,9 @@ pub(crate) struct Decls {
     pub enums: BTreeMap<String, Arc<EnumInfo>>,
     pub nominals: BTreeMap<String, Arc<NominalInfo>>,
     pub entities: BTreeMap<String, EntityItem>,
+    /// The names of the module's declared reads (feature 010): capability entry points that no
+    /// module expression may call.
+    pub reads: BTreeSet<String>,
 }
 
 fn err(errs: &mut Vec<AdmissionError>, code: &str, msg: impl Into<String>, loc: &Loc) {
@@ -354,6 +357,7 @@ pub(crate) fn declarations(w: &WModule, errs: &mut Vec<AdmissionError>) -> Decls
         enums,
         nominals,
         entities,
+        reads: w.reads.iter().map(|r| r.name.clone()).collect(),
     };
     // Behavior refers to the information model; checking it against a broken model would
     // only report follow-on errors.
@@ -415,6 +419,8 @@ pub(crate) enum ParamSite {
     Action,
     /// An action with a creation (feature 006): it may have no state parameter.
     CreatingAction,
+    /// A read (feature 010): roles like an action's, and no parameter at all is fine.
+    Read,
 }
 
 /// The parameter site of an action: one with a creation may have no state parameter.
@@ -500,8 +506,8 @@ pub(crate) fn params(
                 ok = false;
                 continue;
             }
-            (ParamSite::Action | ParamSite::CreatingAction, Some(r)) => r.into(),
-            (ParamSite::Action | ParamSite::CreatingAction, None) => {
+            (ParamSite::Action | ParamSite::CreatingAction | ParamSite::Read, Some(r)) => r.into(),
+            (ParamSite::Action | ParamSite::CreatingAction | ParamSite::Read, None) => {
                 err(
                     errs,
                     "DECODE_ERROR",
@@ -532,12 +538,12 @@ pub(crate) fn params(
     let needed = match site {
         ParamSite::Derived => true,
         ParamSite::Action => out.iter().any(|p| p.role == ParamRole::State),
-        ParamSite::CreatingAction => true,
+        ParamSite::CreatingAction | ParamSite::Read => true,
     };
     if ok && !needed {
         let what = match site {
             ParamSite::Derived => "a derived value needs at least one entity parameter",
-            ParamSite::Action | ParamSite::CreatingAction => {
+            ParamSite::Action | ParamSite::CreatingAction | ParamSite::Read => {
                 "an action needs at least one state parameter or a creation"
             }
         };

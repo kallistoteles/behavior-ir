@@ -1,0 +1,1 @@
+{"ir_version":"0.7","read":{"body":{"project":{"items":[{"derived":"exposure"}],"over":{"entity":"Culture","loc":{"file":"lab.py","line":112},"op":"select"},"param":"c"}},"loc":{"file":"lab.py","line":112},"name":"exposures","params":[]}}

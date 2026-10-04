@@ -47,7 +47,7 @@ class Lifecycle:
 class Frame:
     """The body currently being traced."""
 
-    kind: str  # action | derived | rule | invariant
+    kind: str  # action | derived | rule | invariant | read
     preconditions: list[Condition] = field(default_factory=list)
     effects: list[Effect] = field(default_factory=list)
     lifecycle: list[Lifecycle] = field(default_factory=list)
@@ -59,6 +59,11 @@ CURRENT: ContextVar[Frame | None] = ContextVar("behavior_frame", default=None)
 
 def _action_frame(what: str, loc: tuple[str, int]) -> Frame:
     frame = CURRENT.get()
+    if frame is not None and frame.kind == "read":
+        raise BehaviorDefinitionError(
+            f"{what}() is not allowed in a @read body: a read observes one state and never "
+            "changes it", *loc
+        )
     if frame is None or frame.kind != "action":
         raise BehaviorDefinitionError(f"{what}() is only valid inside an @action body", *loc)
     return frame

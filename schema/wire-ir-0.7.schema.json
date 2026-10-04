@@ -1,0 +1,1121 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "https://behavior-ir.local/schema/wire-ir-0.7.schema.json",
+ "title": "Behavior IR wire encoding 0.7 (declared reads and read documents; specs/010-first-class-reads)",
+ "$defs": {
+  "ident": {
+   "type": "string",
+   "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+  },
+  "loc": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "file",
+    "line"
+   ],
+   "properties": {
+    "file": {
+     "type": "string"
+    },
+    "line": {
+     "type": "integer",
+     "minimum": 1
+    }
+   }
+  },
+  "type": {
+   "oneOf": [
+    {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "t"
+     ],
+     "properties": {
+      "t": {
+       "const": "bool"
+      }
+     }
+    },
+    {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "t"
+     ],
+     "properties": {
+      "t": {
+       "const": "int"
+      }
+     }
+    },
+    {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "t"
+     ],
+     "properties": {
+      "t": {
+       "const": "decimal"
+      }
+     }
+    },
+    {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "t"
+     ],
+     "properties": {
+      "t": {
+       "const": "string"
+      }
+     }
+    },
+    {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "t",
+      "of"
+     ],
+     "properties": {
+      "t": {
+       "const": "option"
+      },
+      "of": {
+       "$ref": "#/$defs/type"
+      }
+     }
+    },
+    {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "t",
+      "name"
+     ],
+     "properties": {
+      "t": {
+       "const": "enum"
+      },
+      "name": {
+       "$ref": "#/$defs/ident"
+      }
+     }
+    },
+    {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "t",
+      "name"
+     ],
+     "properties": {
+      "t": {
+       "const": "nominal"
+      },
+      "name": {
+       "$ref": "#/$defs/ident"
+      }
+     }
+    },
+    {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "t",
+      "entity"
+     ],
+     "properties": {
+      "t": {
+       "const": "id"
+      },
+      "entity": {
+       "$ref": "#/$defs/ident"
+      }
+     }
+    },
+    {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "t",
+      "name"
+     ],
+     "properties": {
+      "t": {
+       "const": "entity"
+      },
+      "name": {
+       "$ref": "#/$defs/ident"
+      }
+     }
+    },
+    {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "t"
+     ],
+     "properties": {
+      "t": {
+       "const": "exact"
+      },
+      "name": {
+       "$ref": "#/$defs/ident"
+      }
+     }
+    },
+    {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "t",
+      "entity"
+     ],
+     "properties": {
+      "t": {
+       "const": "ref"
+      },
+      "entity": {
+       "$ref": "#/$defs/ident"
+      }
+     }
+    }
+   ]
+  },
+  "expr": {
+   "oneOf": [
+    {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "op",
+      "type",
+      "value",
+      "loc"
+     ],
+     "properties": {
+      "op": {
+       "const": "lit"
+      },
+      "type": {
+       "$ref": "#/$defs/type"
+      },
+      "value": {
+       "type": [
+        "string",
+        "integer",
+        "boolean",
+        "null"
+       ]
+      },
+      "loc": {
+       "$ref": "#/$defs/loc"
+      }
+     }
+    },
+    {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "op",
+      "param",
+      "field",
+      "loc"
+     ],
+     "properties": {
+      "op": {
+       "const": "field"
+      },
+      "param": {
+       "$ref": "#/$defs/ident"
+      },
+      "field": {
+       "$ref": "#/$defs/ident"
+      },
+      "loc": {
+       "$ref": "#/$defs/loc"
+      }
+     }
+    },
+    {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "op",
+      "param",
+      "loc"
+     ],
+     "properties": {
+      "op": {
+       "const": "param"
+      },
+      "param": {
+       "$ref": "#/$defs/ident"
+      },
+      "loc": {
+       "$ref": "#/$defs/loc"
+      }
+     }
+    },
+    {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "op",
+      "name",
+      "args",
+      "loc"
+     ],
+     "properties": {
+      "op": {
+       "const": "derived"
+      },
+      "name": {
+       "$ref": "#/$defs/ident"
+      },
+      "args": {
+       "type": "array",
+       "items": {
+        "$ref": "#/$defs/ident"
+       }
+      },
+      "loc": {
+       "$ref": "#/$defs/loc"
+      }
+     }
+    },
+    {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "op",
+      "args",
+      "loc"
+     ],
+     "properties": {
+      "op": {
+       "enum": [
+        "eq",
+        "ne",
+        "lt",
+        "le",
+        "gt",
+        "ge",
+        "add",
+        "sub",
+        "mul",
+        "div",
+        "value_or",
+        "union",
+        "intersection",
+        "difference"
+       ]
+      },
+      "args": {
+       "type": "array",
+       "items": {
+        "$ref": "#/$defs/expr"
+       },
+       "minItems": 2,
+       "maxItems": 2
+      },
+      "loc": {
+       "$ref": "#/$defs/loc"
+      }
+     }
+    },
+    {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "op",
+      "args",
+      "loc"
+     ],
+     "properties": {
+      "op": {
+       "enum": [
+        "and",
+        "or"
+       ]
+      },
+      "args": {
+       "type": "array",
+       "items": {
+        "$ref": "#/$defs/expr"
+       },
+       "minItems": 2
+      },
+      "loc": {
+       "$ref": "#/$defs/loc"
+      }
+     }
+    },
+    {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "op",
+      "args",
+      "loc"
+     ],
+     "properties": {
+      "op": {
+       "enum": [
+        "not",
+        "is_none",
+        "is_some",
+        "some",
+        "to_decimal",
+        "unwrap",
+        "exists",
+        "referenced",
+        "count"
+       ]
+      },
+      "args": {
+       "type": "array",
+       "items": {
+        "$ref": "#/$defs/expr"
+       },
+       "minItems": 1,
+       "maxItems": 1
+      },
+      "loc": {
+       "$ref": "#/$defs/loc"
+      }
+     }
+    },
+    {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "op",
+      "args",
+      "values",
+      "loc"
+     ],
+     "properties": {
+      "op": {
+       "const": "in"
+      },
+      "args": {
+       "type": "array",
+       "items": {
+        "$ref": "#/$defs/expr"
+       },
+       "minItems": 1,
+       "maxItems": 1
+      },
+      "values": {
+       "type": "array",
+       "items": {
+        "type": [
+         "string",
+         "integer",
+         "boolean",
+         "null"
+        ]
+       }
+      },
+      "loc": {
+       "$ref": "#/$defs/loc"
+      }
+     }
+    },
+    {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "op",
+      "nominal",
+      "args",
+      "loc"
+     ],
+     "properties": {
+      "op": {
+       "const": "wrap"
+      },
+      "nominal": {
+       "$ref": "#/$defs/ident"
+      },
+      "args": {
+       "type": "array",
+       "items": {
+        "$ref": "#/$defs/expr"
+       },
+       "minItems": 1,
+       "maxItems": 1
+      },
+      "loc": {
+       "$ref": "#/$defs/loc"
+      }
+     }
+    },
+    {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "op",
+      "nominal",
+      "rounding",
+      "args",
+      "loc"
+     ],
+     "properties": {
+      "op": {
+       "const": "rescale"
+      },
+      "nominal": {
+       "$ref": "#/$defs/ident"
+      },
+      "rounding": {
+       "enum": [
+        "half_even",
+        "half_up",
+        "down",
+        "up",
+        "floor",
+        "ceiling"
+       ]
+      },
+      "args": {
+       "type": "array",
+       "items": {
+        "$ref": "#/$defs/expr"
+       },
+       "minItems": 1,
+       "maxItems": 1
+      },
+      "loc": {
+       "$ref": "#/$defs/loc"
+      }
+     }
+    },
+    {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "op",
+      "entity",
+      "loc"
+     ],
+     "properties": {
+      "op": {
+       "const": "select"
+      },
+      "entity": {
+       "$ref": "#/$defs/ident"
+      },
+      "loc": {
+       "$ref": "#/$defs/loc"
+      }
+     }
+    },
+    {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "op",
+      "args",
+      "param",
+      "body",
+      "loc"
+     ],
+     "properties": {
+      "op": {
+       "enum": [
+        "where",
+        "any",
+        "all",
+        "sum",
+        "min",
+        "max",
+        "unique"
+       ]
+      },
+      "args": {
+       "type": "array",
+       "minItems": 1,
+       "maxItems": 1,
+       "items": {
+        "$ref": "#/$defs/expr"
+       }
+      },
+      "param": {
+       "$ref": "#/$defs/ident"
+      },
+      "body": {
+       "$ref": "#/$defs/expr"
+      },
+      "loc": {
+       "$ref": "#/$defs/loc"
+      }
+     }
+    }
+   ]
+  },
+  "param": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "name",
+    "type"
+   ],
+   "properties": {
+    "name": {
+     "$ref": "#/$defs/ident"
+    },
+    "type": {
+     "$ref": "#/$defs/type"
+    },
+    "role": {
+     "enum": [
+      "state",
+      "input",
+      "context"
+     ]
+    }
+   }
+  },
+  "condition": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "expr",
+    "loc"
+   ],
+   "properties": {
+    "expr": {
+     "$ref": "#/$defs/expr"
+    },
+    "loc": {
+     "$ref": "#/$defs/loc"
+    }
+   }
+  },
+  "module": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "ir_version",
+    "enums",
+    "nominals",
+    "entities",
+    "derived",
+    "invariants",
+    "actions",
+    "constraints"
+   ],
+   "properties": {
+    "ir_version": {
+     "const": "0.7"
+    },
+    "enums": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+       "name",
+       "values",
+       "loc"
+      ],
+      "properties": {
+       "name": {
+        "$ref": "#/$defs/ident"
+       },
+       "values": {
+        "type": "array",
+        "items": {
+         "type": "string"
+        },
+        "minItems": 1
+       },
+       "loc": {
+        "$ref": "#/$defs/loc"
+       }
+      }
+     }
+    },
+    "nominals": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+       "name",
+       "underlying",
+       "ops",
+       "loc"
+      ],
+      "properties": {
+       "name": {
+        "$ref": "#/$defs/ident"
+       },
+       "underlying": {
+        "$ref": "#/$defs/type"
+       },
+       "ops": {
+        "type": "array",
+        "items": {
+         "enum": [
+          "order",
+          "add",
+          "scale",
+          "ratio"
+         ]
+        }
+       },
+       "loc": {
+        "$ref": "#/$defs/loc"
+       },
+       "scale": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 28
+       }
+      }
+     }
+    },
+    "entities": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+       "name",
+       "fields",
+       "loc"
+      ],
+      "properties": {
+       "name": {
+        "$ref": "#/$defs/ident"
+       },
+       "fields": {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "additionalProperties": false,
+         "required": [
+          "name",
+          "type",
+          "loc"
+         ],
+         "properties": {
+          "name": {
+           "$ref": "#/$defs/ident"
+          },
+          "type": {
+           "$ref": "#/$defs/type"
+          },
+          "loc": {
+           "$ref": "#/$defs/loc"
+          }
+         }
+        }
+       },
+       "loc": {
+        "$ref": "#/$defs/loc"
+       }
+      }
+     }
+    },
+    "derived": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+       "name",
+       "kind",
+       "params",
+       "body",
+       "loc"
+      ],
+      "properties": {
+       "name": {
+        "$ref": "#/$defs/ident"
+       },
+       "kind": {
+        "enum": [
+         "derived",
+         "rule"
+        ]
+       },
+       "params": {
+        "type": "array",
+        "items": {
+         "$ref": "#/$defs/param"
+        }
+       },
+       "body": {
+        "$ref": "#/$defs/expr"
+       },
+       "loc": {
+        "$ref": "#/$defs/loc"
+       },
+       "type": {
+        "$ref": "#/$defs/type"
+       }
+      }
+     }
+    },
+    "invariants": {
+     "type": "array",
+     "items": {
+      "oneOf": [
+       {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+         "name",
+         "entity",
+         "param",
+         "body",
+         "loc"
+        ],
+        "properties": {
+         "name": {
+          "$ref": "#/$defs/ident"
+         },
+         "entity": {
+          "$ref": "#/$defs/ident"
+         },
+         "param": {
+          "$ref": "#/$defs/ident"
+         },
+         "body": {
+          "$ref": "#/$defs/expr"
+         },
+         "loc": {
+          "$ref": "#/$defs/loc"
+         }
+        }
+       },
+       {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+         "name",
+         "body",
+         "loc"
+        ],
+        "properties": {
+         "name": {
+          "$ref": "#/$defs/ident"
+         },
+         "body": {
+          "$ref": "#/$defs/expr"
+         },
+         "loc": {
+          "$ref": "#/$defs/loc"
+         }
+        }
+       }
+      ]
+     }
+    },
+    "actions": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+       "name",
+       "params",
+       "preconditions",
+       "effects",
+       "postconditions",
+       "loc"
+      ],
+      "properties": {
+       "name": {
+        "$ref": "#/$defs/ident"
+       },
+       "params": {
+        "type": "array",
+        "items": {
+         "$ref": "#/$defs/param"
+        }
+       },
+       "preconditions": {
+        "type": "array",
+        "items": {
+         "$ref": "#/$defs/condition"
+        }
+       },
+       "effects": {
+        "type": "array",
+        "items": {
+         "oneOf": [
+          {
+           "type": "object",
+           "additionalProperties": false,
+           "required": [
+            "target",
+            "value",
+            "loc"
+           ],
+           "properties": {
+            "target": {
+             "type": "object",
+             "additionalProperties": false,
+             "required": [
+              "param",
+              "field"
+             ],
+             "properties": {
+              "param": {
+               "$ref": "#/$defs/ident"
+              },
+              "field": {
+               "$ref": "#/$defs/ident"
+              }
+             }
+            },
+            "value": {
+             "$ref": "#/$defs/expr"
+            },
+            "loc": {
+             "$ref": "#/$defs/loc"
+            }
+           }
+          },
+          {
+           "type": "object",
+           "additionalProperties": false,
+           "required": [
+            "create",
+            "id",
+            "fields",
+            "loc"
+           ],
+           "properties": {
+            "create": {
+             "$ref": "#/$defs/ident"
+            },
+            "id": {
+             "$ref": "#/$defs/expr"
+            },
+            "fields": {
+             "type": "object",
+             "propertyNames": {
+              "$ref": "#/$defs/ident"
+             },
+             "additionalProperties": {
+              "$ref": "#/$defs/expr"
+             }
+            },
+            "loc": {
+             "$ref": "#/$defs/loc"
+            }
+           }
+          },
+          {
+           "type": "object",
+           "additionalProperties": false,
+           "required": [
+            "remove",
+            "loc"
+           ],
+           "properties": {
+            "remove": {
+             "$ref": "#/$defs/ident"
+            },
+            "loc": {
+             "$ref": "#/$defs/loc"
+            }
+           }
+          }
+         ]
+        }
+       },
+       "postconditions": {
+        "type": "array",
+        "items": {
+         "$ref": "#/$defs/condition"
+        }
+       },
+       "loc": {
+        "$ref": "#/$defs/loc"
+       }
+      }
+     }
+    },
+    "constraints": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+       "name",
+       "entity",
+       "param",
+       "body",
+       "loc"
+      ],
+      "properties": {
+       "name": {
+        "$ref": "#/$defs/ident"
+       },
+       "entity": {
+        "$ref": "#/$defs/ident"
+       },
+       "param": {
+        "$ref": "#/$defs/ident"
+       },
+       "body": {
+        "$ref": "#/$defs/expr"
+       },
+       "loc": {
+        "$ref": "#/$defs/loc"
+       }
+      }
+     }
+    },
+    "reads": {
+     "type": "array",
+     "items": {
+      "$ref": "#/$defs/read"
+     }
+    }
+   }
+  },
+  "read": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "name",
+    "params",
+    "body",
+    "loc"
+   ],
+   "properties": {
+    "name": {
+     "$ref": "#/$defs/ident"
+    },
+    "params": {
+     "type": "array",
+     "items": {
+      "allOf": [
+       {
+        "$ref": "#/$defs/param"
+       },
+       {
+        "required": [
+         "role"
+        ]
+       }
+      ]
+     }
+    },
+    "body": {
+     "oneOf": [
+      {
+       "type": "object",
+       "additionalProperties": false,
+       "required": [
+        "value"
+       ],
+       "properties": {
+        "value": {
+         "$ref": "#/$defs/expr"
+        }
+       }
+      },
+      {
+       "type": "object",
+       "additionalProperties": false,
+       "required": [
+        "project"
+       ],
+       "properties": {
+        "project": {
+         "type": "object",
+         "additionalProperties": false,
+         "required": [
+          "over",
+          "param",
+          "items"
+         ],
+         "properties": {
+          "over": {
+           "$ref": "#/$defs/expr"
+          },
+          "param": {
+           "$ref": "#/$defs/ident"
+          },
+          "items": {
+           "type": "array",
+           "items": {
+            "oneOf": [
+             {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+               "field"
+              ],
+              "properties": {
+               "field": {
+                "$ref": "#/$defs/ident"
+               }
+              }
+             },
+             {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+               "derived"
+              ],
+              "properties": {
+               "derived": {
+                "$ref": "#/$defs/ident"
+               }
+              }
+             }
+            ]
+           }
+          }
+         }
+        }
+       }
+      }
+     ]
+    },
+    "loc": {
+     "$ref": "#/$defs/loc"
+    }
+   }
+  },
+  "read_document": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "ir_version",
+    "read"
+   ],
+   "properties": {
+    "ir_version": {
+     "const": "0.7"
+    },
+    "read": {
+     "$ref": "#/$defs/read"
+    }
+   }
+  }
+ },
+ "oneOf": [
+  {
+   "$ref": "#/$defs/module"
+  },
+  {
+   "$ref": "#/$defs/read_document"
+  }
+ ]
+}

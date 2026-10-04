@@ -19,6 +19,7 @@ violation.
 | 12 | **gap** | an entry naming bulk effects (and cross-entity filters if region is on Customer) |
 | 13 | **gap** | an entry naming bulk effects |
 | 14 | **gap** | an entry naming ordering |
+| 15 | expressible | `@read`s listed in `reads=[...]`: a value read of the open total through a derived value, and an entity projection of the name and a derived Bool, without `credit_limit`; no action without effects |
 
 ## Violations (any one fails the set)
 

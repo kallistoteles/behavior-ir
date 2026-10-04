@@ -10,7 +10,7 @@ use serde_json::{Map, Value as Json, json};
 use crate::canonical;
 use crate::eval::{InputProblem, decode_param, evaluate};
 use crate::record::DecisionRecord;
-use crate::semantic::module::{Module, ParamRole};
+use crate::semantic::module::{Module, Param, ParamRole};
 
 #[derive(Debug, Clone, Serialize)]
 pub struct IntentError {
@@ -26,12 +26,21 @@ pub struct IntentRejection {
 }
 
 impl IntentRejection {
+    /// A rejection listing `errors` in path order.
+    pub fn of(mut errors: Vec<IntentError>) -> Self {
+        errors.sort_by(|a, b| a.path.cmp(&b.path));
+        IntentRejection {
+            rejected: true,
+            errors,
+        }
+    }
+
     pub fn to_json_string(&self) -> String {
         canonical::canonical(self).unwrap_or_default()
     }
 }
 
-fn problem(
+pub(crate) fn problem(
     code: &'static str,
     path: impl Into<String>,
     message: impl Into<String>,
@@ -43,14 +52,14 @@ fn problem(
     }
 }
 
-fn object(v: &Json) -> Option<&Map<String, Json>> {
+pub(crate) fn object(v: &Json) -> Option<&Map<String, Json>> {
     match v {
         Json::Object(m) => Some(m),
         _ => None,
     }
 }
 
-fn reject(mut problems: Vec<InputProblem>) -> IntentRejection {
+pub(crate) fn reject(mut problems: Vec<InputProblem>) -> IntentRejection {
     problems.sort_by(|a, b| a.path.cmp(&b.path));
     IntentRejection {
         rejected: true,
@@ -154,29 +163,76 @@ pub fn evaluate_intent(
     };
 
     let empty = Map::new();
+    let (targets, input) = sections(obj, &empty, &mut problems);
+    let host_state = host_obj.get("state").and_then(object).unwrap_or(&empty);
+    problems.extend(check_params(
+        module,
+        action.params(),
+        &capability,
+        targets,
+        input,
+        Some(host_state),
+    ));
+    if !problems.is_empty() {
+        return Err(reject(problems));
+    }
+
+    let mut request = json!({
+        "action": capability,
+        "data_version": host_obj.get("data_version").cloned().unwrap_or(Json::Null),
+        "state": host_obj.get("state").cloned().unwrap_or_else(|| json!({})),
+        "input": Json::Object(input.clone()),
+        "context": host_obj.get("context").cloned().unwrap_or_else(|| json!({})),
+    });
+    if let (Some(g), Json::Object(m)) = (host_obj.get("git_revision"), &mut request) {
+        m.insert("git_revision".into(), g.clone());
+    }
+    Ok(evaluate(module, &request.to_string()))
+}
+
+/// The `targets` and `input` sections of an intent (missing ones are empty).
+pub(crate) fn sections<'a>(
+    obj: &'a Map<String, Json>,
+    empty: &'a Map<String, Json>,
+    problems: &mut Vec<InputProblem>,
+) -> (&'a Map<String, Json>, &'a Map<String, Json>) {
     let targets = match obj.get("targets") {
-        None => &empty,
+        None => empty,
         Some(v) => match object(v) {
             Some(m) => m,
             None => {
                 problems.push(problem("WRONG_TYPE", "targets", "expected an object"));
-                &empty
+                empty
             }
         },
     };
     let input = match obj.get("input") {
-        None => &empty,
+        None => empty,
         Some(v) => match object(v) {
             Some(m) => m,
             None => {
                 problems.push(problem("WRONG_TYPE", "input", "expected an object"));
-                &empty
+                empty
             }
         },
     };
-    let host_state = host_obj.get("state").and_then(object).unwrap_or(&empty);
+    (targets, input)
+}
 
-    for p in action.params() {
+/// Checks an intent's targets and input against a capability's parameters (an action's or,
+/// feature 010, a declared read's): every `state` parameter needs a target id (equal to the
+/// host-supplied entity's, when there is one), every `input` parameter a well-typed value, and
+/// nothing else may be supplied.
+pub(crate) fn check_params(
+    module: &Module,
+    params: &[Param],
+    capability: &str,
+    targets: &Map<String, Json>,
+    input: &Map<String, Json>,
+    host_state: Option<&Map<String, Json>>,
+) -> Vec<InputProblem> {
+    let mut problems = Vec::new();
+    for p in params {
         match p.role() {
             ParamRole::State => {
                 let path = format!("targets.{}", p.name());
@@ -187,7 +243,9 @@ pub fn evaluate_intent(
                         format!("missing target id for `{}`", p.name()),
                     )),
                     Some(Json::String(id)) => {
-                        let supplied = host_state.get(p.name()).and_then(|e| e.get("id"));
+                        let supplied = host_state
+                            .and_then(|s| s.get(p.name()))
+                            .and_then(|e| e.get("id"));
                         if let Some(Json::String(actual)) = supplied
                             && actual != id
                         {
@@ -220,8 +278,7 @@ pub fn evaluate_intent(
         }
     }
     for key in targets.keys() {
-        let is_state = action
-            .params()
+        let is_state = params
             .iter()
             .any(|p| p.name() == key && p.role() == ParamRole::State);
         if !is_state {
@@ -233,8 +290,7 @@ pub fn evaluate_intent(
         }
     }
     for key in input.keys() {
-        let is_input = action
-            .params()
+        let is_input = params
             .iter()
             .any(|p| p.name() == key && p.role() == ParamRole::Input);
         if !is_input {
@@ -245,19 +301,5 @@ pub fn evaluate_intent(
             ));
         }
     }
-    if !problems.is_empty() {
-        return Err(reject(problems));
-    }
-
-    let mut request = json!({
-        "action": capability,
-        "data_version": host_obj.get("data_version").cloned().unwrap_or(Json::Null),
-        "state": host_obj.get("state").cloned().unwrap_or_else(|| json!({})),
-        "input": Json::Object(input.clone()),
-        "context": host_obj.get("context").cloned().unwrap_or_else(|| json!({})),
-    });
-    if let (Some(g), Json::Object(m)) = (host_obj.get("git_revision"), &mut request) {
-        m.insert("git_revision".into(), g.clone());
-    }
-    Ok(evaluate(module, &request.to_string()))
+    problems
 }

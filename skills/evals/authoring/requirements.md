@@ -32,3 +32,6 @@ approving user. Users have a role and an approval limit.
 12. Only orders of customers in the "north" region may be blocked in bulk.
 13. Closing a customer closes all of their open orders in the same transition.
 14. The dashboard shows each customer's newest order.
+15. Anyone may ask for a customer's open total, and see a customer's name and whether they are
+    within their credit limit, without seeing the limit itself. Asking changes nothing. (For a
+    question, the check in `checks.py` evaluates the read and asserts its value.)

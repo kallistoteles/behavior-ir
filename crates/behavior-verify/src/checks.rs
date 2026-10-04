@@ -159,7 +159,7 @@ pub struct Ctx<'a> {
     pub solver_version: String,
 }
 
-enum Search {
+pub(crate) enum Search {
     Unsat,
     Unknown(UnknownReason),
     /// Candidate models, most readable first.
@@ -168,7 +168,7 @@ enum Search {
 
 /// Unrestricted query first (a proof covers every value); if satisfiable, further queries
 /// restricted to readable decimals for a nicer counterexample (research R5).
-fn search(ctx: &Ctx<'_>, enc: &Encoder<'_>, assertions: &[String]) -> Search {
+pub(crate) fn search(ctx: &Ctx<'_>, enc: &Encoder<'_>, assertions: &[String]) -> Search {
     let get = enc.input_symbols();
     let query = |nice| Query {
         script: enc.script(assertions, nice),

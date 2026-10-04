@@ -6,13 +6,14 @@ change for different reasons, and every one of them is reported, never implied
 
 | Kind | Example | What it identifies | Where it lives |
 |---|---|---|---|
-| **Release / engine** | `0.9.0` | the implementation release: the engine crates and the command-line tool | `[workspace.package] version` in `Cargo.toml`, the single source |
-| **Binding** | `python 0.9.0` | the installable package of one language binding | taken from the release version; a binding requires *exactly* its engine version (checked at import) |
-| **Wire IR** | `0.1` … `0.6` | the module document format; a new semantic form needs a new IR version | `crates/behavior-core/src/wire.rs` |
+| **Release / engine** | `0.10.0` | the implementation release: the engine crates and the command-line tool | `[workspace.package] version` in `Cargo.toml`, the single source |
+| **Binding** | `python 0.10.0` | the installable package of one language binding | taken from the release version; a binding requires *exactly* its engine version (checked at import) |
+| **Wire IR** | `0.1` … `0.7` | the module document format (and, from 0.7, the read document); a new semantic form needs a new IR version | `crates/behavior-core/src/wire.rs` |
 | **Records** | `0.4` … `0.6` | the decision record format | `crates/behavior-core/src/eval.rs` |
+| **Read records** | `behavior.read_record.v1` | the evidence of a read (feature 010); never stored by a store | `crates/behavior-core/src/read.rs` |
 | **Store documents** | `behavior.commit_bundle.v1`, … | persistence documents (genesis, versions, records, bundles, reports) | `crates/behavior-store/src/documents.rs` |
 | **Migration IR** | `0.1` | the migration document format (feature 009); `schema/migration-ir-0.1.schema.json` | `crates/behavior-core/src/migration/wire.rs` |
-| **Verifier** | `0.5.0` | the verification encoding; part of every attestation and cache key | `VERIFIER_VERSION` in `crates/behavior-verify/src/lib.rs` |
+| **Verifier** | `0.6.0` | the verification encoding; part of every attestation and cache key | `VERIFIER_VERSION` in `crates/behavior-verify/src/lib.rs` |
 
 A module document, a record or a store document says which format version it is written in.
 That is what a reader checks, not the release number.
@@ -33,7 +34,19 @@ While the release is below 1.0, the **minor** number marks anything a consumer m
 
 After 1.0, the same rules apply with **major** in place of minor.
 
-Release 0.9.0 is a minor bump for three reasons:
+Release 0.10.0 is a minor bump for three reasons:
+
+- **Wire IR 0.7:** a module's `reads` section (declared reads, a new behavior item kind) and the
+  read document (an ad-hoc read). A module with declared reads has a new behavior version, never a
+  new schema; a module without them keeps its bytes and identity.
+- **A new document kind:** the read record `behavior.read_record.v1`, with its identity
+  `read:sha256:…`.
+- **`VERIFIER_VERSION` 0.6.0**, for the `evaluation_error` checks of declared reads.
+
+Every existing module, decision record, store document, hash vector and attestation format keeps
+its bytes.
+
+Release 0.9.0 was a minor bump for three reasons:
 
 - **Exact store-schema binding** replaces the touched-types comparison. A module that differs from
   the store only in an entity type its action does not touch used to evaluate and now gets

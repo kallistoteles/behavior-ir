@@ -343,6 +343,89 @@ impl PyRecord {
     }
 }
 
+/// An admitted ad-hoc read (feature 010): traced in Python, admitted against a module, never part
+/// of it.
+#[pyclass(name = "ReadItem", frozen, module = "behavior._engine")]
+#[derive(Clone)]
+struct PyReadItem {
+    inner: behavior_core::semantic::module::ReadItem,
+}
+
+#[pymethods]
+impl PyReadItem {
+    #[getter]
+    fn name(&self) -> String {
+        self.inner.name().to_string()
+    }
+    #[getter]
+    fn hash(&self) -> String {
+        behavior_core::semantic::types::hash_display(self.inner.hash())
+    }
+}
+
+/// A read's execution (feature 010): the full record and the capability response, each as data
+/// and as canonical JSON. They are distinct objects; the response holds no evidence.
+#[pyclass(name = "ReadExecution", frozen, module = "behavior._engine")]
+struct PyReadExecution {
+    record: Value,
+    record_json: String,
+    response: Value,
+    response_json: String,
+}
+
+#[pymethods]
+impl PyReadExecution {
+    #[getter]
+    fn record(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        to_py(py, &self.record)
+    }
+    #[getter]
+    fn record_json(&self) -> String {
+        self.record_json.clone()
+    }
+    #[getter]
+    fn response(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        to_py(py, &self.response)
+    }
+    #[getter]
+    fn response_json(&self) -> String {
+        self.response_json.clone()
+    }
+}
+
+fn read_execution(x: behavior_core::read::ReadExecution) -> PyReadExecution {
+    let response_json = x.response.to_json_string();
+    PyReadExecution {
+        record: x.record.as_json().clone(),
+        record_json: x.record.to_json_string(),
+        response: serde_json::from_str(&response_json).unwrap_or(Value::Null),
+        response_json,
+    }
+}
+
+/// An intent rejection as a Python exception (its errors as a list of dicts).
+fn intent_rejected(py: Python<'_>, rejection: &behavior_core::IntentRejection) -> PyErr {
+    let errors = serde_json::to_value(&rejection.errors).unwrap_or(Value::Null);
+    match to_py(py, &errors) {
+        Ok(e) => EngineIntentRejected::new_err((e,)),
+        Err(e) => e,
+    }
+}
+
+/// A read source from Python: a declared read's name, or an admitted ad-hoc read.
+fn read_source(source: &Bound<'_, PyAny>) -> PyResult<behavior_core::read::ReadSource> {
+    use behavior_core::read::ReadSource;
+    if let Ok(name) = source.extract::<String>() {
+        return Ok(ReadSource::Declared(name));
+    }
+    if let Ok(item) = source.extract::<PyReadItem>() {
+        return Ok(ReadSource::AdHoc(Box::new(item.inner)));
+    }
+    Err(PyTypeError::new_err(
+        "a read is a declared read's name or an admitted ad-hoc read",
+    ))
+}
+
 fn record(r: behavior_core::DecisionRecord) -> PyRecord {
     PyRecord {
         json: r.to_json_string(),
@@ -602,6 +685,60 @@ impl EngineModule {
         }
     }
 
+    /// Evaluates a read in plain mode (feature 010): `source` is a declared read's name or an
+    /// admitted ad-hoc read; `facts` the state's facts, or None.
+    #[pyo3(signature = (source, state, input, context, data_version, facts=None))]
+    fn evaluate_read(
+        &self,
+        source: &Bound<'_, PyAny>,
+        state: &Bound<'_, PyAny>,
+        input: &Bound<'_, PyAny>,
+        context: &Bound<'_, PyAny>,
+        data_version: String,
+        facts: Option<&Bound<'_, PyAny>>,
+    ) -> PyResult<PyReadExecution> {
+        let source = read_source(source)?;
+        let mut request = json!({
+            "data_version": data_version,
+            "state": object(state)?,
+            "input": object(input)?,
+            "context": object(context)?,
+        });
+        if let (Some(f), Value::Object(m)) = (facts, &mut request) {
+            m.insert("facts".into(), to_value(f)?);
+        }
+        Ok(read_execution(behavior_core::read::evaluate_read(
+            &self.inner,
+            &source,
+            &request.to_string(),
+        )))
+    }
+
+    /// Evaluates a read intent (feature 010) with the host's side `{data_version, state,
+    /// context, facts}`; raises EngineIntentRejected listing every problem.
+    fn evaluate_read_intent(
+        &self,
+        py: Python<'_>,
+        intent: &Bound<'_, PyAny>,
+        host: &Bound<'_, PyAny>,
+    ) -> PyResult<PyReadExecution> {
+        let intent = object(intent)?;
+        match behavior_core::read::evaluate_read_intent(
+            &self.inner,
+            &intent.to_string(),
+            &to_value(host)?.to_string(),
+        ) {
+            Ok(x) => Ok(read_execution(x)),
+            Err(rejection) => Err(intent_rejected(py, &rejection)),
+        }
+    }
+
+    /// Replays a read record (feature 010) from its own facts; returns (matches, diff).
+    fn replay_read(&self, record_json: &str) -> (bool, Option<String>) {
+        let r = behavior_core::read::replay_read(&self.inner, record_json);
+        (r.matches, r.diff)
+    }
+
     /// Replays a decision record (its canonical JSON text); returns (matches, diff).
     fn replay(&self, record_json: &str) -> (bool, Option<String>) {
         let r = behavior_core::replay(&self.inner, record_json);
@@ -848,6 +985,7 @@ impl PyBuilder {
         let site = match site {
             "action" => ScopeSite::Action,
             "closed" => ScopeSite::Closed,
+            "read" => ScopeSite::Read,
             _ => ScopeSite::Derived,
         };
         self.inner
@@ -972,6 +1110,76 @@ impl PyBuilder {
             .in_(arg.inner, values, loc(file, line))
             .map_err(build_err)?;
         Ok(PyNode { inner })
+    }
+
+    /// A builder over an admitted module (feature 010): ad-hoc reads are traced against it.
+    #[staticmethod]
+    fn for_module(module: PyRef<'_, EngineModule>) -> Self {
+        PyBuilder {
+            inner: Builder::for_module(&module.inner),
+        }
+    }
+
+    /// Adds a declared read with a value body (feature 010).
+    fn add_read_value(
+        &mut self,
+        name: &str,
+        ps: Vec<(String, Option<String>, PyType_)>,
+        body: PyNode,
+        file: String,
+        line: u64,
+    ) -> PyResult<()> {
+        let r = Builder::read_value(name, params(ps)?, body.inner, loc(file, line));
+        self.inner.add_read(r).map_err(build_err)
+    }
+
+    /// Admits an ad-hoc read with a value body against this builder's module (feature 010).
+    fn adhoc_read_value(
+        &mut self,
+        name: &str,
+        ps: Vec<(String, Option<String>, PyType_)>,
+        body: PyNode,
+        file: String,
+        line: u64,
+    ) -> PyResult<PyReadItem> {
+        let r = Builder::read_value(name, params(ps)?, body.inner, loc(file, line));
+        self.admit_adhoc(&r)
+    }
+
+    /// Adds a declared read with a projection body (feature 010): `over` is a query node, or
+    /// None with `over_param` naming a `state` parameter; `items` are (kind, name) pairs with kind
+    /// "field" or "derived".
+    #[allow(clippy::too_many_arguments)]
+    fn add_read_projection(
+        &mut self,
+        name: &str,
+        ps: Vec<(String, Option<String>, PyType_)>,
+        over: Option<PyNode>,
+        over_param: Option<String>,
+        member: &str,
+        items: Vec<(String, String)>,
+        file: String,
+        line: u64,
+    ) -> PyResult<()> {
+        let r = projection_read(name, ps, over, over_param, member, items, file, line)?;
+        self.inner.add_read(r).map_err(build_err)
+    }
+
+    /// Admits an ad-hoc read with a projection body against this builder's module (feature 010).
+    #[allow(clippy::too_many_arguments)]
+    fn adhoc_read_projection(
+        &mut self,
+        name: &str,
+        ps: Vec<(String, Option<String>, PyType_)>,
+        over: Option<PyNode>,
+        over_param: Option<String>,
+        member: &str,
+        items: Vec<(String, String)>,
+        file: String,
+        line: u64,
+    ) -> PyResult<PyReadItem> {
+        let r = projection_read(name, ps, over, over_param, member, items, file, line)?;
+        self.admit_adhoc(&r)
     }
 
     /// A builder for a migration from `source` to `target` (feature 009).
@@ -1212,6 +1420,66 @@ impl PyBuilder {
                 Ok((Some(EngineModule { inner: m }), report))
             }
             Err(r) => Ok((None, admission_dict(py, &r)?)),
+        }
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn projection_read(
+    name: &str,
+    ps: Vec<(String, Option<String>, PyType_)>,
+    over: Option<PyNode>,
+    over_param: Option<String>,
+    member: &str,
+    items: Vec<(String, String)>,
+    file: String,
+    line: u64,
+) -> PyResult<behavior_core::wire::WRead> {
+    use behavior_core::wire::WItem;
+    let over = match (over, over_param) {
+        (Some(node), None) => Ok(node.inner),
+        (None, Some(param)) => Err(param),
+        _ => {
+            return Err(PyValueError::new_err(
+                "a projection has a query or a parameter to range over",
+            ));
+        }
+    };
+    let items = items
+        .into_iter()
+        .map(|(kind, n)| match kind.as_str() {
+            "field" => Ok(WItem::Field(n)),
+            "derived" => Ok(WItem::Derived(n)),
+            other => Err(PyValueError::new_err(format!(
+                "bad projection item kind `{other}`"
+            ))),
+        })
+        .collect::<PyResult<Vec<_>>>()?;
+    Ok(Builder::read_projection(
+        name,
+        params(ps)?,
+        over,
+        member,
+        items,
+        loc(file, line),
+    ))
+}
+
+impl PyBuilder {
+    fn admit_adhoc(&mut self, r: &behavior_core::wire::WRead) -> PyResult<PyReadItem> {
+        match self.inner.admit_read(r) {
+            Ok(inner) => Ok(PyReadItem { inner }),
+            Err(result) => Err(build_err(
+                result
+                    .errors
+                    .into_iter()
+                    .next()
+                    .map(BuildError::from)
+                    .unwrap_or_else(|| BuildError {
+                        code: "TYPE_MISMATCH".into(),
+                        message: "ill-typed read".into(),
+                    }),
+            )),
         }
     }
 }
@@ -1634,6 +1902,78 @@ impl PyStore {
         Ok((rec, bundle))
     }
 
+    /// A read intent (feature 010) against this store at `at` or the head; raises
+    /// EngineIntentRejected listing every problem.
+    #[pyo3(signature = (module, intent, context, at=None))]
+    fn read_intent(
+        &self,
+        py: Python<'_>,
+        module: &EngineModule,
+        intent: &Bound<'_, PyAny>,
+        context: &Bound<'_, PyAny>,
+        at: Option<&Bound<'_, PyAny>>,
+    ) -> PyResult<PyReadExecution> {
+        let at = at.map(state_ref).transpose()?;
+        let intent = object(intent)?;
+        match self
+            .inner
+            .read_intent(
+                &module.inner,
+                &intent.to_string(),
+                &object(context)?,
+                at.as_ref(),
+            )
+            .map_err(|e| store_err(py, e))?
+        {
+            Ok(x) => Ok(read_execution(x)),
+            Err(rejection) => Err(intent_rejected(py, &rejection)),
+        }
+    }
+
+    /// Replays a read record (feature 010) against this store; returns (matches, diff).
+    fn replay_read(
+        &self,
+        py: Python<'_>,
+        module: &EngineModule,
+        record_json: &str,
+    ) -> PyResult<(bool, Option<String>)> {
+        let r = self
+            .inner
+            .replay_read(&module.inner, record_json)
+            .map_err(|e| store_err(py, e))?;
+        Ok((r.matches, r.diff))
+    }
+
+    /// Reads (feature 010) at `at` (a StateRef dict) or the head; never writes.
+    #[pyo3(signature = (module, source, bindings, input, context, at=None))]
+    #[allow(clippy::too_many_arguments)]
+    fn read(
+        &self,
+        py: Python<'_>,
+        module: &EngineModule,
+        source: &Bound<'_, PyAny>,
+        bindings: &Bound<'_, PyAny>,
+        input: &Bound<'_, PyAny>,
+        context: &Bound<'_, PyAny>,
+        at: Option<&Bound<'_, PyAny>>,
+    ) -> PyResult<PyReadExecution> {
+        let source = read_source(source)?;
+        let bindings: std::collections::BTreeMap<String, String> = doc("bindings", bindings)?;
+        let at = at.map(state_ref).transpose()?;
+        let x = self
+            .inner
+            .read(
+                &module.inner,
+                &source,
+                &bindings,
+                &object(input)?,
+                &object(context)?,
+                at.as_ref(),
+            )
+            .map_err(|e| store_err(py, e))?;
+        Ok(read_execution(x))
+    }
+
     /// Commits a bundle on `expected_parent`; returns {record_id, result_state, already,
     /// evidence_trust}. Raises EngineStoreConflict or EngineStoreRefused.
     fn commit(
@@ -1836,6 +2176,8 @@ fn _engine(m: &Bound<'_, pyo3::types::PyModule>) -> PyResult<()> {
     m.add_class::<PyBuilder>()?;
     m.add_class::<PyNode>()?;
     m.add_class::<PyRecord>()?;
+    m.add_class::<PyReadItem>()?;
+    m.add_class::<PyReadExecution>()?;
     m.add_class::<EngineModule>()?;
     m.add_class::<PyAttestation>()?;
     m.add_class::<PyAuthorization>()?;

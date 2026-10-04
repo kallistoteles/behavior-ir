@@ -6047,6 +6047,581 @@
         "ir_version": "0.4",
         "nominals": []
       }
+    },
+    {
+      "expect": {
+        "behavior_version": "sha256:e403c573b36f353c34ec92b4910423d39238ac05779be636bde9b264d1e4d694",
+        "items": {
+          "entity:E": "sha256:cd616532940e861edb2c8cb9563d467ce06e29faef8651d21e840e2f6857d0bb",
+          "enum:Status": "sha256:0a5c5e8a94a1861272c1e0d0a1062766038271c3bbcbdfd9d1a5d3d22468331b",
+          "nominal:Money": "sha256:12364694ce79ebcaadf7ba9022bfbaebf8144b8f70bd28c9f3e7bfc5cf03127c",
+          "read:n": "sha256:9cebb8b8f7efdace790eb2d70e58fbcf448e1dd24e28c2b385136f14dbaae63a"
+        }
+      },
+      "name": "read_value",
+      "wire": {
+        "actions": [],
+        "constraints": [],
+        "derived": [],
+        "entities": [
+          {
+            "fields": [
+              {
+                "loc": {
+                  "file": "v.py",
+                  "line": 1
+                },
+                "name": "i",
+                "type": {
+                  "t": "int"
+                }
+              },
+              {
+                "loc": {
+                  "file": "v.py",
+                  "line": 1
+                },
+                "name": "d",
+                "type": {
+                  "t": "decimal"
+                }
+              },
+              {
+                "loc": {
+                  "file": "v.py",
+                  "line": 1
+                },
+                "name": "s",
+                "type": {
+                  "t": "string"
+                }
+              },
+              {
+                "loc": {
+                  "file": "v.py",
+                  "line": 1
+                },
+                "name": "b",
+                "type": {
+                  "t": "bool"
+                }
+              },
+              {
+                "loc": {
+                  "file": "v.py",
+                  "line": 1
+                },
+                "name": "m",
+                "type": {
+                  "name": "Money",
+                  "t": "nominal"
+                }
+              },
+              {
+                "loc": {
+                  "file": "v.py",
+                  "line": 1
+                },
+                "name": "st",
+                "type": {
+                  "name": "Status",
+                  "t": "enum"
+                }
+              },
+              {
+                "loc": {
+                  "file": "v.py",
+                  "line": 1
+                },
+                "name": "o",
+                "type": {
+                  "of": {
+                    "entity": "E",
+                    "t": "id"
+                  },
+                  "t": "option"
+                }
+              }
+            ],
+            "loc": {
+              "file": "v.py",
+              "line": 1
+            },
+            "name": "E"
+          }
+        ],
+        "enums": [
+          {
+            "loc": {
+              "file": "v.py",
+              "line": 1
+            },
+            "name": "Status",
+            "values": [
+              "a",
+              "b"
+            ]
+          }
+        ],
+        "invariants": [],
+        "ir_version": "0.7",
+        "nominals": [
+          {
+            "loc": {
+              "file": "v.py",
+              "line": 1
+            },
+            "name": "Money",
+            "ops": [
+              "add",
+              "order",
+              "ratio",
+              "scale"
+            ],
+            "underlying": {
+              "t": "decimal"
+            }
+          }
+        ],
+        "reads": [
+          {
+            "body": {
+              "value": {
+                "args": [
+                  {
+                    "entity": "E",
+                    "loc": {
+                      "file": "v.py",
+                      "line": 1
+                    },
+                    "op": "select"
+                  }
+                ],
+                "loc": {
+                  "file": "v.py",
+                  "line": 1
+                },
+                "op": "count"
+              }
+            },
+            "loc": {
+              "file": "v.py",
+              "line": 1
+            },
+            "name": "n",
+            "params": []
+          }
+        ]
+      }
+    },
+    {
+      "expect": {
+        "behavior_version": "sha256:225849b0dd9e80e93262db27c4a5e7b01752b99b2046e067fe0e8dc5d37a0ca3",
+        "items": {
+          "derived:v": "sha256:792f34a89da2e3e2741826d55b03157a3ef064ed14bf2adeeb38e2a090083034",
+          "entity:E": "sha256:cd616532940e861edb2c8cb9563d467ce06e29faef8651d21e840e2f6857d0bb",
+          "enum:Status": "sha256:0a5c5e8a94a1861272c1e0d0a1062766038271c3bbcbdfd9d1a5d3d22468331b",
+          "nominal:Money": "sha256:12364694ce79ebcaadf7ba9022bfbaebf8144b8f70bd28c9f3e7bfc5cf03127c",
+          "read:view": "sha256:752390dff8e567dadd0ec5f2f709b2b9045c65d7d3ff1020f9f03228d38ab4f1"
+        }
+      },
+      "name": "read_project_entity",
+      "wire": {
+        "actions": [],
+        "constraints": [],
+        "derived": [
+          {
+            "body": {
+              "args": [
+                {
+                  "field": "i",
+                  "loc": {
+                    "file": "v.py",
+                    "line": 1
+                  },
+                  "op": "field",
+                  "param": "e"
+                },
+                {
+                  "loc": {
+                    "file": "v.py",
+                    "line": 1
+                  },
+                  "op": "lit",
+                  "type": {
+                    "t": "int"
+                  },
+                  "value": 1
+                }
+              ],
+              "loc": {
+                "file": "v.py",
+                "line": 1
+              },
+              "op": "add"
+            },
+            "kind": "derived",
+            "loc": {
+              "file": "v.py",
+              "line": 1
+            },
+            "name": "v",
+            "params": [
+              {
+                "name": "e",
+                "type": {
+                  "name": "E",
+                  "t": "entity"
+                }
+              }
+            ]
+          }
+        ],
+        "entities": [
+          {
+            "fields": [
+              {
+                "loc": {
+                  "file": "v.py",
+                  "line": 1
+                },
+                "name": "i",
+                "type": {
+                  "t": "int"
+                }
+              },
+              {
+                "loc": {
+                  "file": "v.py",
+                  "line": 1
+                },
+                "name": "d",
+                "type": {
+                  "t": "decimal"
+                }
+              },
+              {
+                "loc": {
+                  "file": "v.py",
+                  "line": 1
+                },
+                "name": "s",
+                "type": {
+                  "t": "string"
+                }
+              },
+              {
+                "loc": {
+                  "file": "v.py",
+                  "line": 1
+                },
+                "name": "b",
+                "type": {
+                  "t": "bool"
+                }
+              },
+              {
+                "loc": {
+                  "file": "v.py",
+                  "line": 1
+                },
+                "name": "m",
+                "type": {
+                  "name": "Money",
+                  "t": "nominal"
+                }
+              },
+              {
+                "loc": {
+                  "file": "v.py",
+                  "line": 1
+                },
+                "name": "st",
+                "type": {
+                  "name": "Status",
+                  "t": "enum"
+                }
+              },
+              {
+                "loc": {
+                  "file": "v.py",
+                  "line": 1
+                },
+                "name": "o",
+                "type": {
+                  "of": {
+                    "entity": "E",
+                    "t": "id"
+                  },
+                  "t": "option"
+                }
+              }
+            ],
+            "loc": {
+              "file": "v.py",
+              "line": 1
+            },
+            "name": "E"
+          }
+        ],
+        "enums": [
+          {
+            "loc": {
+              "file": "v.py",
+              "line": 1
+            },
+            "name": "Status",
+            "values": [
+              "a",
+              "b"
+            ]
+          }
+        ],
+        "invariants": [],
+        "ir_version": "0.7",
+        "nominals": [
+          {
+            "loc": {
+              "file": "v.py",
+              "line": 1
+            },
+            "name": "Money",
+            "ops": [
+              "add",
+              "order",
+              "ratio",
+              "scale"
+            ],
+            "underlying": {
+              "t": "decimal"
+            }
+          }
+        ],
+        "reads": [
+          {
+            "body": {
+              "project": {
+                "items": [
+                  {
+                    "field": "i"
+                  },
+                  {
+                    "derived": "v"
+                  }
+                ],
+                "over": {
+                  "loc": {
+                    "file": "v.py",
+                    "line": 1
+                  },
+                  "op": "param",
+                  "param": "e"
+                },
+                "param": "x"
+              }
+            },
+            "loc": {
+              "file": "v.py",
+              "line": 1
+            },
+            "name": "view",
+            "params": [
+              {
+                "name": "e",
+                "role": "state",
+                "type": {
+                  "name": "E",
+                  "t": "entity"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "expect": {
+        "behavior_version": "sha256:d4128cf6c03380acde60dbe4f7745634abdcba0df6da024e76bd0937b7c4f521",
+        "items": {
+          "entity:E": "sha256:cd616532940e861edb2c8cb9563d467ce06e29faef8651d21e840e2f6857d0bb",
+          "enum:Status": "sha256:0a5c5e8a94a1861272c1e0d0a1062766038271c3bbcbdfd9d1a5d3d22468331b",
+          "nominal:Money": "sha256:12364694ce79ebcaadf7ba9022bfbaebf8144b8f70bd28c9f3e7bfc5cf03127c",
+          "read:listing": "sha256:8979fe98b52a4949ccd9beec0275fde6806205417758112889c4d9bcdd84db77"
+        }
+      },
+      "name": "read_project_query",
+      "wire": {
+        "actions": [],
+        "constraints": [],
+        "derived": [],
+        "entities": [
+          {
+            "fields": [
+              {
+                "loc": {
+                  "file": "v.py",
+                  "line": 1
+                },
+                "name": "i",
+                "type": {
+                  "t": "int"
+                }
+              },
+              {
+                "loc": {
+                  "file": "v.py",
+                  "line": 1
+                },
+                "name": "d",
+                "type": {
+                  "t": "decimal"
+                }
+              },
+              {
+                "loc": {
+                  "file": "v.py",
+                  "line": 1
+                },
+                "name": "s",
+                "type": {
+                  "t": "string"
+                }
+              },
+              {
+                "loc": {
+                  "file": "v.py",
+                  "line": 1
+                },
+                "name": "b",
+                "type": {
+                  "t": "bool"
+                }
+              },
+              {
+                "loc": {
+                  "file": "v.py",
+                  "line": 1
+                },
+                "name": "m",
+                "type": {
+                  "name": "Money",
+                  "t": "nominal"
+                }
+              },
+              {
+                "loc": {
+                  "file": "v.py",
+                  "line": 1
+                },
+                "name": "st",
+                "type": {
+                  "name": "Status",
+                  "t": "enum"
+                }
+              },
+              {
+                "loc": {
+                  "file": "v.py",
+                  "line": 1
+                },
+                "name": "o",
+                "type": {
+                  "of": {
+                    "entity": "E",
+                    "t": "id"
+                  },
+                  "t": "option"
+                }
+              }
+            ],
+            "loc": {
+              "file": "v.py",
+              "line": 1
+            },
+            "name": "E"
+          }
+        ],
+        "enums": [
+          {
+            "loc": {
+              "file": "v.py",
+              "line": 1
+            },
+            "name": "Status",
+            "values": [
+              "a",
+              "b"
+            ]
+          }
+        ],
+        "invariants": [],
+        "ir_version": "0.7",
+        "nominals": [
+          {
+            "loc": {
+              "file": "v.py",
+              "line": 1
+            },
+            "name": "Money",
+            "ops": [
+              "add",
+              "order",
+              "ratio",
+              "scale"
+            ],
+            "underlying": {
+              "t": "decimal"
+            }
+          }
+        ],
+        "reads": [
+          {
+            "body": {
+              "project": {
+                "items": [
+                  {
+                    "field": "s"
+                  }
+                ],
+                "over": {
+                  "args": [
+                    {
+                      "entity": "E",
+                      "loc": {
+                        "file": "v.py",
+                        "line": 1
+                      },
+                      "op": "select"
+                    }
+                  ],
+                  "body": {
+                    "field": "b",
+                    "loc": {
+                      "file": "v.py",
+                      "line": 1
+                    },
+                    "op": "field",
+                    "param": "x"
+                  },
+                  "loc": {
+                    "file": "v.py",
+                    "line": 1
+                  },
+                  "op": "where",
+                  "param": "x"
+                },
+                "param": "x"
+              }
+            },
+            "loc": {
+              "file": "v.py",
+              "line": 1
+            },
+            "name": "listing",
+            "params": []
+          }
+        ]
+      }
     }
   ]
 }

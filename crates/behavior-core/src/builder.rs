@@ -12,14 +12,14 @@ use std::path::{Component, Path, PathBuf};
 use serde_json::Value as Json;
 
 use crate::admit::resolve::{Decls, ParamSite, declarations, params};
-use crate::admit::typecheck::{check_expr, derived_item, effect_target};
+use crate::admit::typecheck::{check_expr, derived_item, effect_target, read_item};
 use crate::admit::{AdmissionError, AdmissionResult, admit_wire};
-use crate::semantic::module::{DerivedItem, Module, Param, ParamRole};
+use crate::semantic::module::{DerivedItem, Module, Param, ParamRole, ReadItem};
 use crate::semantic::types::{Type, coerce};
 use crate::wire::{
     DerivedKind, Loc, WAction, WCond, WConstraint, WDerived, WEffect, WEntity, WEnum, WExpr,
-    WExprKind, WField, WGlobalInvariant, WInvariant, WLifecycle, WModule, WNominal, WParam, WType,
-    arity_ok, op_name,
+    WExprKind, WField, WGlobalInvariant, WInvariant, WLifecycle, WModule, WNominal, WParam, WRead,
+    WReadBody, WType, arity_ok, op_name,
 };
 
 /// A construction error: the same codes as admission errors.
@@ -60,6 +60,8 @@ pub enum ScopeSite {
     Action,
     /// A module invariant (feature 007): no parameters at all.
     Closed,
+    /// A read (feature 010): `state`, `input` and `context` parameters, possibly none.
+    Read,
 }
 
 /// A typed expression node. `ty` is `None` for a node that depends on a derived value that is
@@ -115,6 +117,8 @@ pub struct Builder {
     global_invariants: Vec<WGlobalInvariant>,
     constraints: Vec<WConstraint>,
     actions: Vec<WAction>,
+    /// Declared reads (feature 010), in declaration order.
+    reads: Vec<WRead>,
     decls: Option<Decls>,
     typed_derived: BTreeMap<String, DerivedItem>,
     scopes: Vec<Vec<Param>>,
@@ -150,6 +154,21 @@ impl Builder {
                 requirements: Vec::new(),
                 retire: Vec::new(),
             })),
+            ..Self::default()
+        }
+    }
+
+    /// A builder over an admitted module's declarations and derived values (feature 010): an
+    /// ad-hoc read is traced against it and admitted with [`Builder::admit_read`].
+    pub fn for_module(module: &Module) -> Self {
+        Builder {
+            decls: Some(Decls {
+                enums: module.enums.clone(),
+                nominals: module.nominals.clone(),
+                entities: module.entities.clone(),
+                reads: module.reads.keys().cloned().collect(),
+            }),
+            typed_derived: module.derived.clone(),
             ..Self::default()
         }
     }
@@ -390,6 +409,7 @@ impl Builder {
             global_invariants: Vec::new(),
             constraints: Vec::new(),
             actions: Vec::new(),
+            reads: Vec::new(),
         };
         let mut errors = Vec::new();
         let decls = declarations(&model, &mut errors);
@@ -422,6 +442,7 @@ impl Builder {
             // Whether the action creates is known only when it is added (`add_action` checks).
             ScopeSite::Action => ParamSite::CreatingAction,
             ScopeSite::Closed => ParamSite::Derived,
+            ScopeSite::Read => ParamSite::Read,
         };
         let mut errors = Vec::new();
         match params(decls, &ps, site, &loc, &mut errors) {
@@ -802,6 +823,93 @@ impl Builder {
         Ok(())
     }
 
+    /// A read with a value body (feature 010).
+    pub fn read_value(name: &str, ps: Vec<WParam>, body: Node, loc: Loc) -> WRead {
+        WRead {
+            name: name.into(),
+            params: ps,
+            body: WReadBody::Value(body.w),
+            loc,
+        }
+    }
+
+    /// A read with a projection body (feature 010): over a query node, or over the `state`
+    /// parameter `over_param`; `items` are fields and derived values of the member.
+    pub fn read_projection(
+        name: &str,
+        ps: Vec<WParam>,
+        over: Result<Node, String>,
+        member: &str,
+        items: Vec<crate::wire::WItem>,
+        loc: Loc,
+    ) -> WRead {
+        let over = match over {
+            Ok(node) => node.w,
+            Err(param) => WExpr {
+                kind: WExprKind::Param(param),
+                loc: loc.clone(),
+            },
+        };
+        WRead {
+            name: name.into(),
+            params: ps,
+            body: WReadBody::Project {
+                over,
+                param: member.into(),
+                items,
+            },
+            loc,
+        }
+    }
+
+    /// Checks a read with the rules of admission.
+    fn check_read(&mut self, r: &WRead, declared: bool) -> Result<ReadItem, Vec<AdmissionError>> {
+        if let Err(e) = self.ensure_decls() {
+            return Err(vec![AdmissionError::new(&e.code, e.message, Some(&r.loc))]);
+        }
+        let Some(decls) = &self.decls else {
+            return Err(vec![AdmissionError::new(
+                "DECODE_ERROR",
+                "no declarations",
+                Some(&r.loc),
+            )]);
+        };
+        let mut errors = Vec::new();
+        match read_item(decls, &self.typed_derived, r, declared, &mut errors) {
+            Some(item) if errors.is_empty() => Ok(item),
+            _ => Err(errors),
+        }
+    }
+
+    /// Adds a declared read (feature 010), checked immediately.
+    pub fn add_read(&mut self, r: WRead) -> R<()> {
+        if self.reads.iter().any(|x| x.name == r.name) {
+            return Err(err(
+                "DUPLICATE_NAME",
+                format!("read `{}` is declared more than once", r.name),
+            ));
+        }
+        self.check_read(&r, true).map_err(|es| {
+            es.into_iter()
+                .next()
+                .map(Into::into)
+                .unwrap_or_else(|| err("TYPE_MISMATCH", "ill-typed read"))
+        })?;
+        self.reads.push(r);
+        Ok(())
+    }
+
+    /// Admits an ad-hoc read (feature 010) against this builder's module ([`Builder::for_module`]).
+    /// Source locations are relativized to the read's own directory.
+    pub fn admit_read(&mut self, r: &WRead) -> Result<ReadItem, AdmissionResult> {
+        let mut r = r.clone();
+        let mut files = Vec::new();
+        read_locs(&mut r, &mut |l| files.push(PathBuf::from(&l.file)));
+        let root = common_dir(&files);
+        read_locs(&mut r, &mut |l| l.file = relative(&l.file, &root));
+        self.check_read(&r, false).map_err(AdmissionResult::failed)
+    }
+
     pub fn add_invariant(
         &mut self,
         name: &str,
@@ -917,6 +1025,7 @@ impl Builder {
             global_invariants: self.global_invariants.clone(),
             constraints: self.constraints.clone(),
             actions: self.actions.clone(),
+            reads: self.reads.clone(),
         };
         let mut files = Vec::new();
         for_each_loc(&mut w, &mut |l| files.push(PathBuf::from(&l.file)));
@@ -977,7 +1086,16 @@ fn expr_locs(e: &mut WExpr, f: &mut dyn FnMut(&mut Loc)) {
     }
 }
 
+fn read_locs(r: &mut WRead, f: &mut dyn FnMut(&mut Loc)) {
+    f(&mut r.loc);
+    match &mut r.body {
+        WReadBody::Value(e) => expr_locs(e, f),
+        WReadBody::Project { over, .. } => expr_locs(over, f),
+    }
+}
+
 fn for_each_loc(w: &mut WModule, f: &mut dyn FnMut(&mut Loc)) {
+    w.reads.iter_mut().for_each(|r| read_locs(r, f));
     w.enums.iter_mut().for_each(|e| f(&mut e.loc));
     w.nominals.iter_mut().for_each(|n| f(&mut n.loc));
     for e in &mut w.entities {

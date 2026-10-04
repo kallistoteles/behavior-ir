@@ -1,4 +1,4 @@
-# How verification works (features 002–007)
+# How verification works (features 002–007, 009, 010)
 
 A behavior module is no longer only a program that can run: its central safety and correctness
 properties are turned into mathematical questions automatically, proven or refuted, and kept as
@@ -142,6 +142,26 @@ Example (`tests/fixtures/verify/migration.expected.json`): narrowing `Order.regi
 under `every_order_has_region` and is a confirmed counterexample without it. Widening `Money`
 from two to four decimals is a confirmed `evaluation_error`: the wider scale shrinks the range, so
 very large prices overflow.
+
+## Declared reads (feature 010)
+
+`evaluation_error` also checks every declared read. The checks name the read as their action
+(`read:<name>`).
+
+- **A value read** is encoded like an action's expressions: its bound entities are valid under
+  their constraints and invariants, their references exist, and module invariants hold.
+- **A query projection** is checked for one symbolic member of the projected type, valid like a
+  bound entity and a member by the query's filter. Filters are candidate-local, so they encode
+  over the member alone: `where` adds a conjunct, `union` a disjunction, `intersection` a
+  conjunction and `difference` `a ∧ ¬b`. The filter's own evaluation errors are checked first;
+  each item assumes the earlier ones did not fail.
+- **An entity projection** is checked for the bound entity.
+- **Confirmation** evaluates the read on the counterexample state, with the member added to the
+  universe of its type. The finding carries the failing read record, which replays.
+
+Example (`tests/fixtures/verify/reads.expected.json`): an average over all cultures is a confirmed
+counterexample, while the same average projected only over cultures with measurements is proven.
+A sum of `Int` fields can overflow, which is a confirmed counterexample too.
 
 ## What is proven — and what is not
 

@@ -98,48 +98,57 @@ pub fn admit(wire_text: &str) -> Result<Module, AdmissionResult> {
 }
 
 fn decode(wire_text: &str) -> Result<wire::WModule, AdmissionResult> {
-    match wire::decode_module(wire_text) {
-        Ok(w) => Ok(w),
-        Err(DecodeError::UnsupportedVersion(v)) => {
-            Err(AdmissionResult::failed(vec![AdmissionError::new(
-                "UNSUPPORTED_IR_VERSION",
-                format!(
-                    "unsupported ir_version `{v}`; this engine accepts `{}`, `{}` and `{}` only. Wire \
-                     IR 0.1–0.3 used rounded decimal arithmetic, 0.4 is exact: re-serialize from \
-                     the DSL and declare a scale where computed values are stored",
-                    wire::IR_VERSION_EXACT,
-                    wire::IR_VERSION_LIFECYCLE,
-                    wire::IR_VERSION_QUERIES
-                ),
-                None,
-            )]))
-        }
-        Err(DecodeError::NeedsLifecycleVersion(form)) => {
-            Err(AdmissionResult::failed(vec![AdmissionError::new(
+    wire::decode_module(wire_text).map_err(decode_failure)
+}
+
+/// The failed AdmissionResult of a decode error.
+pub(crate) fn decode_failure(e: DecodeError) -> AdmissionResult {
+    match e {
+        DecodeError::UnsupportedVersion(v) => AdmissionResult::failed(vec![AdmissionError::new(
+            "UNSUPPORTED_IR_VERSION",
+            format!(
+                "unsupported ir_version `{v}`; this engine accepts `{}`, `{}`, `{}` and `{}` \
+                     only. Wire IR 0.1–0.3 used rounded decimal arithmetic, 0.4 is exact: \
+                     re-serialize from the DSL and declare a scale where computed values are stored",
+                wire::IR_VERSION_EXACT,
+                wire::IR_VERSION_LIFECYCLE,
+                wire::IR_VERSION_QUERIES,
+                wire::IR_VERSION_READS
+            ),
+            None,
+        )]),
+        DecodeError::NeedsLifecycleVersion(form) => {
+            AdmissionResult::failed(vec![AdmissionError::new(
                 "UNSUPPORTED_IR_VERSION",
                 format!(
                     "`{form}` is an entity lifecycle form and needs ir_version `{}`",
                     wire::IR_VERSION_LIFECYCLE
                 ),
                 None,
-            )]))
+            )])
         }
-        Err(DecodeError::NeedsQueryVersion(form)) => {
-            Err(AdmissionResult::failed(vec![AdmissionError::new(
-                "UNSUPPORTED_IR_VERSION",
-                format!(
-                    "`{form}` is a relational form and needs ir_version `{}`",
-                    wire::IR_VERSION_QUERIES
-                ),
-                None,
-            )]))
-        }
-        Err(DecodeError::Structure { path, message }) => {
-            Err(AdmissionResult::failed(vec![AdmissionError::new(
+        DecodeError::NeedsQueryVersion(form) => AdmissionResult::failed(vec![AdmissionError::new(
+            "UNSUPPORTED_IR_VERSION",
+            format!(
+                "`{form}` is a relational form and needs ir_version `{}`",
+                wire::IR_VERSION_QUERIES
+            ),
+            None,
+        )]),
+        DecodeError::NeedsReadVersion(form) => AdmissionResult::failed(vec![AdmissionError::new(
+            "UNSUPPORTED_IR_VERSION",
+            format!(
+                "`{form}` declares reads and needs ir_version `{}`",
+                wire::IR_VERSION_READS
+            ),
+            None,
+        )]),
+        DecodeError::Structure { path, message } => {
+            AdmissionResult::failed(vec![AdmissionError::new(
                 "DECODE_ERROR",
                 format!("at {path}: {message}"),
                 None,
-            )]))
+            )])
         }
     }
 }

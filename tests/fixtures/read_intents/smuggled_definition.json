@@ -1,0 +1,1 @@
+{"capability":"active_count","definition":{"ir_version":"0.7","read":{"body":{"value":{"args":[{"entity":"Customer","loc":{"file":"lab.py","line":90},"op":"select"}],"loc":{"file":"lab.py","line":90},"op":"count"}},"loc":{"file":"lab.py","line":90},"name":"customer_count","params":[]}}}

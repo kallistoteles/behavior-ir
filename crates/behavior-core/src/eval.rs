@@ -14,7 +14,9 @@ use crate::facts::{BoundEntity, EvaluationFacts, FactError, Facts, RefEdge, chec
 use crate::pretty;
 use crate::record::DecisionRecord;
 use crate::semantic::expr::{CANDIDATE, Expr, ExprKind};
-use crate::semantic::module::{ActionItem, Module, ParamRole};
+use crate::semantic::module::{
+    ActionItem, Module, Over, Param, ParamRole, Projection, ReadBody, ReadItem,
+};
 use crate::semantic::types::{ArithOp, CmpOp, Hash, Type, fixed_scale, hash_display};
 use crate::semantic::value::{Value, decode_scalar, encode};
 use crate::wire::Loc;
@@ -201,15 +203,17 @@ pub(crate) fn decode_param(
     ok.then_some(Value::Entity(fields))
 }
 
-/// Decodes the three sections of a request against the action's parameters.
-fn decode_sections(
+/// Decodes the three sections of a request against the parameters of an action or a read
+/// (`what` names it in messages).
+pub(crate) fn decode_sections(
     module: &Module,
-    action: &ActionItem,
+    params: &[Param],
+    what: &str,
     sections: &BTreeMap<&'static str, Map<String, Json>>,
     problems: &mut Vec<InputProblem>,
 ) -> Option<Vals> {
     let mut vals = Vals::new();
-    for p in action.params() {
+    for p in params {
         let section = section_name(p.role());
         let path = format!("{section}.{}", p.name());
         match sections.get(section).and_then(|s| s.get(p.name())) {
@@ -227,15 +231,14 @@ fn decode_sections(
     }
     for (section, map) in sections {
         for key in map.keys() {
-            let declared = action
-                .params()
+            let declared = params
                 .iter()
                 .any(|p| p.name() == key && section_name(p.role()) == *section);
             if !declared {
                 problems.push(InputProblem {
                     code: "EXTRA_ARGUMENT",
                     path: format!("{section}.{key}"),
-                    message: format!("`{key}` is not a {section} parameter of this action"),
+                    message: format!("`{key}` is not a {section} parameter of this {what}"),
                 });
             }
         }
@@ -320,6 +323,9 @@ struct Evaluator<'a> {
     /// While a module invariant is checked on S' (feature 007): the `unique` expressions known
     /// to hold on the valid S (its top-level conjuncts), decided by the delta rule.
     assume_valid: BTreeSet<Hash>,
+    /// Entity values fetched whole (feature 010), by key: a cache, never recorded. Only the
+    /// fields evaluation uses become field facts.
+    fetched: BTreeMap<Key, Option<Json>>,
 }
 
 /// The capture reads of a query (feature 007): enclosing field and parameter reads in its lambda
@@ -625,13 +631,18 @@ impl Evaluator<'_> {
         let fk = (t.clone(), id.clone(), field.to_string());
         let raw = match self.observed.fields.get(&fk) {
             Some(v) => v.clone(),
-            None => match self.facts.field(&t, &id, field) {
-                Ok(v) => {
-                    self.observed.fields.insert(fk, v.clone());
-                    v
+            None => {
+                let whole = self
+                    .fetched_entity(&t, &id)
+                    .and_then(|v| v.get(field).cloned());
+                match whole.map_or_else(|| self.facts.field(&t, &id, field), Ok) {
+                    Ok(v) => {
+                        self.observed.fields.insert(fk, v.clone());
+                        v
+                    }
+                    Err(e) => return Err(self.fact_failed(e)),
                 }
-                Err(e) => return Err(self.fact_failed(e)),
-            },
+            }
         };
         let ty = self
             .module
@@ -640,6 +651,79 @@ impl Evaluator<'_> {
             .cloned()
             .ok_or_else(bad)?;
         decode_scalar(&ty, &raw).map_err(|e| format!("field fact {t} {id}.{field}: {e}"))
+    }
+
+    /// The whole value of entity `t#id`, fetched once from the facts if they can answer it.
+    fn fetched_entity(&mut self, t: &str, id: &str) -> Option<Json> {
+        let k = (t.to_string(), id.to_string());
+        if !self.fetched.contains_key(&k) {
+            let v = self.facts.entity(t, id).ok();
+            self.fetched.insert(k.clone(), v);
+        }
+        self.fetched.get(&k).cloned().flatten()
+    }
+
+    /// A projection (feature 010): every member of `over` in identity order, each with its
+    /// identity and exactly the projected items, evaluated with the existing semantics (fields
+    /// read, derived values called over the member). The first failure fails the whole read; the
+    /// message names the member and the item.
+    fn project(&mut self, p: &Projection, vals: &Vals) -> Result<Json, String> {
+        let entity = p.entity().to_string();
+        let item_exprs = |param: &str| -> Result<Vec<(String, Expr)>, String> {
+            p.items()
+                .iter()
+                .map(|item| {
+                    p.item_expr(self.module, item, param)
+                        .map(|e| (item.name().to_string(), e))
+                        .ok_or_else(|| format!("internal: projection item `{}`", item.name()))
+                })
+                .collect()
+        };
+        match p.over() {
+            Over::Query(q) => {
+                let exprs = item_exprs(CANDIDATE)?;
+                let mut members = self.members(q, vals, Phase::S)?;
+                members.sort();
+                let saved = self.candidate.take();
+                let mut rows = Vec::new();
+                for id in members {
+                    self.candidate = Some((entity.clone(), id.clone()));
+                    let mut row = Map::new();
+                    row.insert("id".into(), json!(id));
+                    for (name, e) in &exprs {
+                        match self.eval(e, vals, Phase::S, &mut None) {
+                            Ok(v) => {
+                                row.insert(name.clone(), encode(&e.ty, &v));
+                            }
+                            Err(cause) => {
+                                self.candidate = saved;
+                                return Err(format!("{entity}#{id}.{name}: {cause}"));
+                            }
+                        }
+                    }
+                    rows.push(Json::Object(row));
+                }
+                self.candidate = saved;
+                Ok(Json::Array(rows))
+            }
+            Over::Param { name: param, .. } => {
+                let exprs = item_exprs(param)?;
+                let id = match vals.get(param) {
+                    Some(Value::Entity(fields)) => fields.get("id").and_then(id_text),
+                    _ => None,
+                }
+                .ok_or_else(|| format!("internal: `{param}` is not a bound entity"))?;
+                let mut row = Map::new();
+                row.insert("id".into(), json!(id));
+                for (name, e) in &exprs {
+                    let v = self
+                        .eval(e, vals, Phase::S, &mut None)
+                        .map_err(|cause| format!("{entity}#{id}.{name}: {cause}"))?;
+                    row.insert(name.clone(), encode(&e.ty, &v));
+                }
+                Ok(Json::Object(row))
+            }
+        }
     }
 
     /// The whole value of the current candidate (for a derived value over it).
@@ -1384,6 +1468,7 @@ impl<'a> Evaluator<'a> {
             rescales: Vec::new(),
             candidate: None,
             assume_valid: BTreeSet::new(),
+            fetched: BTreeMap::new(),
         }
     }
 
@@ -2034,14 +2119,17 @@ impl EvaluationFacts for Supplied<'_> {
     fn field(&self, entity: &str, id: &str, field: &str) -> Result<Json, FactError> {
         self.facts.field(entity, id, field)
     }
+    fn entity(&self, entity: &str, id: &str) -> Result<Json, FactError> {
+        self.facts.entity(entity, id)
+    }
 }
 
 /// Supplied universes, query and field facts must describe one valid state with the bound
 /// entities (feature 007, research R5; closed under subsets).
-fn check_query_snapshot(
+pub(crate) fn check_query_snapshot(
     module: &Module,
     facts: &Facts,
-    action: &ActionItem,
+    params: &[Param],
     vals: &Vals,
 ) -> Result<(), crate::facts::FactsProblem> {
     let bad = |message: String| crate::facts::FactsProblem {
@@ -2054,7 +2142,7 @@ fn check_query_snapshot(
     };
     // Bound state entities, by type and id, in their canonical encoding.
     let mut bound: BTreeMap<Key, Json> = BTreeMap::new();
-    for p in action.params() {
+    for p in params {
         if p.role() != ParamRole::State {
             continue;
         }
@@ -2144,9 +2232,8 @@ fn check_query_snapshot(
 }
 
 /// The bound state entities of an action with their reference-field values.
-fn bound_entities(module: &Module, action: &ActionItem, vals: &Vals) -> Vec<BoundEntity> {
-    action
-        .params()
+pub(crate) fn bound_entities(module: &Module, params: &[Param], vals: &Vals) -> Vec<BoundEntity> {
+    params
         .iter()
         .filter(|p| p.role() == ParamRole::State)
         .filter_map(|p| {
@@ -2188,7 +2275,9 @@ fn evaluate_inner(
         });
     }
     let vals = match action {
-        Some(a) if problems.is_empty() => decode_sections(module, a, &req.sections, &mut problems),
+        Some(a) if problems.is_empty() => {
+            decode_sections(module, a.params(), "action", &req.sections, &mut problems)
+        }
         _ => None,
     };
     // Supplied facts (plain evaluation) must parse and form a valid snapshot (FR-010g).
@@ -2202,8 +2291,10 @@ fn evaluate_inner(
         }),
         (Some(raw), None, Some(a), Some(v)) => {
             match Facts::from_json(raw)
-                .and_then(|f| check_snapshot(module, &f, &bound_entities(module, a, v)).map(|_| f))
-                .and_then(|f| check_query_snapshot(module, &f, a, v).map(|_| f))
+                .and_then(|f| {
+                    check_snapshot(module, &f, &bound_entities(module, a.params(), v)).map(|_| f)
+                })
+                .and_then(|f| check_query_snapshot(module, &f, a.params(), v).map(|_| f))
             {
                 Ok(f) => supplied = f,
                 Err(p) => problems.push(InputProblem {
@@ -3084,4 +3175,306 @@ fn alias(action: &ActionItem, vals: &Vals) -> Option<String> {
         }
     }
     None
+}
+
+// --- reads (feature 010) -------------------------------------------------------------------------
+
+/// A parsed read request: `{data_version, state, input, context, facts}`.
+struct ReadRequest {
+    data_version: String,
+    sections: BTreeMap<&'static str, Map<String, Json>>,
+    facts: Option<Json>,
+}
+
+fn parse_read_request(text: &str, problems: &mut Vec<InputProblem>) -> ReadRequest {
+    let mut req = ReadRequest {
+        data_version: String::new(),
+        sections: BTreeMap::new(),
+        facts: None,
+    };
+    for s in ["state", "input", "context"] {
+        req.sections.insert(s, Map::new());
+    }
+    let root: Json = match serde_json::from_str(text) {
+        Ok(v) => v,
+        Err(e) => {
+            problems.push(InputProblem {
+                code: "DECODE_ERROR",
+                path: "$".into(),
+                message: format!("invalid JSON: {e}"),
+            });
+            return req;
+        }
+    };
+    let Json::Object(obj) = root else {
+        problems.push(InputProblem {
+            code: "DECODE_ERROR",
+            path: "$".into(),
+            message: "expected an object".into(),
+        });
+        return req;
+    };
+    for (key, v) in &obj {
+        match (key.as_str(), v) {
+            ("data_version", Json::String(s)) => req.data_version = s.clone(),
+            ("facts", v) => req.facts = Some(v.clone()),
+            (section @ ("state" | "input" | "context"), Json::Object(m)) => {
+                let name = match section {
+                    "state" => "state",
+                    "input" => "input",
+                    _ => "context",
+                };
+                req.sections.insert(name, m.clone());
+            }
+            _ => problems.push(InputProblem {
+                code: "DECODE_ERROR",
+                path: key.clone(),
+                message: format!("unexpected or malformed key `{key}`"),
+            }),
+        }
+    }
+    if !obj.contains_key("data_version") {
+        problems.push(InputProblem {
+            code: "MISSING_ARGUMENT",
+            path: "data_version".into(),
+            message: "missing `data_version`".into(),
+        });
+    }
+    req
+}
+
+/// The bound identity of a `state` parameter given only by `{"id": …}`: the binding a store
+/// makes for an identity it could not load (research R8).
+fn binding_only(raw: Option<&Json>) -> Option<&str> {
+    match raw {
+        Some(Json::Object(o)) if o.len() == 1 => o.get("id").and_then(Json::as_str),
+        _ => None,
+    }
+}
+
+fn echo(req: &ReadRequest, section: &str) -> Json {
+    req.sections
+        .get(section)
+        .map(|m| sanitize_floats(&Json::Object(m.clone())))
+        .unwrap_or_else(|| json!({}))
+}
+
+/// Evaluates a read (feature 010) against one state: the request's supplied facts (plain mode)
+/// or `provider` (a store as of one position). Returns the record's fields other than `format`,
+/// `behavior_version`, `read` and `record_id`, which `read.rs` adds when it seals the record.
+/// Phase is always S: a read has no S′, checks no rules and changes nothing.
+pub(crate) fn evaluate_read_inner(
+    module: &Module,
+    read: &ReadItem,
+    request: &str,
+    provider: Option<&dyn EvaluationFacts>,
+) -> Map<String, Json> {
+    let mut problems = Vec::new();
+    let req = parse_read_request(request, &mut problems);
+    let mut record = Map::new();
+    record.insert("data_version".into(), json!(req.data_version));
+
+    // Supplied facts (plain mode) parse first: a binding is checked against them.
+    let mut supplied = Facts::default();
+    match (&req.facts, provider) {
+        (Some(_), Some(_)) => problems.push(InputProblem {
+            code: "DECODE_ERROR",
+            path: "facts".into(),
+            message: "facts come from the read's provider; the request cannot supply them".into(),
+        }),
+        (Some(raw), None) => match Facts::from_json(raw) {
+            Ok(f) => supplied = f,
+            Err(p) => problems.push(InputProblem {
+                code: p.code,
+                path: "facts".into(),
+                message: p.message,
+            }),
+        },
+        _ => {}
+    }
+
+    // Binding (research R8): a bound identity that does not exist at the read's state.
+    if problems.is_empty() {
+        let state = req.sections.get("state");
+        let mut absent = Facts::default();
+        let mut reasons = Vec::new();
+        for p in read.params() {
+            let (ParamRole::State, Type::Entity(t)) = (p.role(), p.ty()) else {
+                continue;
+            };
+            let Some(id) = binding_only(state.and_then(|s| s.get(p.name()))) else {
+                continue;
+            };
+            let exists = match provider {
+                Some(f) => f.exists(t, id),
+                None => supplied.exists(t, id),
+            };
+            if exists == Ok(false) {
+                absent
+                    .existence
+                    .insert((t.to_string(), id.to_string()), false);
+                reasons.push(reason(
+                    "UNKNOWN_BINDING",
+                    format!(
+                        "state.{}: {t} {id} does not exist at the read's state",
+                        p.name()
+                    ),
+                    None,
+                ));
+            }
+        }
+        if !reasons.is_empty() {
+            record.insert("state".into(), echo(&req, "state"));
+            record.insert("input".into(), echo(&req, "input"));
+            record.insert("context".into(), echo(&req, "context"));
+            record.insert("result".into(), json!("INVALID_BINDING"));
+            record.insert("reasons".into(), Json::Array(reasons));
+            record.insert("derived".into(), json!([]));
+            record.insert("observed".into(), json!([]));
+            record.insert("facts".into(), absent.to_json());
+            return record;
+        }
+    }
+
+    let vals = if problems.is_empty() {
+        decode_sections(module, read.params(), "read", &req.sections, &mut problems)
+    } else {
+        None
+    };
+    if let (Some(v), None, true) = (&vals, provider, req.facts.is_some()) {
+        let checked = check_snapshot(module, &supplied, &bound_entities(module, read.params(), v))
+            .and_then(|_| check_query_snapshot(module, &supplied, read.params(), v));
+        if let Err(p) = checked {
+            problems.push(InputProblem {
+                code: p.code,
+                path: "facts".into(),
+                message: p.message,
+            });
+        }
+    }
+
+    let (Some(vals), true) = (vals, problems.is_empty()) else {
+        problems.sort_by(|a, b| a.path.cmp(&b.path));
+        record.insert("state".into(), echo(&req, "state"));
+        record.insert("input".into(), echo(&req, "input"));
+        record.insert("context".into(), echo(&req, "context"));
+        // A refused request keeps its facts section, so replay refuses it the same way.
+        if let Some(f) = &req.facts {
+            record.insert("facts".into(), sanitize_floats(f));
+        }
+        record.insert("result".into(), json!("INVALID_INPUT"));
+        let reasons: Vec<Json> = problems
+            .iter()
+            .map(|p| reason(p.code, format!("{}: {}", p.path, p.message), None))
+            .collect();
+        record.insert("reasons".into(), Json::Array(reasons));
+        record.insert("derived".into(), json!([]));
+        record.insert("observed".into(), json!([]));
+        return record;
+    };
+
+    // Normalized echo of the decoded parameters.
+    let mut sections: BTreeMap<&str, Map<String, Json>> = [
+        ("state", Map::new()),
+        ("input", Map::new()),
+        ("context", Map::new()),
+    ]
+    .into();
+    for p in read.params() {
+        if let (Some(v), Some(sec)) = (vals.get(p.name()), sections.get_mut(section_name(p.role())))
+        {
+            sec.insert(p.name().to_string(), encode_param(module, p.ty(), v));
+        }
+    }
+    for (k, v) in sections {
+        record.insert(k.into(), Json::Object(v));
+    }
+
+    let supplied = Supplied {
+        module,
+        facts: &supplied,
+    };
+    let mut ev = Evaluator::new(module, provider.unwrap_or(&supplied));
+    // Bound entities exist at the read's state by binding; queries see their bound values.
+    for p in read.params() {
+        if p.role() != ParamRole::State {
+            continue;
+        }
+        if let (Some(entity), Some(id)) = (entity_of(p), param_id(&vals, p.name())) {
+            ev.world.bound.insert((entity, id), p.name().to_string());
+        }
+    }
+    let outcome = match read.body() {
+        ReadBody::Value(body) => match ev.eval(body, &vals, Phase::S, &mut None) {
+            Ok(v) => Ok(encode(&body.ty, &v)),
+            Err(msg) => Err(ev.error_reason(msg, body.loc())),
+        },
+        ReadBody::Project(p) => ev
+            .project(p, &vals)
+            .map_err(|msg| ev.error_reason(msg, read.loc())),
+    };
+    match outcome {
+        Ok(value) => {
+            record.insert("result".into(), json!("VALUE"));
+            record.insert("value".into(), value);
+        }
+        Err(r) => {
+            record.insert("result".into(), json!("EVALUATION_ERROR"));
+            record.insert("reasons".into(), json!([r]));
+        }
+    }
+    let mut derived = std::mem::take(&mut ev.derived);
+    derived.sort_by(|a, b| (a.phase, a.order, &a.args_key).cmp(&(b.phase, b.order, &b.args_key)));
+    let derived_json: Vec<Json> = derived
+        .into_iter()
+        .map(|d| {
+            json!({"name": d.name, "hash": hash_display(&d.hash), "phase_state": d.phase.label(),
+                   "value": d.value})
+        })
+        .collect();
+    record.insert("derived".into(), Json::Array(derived_json));
+    let observed: Vec<Json> = ev
+        .frames
+        .pop()
+        .map(|f| f.reads)
+        .unwrap_or_default()
+        .into_iter()
+        .map(|(p, f)| json!([p, f]))
+        .collect();
+    record.insert("observed".into(), Json::Array(observed));
+    let facts = std::mem::take(&mut ev.observed);
+    if !facts.is_empty() {
+        record.insert("facts".into(), facts.to_json());
+    }
+    record
+}
+
+/// The record fields of a read request naming an unknown declared read: refused before
+/// evaluation, with the request echoed.
+pub(crate) fn unknown_read_fields(request: &str, name: &str) -> Map<String, Json> {
+    let mut problems = Vec::new();
+    let req = parse_read_request(request, &mut problems);
+    problems.push(InputProblem {
+        code: "UNKNOWN_READ",
+        path: "read".into(),
+        message: format!("unknown read `{name}`"),
+    });
+    problems.sort_by(|a, b| a.path.cmp(&b.path));
+    let mut record = Map::new();
+    record.insert("data_version".into(), json!(req.data_version));
+    record.insert("state".into(), echo(&req, "state"));
+    record.insert("input".into(), echo(&req, "input"));
+    record.insert("context".into(), echo(&req, "context"));
+    if let Some(f) = &req.facts {
+        record.insert("facts".into(), sanitize_floats(f));
+    }
+    record.insert("result".into(), json!("INVALID_INPUT"));
+    let reasons: Vec<Json> = problems
+        .iter()
+        .map(|p| reason(p.code, format!("{}: {}", p.path, p.message), None))
+        .collect();
+    record.insert("reasons".into(), Json::Array(reasons));
+    record.insert("derived".into(), json!([]));
+    record.insert("observed".into(), json!([]));
+    record
 }

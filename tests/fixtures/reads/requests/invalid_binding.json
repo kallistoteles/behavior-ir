@@ -1,0 +1,1 @@
+{"context":{},"data_version":"golden:1","facts":{"existence":[{"entity":"Customer","exists":false,"id":"nobody"}]},"input":{},"read":"open_total","state":{"customer":{"id":"nobody"}}}

@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from typing import Any, Callable
 
 from .errors import BehaviorDefinitionError, BehaviorTypeError
-from .expr import Expr, call, field_ref, param_ref
+from .expr import DerivedCall, Expr, call, field_ref, param_ref
 from .location import caller_loc
 from .types import BType, EntityT, RoleSpec, to_type
 
@@ -103,12 +103,16 @@ def _resolve_params(fn: Callable[..., Any], kind: str) -> list[ParamInfo]:
         spec = hints[p.name]
         keyword = p.kind == inspect.Parameter.KEYWORD_ONLY
         if isinstance(spec, RoleSpec):
-            if kind != "action":
-                raise BehaviorDefinitionError("Context[...]/Input[...] are for actions", *loc)
+            if kind not in ("action", "read"):
+                raise BehaviorDefinitionError(
+                    "Context[...]/Input[...] are for actions and reads", *loc
+                )
             role = spec.role
             spec = spec.spec
         else:
-            role = "state" if kind == "action" else "read"
+            # Entities are bound by identity in actions and reads (`state`), read by derived
+            # values, rules and invariants.
+            role = "state" if kind in ("action", "read") else "read"
         decl = entity_decl(spec)
         t = to_type(spec)
         if role in ("state", "read") and decl is None:
@@ -136,11 +140,12 @@ class BehaviorFn:
 
     def engine_params(self, params: list[ParamInfo]) -> list[tuple[str, str | None, Any]]:
         """Parameters as `(name, role or None, Type)` tuples for the engine builder."""
-        action = self.kind == "action"
-        return [(p.name, p.role if action else None, p.type.engine()) for p in params]
+        with_role = self.kind in ("action", "read")
+        return [(p.name, p.role if with_role else None, p.type.engine()) for p in params]
 
     def params(self) -> list[ParamInfo]:
-        return _resolve_params(self.fn, "action" if self.kind == "action" else "derived")
+        kind = self.kind if self.kind in ("action", "read") else "derived"
+        return _resolve_params(self.fn, kind)
 
     def declared_type(self) -> BType | None:
         """The return annotation of a derived value or rule, if any (checked by the engine)."""
@@ -180,7 +185,7 @@ class DerivedFn(BehaviorFn):
         # Trace the referenced body first (unless it is being traced: a cycle); the engine then
         # checks arity and parameter types against it.
         session.trace_derived(self)
-        return Expr(call("derived_ref", self.name, names, loc=loc), loc, "derived")
+        return DerivedCall(call("derived_ref", self.name, names, loc=loc), loc, self.name, names)
 
 
 class RuleFn(DerivedFn):
@@ -197,6 +202,22 @@ class ConstraintFn(BehaviorFn):
 
 class ActionFn(BehaviorFn):
     kind = "action"
+
+
+class ReadFn(BehaviorFn):
+    """A read (feature 010): a pure, typed observation of one state. Listed in a module's
+    `reads`, it is a declared read (a capability); passed directly to `evaluate_read` or
+    `Store.read`, it is an ad-hoc read for trusted host code."""
+
+    kind = "read"
+
+    def __call__(self, *args: Any) -> Any:
+        """Reads are entry points, never building blocks: behavior cannot call one."""
+        raise BehaviorDefinitionError(
+            f"READ_CALL_NOT_ALLOWED: `{self.name}` is a declared read, a capability entry point "
+            "that behavior cannot call; move the shared computation into a derived value and use "
+            "it from both", *caller_loc()
+        )
 
 
 def derived(fn: Callable[..., Any]) -> DerivedFn:
@@ -233,4 +254,10 @@ def action(fn: Callable[..., Any]) -> ActionFn:
     return ActionFn(fn)
 
 
-__all__ = ["field", "entity", "derived", "rule", "invariant", "constraint", "action"]
+def read(fn: Callable[..., Any]) -> ReadFn:
+    """A read: returns a value expression (or a projection) and changes nothing. Entity
+    parameters are bound by identity; `Input[...]` and `Context[...]` work as for actions."""
+    return ReadFn(fn)
+
+
+__all__ = ["field", "entity", "derived", "rule", "invariant", "constraint", "action", "read"]

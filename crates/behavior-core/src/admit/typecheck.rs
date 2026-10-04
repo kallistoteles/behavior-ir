@@ -9,14 +9,17 @@ use crate::decimal::Dec;
 use crate::exact::Rounding;
 use crate::semantic::expr::{CANDIDATE, Expr, ExprKind, FoldOp, QueryKind, QueryNode, SetOp};
 use crate::semantic::module::{
-    ActionItem, Condition, ConstraintItem, CreateEffect, DerivedItem, Effect, InvariantItem, Kind,
-    Module, Param, ParamRole, RemoveEffect,
+    ActionItem, Condition, ConstraintItem, CreateEffect, DerivedItem, Effect, InvariantItem, Item,
+    Kind, Module, Over, Param, ParamRole, Projection, ReadBody, ReadItem, RemoveEffect,
 };
 use crate::semantic::types::{
     ArithOp, CmpOp, Conv, OpSig, Type, TypeCode, Unit, coerce, fixed_scale, type_of_op,
 };
 use crate::semantic::value::{Value, decode_scalar};
-use crate::wire::{DerivedKind, LambdaOp, Loc, OpName, WExpr, WExprKind, WLifecycle, WModule};
+use crate::wire::{
+    DerivedKind, LambdaOp, Loc, OpName, WExpr, WExprKind, WItem, WLifecycle, WModule, WRead,
+    WReadBody,
+};
 
 struct Ctx<'a> {
     decls: &'a Decls,
@@ -462,6 +465,18 @@ impl Ctx<'_> {
                 Some(Expr::new(ExprKind::Param(name.clone()), ty, loc.clone()))
             }
             WExprKind::Derived { name, args } => {
+                if self.decls.reads.contains(name) && !self.derived.contains_key(name) {
+                    self.err(
+                        "READ_CALL_NOT_ALLOWED",
+                        format!(
+                            "`{name}` is a declared read, a capability entry point that behavior \
+                             cannot call; move the shared computation into a derived value and use \
+                             it from both"
+                        ),
+                        loc,
+                    );
+                    return None;
+                }
                 let Some(d) = self.derived.get(name) else {
                     self.err(
                         "UNKNOWN_DERIVED",
@@ -990,6 +1005,149 @@ impl Ctx<'_> {
         }
     }
 
+    /// A projection (feature 010): `over` is a query or a `state` entity parameter; every item is
+    /// a stored field of the entity type or a derived value over it alone.
+    fn projection(
+        &mut self,
+        over: &WExpr,
+        member: &str,
+        items: &[WItem],
+        at: &Loc,
+    ) -> Option<Projection> {
+        let (over, entity) = match &over.kind {
+            WExprKind::Param(name) => {
+                let param = self.param(name).cloned();
+                match param {
+                    Some(Param {
+                        role: ParamRole::State,
+                        ty: Type::Entity(e),
+                        ..
+                    }) => (
+                        Over::Param {
+                            name: name.clone(),
+                            loc: over.loc.clone(),
+                        },
+                        e,
+                    ),
+                    _ => {
+                        self.err(
+                            "INVALID_PROJECTION",
+                            format!(
+                                "a projection ranges over a query or a `state` entity parameter; \
+                                 `{name}` is neither"
+                            ),
+                            &over.loc,
+                        );
+                        return None;
+                    }
+                }
+            }
+            WExprKind::Select { .. }
+            | WExprKind::Lambda {
+                op: LambdaOp::Where,
+                ..
+            }
+            | WExprKind::Op {
+                op: OpName::Union | OpName::Intersection | OpName::Difference,
+                ..
+            } => {
+                let q = self.query(over)?;
+                let e = q.entity.clone();
+                (Over::Query(q), e)
+            }
+            _ => {
+                self.err(
+                    "INVALID_PROJECTION",
+                    "a projection ranges over a query or a `state` entity parameter",
+                    &over.loc,
+                );
+                return None;
+            }
+        };
+        let Some(declared) = self.decls.entities.get(&entity) else {
+            self.err("UNKNOWN_ENTITY", format!("unknown entity `{entity}`"), at);
+            return None;
+        };
+        let mut out: Vec<Item> = Vec::new();
+        let mut ok = true;
+        for item in items {
+            let (name, resolved) = match item {
+                // `id` keys every record: no item, field or derived value, may take its place.
+                WItem::Field(f) | WItem::Derived(f) if f == "id" => {
+                    self.err(
+                        "DUPLICATE_PROJECTION_ITEM",
+                        "`id` is part of every projected record; do not list it",
+                        at,
+                    );
+                    ok = false;
+                    continue;
+                }
+                WItem::Field(f) if f.contains('.') => {
+                    self.err(
+                        "UNKNOWN_PROJECTION_ITEM",
+                        format!(
+                            "`{f}` traverses a reference, which a projection does not do; declare \
+                             a derived value over `{entity}` and project it"
+                        ),
+                        at,
+                    );
+                    ok = false;
+                    continue;
+                }
+                WItem::Field(f) => (
+                    f,
+                    declared
+                        .field_type(f)
+                        .is_some()
+                        .then(|| Item::Field(f.clone())),
+                ),
+                WItem::Derived(d) => (
+                    d,
+                    match self.derived.get(d) {
+                        Some(di)
+                            if di.params.len() == 1
+                                && di.params[0].ty == Type::Entity(entity.clone()) =>
+                        {
+                            Some(Item::Derived {
+                                name: d.clone(),
+                                target: di.hash,
+                            })
+                        }
+                        _ => None,
+                    },
+                ),
+            };
+            let Some(resolved) = resolved else {
+                let what = match item {
+                    WItem::Field(_) => format!("`{name}` is not a field of `{entity}`"),
+                    WItem::Derived(_) => format!(
+                        "`{name}` is not a derived value over `{entity}` alone (one parameter of \
+                         type `{entity}`)"
+                    ),
+                };
+                self.err("UNKNOWN_PROJECTION_ITEM", what, at);
+                ok = false;
+                continue;
+            };
+            if out.iter().any(|o| o.name() == resolved.name()) {
+                self.err(
+                    "DUPLICATE_PROJECTION_ITEM",
+                    format!("`{name}` is projected twice (record keys are item names)"),
+                    at,
+                );
+                ok = false;
+                continue;
+            }
+            out.push(resolved);
+        }
+        ok.then(|| Projection {
+            over,
+            entity,
+            member: member.to_string(),
+            items: out,
+        })
+    }
+
     /// A lambda body over a candidate of type `entity`, candidate-local (feature 007).
     fn lambda_body(&mut self, entity: &str, param: &str, body: &WExpr) -> Option<Expr> {
         let renamed = rename_candidate(body, param);
@@ -1477,6 +1635,42 @@ pub(crate) fn build_module(
     }
     errs.extend(lossy_stores);
 
+    // Declared reads (feature 010): one capability namespace with actions, and derived-value
+    // names keep meaning exactly one item.
+    let mut reads: BTreeMap<String, ReadItem> = BTreeMap::new();
+    for r in &w.reads {
+        let clash = if w.actions.iter().any(|a| a.name == r.name) {
+            Some("an action")
+        } else if w.derived.iter().any(|d| d.name == r.name) {
+            Some("a derived value")
+        } else {
+            None
+        };
+        if let Some(what) = clash {
+            errs.push(AdmissionError::new(
+                "DUPLICATE_CAPABILITY",
+                format!(
+                    "read `{}` has the name of {what}; capabilities and derived values need \
+                     distinct names",
+                    r.name
+                ),
+                Some(&r.loc),
+            ));
+            continue;
+        }
+        if reads.contains_key(&r.name) {
+            errs.push(AdmissionError::new(
+                "DUPLICATE_NAME",
+                format!("read `{}` is declared twice", r.name),
+                Some(&r.loc),
+            ));
+            continue;
+        }
+        if let Some(item) = read_item(&decls, &derived, r, true, errs) {
+            reads.insert(r.name.clone(), item);
+        }
+    }
+
     if !errs.is_empty() {
         return None;
     }
@@ -1507,6 +1701,9 @@ pub(crate) fn build_module(
     for (n, x) in &actions {
         name_table.insert((Kind::Action, n.clone()), x.hash);
     }
+    for (n, x) in &reads {
+        name_table.insert((Kind::Read, n.clone()), x.hash);
+    }
     let module_hash = hash::module(name_table.iter());
 
     Some(Module {
@@ -1518,6 +1715,7 @@ pub(crate) fn build_module(
         global_invariants,
         constraints,
         actions,
+        reads,
         name_table,
         evaluation_order: order,
         enum_locs: w
@@ -1835,6 +2033,60 @@ pub(crate) fn effect_target(
                 format!("`{entity}` has no field `{field}`"),
             )
         })
+}
+
+/// Type-checks and hashes one read (feature 010): parameters with roles, and a value body in the
+/// derived-value context (queries allowed) or a projection. `declared` marks a module's read.
+pub(crate) fn read_item(
+    decls: &Decls,
+    derived: &BTreeMap<String, DerivedItem>,
+    r: &WRead,
+    declared: bool,
+    errs: &mut Vec<AdmissionError>,
+) -> Option<ReadItem> {
+    let ps = params(decls, &r.params, ParamSite::Read, &r.loc, errs)?;
+    let mut ctx = Ctx {
+        decls,
+        derived,
+        scope: &ps,
+        errs,
+        queries: true,
+        lambda: false,
+        migration: false,
+    };
+    let (body, h) = match &r.body {
+        WReadBody::Value(w) => {
+            let body = ctx.expr(w)?;
+            let h = hash::read(&param_triples(&ps), hash::ReadBodyHash::Value(&body.hash));
+            (ReadBody::Value(body), h)
+        }
+        WReadBody::Project { over, param, items } => {
+            let p = ctx.projection(over, param, items, &r.loc)?;
+            let source = match &p.over {
+                Over::Query(q) => hash::ProjectionSource::Query(&q.hash),
+                Over::Param { name, .. } => hash::ProjectionSource::Param(name),
+            };
+            let item_hashes: Vec<hash::ProjectionItem<'_>> = p
+                .items
+                .iter()
+                .map(|i| match i {
+                    Item::Field(f) => hash::ProjectionItem::Field(f),
+                    Item::Derived { name, target } => hash::ProjectionItem::Derived(name, target),
+                })
+                .collect();
+            let ph = hash::projection(source, &p.entity, &item_hashes);
+            let h = hash::read(&param_triples(&ps), hash::ReadBodyHash::Projection(&ph));
+            (ReadBody::Project(p), h)
+        }
+    };
+    Some(ReadItem {
+        name: r.name.clone(),
+        params: ps,
+        body,
+        hash: h,
+        declared,
+        loc: r.loc.clone(),
+    })
 }
 
 /// Type-checks and hashes one derived value (all derived values it references must already be

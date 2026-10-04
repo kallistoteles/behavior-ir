@@ -40,6 +40,7 @@ def non_negative_amount(invoice: Invoice):
 def approve_invoice(invoice: Invoice, *, actor: Context[User]):
     requires(invoice.status == InvoiceStatus.PENDING)
     requires(actor.role == "manager")
+    requires(actor.role == "manager")
     requires(invoice.amount <= actor.approval_limit)
     set_(invoice.status, InvoiceStatus.APPROVED)
     set_(invoice.approved_by, actor.id)

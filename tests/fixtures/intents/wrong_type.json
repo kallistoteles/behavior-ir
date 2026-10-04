@@ -1,9 +1,0 @@
-{
- "capability": "apply_discount",
- "input": {
-  "discount": "abc"
- },
- "targets": {
-  "invoice": "1042"
- }
-}

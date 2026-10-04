@@ -21,7 +21,7 @@
   | `release-manifest.json` | `behavior.core_release_manifest.v1` ([data-model.md](../data-model.md)) |
   | `SHA256SUMS` | `sha256  file` lines for every other asset, sorted |
   | `behavior-conformance-<v>.tar.gz` | `schema/`, `tests/fixtures/`, `README.md` (deterministic tar) |
-  | `behavior-<v>-x86_64-linux-manylinux_2_28` | the `behavior` CLI, built with `cargo zigbuild --release --target x86_64-unknown-linux-gnu.2.28 -p behavior-cli` |
+  | `behavior-<v>-x86_64-linux-musl` | the `behavior` CLI, built with `cargo zigbuild --release --target x86_64-unknown-linux-musl -p behavior-cli (static)` |
 
 - **CLI contract**: unchanged from 0.10.0. The commands, arguments, exit codes and output bytes
   of `behavior` are the same. The determinism check and the conformance digest prove it.

@@ -1,1 +1,0 @@
-{"source":"cultures_v3","summary":{"retired":[],"types":{"Customer":{"copied":["email","id","name"],"dropped":[],"new":["vip"],"transformed":[]}}},"target":"cultures_v4"}

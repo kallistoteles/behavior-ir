@@ -62,7 +62,7 @@ on `010-first-class-reads`.
 - New tools, not new code dependencies:
   - `git-filter-repo`, one-time and maintainer-only;
   - GitHub Actions;
-  - `cargo-zigbuild`, for a manylinux_2_28 CLI binary.
+  - `cargo-zigbuild`, for a static (musl) CLI binary.
 
   `cargo-zigbuild` and `gh` are added to the nix flake in both repositories; `git-filter-repo` is
   run once through `nix shell`.
@@ -234,7 +234,7 @@ Stage 2 and stage 3 must reproduce it.
 5. Tag `v0.10.1` (annotated) through `core-release`. Its assets:
    - `release-manifest.json`, `SHA256SUMS`;
    - `behavior-conformance-0.10.1.tar.gz` (schemas and fixtures);
-   - `behavior-0.10.1-x86_64-linux-manylinux_2_28` (the CLI).
+   - `behavior-0.10.1-x86_64-linux-musl` (the CLI).
 
 ### Stage 3: Ecosystem conversion (this repository)
 

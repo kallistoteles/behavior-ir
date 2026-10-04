@@ -1,1 +1,0 @@
-{"source":"cultures_v2","summary":{"retired":[],"types":{"Order":{"copied":["buyer","id","qty"],"dropped":[],"new":[],"transformed":["region"]}}},"target":"cultures_v3"}

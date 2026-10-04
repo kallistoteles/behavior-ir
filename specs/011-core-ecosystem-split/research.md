@@ -24,7 +24,8 @@ alternatives considered.
 ## R2. The `behavior` command in the user package
 
 - **Decision**: the binding no longer links `behavior-cli`. The core release publishes a
-  manylinux_2_28 x86_64 `behavior` binary, built with `cargo zigbuild` from the release commit.
+  static x86_64 musl `behavior` binary, built with `cargo zigbuild` from the release commit (it
+  runs on any x86_64 Linux, NixOS included; a glibc manylinux binary does not start on NixOS).
   The ecosystem places the verified binary at `python/behavior/_bin/behavior` and includes it in
   the wheel through maturin's `include`. `behavior._cli:main` resolves it with
   `importlib.resources` and calls `os.execv`. `_engine.cli` is removed. `_engine.engine_info`

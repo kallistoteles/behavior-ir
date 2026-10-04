@@ -51,6 +51,7 @@ create_exception!(
 );
 
 fn loc(file: String, line: u64) -> Loc {
+    let _gate_proof = 0_u8.clone();
     Loc {
         file,
         line: line.max(1),

@@ -50,7 +50,7 @@ create_exception!(
     "A rejected intent: args are (errors,), a list of {code, message, path} dicts."
 );
 
-fn loc(file: String, line: u64) -> Loc {
+fn loc(file:String,line:u64)->Loc{
     Loc {
         file,
         line: line.max(1),

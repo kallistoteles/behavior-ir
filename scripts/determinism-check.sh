@@ -1,24 +1,21 @@
 #!/usr/bin/env bash
-# Determinism gate (constitution: Development Workflow and Quality Gates).
-# Runs every deterministic operation twice and compares the outputs byte for byte.
+# Determinism gate of the ecosystem (constitution: Development Workflow and Quality Gates).
+# Runs every deterministic operation twice and compares the outputs byte for byte:
+#   - the bundled core CLI over the pinned release's wire fixtures (section `core`: the engine's
+#     own outputs, labelled as the core's determinism check labels them);
+#   - the release smoke scenario and the Python examples (section `ecosystem`).
+# The core's full check runs in behavior-ir-core (feature 011).
 #
-#   scripts/determinism-check.sh [--core | --ecosystem]
-#
-# `--core` runs the engine's part (command line and store examples), `--ecosystem` the Python
-# binding's part (the smoke scenario and the examples); without a flag both run (feature 011).
+#   scripts/determinism-check.sh [--ecosystem]
 set -euo pipefail
-
 cd "$(dirname "$0")/.."
-do_core=1 do_ecosystem=1
-case "${1:-}" in
-  "") ;;
-  --core) do_ecosystem=0 ;;
-  --ecosystem) do_core=0 ;;
-  *) echo "usage: scripts/determinism-check.sh [--core | --ecosystem]" >&2; exit 2 ;;
-esac
-BIN="${BEHAVIOR_BIN:-target/debug/behavior}"
-if [ "$do_core" -eq 1 ] && [ ! -x "$BIN" ]; then
-  echo "determinism-check: $BIN not found; run 'cargo build --workspace' first" >&2
+case "${1:-}" in "" | --ecosystem) ;; *) echo "usage: scripts/determinism-check.sh [--ecosystem]" >&2; exit 2 ;; esac
+
+core_version="$(python3 -c 'import json; print(json.load(open("core-release.json"))["version"])')"
+CORE_DIR="${BEHAVIOR_CORE_DIR:-.core/$core_version}"
+BIN=python/behavior/_bin/behavior
+if [ ! -x "$BIN" ] || [ ! -d "$CORE_DIR/tests/fixtures" ]; then
+  echo "determinism-check: the pinned core is not installed; run scripts/fetch-core.sh first" >&2
   exit 1
 fi
 
@@ -26,12 +23,8 @@ fail=0
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
-# The section of the check the following outputs belong to (feature 011): `core` outputs are
-# the engine's, `ecosystem` outputs come from the Python binding and its examples.
-section=core
-
 # digest <label> <file>: with BEHAVIOR_DIGEST_DIR set, records the output's SHA-256 under its
-# section and label (scripts/conformance-digest.sh), so a move can prove it changed no output.
+# section and label (scripts/conformance-digest.sh).
 digest() {
   if [ -n "${BEHAVIOR_DIGEST_DIR:-}" ]; then
     printf '%s\t%s\t%s\n' "$section" "$1" "$(sha256sum <"$2" | cut -d' ' -f1)" \
@@ -52,162 +45,18 @@ run_twice() {
   digest "$label" "$tmp/a"
 }
 
-if [ "$do_core" -eq 1 ]; then
-# Admission of every valid wire fixture.
-for f in tests/fixtures/wire/valid/*.json; do
-  run_twice "admit $f" "$BIN" admit "$f"
+# The bundled core CLI admits every valid wire fixture of the pinned release.
+section=core
+for f in "$CORE_DIR"/tests/fixtures/wire/valid/*.json; do
+  rel="tests/fixtures/wire/valid/$(basename "$f")"
+  run_twice "admit $rel" "$BIN" admit "$f"
   rc=0; "$BIN" admit "$f" >/dev/null || rc=$?
-  if [ "$rc" -ne 0 ]; then echo "ADMISSION FAILED: $f" >&2; fail=1; fi
+  if [ "$rc" -ne 0 ]; then echo "ADMISSION FAILED: $rel" >&2; fail=1; fi
 done
-
-# Evaluation and replay of every request fixture (US2).
-if [ -f tests/fixtures/requests/expectations.json ]; then
-  while IFS=' ' read -r name wire; do
-    w="tests/fixtures/wire/valid/$wire.json"
-    r="tests/fixtures/requests/$name.json"
-    run_twice "eval $name" "$BIN" eval "$w" "$r"
-    "$BIN" eval "$w" "$r" >"$tmp/record.json" 2>/dev/null || true
-    rc=0; "$BIN" replay "$w" "$tmp/record.json" >/dev/null 2>&1 || rc=$?
-    if [ "$rc" -ne 0 ]; then echo "REPLAY MISMATCH: $name" >&2; fail=1; fi
-  done < <(python3 -c 'import json,sys; [print(k, v["wire"]) for k, v in sorted(json.load(open(sys.argv[1])).items())]' tests/fixtures/requests/expectations.json)
-fi
-
-# Evaluation and replay of the feature 002, 003, 004, 006 and 007 requests (constraints,
-# fixed-scale values, exact ratios, evaluation facts, query facts).
-for pair in "002:constraints" "003:fixed_scale" "004:exact_closure" "006:accounts" "007:orders"; do
-  dir="tests/fixtures/requests/${pair%%:*}"
-  w="tests/fixtures/wire/valid/${pair##*:}.json"
-  for r in "$dir"/*.json; do
-    case "$r" in */expectations.json) continue ;; esac
-    run_twice "eval $r" "$BIN" eval "$w" "$r"
-    "$BIN" eval "$w" "$r" >"$tmp/record.json" 2>/dev/null || true
-    rc=0; "$BIN" replay "$w" "$tmp/record.json" >/dev/null 2>&1 || rc=$?
-    if [ "$rc" -ne 0 ]; then echo "REPLAY MISMATCH: $r" >&2; fail=1; fi
-  done
-done
-
-# Verification attestations (feature 002): every verify fixture and every valid wire file,
-# without a cache so the solver runs both times.
-# Persistence (feature 005): a fixed store history, its records and replay reports (SC-005).
-cargo run -q -p behavior-store --example history >"$tmp/history_a" 2>/dev/null || fail=1
-cargo run -q -p behavior-store --example history >"$tmp/history_b" 2>/dev/null || fail=1
-digest "store example history" "$tmp/history_a"
-if ! cmp -s "$tmp/history_a" "$tmp/history_b" || [ ! -s "$tmp/history_a" ]; then
-  echo "NOT DETERMINISTIC: store history" >&2
-  fail=1
-fi
-if [ "$(tail -n 2 "$tmp/history_a" | grep -c '"ok":true')" -ne 2 ]; then
-  echo "STORE REPLAY FAILED" >&2
-  fail=1
-fi
-# Entity lifecycle (feature 006): a fixed history with creations, removals and reference changes,
-# and its data, behavior and reference replay reports.
-cargo run -q -p behavior-store --example lifecycle_history >"$tmp/lifecycle_a" 2>/dev/null || fail=1
-cargo run -q -p behavior-store --example lifecycle_history >"$tmp/lifecycle_b" 2>/dev/null || fail=1
-digest "store example lifecycle" "$tmp/lifecycle_a"
-if ! cmp -s "$tmp/lifecycle_a" "$tmp/lifecycle_b" || [ ! -s "$tmp/lifecycle_a" ]; then
-  echo "NOT DETERMINISTIC: lifecycle history" >&2
-  fail=1
-fi
-if [ "$(tail -n 3 "$tmp/lifecycle_a" | grep -c '"ok":true')" -ne 3 ]; then
-  echo "LIFECYCLE REPLAY FAILED" >&2
-  fail=1
-fi
-# Relational queries (feature 007): a fixed history whose decisions depend on queries, and its
-# data and behavior replay reports.
-cargo run -q -p behavior-store --example query_history >"$tmp/query_a" 2>/dev/null || fail=1
-cargo run -q -p behavior-store --example query_history >"$tmp/query_b" 2>/dev/null || fail=1
-digest "store example query" "$tmp/query_a"
-if ! cmp -s "$tmp/query_a" "$tmp/query_b" || [ ! -s "$tmp/query_a" ]; then
-  echo "NOT DETERMINISTIC: query history" >&2
-  fail=1
-fi
-if [ "$(tail -n 2 "$tmp/query_a" | grep -c '"ok":true')" -ne 2 ]; then
-  echo "QUERY REPLAY FAILED" >&2
-  fail=1
-fi
-
-# Schema evolution (feature 009): a fixed history crossing two migrations, its records and its
-# data and behavior replay reports; and admission and plain application of every migration.
-cargo run -q -p behavior-store --example migration_history >"$tmp/migration_a" 2>/dev/null || fail=1
-cargo run -q -p behavior-store --example migration_history >"$tmp/migration_b" 2>/dev/null || fail=1
-digest "store example migration" "$tmp/migration_a"
-if ! cmp -s "$tmp/migration_a" "$tmp/migration_b" || [ ! -s "$tmp/migration_a" ]; then
-  echo "NOT DETERMINISTIC: migration history" >&2
-  fail=1
-fi
-if [ "$(tail -n 2 "$tmp/migration_a" | grep -c '"ok":true')" -ne 2 ]; then
-  echo "MIGRATION REPLAY FAILED" >&2
-  fail=1
-fi
-for m in tests/fixtures/migration/valid/*.json; do
-  case "$m" in *.expected.json) continue ;; esac
-  e="${m%.json}.expected.json"
-  src="tests/fixtures/migration/modules/$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["source"])' "$e").json"
-  dst="tests/fixtures/migration/modules/$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["target"])' "$e").json"
-  run_twice "migration admit $m" "$BIN" migration admit "$src" "$dst" "$m"
-  rc=0; "$BIN" migration admit "$src" "$dst" "$m" >/dev/null || rc=$?
-  if [ "$rc" -ne 0 ]; then echo "MIGRATION ADMISSION FAILED: $m" >&2; fail=1; fi
-done
-
-# First-class reads (feature 010): every golden read request, read twice and replayed.
-for r in tests/fixtures/reads/requests/*.json; do
-  w=tests/fixtures/reads/modules/lab.json
-  run_twice "read $r" "$BIN" read "$w" "$r"
-  "$BIN" read "$w" "$r" >"$tmp/read.json" 2>/dev/null || true
-  if ! cmp -s "$tmp/read.json" "tests/fixtures/reads/records/$(basename "${r%.json}").expected.json"; then
-    echo "READ RECORD DIFFERS FROM GOLDEN: $r" >&2; fail=1
-  fi
-  rc=0; "$BIN" read-replay "$w" "$tmp/read.json" >/dev/null 2>&1 || rc=$?
-  if [ "$rc" -ne 0 ]; then echo "READ REPLAY MISMATCH: $r" >&2; fail=1; fi
-done
-
-if command -v "${BEHAVIOR_Z3:-z3}" >/dev/null 2>&1; then
-  for m in tests/fixtures/migration/valid/*.json; do
-    case "$m" in *.expected.json) continue ;; esac
-    e="${m%.json}.expected.json"
-    src="tests/fixtures/migration/modules/$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["source"])' "$e").json"
-    dst="tests/fixtures/migration/modules/$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["target"])' "$e").json"
-    run_twice "migration verify $m" "$BIN" migration verify "$src" "$dst" "$m"
-  done
-  for f in tests/fixtures/verify/*.json tests/fixtures/wire/valid/*.json; do
-    case "$f" in *.expected.json) continue ;; esac
-    run_twice "verify $f" "$BIN" verify "$f"
-  done
-
-  # A governance decision: a forced-inconclusive finding (resource limit 1, not a hard model)
-  # waived with the test key.
-  g=tests/fixtures/governance
-  w=tests/fixtures/verify/purchase_remaining.json
-  "$BIN" verify "$w" --profile "$g/forced_inconclusive_profile.json" >"$tmp/att.json" || true
-  "$BIN" eval "$w" "$g/approve_request.json" >"$tmp/rec.json" || true
-  python3 - "$tmp" <<'PY'
-import json, sys
-tmp = sys.argv[1]
-a = json.load(open(f"{tmp}/att.json"))
-f = a["findings"][0]
-json.dump({"behavior_version": a["behavior_version"], "finding_hash": f["hash"],
-           "profile_hash": a["profile"]["hash"], "verifier_version": a["verifier_version"],
-           "rationale": "determinism check"}, open(f"{tmp}/waiver.json", "w"))
-open(f"{tmp}/seed", "w").write(json.load(open("tests/fixtures/governance/keys.json"))["A"]["seed"])
-PY
-  "$BIN" sign-waiver "$tmp/waiver.json" --seed "$tmp/seed" >"$tmp/signed.json"
-  run_twice "authorize (waived inconclusive)" "$BIN" authorize "$w" "$tmp/rec.json" \
-    --policy "$g/verified_or_waived.json" --attestation "$tmp/att.json" \
-    --waiver "$tmp/waiver.json" --signature "$tmp/signed.json" --now 2026-09-25T12:00:00Z
-  rc=0; "$BIN" authorize "$w" "$tmp/rec.json" --policy "$g/verified_or_waived.json" \
-    --attestation "$tmp/att.json" --waiver "$tmp/waiver.json" --signature "$tmp/signed.json" \
-    --now 2026-09-25T12:00:00Z >/dev/null || rc=$?
-  if [ "$rc" -ne 0 ]; then echo "AUTHORIZE: expected allow for the waived case" >&2; fail=1; fi
-else
-  echo "determinism-check: z3 not found; skipping verification checks" >&2
-fi
-
-fi
 
 # The Python examples print records; two runs must be byte-identical.
 section=ecosystem
-if [ "$do_ecosystem" -eq 1 ] && python3 -c "import behavior._engine" 2>/dev/null; then
+if python3 -c "import behavior._engine" 2>/dev/null; then
   # The consumer smoke scenario of a release (feature 008), run from outside the repository.
   cp release/smoke.py "$tmp/smoke.py"
   run_twice "release/smoke.py" python3 "$tmp/smoke.py"
@@ -222,6 +71,9 @@ if [ "$do_ecosystem" -eq 1 ] && python3 -c "import behavior._engine" 2>/dev/null
   run_twice "examples.accounts.run" python3 -m examples.accounts.run
   run_twice "examples.orders.run" python3 -m examples.orders.run
   run_twice "examples.lab_reads.run" python3 -m examples.lab_reads.run
+else
+  echo "determinism-check: the Python engine is not built; run maturin develop" >&2
+  fail=1
 fi
 
 if [ "$fail" -ne 0 ]; then

@@ -6,14 +6,10 @@ change for different reasons, and every one of them is reported, never implied
 
 | Kind | Example | What it identifies | Where it lives |
 |---|---|---|---|
-| **Release / engine** | `0.10.0` | the implementation release: the engine crates and the command-line tool | `[workspace.package] version` in `Cargo.toml`, the single source |
-| **Binding** | `python 0.10.0` | the installable package of one language binding | taken from the release version; a binding requires *exactly* its engine version (checked at import) |
-| **Wire IR** | `0.1` … `0.7` | the module document format (and, from 0.7, the read document); a new semantic form needs a new IR version | `crates/behavior-core/src/wire.rs` |
-| **Records** | `0.4` … `0.6` | the decision record format | `crates/behavior-core/src/eval.rs` |
-| **Read records** | `behavior.read_record.v1` | the evidence of a read (feature 010); never stored by a store | `crates/behavior-core/src/read.rs` |
-| **Store documents** | `behavior.commit_bundle.v1`, … | persistence documents (genesis, versions, records, bundles, reports) | `crates/behavior-store/src/documents.rs` |
-| **Migration IR** | `0.1` | the migration document format (feature 009); `schema/migration-ir-0.1.schema.json` | `crates/behavior-core/src/migration/wire.rs` |
-| **Verifier** | `0.6.0` | the verification encoding; part of every attestation and cache key | `VERIFIER_VERSION` in `crates/behavior-verify/src/lib.rs` |
+| **Release** | `0.10.2` | this repository's release: the Python package and everything it bundles | `[workspace.package] version` in `Cargo.toml`, the single source |
+| **Core** | `0.10.2`, commit `aaded16…` | the exact Core Release the package is built against and bundles (feature 011) | `core-release.json`; `behavior.versions()["core"]` |
+| **Binding** | `python 0.10.2` | the installable package of the Python binding | the release version in Python's form (PEP 440); the package requires *exactly* the core in `core-release.json` (checked at import) |
+| **Formats and verifier** | wire IR `0.1` … `0.7`, records `0.4` … `0.6`, verifier `0.6.0` | the document formats and the verification encoding | defined by the core: [its versioning](https://github.com/kallistoteles/behavior-ir-core/blob/v0.10.2/docs/versioning.md); reported by `behavior engine-info` |
 
 A module document, a record or a store document says which format version it is written in.
 That is what a reader checks, not the release number.
@@ -34,7 +30,14 @@ While the release is below 1.0, the **minor** number marks anything a consumer m
 
 After 1.0, the same rules apply with **major** in place of minor.
 
-Release 0.10.0 is a minor bump for three reasons:
+Release 0.10.2 is a patch release: the repository split (feature 011). Behavior Core moved to
+behavior-ir-core and is consumed as Core Release 0.10.2, pinned by commit, through its public
+`behavior-engine` crate. The package bundles the core's `behavior` CLI and reports the core it
+contains. No identity, format or verification outcome changes. The ecosystem's release version
+follows the core's for now; the two may diverge later, and the package always names its core
+exactly.
+
+Release 0.10.0 was a minor bump for three reasons:
 
 - **Wire IR 0.7:** a module's `reads` section (declared reads, a new behavior item kind) and the
   read document (an ad-hoc read). A module with declared reads has a new behavior version, never a

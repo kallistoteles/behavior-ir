@@ -18,8 +18,9 @@ import pytest
 
 from behavior import evaluate
 
-ROOT = Path(__file__).resolve().parents[2]
-BINDINGS = ROOT / "tests" / "fixtures" / "bindings"
+from .conftest import FIXTURES
+
+BINDINGS = FIXTURES / "bindings"
 DOMAINS = ["invoice", "project_margin", "accounts", "ledger", "orders"]
 
 

@@ -13,7 +13,9 @@ from behavior import BehaviorError, Profile, authorize, evaluate, sign_waiver, v
 
 from examples.tryout.model import Status, model
 
-GOV = Path(__file__).resolve().parents[2] / "tests" / "fixtures" / "governance"
+from .conftest import FIXTURES
+
+GOV = FIXTURES / "governance"
 NOW = "2026-09-25T12:00:00Z"
 
 

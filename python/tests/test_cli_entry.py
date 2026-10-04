@@ -14,8 +14,9 @@ import pytest
 from behavior import BehaviorError, evaluate, verify
 from examples.orders.behavior import model
 
-ROOT = Path(__file__).resolve().parents[2]
-ORDERS = str(ROOT / "tests" / "fixtures" / "wire" / "valid" / "orders.json")
+from .conftest import FIXTURES
+
+ORDERS = str(FIXTURES / "wire" / "valid" / "orders.json")
 PREREQUISITE = "verification needs the Z3 SMT solver (supported: 4.16.0)"
 
 
@@ -25,7 +26,8 @@ def _run(cmd: list[str], env: dict[str, str] | None = None) -> subprocess.Comple
 
 def test_the_console_script_is_the_engine_cli() -> None:
     py = _run([sys.executable, "-m", "behavior._cli", "admit", ORDERS])
-    rust = _run([str(ROOT / "target" / "debug" / "behavior"), "admit", ORDERS])
+    from behavior import _cli
+    rust = _run([str(_cli.binary()), "admit", ORDERS])
     assert py.returncode == rust.returncode == 0
     assert py.stdout == rust.stdout
     bad = _run([sys.executable, "-m", "behavior._cli", "no-such-command"])

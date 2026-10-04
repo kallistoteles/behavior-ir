@@ -15,3 +15,6 @@ dist/
 
 # The bundled core CLI (feature 011), staged by scripts/stage-cli.sh or scripts/fetch-core.sh.
 python/behavior/_bin/
+
+# The pinned Core Release, fetched by scripts/fetch-core.sh (feature 011).
+.core/

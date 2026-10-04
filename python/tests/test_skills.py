@@ -190,13 +190,7 @@ def test_an_unlisted_name_or_a_wrong_release_is_caught() -> None:
 # --- the engine skill (US6) ----------------------------------------------------------------------
 
 
-def test_the_engine_skill_is_separate_and_its_paths_exist() -> None:
-    assert ENGINE_SKILL.is_file()
-    assert SKILLS not in ENGINE_SKILL.parents
-    text = ENGINE_SKILL.read_text()
-    assert frontmatter(text).get("name") == "behavior-engine-development"
-    paths = set(re.findall(r"`((?:scripts|crates|specs|tests|python|docs|api|schema|skills|"
-                           r"\.specify|release)/[^`\s*<>]+)`", text))
-    assert paths, "the engine skill names the repository paths it relies on"
-    missing = sorted(p for p in paths if not (ROOT / p.rstrip("/")).exists())
-    assert missing == [], missing
+def test_the_engine_skill_lives_with_the_core() -> None:
+    """Feature 011: guidance for changing the engine moved to behavior-ir-core with the engine;
+    this repository keeps only the consumer skills."""
+    assert not ENGINE_SKILL.exists()

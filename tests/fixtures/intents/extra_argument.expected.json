@@ -1,9 +1,0 @@
-{
- "errors": [
-  {
-   "code": "EXTRA_ARGUMENT",
-   "path": "input.note"
-  }
- ],
- "rejected": true
-}

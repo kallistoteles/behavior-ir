@@ -21,12 +21,14 @@ def _engine_info() -> dict[str, object]:
 
 
 def test_the_binding_version_is_the_release_version() -> None:
-    assert behavior.__version__ == "0.10.0"
+    assert behavior.__version__ == "0.10.2"
 
 
-def test_versions_are_the_engine_info_plus_the_binding() -> None:
+def test_versions_are_the_engine_info_plus_the_core_and_the_binding() -> None:
     expected = _engine_info()
-    expected["binding"] = {"python": "0.10.0"}
+    pin = _pin()
+    expected["core"] = {"version": pin["version"], "commit": pin["commit"]}
+    expected["binding"] = {"python": "0.10.2"}
     assert behavior.versions() == expected
 
 
@@ -64,3 +66,33 @@ def test_unsupported_pre_release_labels_are_refused() -> None:
     for unsupported in ["0.9.0-snapshot", "0.9.0-dev.4", "0.9.0-rc.x"]:
         with pytest.raises(ValueError, match=unsupported.replace(".", r"\.")):
             python_version(unsupported)
+
+
+# --- feature 011: the binding names the exact core it was built against -------------------------
+
+def _pin() -> dict[str, object]:
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[2]
+    value: dict[str, object] = json.loads((root / "core-release.json").read_text())
+    return value
+
+
+def test_a_skewed_core_is_refused() -> None:
+    """US2 scenario 3: an extension built against another core than the one this release
+    declares refuses to import, naming both versions."""
+    with pytest.raises(ImportError, match=r"core 0\.10\.9.*declares core 0\.10\.2"):
+        behavior._check_core(declared="0.10.2", engine="0.10.9")
+    behavior._check_core(declared="0.10.2", engine="0.10.2")
+
+
+def test_versions_report_the_core() -> None:
+    pin = _pin()
+    assert behavior.versions()["core"] == {"version": pin["version"], "commit": pin["commit"]}
+    assert behavior.versions()["engine"] == pin["version"]
+
+
+def test_binding_and_core_versions_may_differ() -> None:
+    """FR-017: the ecosystem has its own release version; only the core must match exactly."""
+    behavior._check_versions("0.11.0", "0.11.0")
+    behavior._check_core(declared="0.10.2", engine="0.10.2")
+    assert behavior.versions()["binding"] == {"python": behavior.__version__}

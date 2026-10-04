@@ -4,6 +4,7 @@ import builtins
 from typing import Any
 
 ENGINE_VERSION: str
+CORE: dict[str, str]
 
 def engine_info() -> dict[str, Any]: ...
 def solver_notice() -> str | None: ...

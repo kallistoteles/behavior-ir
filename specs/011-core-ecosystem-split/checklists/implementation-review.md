@@ -247,3 +247,92 @@ core-owned deletions; the history stays.
 - **Links:** nothing in `skills/`, `docs/`, `examples/`, `release/` or `models/` points at a moved
   file. The README names the core's documents and links them at `v0.10.2`.
 - **Memory:** the roadmap now names general invocation as core 012.
+
+## Ecosystem Release
+
+- **PR #1** (`011-core-ecosystem-split`): `ecosystem-ci` passed all four jobs (`pin` 53s,
+  `surface` 44s, `gates` 2m5s with 243 tests, `package` 2m35s with release-check steps 2–11).
+  Branch protection on `main` requires `pin`, `surface`, `gates` and `package`. `main` (from
+  `9a1dc76`, bringing 009, 010 and 011) and `dev` were fast-forwarded to `33152a7`.
+- **`v0.10.2` (ecosystem) failed safely.** `release.sh` reran the gates in the release workflow,
+  and `test_check_tag.sh` inherited the job's `CHECK_TAG_REQUIRED`, so its `green_ci` case asked
+  for checks the stub does not report. Nothing was built or published.
+  - The fix: the test clears the variables it sets. This was reproduced locally first, and the
+    same fix went to the core in core PR #3 (test-only, no release).
+  - The fix shipped as **0.10.3** (PR #2).
+- **`v0.10.3` was published, but `release-verify` reported DIFFERENT.**
+  - Member by member, only maturin's CycloneDX SBOM (and `RECORD`) differed: it records the
+    absolute build directory (`/home/runner/work/…` against a local path). The extension module
+    and the bundled CLI were identical.
+  - Fix (PR #3, **0.10.4**): `[tool.maturin.sbom] rust = false`. Release-check step 2 now refuses
+    any wheel member that embeds a build directory (seen failing on the v0.10.3 wheel), and the
+    check prints `SHA256SUMS`.
+  - The `main` CI build of the exact commit and a local NixOS build gave the same wheel checksum
+    (`394ef532…`) before tagging.
+- **`v0.10.4` is the first reproducible ecosystem release:**
+  <https://github.com/kallistoteles/behavior-ir/releases/tag/v0.10.4>.
+  - `release-verify` printed `identical (v0.10.4)`.
+  - The notes name Core 0.10.2 (`aaded16…`).
+  - Installed from the published wheel with `--require-hashes`: `versions()` gives engine 0.10.2,
+    core 0.10.2 (`aaded16…`) and binding 0.10.4, and `behavior engine-info` reports engine
+    0.10.2.
+- **The versions now differ:** ecosystem 0.10.4 bundles core 0.10.2 (FR-017).
+
+## Requirements
+
+| Requirement | Status | Evidence |
+|---|---|---|
+| FR-001 two repositories | ✓ | behavior-ir-core (Core Release v0.10.2), behavior-ir (v0.10.4) |
+| FR-002, FR-003 core owns semantics, stands alone | ✓ | fresh core clone: gates, 407 tests, digest equal (Core alone) |
+| FR-004 ecosystem contents | ✓ | binding, DSL, examples, skills, `models/`, package |
+| FR-005 one-way dependency, checked | ✓ | `check-boundary.sh` in core gates |
+| FR-006, FR-006b facade, explicit | ✓ | `behavior-engine`, 79 items, `api/engine-surface.txt`, `check-public-surface.sh` |
+| FR-006c CLI not in the facade | ✓ | CLI and binding both consume the facade; the binding no longer links the CLI; the CLI is a bundled binary |
+| FR-006d external consumer | ✓ | `consumer/` in core-ci; against the published revision in core-release |
+| FR-006a Core Release | ✓ | annotated tag, manifest (versions, public surface), assets |
+| FR-007 public contract only | ✓ | `check-public-surface.sh` (ecosystem): only `behavior-engine`, no internal crate, no copied core file |
+| FR-008 no reimplemented semantics | ✓ | the binding calls the engine; constitution 1.1.0 |
+| FR-009 – FR-013 models | ✓ | `models/README.md`, the state-machine lowering with tests, `ARCHITECTURE.md`, `check-terms` |
+| FR-014 conformance fixtures | ✓ | the core's `tests/fixtures`, published as an archive |
+| FR-015, FR-016 equivalence in CI | ✓ | `test_binding_equivalence.py` (8 pairs plus a migration pair, every wire form) in `ecosystem-ci` |
+| FR-017 exact pin, independent versions | ✓ | `core-release.json`, git `rev`, `check-core-pin.sh`; ecosystem 0.10.4 on core 0.10.2 |
+| FR-018 one package bundles the core | ✓ | the wheel bundles the CLI; `versions()["core"]`; clean install |
+| FR-019, FR-021 no byte or semantic change | ✓ | conformance digest equal before and after (core: 595 keys; ecosystem: 475 keys) |
+| FR-020 history preserved | ✓ | `filter-repo` extraction, 26 commits |
+| FR-022 preflight | ✓ | five criteria, each seen failing first (Preflight) |
+| FR-023 placement by ownership | ✓ | `contracts/ownership.md`, `check-ownership.py` |
+| FR-024 no core checkout in ecosystem CI | ✓ | git dependency on the commit plus released assets; isolated clone with no `../behavior-ir-core` |
+| FR-025, FR-026, FR-027, FR-031 CI | ✓ | `core-ci`, `ecosystem-ci` on pull requests and pushes to `main`/`dev`; separate release workflows |
+| FR-028 explicit tags, never moved | ✓ | v0.10.1 (core) and v0.10.2 (ecosystem) stay unreleased; fixes shipped as new patch versions |
+| FR-029 release workflow | ✓ | tag checked before building (annotation, version, on `main`, required checks green); gates rerun; notes name the core |
+| FR-030 scripts authoritative | ✓ | the workflows only run scripts; `check-workflows.sh` |
+| FR-032 – FR-035 Spec Kit | ✓ | two installations, constitutions 1.0.1 and 1.1.0, ranges 012+/500+, `gates.sh` used by both, no Spec Kit state in CI |
+
+## Success criteria
+
+| SC | Status | Evidence |
+|---|---|---|
+| SC-001 | ✓ | fresh core clone, gates OK, no ecosystem reference |
+| SC-002 | ✓ | ecosystem gates in an isolated clone; surface check |
+| SC-003 | ✓ | ecosystem digest: 475 keys equal to the baseline |
+| SC-004 | ✓ | every wire IR form has a pair; identical versions and item hashes |
+| SC-005 | ✓ | one `pip install --require-hashes`, smoke and skill examples (release-check) |
+| SC-006 | ✓ | the determinism check in both gate lists |
+| SC-007 | ✓ (scripted) | the 12 concepts map to their layers in `ARCHITECTURE.md` |
+| SC-008 | ✓ | `ecosystem-ci` green with no core checkout |
+| SC-009 | ✓ | core digest equal |
+| SC-010 | deferred | the throwaway pull requests per gate (T079) were deferred by the user. Each check has local tests seen failing, and real CI failures were observed (core-release refusing a lightweight tag; ecosystem-release failing its gates) |
+| SC-011 | ✓ | `release-verify identical` for core v0.10.2 and ecosystem v0.10.4 |
+| SC-012 | ✓ | numbering probe: 500, then 501, and 012 |
+
+## Follow-ups
+
+- **T079 / SC-010:** one deliberately broken pull request per required gate, in both
+  repositories.
+- **A path-independent SBOM for the wheel**, so maturin's Rust SBOM can be turned back on.
+- **The core release uploads `NOTES.md` as an asset**, because it uploads `dist/*`. The
+  ecosystem workflow lists its assets explicitly; the core's should too.
+- **`engine-info` does not report the migration IR version.** Adding it changes a contract, so it
+  belongs to a core feature.
+- **The SC-004 headroom of reads** (from 010), and the evidence-inspection and pagination
+  follow-ups of 010, stay open in the core.

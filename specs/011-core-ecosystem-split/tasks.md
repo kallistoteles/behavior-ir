@@ -661,11 +661,11 @@ wrong tag is refused before building. Local and published checksums match.
 
   Name `scripts/gates.sh` in "Development Workflow and Quality Gates", and state the 500+
   feature range. File: `.specify/memory/constitution.md`.
-- [ ] T071 [US6] Merge the ecosystem branch to `main` through a pull request and confirm that
+- [X] T071 [US6] Merge the ecosystem branch to `main` through a pull request and confirm that
   `ecosystem-ci` is green with no core checkout. Configure branch protection requiring `pin`,
   `surface`, `gates` and `package`. Confirm that the merge created no release (US6
   acceptance 3).
-- [ ] T072 [US6] Bump `Cargo.toml` `[workspace.package] version` to `0.10.1`. Add a
+- [X] T072 [US6] Bump `Cargo.toml` `[workspace.package] version` to `0.10.1`. Add a
   "Release 0.10.1" paragraph to `docs/versioning.md`: split into core and ecosystem; bundles core
   v0.10.1; no identity or format change. Tag
   `git tag -a v0.10.1 -m "Behavior 0.10.1 (core v0.10.1)"` and push. Confirm the GitHub Release
@@ -759,7 +759,7 @@ concepts.
   `~/.claude/projects/-home-kalle-repos-deterministic-ai-system/memory/skills-library-next.md`:
   011 is done; general invocation is next as **core 012**, in `behavior-ir-core`; ecosystem
   features are numbered 500+.
-- [ ] T084 Complete `checklists/implementation-review.md` with these sections:
+- [X] T084 Complete `checklists/implementation-review.md` with these sections:
   - Principles;
   - Constitution, with a test-first evidence note for each check task (T005–T009, T015,
     T022–T023, T033–T034, T045–T047, T056–T057, T062, T064, T073, T078);

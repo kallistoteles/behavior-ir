@@ -37,3 +37,5 @@ try:
              context={"actor": ANNA}, data_version="18342")
 except TypeError as e:
     print(f"== float input: TypeError: {e}")
+
+print(__import__("time").time_ns())

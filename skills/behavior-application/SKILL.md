@@ -1,12 +1,12 @@
 ---
 name: behavior-application
 description: Build the host application around a Behavior model (stores, evaluate and commit, reads and read intents for agents, conflicts, replay, custom storage backends, supplying facts), keeping every business rule in behavior. Use when writing services, handlers, jobs or storage code that use a behavior model.
-release: 0.10.2
+release: 0.10.3
 ---
 
 # Building an application on Behavior
 
-This skill describes **Behavior release 0.10.2**. Use only what is described here or listed in the
+This skill describes **Behavior release 0.10.3**. Use only what is described here or listed in the
 release's public API.
 
 > If the public Behavior API cannot express a requirement, record a semantic gap in

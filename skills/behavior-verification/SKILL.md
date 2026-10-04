@@ -1,12 +1,12 @@
 ---
 name: behavior-verification
 description: Run Behavior verification and act on its results (proven, counterexample, inconclusive), fixing the model rather than weakening checks, and telling verifier precision debt from a missing requirement. Use after writing or changing a behavior model, and whenever an attestation is not verified.
-release: 0.10.2
+release: 0.10.3
 ---
 
 # Verifying behavior
 
-This skill describes **Behavior release 0.10.2**. Use only what is described here or listed in the
+This skill describes **Behavior release 0.10.3**. Use only what is described here or listed in the
 release's public API.
 
 > If the public Behavior API cannot express a requirement, record a semantic gap in
@@ -185,7 +185,7 @@ assert check["outcome"] == "inconclusive" and not debt.verified
 
 The command line has `behavior migration verify <source> <target> <migration>`.
 
-## Precision debt catalogue (release 0.10.2)
+## Precision debt catalogue (release 0.10.3)
 
 These properties can hold and still be inconclusive. They are verifier limits, not model errors.
 

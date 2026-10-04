@@ -21,14 +21,14 @@ def _engine_info() -> dict[str, object]:
 
 
 def test_the_binding_version_is_the_release_version() -> None:
-    assert behavior.__version__ == "0.10.2"
+    assert behavior.__version__ == "0.10.3"
 
 
 def test_versions_are_the_engine_info_plus_the_core_and_the_binding() -> None:
     expected = _engine_info()
     pin = _pin()
     expected["core"] = {"version": pin["version"], "commit": pin["commit"]}
-    expected["binding"] = {"python": "0.10.2"}
+    expected["binding"] = {"python": "0.10.3"}
     assert behavior.versions() == expected
 
 

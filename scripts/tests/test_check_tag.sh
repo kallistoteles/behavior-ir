@@ -38,7 +38,7 @@ printf '{"check_runs":[{"name":"gates","conclusion":"failure"}]}' >"$tmp/red.jso
 expect() {
   local name="$1" want="$2" pattern="$3" tag="$4"; shift 4
   local rc=0
-  env -u GITHUB_TOKEN -u GH_TOKEN "$@" PATH="$tmp/bin:$PATH" scripts/check-tag.sh "$tag" >"$tmp/out" 2>&1 || rc=$?
+  env -u GITHUB_TOKEN -u GH_TOKEN -u CHECK_TAG_REQUIRED -u GITHUB_REPOSITORY "$@" PATH="$tmp/bin:$PATH" scripts/check-tag.sh "$tag" >"$tmp/out" 2>&1 || rc=$?
   if [ "$rc" -ne "$want" ] || ! grep -qE "$pattern" "$tmp/out"; then
     echo "FAIL $name: exit $rc (want $want), output: $(cat "$tmp/out")"
     failures=$((failures + 1))

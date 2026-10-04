@@ -739,23 +739,23 @@ concepts.
 - [ ] T079 Prove every required gate (SC-010). In each repository, open one throwaway pull
   request per gate listed in `contracts/workflows.md` §Proving each gate. Confirm each one turns
   its job red, then close it unmerged. Record the run URLs in `checklists/implementation-review.md`.
-- [ ] T080 [P] Verify Spec Kit numbering (SC-012) without keeping the features:
+- [X] T080 [P] Verify Spec Kit numbering (SC-012) without keeping the features:
   - In a scratch clone of each repository, run `.specify/scripts/bash/create-new-feature.sh
     --json --number 500 "probe"` (ecosystem) and the same with no number (core). They must
     create `specs/500-probe` and `specs/012-probe`.
   - A second ecosystem call with no number must create `501`.
 
   Record the outputs, then delete the scratch clones.
-- [ ] T081 [P] Classify-by-document check (SC-007): give the 12 concepts to a reviewer, or use a
+- [X] T081 [P] Classify-by-document check (SC-007): give the 12 concepts to a reviewer, or use a
   scripted lookup over the `ARCHITECTURE.md` table that maps each concept to exactly one layer.
   Record the result in `checklists/implementation-review.md`.
-- [ ] T082 [P] Update `PRINCIPLES.md` references and every in-repo link that pointed at moved
+- [X] T082 [P] Update `PRINCIPLES.md` references and every in-repo link that pointed at moved
   files:
   - `rg -n 'docs/(persistence|verification)\.md|PRINCIPLES\.md|tests/fixtures|schema/'` over
     `README.md`, `skills/` and `docs/` in the ecosystem;
   - rewrite each hit to a URL into `behavior-ir-core` at tag `v0.10.1`, or to
     `$BEHAVIOR_CORE_DIR` in scripts.
-- [ ] T083 [P] Update the auto-memory roadmap
+- [X] T083 [P] Update the auto-memory roadmap
   `~/.claude/projects/-home-kalle-repos-deterministic-ai-system/memory/skills-library-next.md`:
   011 is done; general invocation is next as **core 012**, in `behavior-ir-core`; ecosystem
   features are numbered 500+.

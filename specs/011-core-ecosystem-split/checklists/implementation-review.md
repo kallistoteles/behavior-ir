@@ -236,3 +236,14 @@ core-owned deletions; the history stays.
   checks and builds an existing tag, as in the core.
 - **Constitution:** 1.1.0 (MINOR), with a new section "Bindings and Packaging", `scripts/gates.sh`
   and the 500+ range.
+
+## Polish (local)
+
+- **SC-012:** in scratch clones, `create-new-feature.sh --number 500` gave `500-numbering-probe`
+  in the ecosystem, and the next call without a number gave `501-second-probe`. In the core, a
+  call without a number gave `012-core-probe`. The clones were deleted.
+- **SC-007:** a scripted lookup over the core's `ARCHITECTURE.md` maps all 12 concepts to
+  exactly the documented layer.
+- **Links:** nothing in `skills/`, `docs/`, `examples/`, `release/` or `models/` points at a moved
+  file. The README names the core's documents and links them at `v0.10.2`.
+- **Memory:** the roadmap now names general invocation as core 012.

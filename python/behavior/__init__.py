@@ -54,14 +54,26 @@ def _check_versions(binding: str, engine: str) -> None:
         )
 
 
+def _check_core(*, declared: str, engine: str) -> None:
+    """The extension runs only on the exact Core Release this package declares
+    (`core-release.json`, feature 011): the engine's own version must be the declared one."""
+    if engine != declared:
+        raise ImportError(
+            f"behavior: built against core {engine} but declares core {declared}"
+        )
+
+
 __version__: str = metadata.version("behavior")
 _check_versions(__version__, _engine.ENGINE_VERSION)
+_check_core(declared=_engine.CORE["version"], engine=_engine.engine_info()["engine"])
 
 
 def versions() -> dict[str, Any]:
-    """Every version of this release: the engine, the wire IR, record and store document formats
-    it reads and writes, the verifier, and this binding (feature 008)."""
+    """Every version of this release: the engine (the core) and the wire IR, record and store
+    document formats it reads and writes, the verifier, the exact Core Release (version and
+    commit, feature 011), and this binding (feature 008)."""
     info: dict[str, Any] = _engine.engine_info()
+    info["core"] = dict(_engine.CORE)
     info["binding"] = {"python": __version__}
     return info
 

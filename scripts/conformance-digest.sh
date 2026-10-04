@@ -5,12 +5,13 @@
 #
 #   scripts/conformance-digest.sh [--core-dir DIR] [--no-outputs]
 #
-# Keys are `file:<path>` (relative to DIR, default the repository) and
+# Keys are `file:<path>` (relative to DIR, default the pinned core release installed by
+# scripts/fetch-core.sh, `.core/<version>`) and
 # `output:<section>:<label>` (the determinism check's sections, `core` and `ecosystem`).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-core_dir=.
+core_dir=".core/$(python3 -c 'import json; print(json.load(open("core-release.json"))["version"])')"
 outputs=1
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -24,7 +25,7 @@ tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 : >"$tmp/outputs.tsv"
 if [ "$outputs" -eq 1 ]; then
-  if ! BEHAVIOR_DIGEST_DIR="$tmp" scripts/determinism-check.sh >/dev/null 2>"$tmp/check.err"; then
+  if ! BEHAVIOR_CORE_DIR="$core_dir" BEHAVIOR_DIGEST_DIR="$tmp" scripts/determinism-check.sh >/dev/null 2>"$tmp/check.err"; then
     echo "conformance-digest: the determinism check failed: $(tail -n 3 "$tmp/check.err")" >&2
     exit 1
   fi

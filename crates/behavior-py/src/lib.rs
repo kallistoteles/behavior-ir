@@ -2161,6 +2161,12 @@ fn solver_notice() -> Option<String> {
 #[pymodule]
 fn _engine(m: &Bound<'_, pyo3::types::PyModule>) -> PyResult<()> {
     m.add("ENGINE_VERSION", env!("CARGO_PKG_VERSION"))?;
+    // The Core Release this extension is built against, as core-release.json declares it
+    // (feature 011); the engine itself reports its own version through `engine_info`.
+    let core = pyo3::types::PyDict::new(m.py());
+    core.set_item("version", env!("BEHAVIOR_CORE_VERSION"))?;
+    core.set_item("commit", env!("BEHAVIOR_CORE_COMMIT"))?;
+    m.add("CORE", core)?;
     m.add_function(wrap_pyfunction!(engine_info, m)?)?;
     m.add_function(wrap_pyfunction!(solver_notice, m)?)?;
     m.add_class::<PyType_>()?;

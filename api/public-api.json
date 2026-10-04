@@ -214,7 +214,7 @@
    "waiver_hash": "function"
   }
  },
- "release": "0.10.0",
+ "release": "0.10.2",
  "solver": {
   "name": "z3",
   "version": "4.16.0"

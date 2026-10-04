@@ -7,10 +7,10 @@ import json
 import jsonschema
 import pytest
 
-from .conftest import FIXTURES, REPO_ROOT
+from .conftest import CORE_DIR, FIXTURES
 
 SCHEMAS = {
-    v: json.loads((REPO_ROOT / "schema" / f"wire-ir-{v}.schema.json").read_text())
+    v: json.loads((CORE_DIR / "schema" / f"wire-ir-{v}.schema.json").read_text())
     for v in ("0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7")
 }
 SCHEMA = SCHEMAS["0.4"]
@@ -45,7 +45,7 @@ def test_documents_use_their_minimal_version() -> None:
         assert version == want, path.name
 
 
-MIGRATION_SCHEMA = json.loads((REPO_ROOT / "schema" / "migration-ir-0.1.schema.json").read_text())
+MIGRATION_SCHEMA = json.loads((CORE_DIR / "schema" / "migration-ir-0.1.schema.json").read_text())
 MIGRATIONS = sorted(
     p for p in (FIXTURES / "migration").glob("*/*.json")
     if p.parent.name in ("valid", "invalid") and not p.name.endswith(".expected.json")

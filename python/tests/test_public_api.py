@@ -43,11 +43,21 @@ def test_cli_commands_and_flags_equal_the_manifest() -> None:
         assert found == {f for f in flags if f.startswith("--")}, command
 
 
+def _core_crate(name: str) -> Path:
+    """The source of one crate of the pinned Core Release, as cargo resolved it (feature 011):
+    the backend trait is the core's, at exactly the revision this release builds against."""
+    meta = json.loads(subprocess.run(
+        ["cargo", "metadata", "-q", "--format-version", "1"], cwd=ROOT, check=True,
+        capture_output=True, text=True).stdout)
+    pkg = next(p for p in meta["packages"] if p["name"] == name)
+    return Path(pkg["manifest_path"]).parent
+
+
 def test_backend_methods_equal_the_manifest() -> None:
     py = (ROOT / "crates" / "behavior-py" / "src" / "lib.rs").read_text()
     called = set(re.findall(r'self\.call(?:::<[^>]*>)?\(\s*"([a-z_]+)"', py))
     guarded = set(re.findall(r'hasattr\("([a-z_]+)"\)', py))
-    trait = (ROOT / "crates" / "behavior-store" / "src" / "lib.rs").read_text()
+    trait = (_core_crate("behavior-store") / "src" / "lib.rs").read_text()
     body = trait.split("pub trait Backend")[1].split("\n}\n")[0]
     declared = set(re.findall(r"fn ([a-z_]+)\(", body))
     assert called | guarded == declared

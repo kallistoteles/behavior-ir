@@ -1,12 +1,25 @@
-# deterministic_ai_system
+# behavior-ir
 
 An AI-native information system where behavior is an immutable, typed, content-addressed
 description of valid state changes, admitted and executed deterministically by a Rust engine.
 AI is the interface; it reaches the system only through declared capabilities.
 
-- [PRINCIPLES.md](PRINCIPLES.md): the first principles every feature is checked against
-- [specs/001-verifiable-behavior-ir](specs/001-verifiable-behavior-ir): the v0.1 spec, plan,
-  data model, contracts, and quickstart
+**This is the ecosystem repository**: the Python binding and its authoring DSL, examples, agent
+skills, the models area and the installable package. The deterministic semantic kernel is
+[Behavior Core](https://github.com/kallistoteles/behavior-ir-core) (`behavior-ir-core`). Core
+defines meaning; this repository defines ways to author and use it. The package is built
+against exactly one Core Release, named in [`core-release.json`](core-release.json) (core
+v0.10.2), and bundles it, so users install one thing.
+
+The semantics are specified and documented in the core:
+- [PRINCIPLES.md](https://github.com/kallistoteles/behavior-ir-core/blob/v0.10.2/PRINCIPLES.md): the first principles every feature is checked against;
+- [ARCHITECTURE.md](https://github.com/kallistoteles/behavior-ir-core/blob/v0.10.2/ARCHITECTURE.md): core, bindings and models, and where a new concept
+  belongs;
+- `docs/persistence.md`, `docs/verification.md` and the specifications 001–007, 009 and 010.
+
+Paths below that name them refer to the core repository. Fixtures named `tests/fixtures/…` are
+the core's conformance fixtures; `scripts/fetch-core.sh` installs them in
+`.core/<version>/` (`$BEHAVIOR_CORE_DIR`).
 
 ## What v0.1 does
 
@@ -74,7 +87,7 @@ shell; `BEHAVIOR_Z3` points at it). No annotations: the checks follow from the s
 ```bash
 python -m examples.tryout.dump > /tmp/purchase.json
 behavior verify /tmp/purchase.json          # exit 1: approve can break within_budget
-behavior verify tests/fixtures/verify/purchase_money2_remaining.json   # exit 0: verified
+behavior verify $BEHAVIOR_CORE_DIR/tests/fixtures/verify/purchase_money2_remaining.json   # exit 0: verified
 ```
 
 ### Fixed-scale money (feature 003)
@@ -95,7 +108,7 @@ requires(a.amount * Decimal("1.25") <= budget.limit)                        # ex
 Requests with more decimals than declared are rejected (`OFF_GRID`), records show exactly
 `scale` digits (`"100.50"`), every rescale appears in the trace with its exact input
 (`"40/3"`), and the verifier proves money properties exactly
-(`behavior verify tests/fixtures/verify/purchase_money2_remaining.json` exits 0). Modes:
+(`behavior verify $BEHAVIOR_CORE_DIR/tests/fixtures/verify/purchase_money2_remaining.json` exits 0). Modes:
 `HALF_EVEN`, `HALF_UP`, `DOWN`, `UP`, `FLOOR`, `CEILING`; there is no default. Details:
 `specs/003-fixed-scale-decimals/`.
 
@@ -284,11 +297,12 @@ pinned by file and hash; no Rust toolchain is needed:
 
 ```text
 # requirements.txt of the application
-behavior @ file:///path/to/behavior-0.10.0-cp313-abi3-manylinux_2_28_x86_64.whl --hash=sha256:<from SHA256SUMS>
+behavior @ file:///path/to/behavior-0.10.2-cp313-abi3-manylinux_2_28_x86_64.whl --hash=sha256:<from SHA256SUMS>
 ```
 
 - **Install.** Run `pip install --require-hashes -r requirements.txt`. The wheel also installs
-  the `behavior` command line.
+  the `behavior` command line: the core's own CLI, bundled as a static binary from the Core
+  Release the package names (`behavior.versions()["core"]`).
 - **Versions.** `behavior.versions()` and `behavior engine-info` report the release:
   - the engine and binding versions, which must match exactly;
   - the wire IR, record and store document formats it reads;
@@ -316,29 +330,38 @@ and requires byte-identical results with the in-repo build.
 
 ## Development
 
-Requires Nix with flakes. The dev shell provides the pinned Rust toolchain, Python 3.13,
-maturin, pytest, mypy, and jsonschema, and creates `.venv/`.
+Requires Nix with flakes. The dev shell provides the pinned Rust toolchain, Python 3.13, maturin,
+pytest, mypy and jsonschema, and creates `.venv/`.
 
 ```bash
 nix develop
-cargo build --workspace
-maturin develop                     # builds behavior._engine into .venv
+eval "$(scripts/fetch-core.sh)"     # the pinned Core Release: fixtures, schemas and the CLI
+maturin develop                     # builds behavior._engine against behavior-engine at that commit
+scripts/gates.sh                    # every quality gate, as ecosystem-ci runs it
 ```
 
-Quality gates (all must pass before merging; see the constitution):
+The core is a Git dependency on the exact commit in `core-release.json`
+(`behavior-engine = { git = …, rev = … }`), never a path into the core's sources.
 
-```bash
-cargo fmt --check
-cargo clippy --all-targets -- -D warnings
-cargo test --workspace
-pytest python/tests
-mypy
-scripts/determinism-check.sh
-cargo test --release -p behavior-core -- --ignored perf    # SC-005 performance check
-cargo test --release -p behavior-verify --test perf -- --ignored   # SC-003, SC-004
+**Developing against an unreleased core.** Set `BEHAVIOR_DEV_CORE_PATH=1` and add an untracked
+`.cargo/config.toml`:
+
+```toml
+[patch."https://github.com/kallistoteles/behavior-ir-core"]
+behavior-engine = { path = "../behavior-ir-core/crates/behavior-engine" }
 ```
 
-Layout: `crates/behavior-core` (engine), `crates/behavior-verify` (SMT verification and
-governance), `crates/behavior-cli` (CLI), `crates/behavior-py`
-(Python binding), `python/behavior` (DSL), `tests/fixtures` (shared fixtures; see its README),
-`schema/` (wire IR JSON Schema), `examples/`.
+`scripts/check-core-pin.sh` refuses this in CI and releases. A change that needs both
+repositories lands in the core first, as a Core Release; the ecosystem then moves its pin.
+
+**Specifications.** Features are specified with GitHub Spec Kit.
+- **This repository:** ecosystem features are numbered 500 onward. 008 (the package) and 011 (the
+  split) live here.
+- **The core:** core features are numbered from 012 and live in behavior-ir-core.
+- **Cross-references:** a reference to the core names it, for example "core 009".
+
+Layout:
+- `crates/behavior-py`: the native extension; it depends on `behavior-engine` only.
+- `python/behavior`: the DSL and binding.
+- `examples/`, `skills/` (consumer skills), `models/` (rules for models; no models yet).
+- `release/`, `api/public-api.json`, `scripts/`.

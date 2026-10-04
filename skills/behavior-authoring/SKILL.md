@@ -1,12 +1,12 @@
 ---
 name: behavior-authoring
 description: Model a domain as Behavior with the Python binding (entities, field types, actions, creation and removal, references, queries over sets, entity constraints, module invariants, exact arithmetic, declared reads and projections). Use when writing or changing a behavior model.
-release: 0.10.0
+release: 0.10.2
 ---
 
 # Authoring behavior
 
-This skill describes **Behavior release 0.10.0**. Use only what is described here or listed in the
+This skill describes **Behavior release 0.10.2**. Use only what is described here or listed in the
 release's public API (`behavior.versions()` reports the installed release). Everything is imported
 from the `behavior` package.
 
@@ -373,7 +373,7 @@ refused = BehaviorModule(entities=[Customer, Order], constraints=[few_orders])
 assert [e.code for e in admit(refused).errors] == ["QUERY_NOT_ALLOWED"]
 ```
 
-## Requirements that are semantic gaps in 0.10.0
+## Requirements that are semantic gaps in 0.10.2
 
 Record these, do not approximate them:
 

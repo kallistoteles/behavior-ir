@@ -80,7 +80,20 @@ fn another_solver_version_is_reported() {
     std::fs::write(&fake, "#!/bin/sh\necho 'Z3 version 4.15.0 - 64 bit'\n").unwrap();
     use std::os::unix::fs::PermissionsExt;
     std::fs::set_permissions(&fake, std::fs::Permissions::from_mode(0o755)).unwrap();
-    let old = Z3Process::new(fake, std::time::Duration::from_secs(1)).unwrap();
+    // A process another test thread forks while the script is being written inherits the write
+    // handle until it execs, and running the script meanwhile fails with ETXTBSY ("Text file
+    // busy"). That is a property of writing and running a file in one multi-threaded process,
+    // not of the solver check, so the start is retried briefly.
+    let mut tries = 0;
+    let old = loop {
+        match Z3Process::new(fake.clone(), std::time::Duration::from_secs(1)) {
+            Err(e) if e.to_string().contains("Text file busy") && tries < 100 => {
+                tries += 1;
+                std::thread::sleep(std::time::Duration::from_millis(10));
+            }
+            r => break r.unwrap(),
+        }
+    };
     let notice = old.version_mismatch().unwrap();
     assert!(
         notice.contains("4.15.0") && notice.contains("4.16.0"),

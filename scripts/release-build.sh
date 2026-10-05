@@ -6,6 +6,7 @@
 # scripts/release.sh and scripts/release-check.sh call it.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+scripts/check-core-pin.sh
 version="${1:?usage: scripts/release-build.sh <version> <out>}"
 out="${2:?usage: scripts/release-build.sh <version> <out>}"
 

@@ -34,12 +34,16 @@ Required status checks on `main`: `gates` and `consumer`.
    annotated, its version ≠ the workspace version, the commit is not on `main`, or a required
    check of the commit is not green (FR-028). This runs before any build.
 2. `scripts/release-check.sh <version>` (all gates, reproducibility).
-3. `scripts/release-build.sh <version> dist/v<version>`.
-4. `gh release create v<version> dist/v<version>/* --verify-tag --notes-file
+3. `scripts/check-consumer.sh --rev <tag commit>`: build against the exact pushed Git revision
+   (FR-006d). Failure stops before the final artifact build and publication. The revision is
+   already available; a GitHub Release is not required.
+4. `scripts/release-build.sh <version> dist/v<version>`.
+5. `gh release create v<version> dist/v<version>/* --verify-tag --notes-file
    dist/v<version>/NOTES.md`.
-5. `scripts/check-consumer.sh --rev <tag commit>`: the external consumer is built against the
-   published git revision (FR-006d). A failure fails the workflow, and the fix is a new patch
-   release.
+
+Steps 1–4 live in `scripts/release.sh`, including temporary artifacts used by the full release
+checks. The workflow only invokes that script and then publishes. Wrong-version refusals are
+tested in disposable repositories; product release tags are never created or deleted for tests.
 
 ## `ecosystem-ci.yml` (behavior-ir)
 
@@ -49,10 +53,11 @@ Required status checks on `main`: `gates` and `consumer`.
 |---|---|---|
 | pin | `scripts/check-core-pin.sh` (no path/patch override; rev = declared commit) | FR-024, US2-1, US2-3 |
 | surface | `scripts/check-public-surface.sh --consumer` (only `behavior-engine`; no `behavior_core::` etc.) | FR-007, US2-2 |
-| gates | `scripts/fetch-core.sh` then `scripts/gates.sh`: `maturin develop`, pytest (equivalence, conformance against `$BEHAVIOR_CORE_DIR`, skills), mypy, fmt/clippy of `behavior-py`, determinism (ecosystem part) | FR-015, FR-016, FR-027 |
+| gates | `scripts/fetch-core.sh` then `scripts/gates.sh`: `maturin develop`, `python -m pytest -q python/tests models` (equivalence, model lowering, conformance against `$BEHAVIOR_CORE_DIR`, skills), mypy, fmt/clippy of `behavior-py`, determinism (ecosystem part) | FR-015, FR-016, FR-027 |
 | package | `scripts/release-check.sh --skip-tag <version>`: wheel build, auditwheel, clean venv install, smoke, missing solver, versions, byte identity, skill examples | FR-018, FR-027, SC-005 |
 
-Models lowering joins `gates` when the first model exists. Required status checks on `main`:
+Model lowering is included explicitly. Regression tests prove collection of the actual model
+tests and failure of the shared gate for deliberately broken lowering. Required status checks on `main`:
 all four jobs.
 
 **Core access**: if the core repository is private, the secret `CORE_READ_TOKEN` (fine-grained,

@@ -64,8 +64,9 @@ BEHAVIOR CORE            deterministic semantic authority    (behavior-ir-core)
   fixed alone before the move. Versioning starts simple: the ecosystem pins one exact core
   release (or tag); compatibility ranges come only after the boundary has survived several
   releases. The ecosystem's continuous integration builds against a released core artifact
-  outside any core checkout; local development may use a core source path, but never as the only
-  working consumer path. Documents follow semantic ownership: *if changing a document could
+  outside any core checkout. Private development may use an explicit untracked override, outside
+  required gates and release paths; the repository supports only the declared release graph.
+  Documents follow semantic ownership: *if changing a document could
   change what a Behavior program means, it belongs to the core.*
 - Q: How should the ecosystem obtain a released core to build its Python extension against? →
   A: A **Core Release** is an immutable Git release: a version tag and the exact commit it
@@ -74,8 +75,9 @@ BEHAVIOR CORE            deterministic semantic authority    (behavior-ir-core)
   explicitly supported **public Rust crate(s)**, a deliberate public surface such as a single
   engine crate, never on arbitrary internal workspace crates. Core continuous integration defines
   and tests that surface before a release is tagged. Ecosystem release CI builds against the
-  pinned release without a core checkout or path dependencies; local path overrides are a
-  development convenience only. Publishing to a public crate registry is a later distribution
+  pinned release without a core checkout or path dependencies. Local untracked overrides are
+  private experiments and MUST NOT affect committed dependency metadata, required gates, release
+  verification or published artifacts. Publishing to a public crate registry is a later distribution
   improvement that does not change the boundary. Principle: *repository separation is not the
   boundary; the public Core API is.*
 - Q: Should the public Rust surface be one new facade crate, or the existing crates the binding
@@ -113,6 +115,11 @@ BEHAVIOR CORE            deterministic semantic authority    (behavior-ir-core)
   new features start at 500. Existing specifications keep their numbers. Spec Kit's sequential
   numbering then continues each range by itself; only the first new feature in each repository is
   created with an explicit number (`--number 012` in the core, `--number 500` in the ecosystem).
+- Q: May cross-repository development use an unreleased local core? → A: Yes, through an
+  explicit local, untracked override used only for private experiments. The repository has one
+  supported dependency graph: the exact published Core Release in `core-release.json`.
+  Official scripts have no override mode; required gates and release commands reject active
+  overrides. Committed dependency metadata and published artifacts always use the declared pin.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -280,8 +287,8 @@ commit: it gives the same verdict and the same checksums as the release workflow
   the pinned core release and never keeps a diverging copy.
 - **Development across both repositories.** A change needing both (a new core form plus its DSL
   syntax) is made in the core first, released or tagged, then adopted by the ecosystem through
-  the pin. A local core source path may be used while developing, but the ecosystem's continuous
-  integration and release path always build against a released core artifact (FR-024).
+  the pin. An explicit local, untracked override may be used for private experiments, but never
+  for required gates, release verification or published artifacts (FR-024).
 - **A preflight criterion fails.** The one failing criterion is fixed and released on its own;
   the move does not start until all criteria hold (FR-022).
 - **Version skew.** An ecosystem release with a core it does not declare refuses explicitly. It
@@ -423,11 +430,16 @@ commit: it gives the same verdict and the same checksums as the release workflow
   verification, persistence, lifecycle, queries, reads, schema evolution, governance, wire
   contracts); authoring APIs, models, application guides, agent skills, examples and integration
   guides belong to the ecosystem.
-- **FR-024**: The ecosystem's continuous integration MUST build and test against the pinned core
-  release, without a core checkout or path dependency: resolve the pinned core commit, build the
-  native extension and the package, install it in a clean environment, and run the binding,
-  conformance and example tests. A local core source path MAY be used as a development override,
-  never as the only working way to consume the core.
+- **FR-024**: Committed dependency configuration, CI and release builds MUST consume the exact
+  Core Release declared in `core-release.json`. Repository-tracked path dependencies and patch
+  overrides are forbidden. The ecosystem's CI MUST resolve the pinned core commit without a
+  core checkout, build the native extension and package, install it in a clean environment, and
+  run the binding, model, conformance and example tests. A developer MAY use an explicit local,
+  untracked override for cross-repository development, but such an override MUST never affect
+  committed dependency metadata, required gates, release verification or published artifacts.
+  Official scripts MUST reject active overrides without a development bypass. The repository
+  has one supported dependency graph; developers may locally override it, but the project never
+  validates or releases through that override.
 
 **Continuous integration and releases**
 

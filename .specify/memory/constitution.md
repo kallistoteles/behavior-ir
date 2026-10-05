@@ -97,10 +97,18 @@ ways to author and use it.
 
 - A binding MUST NOT implement core semantics: typing, evaluation, hashing, verification,
   persistence and replay come from the core. A binding provides authoring syntax and access only.
-- The only core dependency is the public `behavior-engine` crate, pinned by the exact commit of
-  one Core Release declared in `core-release.json`. Internal core crates, path dependencies and
-  copies of core files are forbidden (`scripts/check-public-surface.sh`,
-  `scripts/check-core-pin.sh`).
+- The only core dependency is the public `behavior-engine` crate. Committed dependency
+  configuration, CI and release builds MUST consume the exact Core Release declared in
+  `core-release.json`. Repository-tracked path dependencies and patch overrides are forbidden.
+  Internal core crate dependencies and copies of core files remain forbidden
+  (`scripts/check-public-surface.sh`, `scripts/check-core-pin.sh`).
+- A developer MAY use an explicit local, untracked override for cross-repository development,
+  but such an override MUST never affect committed dependency metadata, required gates,
+  release verification or published artifacts. The repository has one supported dependency
+  graph; developers may locally override it, but the project never validates or releases
+  through that override. Official scripts MUST reject active overrides without a development
+  bypass. Experiments use a separate checkout and build environment; before running required
+  gates, restore the pinned metadata and rebuild against the declared Core Release.
 - Core fixtures and schemas come from the pinned release (`scripts/fetch-core.sh`); they are
   never copied into this repository.
 - Every authoring path is checked against the core's conformance fixtures: equivalent
@@ -138,4 +146,4 @@ document wins.
 - Compliance is checked at planning (Constitution Check) and at code review. Unjustified
   violations block merge.
 
-**Version**: 1.1.0 | **Ratified**: 2026-09-23 | **Last Amended**: 2026-10-04
+**Version**: 2.0.0 | **Ratified**: 2026-09-23 | **Last Amended**: 2026-10-04

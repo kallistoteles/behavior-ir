@@ -60,9 +60,11 @@ requires (FR-017).
 **Invariants** (`scripts/check-core-pin.sh`):
 
 1. `commit` equals the `rev` of `behavior-engine` in `Cargo.toml` and the source in `Cargo.lock`.
-2. `cargo metadata` resolves `behavior-engine` from `git+<repository>?rev=<commit>`. No path or
-   `[patch]` override is active, except when `BEHAVIOR_DEV_CORE_PATH` is explicitly set, and
-   never in CI or release.
+2. `cargo metadata` resolves `behavior-engine` and its internal core crates from
+   `git+<repository>?rev=<commit>`. No path or
+   `[patch]` override is active. Metadata is resolved with `--locked`, and official checks have
+   no development bypass. Private untracked experiments are outside this supported graph and
+   must be disabled before required gates, release builds or release verification.
 3. The `cli` binary's `engine-info` reports `engine == version`.
 4. The fetched assets match their `sha256`.
 

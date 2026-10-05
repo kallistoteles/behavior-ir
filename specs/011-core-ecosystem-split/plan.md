@@ -94,6 +94,9 @@ on `010-first-class-reads`.
 - Extraction only (FR-021).
 - Zero byte or identity change (SC-003).
 - Ecosystem CI and release have no core checkout or path dependency (FR-024).
+- One supported dependency graph in committed metadata, required gates and all release paths.
+  Explicit private, untracked overrides may be used in a separate experimental checkout and
+  build environment; official scripts reject them without a development bypass (FR-024).
 - Actions only orchestrate (FR-030).
 - A local build and a published release have identical checksums (SC-011).
 - No CI step reads Spec Kit's local state (FR-035).
@@ -112,14 +115,17 @@ on `010-first-class-reads`.
 |---|---|---|
 | I. Deterministic core, probabilistic edge | ✓ | No AI path is added or changed. The core keeps every decision; bindings and models only author (FR-008, FR-009). |
 | II. AI output validated | ✓ | Unchanged. Intent validation stays in the core and is reached through `behavior-engine`. |
-| III. Test-first | ✓ | Every new check is written and seen failing first: the preflight criteria, the public-surface checks, version-skew refusal, the external consumer, tag/version validation and the lowering example. Each preflight criterion starts as a failing check against today's tree (for example, `behavior-py` depends on `behavior-cli`). Moved tests are not new code; their pass counts before and after the move are the evidence (SC-009). |
+| III. Test-first | Historical evidence gap; required for new changes | Every new deterministic script and changed behavior requires reviewed tests observed failing before implementation. The original T003/T017/T019 descriptions did not establish this evidence. New regression tests cannot establish past test-first compliance; the review records the gap and current red/green results separately. Moved tests retain their before/after evidence (SC-009). |
 | IV. Reproducibility and replay | ✓ | The conformance digest (hash vectors, goldens, records, store documents) must be identical before and after the move. Release artifacts are built reproducibly (`SOURCE_DATE_EPOCH`, `--remap-path-prefix`, pinned toolchain through nix) so local and CI checksums match (SC-011). |
 | V. Explicit state and auditability | ✓ | A core release states its version, commit, format, verifier and engine versions and its public surface. An ecosystem release states the exact core version and commit it bundles. `behavior.versions()` reports both. |
 | VI. Simplicity | ✓ with justification | One new crate (`behavior-engine`) and one out-of-workspace consumer crate; see Complexity Tracking. No new runtime dependency. |
 | Tech constraints | ✓ | `Cargo.lock` is committed in both repositories. fmt and clippy `-D warnings` pass in both. `#![forbid(unsafe_code)]` holds in the facade. No unwrap/expect is added. |
 | Quality gates | ✓ | The same scripts gate Spec Kit's implement phase and CI (FR-034). The determinism check runs in both repositories (SC-006). |
+| Bindings and Packaging (constitution 2.0.0) | ✓ | Only the exact released core graph is supported. Explicit untracked experiments are outside validation. Pin checks have no bypass, verify resolved internal core crates, and run even for release commands that skip other gates. Model tests are explicitly included in the shared gate; see the remediation review for red/green evidence and full gate results. |
 
-**Gate result: PASS.** No unjustified violation.
+**Gate result:** the original blanket PASS is superseded by the remediation review. Historical
+test-first compliance for T003/T017/T019 is unproven; record it as a deviation, not a retrospective
+pass. New behavior changes require observed red/green evidence and the full shared gate.
 
 ## Project Structure
 
@@ -188,7 +194,7 @@ behavior-ir/
 ├── examples/, skills/, release/smoke.py, api/public-api.json
 ├── docs/versioning.md          # release policy for the package; formats doc moves to core
 ├── specs/                      # 008, 011; new features from 500
-├── .specify/                   # Spec Kit; constitution 1.1.0 (binding + packaging rules)
+├── .specify/                   # Spec Kit; constitution 1.1.0 at extraction, 2.0.0 after C1 remediation
 ├── scripts/                    # fetch-core, check-core-pin, check-public-surface,
 │                               # determinism-check (ecosystem part), release-check, -build, release
 └── .github/workflows/ecosystem-ci.yml, ecosystem-release.yml
@@ -236,6 +242,11 @@ Stage 2 and stage 3 must reproduce it.
    - `behavior-conformance-0.10.1.tar.gz` (schemas and fixtures);
    - `behavior-0.10.1-x86_64-linux-musl` (the CLI).
 
+   Release order: validate the immutable pushed tag → full release checks → external consumer
+   against that exact pushed Git revision → final artifact build → publication. The consumer
+   check lives in `scripts/release.sh`, so local and CI releases use the same order. A GitHub
+   Release need not exist to fetch the pushed revision.
+
 ### Stage 3: Ecosystem conversion (this repository)
 
 1. Remove the core paths in one commit; history stays.
@@ -279,3 +290,9 @@ Stage 2 and stage 3 must reproduce it.
 | `consumer/` crate outside the workspace | FR-006d: proves the facade alone suffices, as an external user would see it | A workspace member resolves internal crates by path and hides missing re-exports |
 | CLI shipped as a bundled binary, not linked into the extension | FR-006c: the binding must not link the CLI; the CLI is a sibling consumer | Keeping `behavior_cli::run` in the extension puts the CLI inside the binding's contract |
 | Conformance bundle as a release asset | FR-024: the ecosystem needs the core's fixtures without a core checkout and never copies them | Reading the cargo git checkout depends on cargo internals; vendoring the fixtures creates a diverging copy |
+
+**Historical deviation (C2):** the original digest, staging and gate-runner tasks lack sufficient
+recorded test-first evidence. Their implementations already existed when this was identified.
+Preserve that history and add behavioral coverage; do not invent earlier failing runs or rebuild
+removed staging infrastructure merely to manufacture evidence. New implementations and behavior
+changes require reviewed, observed failing tests first.

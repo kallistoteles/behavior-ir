@@ -45,7 +45,9 @@ out. They are not wildcard re-exports.
 `exclude = ["consumer"]`). Its only dependency is
 `behavior-engine = { git = "<core repo>", rev = "<commit under test>" }`. In CI the dependency is
 patched to the checked-out commit's path, because the commit is not yet pushed for a pull
-request; the release workflow uses the real git rev of the tag.
+request; `scripts/release.sh` uses the real Git revision of the pushed tag after full release
+checks and before the final artifact build and publication. Failure stops publication; no
+GitHub Release needs to exist for this check.
 
 Its test exercises each FR-006b capability once:
 

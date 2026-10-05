@@ -7,6 +7,8 @@
 #   scripts/release-check.sh [--skip-gates] [dist-dir]
 set -euo pipefail
 cd "$(dirname "$0")/.."
+# The dependency graph is mandatory even when the caller skips the other gates.
+scripts/check-core-pin.sh
 skip_gates=0
 if [ "${1:-}" = "--skip-gates" ]; then
   skip_gates=1

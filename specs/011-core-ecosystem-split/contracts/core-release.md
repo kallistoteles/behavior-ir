@@ -35,7 +35,7 @@
   | Situation | Where | Message names |
   |---|---|---|
   | `Cargo.lock`/`Cargo.toml` rev ≠ `core-release.json` commit | `check-core-pin.sh` (CI, release-check) | both commits |
-  | a `[patch]` or path override active in CI/release | `check-core-pin.sh` | the override source |
+  | a `[patch]` or path override active in required gates, release builds or release verification (including locally) | `check-core-pin.sh`, without a development bypass | the override source |
   | extension's engine version ≠ declared core version | `import behavior` (`ImportError`) | both versions |
   | bundled CLI's engine version ≠ declared core version | `release-check` and `fetch-core.sh` | both versions |
   | fetched asset checksum differs | `fetch-core.sh` | file, expected, actual |

@@ -1,0 +1,875 @@
+{
+  "feature": "011-core-ecosystem-split",
+  "task": "T079",
+  "success_criterion": "SC-010",
+  "status": "passed",
+  "completed_utc": "2026-10-04T21:20:44.108338+00:00",
+  "summary": "All 14 deliberate gate violations failed at their intended ordinary required CI checks. All proof PRs were closed unmerged.",
+  "baseline": {
+    "core": {
+      "github_repository": "kallistoteles/behavior-ir-core",
+      "commit": "b7fd6aef276041442219224f63b8f7771266e81d",
+      "ci_run": "https://github.com/kallistoteles/behavior-ir-core/actions/runs/37202103737"
+    },
+    "ecosystem": {
+      "github_repository": "kallistoteles/behavior-ir",
+      "commit": "0a5cf3a88881da882232ba9ec1727271bab7ec1f",
+      "ci_run": "https://github.com/kallistoteles/behavior-ir/actions/runs/37203915719"
+    }
+  },
+  "scope": "Published main revisions shown below. Each PR changes exactly one file; workflows, required checks and release tags were not altered. Uncommitted remediation changes remain separately validated by the existing local gate runs.",
+  "evidence_location": "Separate implementation audit linked from tasks.md, because speckit-implement treats reviewer-owned checklists as read-only.",
+  "historical_limit": "These new gate proofs do not establish past test-first compliance.",
+  "proofs": [
+    {
+      "repository": "core",
+      "gate": "fmt",
+      "changed_file": "crates/behavior-engine/src/lib.rs",
+      "probe_commit": "d4b4286e1f5fc6e62faa00b5ed5de3c95788dd25",
+      "baseline_commit": "b7fd6aef276041442219224f63b8f7771266e81d",
+      "diff_sha256": "72cb9ce190461979912c436301b86cf760e59818077cf4b9a022ac31fbb6e7e6",
+      "diff": "diff --git a/crates/behavior-engine/src/lib.rs b/crates/behavior-engine/src/lib.rs\nindex 349ce72..ce77e88 100644\n--- a/crates/behavior-engine/src/lib.rs\n+++ b/crates/behavior-engine/src/lib.rs\n@@ -9,7 +9,7 @@\n \n /// Every version of this release: the engine and its formats, the store document tags, and the\n /// verifier (feature 008, research R2). The command line prints exactly this.\n-pub fn engine_info() -> serde_json::Value {\n+pub fn engine_info()->serde_json::Value{\n     let mut v = behavior_core::format_versions();\n     if let serde_json::Value::Object(m) = &mut v {\n         m.insert(\n",
+      "pull_request": {
+        "url": "https://github.com/kallistoteles/behavior-ir-core/pull/4",
+        "state": "closed",
+        "merged": false,
+        "merged_at": null,
+        "closed_at": "2026-10-04T21:15:33Z",
+        "head_sha": "d4b4286e1f5fc6e62faa00b5ed5de3c95788dd25"
+      },
+      "run_url": "https://github.com/kallistoteles/behavior-ir-core/actions/runs/37235142311",
+      "run_conclusion": "failure",
+      "primary_job": "gates",
+      "required_diagnostic": "formatting diff",
+      "jobs": {
+        "consumer": {
+          "id": 111532638608,
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/kallistoteles/behavior-ir-core/actions/runs/37235142311/job/111532638608",
+          "failed_steps": []
+        },
+        "gates": {
+          "id": 111532638829,
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/kallistoteles/behavior-ir-core/actions/runs/37235142311/job/111532638829",
+          "failed_steps": [
+            "Run nix develop -c scripts/gates.sh"
+          ]
+        }
+      },
+      "verified_logs": {
+        "gates": {
+          "tested_merge_commit": "547d2710bbf0154378efd600be556a7a66879127",
+          "diagnostic_excerpt": [
+            "Diff in /home/runner/work/behavior-ir-core/behavior-ir-core/crates/behavior-engine/src/lib.rs:9:",
+            "gates: FAILED cargo fmt"
+          ]
+        }
+      }
+    },
+    {
+      "repository": "core",
+      "gate": "clippy",
+      "changed_file": "crates/behavior-engine/src/lib.rs",
+      "probe_commit": "dfe4a4a3c9abdaebfc81837976b57f1ca541fe31",
+      "baseline_commit": "b7fd6aef276041442219224f63b8f7771266e81d",
+      "diff_sha256": "774a23c4d89f6120a48ffbf7eedcada5ff6b9b1e63396c423e33beed2c796f48",
+      "diff": "diff --git a/crates/behavior-engine/src/lib.rs b/crates/behavior-engine/src/lib.rs\nindex 349ce72..69ddf99 100644\n--- a/crates/behavior-engine/src/lib.rs\n+++ b/crates/behavior-engine/src/lib.rs\n@@ -10,6 +10,7 @@\n /// Every version of this release: the engine and its formats, the store document tags, and the\n /// verifier (feature 008, research R2). The command line prints exactly this.\n pub fn engine_info() -> serde_json::Value {\n+    let _gate_proof = 0_u8.clone();\n     let mut v = behavior_core::format_versions();\n     if let serde_json::Value::Object(m) = &mut v {\n         m.insert(\n",
+      "pull_request": {
+        "url": "https://github.com/kallistoteles/behavior-ir-core/pull/5",
+        "state": "closed",
+        "merged": false,
+        "merged_at": null,
+        "closed_at": "2026-10-04T21:15:36Z",
+        "head_sha": "dfe4a4a3c9abdaebfc81837976b57f1ca541fe31"
+      },
+      "run_url": "https://github.com/kallistoteles/behavior-ir-core/actions/runs/37235147207",
+      "run_conclusion": "failure",
+      "primary_job": "gates",
+      "required_diagnostic": "clone_on_copy",
+      "jobs": {
+        "consumer": {
+          "id": 111532653233,
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/kallistoteles/behavior-ir-core/actions/runs/37235147207/job/111532653233",
+          "failed_steps": []
+        },
+        "gates": {
+          "id": 111532653411,
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/kallistoteles/behavior-ir-core/actions/runs/37235147207/job/111532653411",
+          "failed_steps": [
+            "Run nix develop -c scripts/gates.sh"
+          ]
+        }
+      },
+      "verified_logs": {
+        "gates": {
+          "tested_merge_commit": "498683a1a5ac6ff48d6ea4a162f287e6cb3a7594",
+          "diagnostic_excerpt": [
+            "error: using `clone` on type `u8` which implements the `Copy` trait",
+            "   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#clone_on_copy",
+            "   = note: `-D clippy::clone-on-copy` implied by `-D warnings`",
+            "   = help: to override `-D warnings` add `#[allow(clippy::clone_on_copy)]`",
+            "gates: FAILED clippy"
+          ]
+        }
+      }
+    },
+    {
+      "repository": "core",
+      "gate": "test",
+      "changed_file": "crates/behavior-engine/src/lib.rs",
+      "probe_commit": "17cba0235b37a67b2490601734f6e584da86b449",
+      "baseline_commit": "b7fd6aef276041442219224f63b8f7771266e81d",
+      "diff_sha256": "db86315dcc2e417fe30a31ec74939085034f1a062606c469be4f2fe96e286b1a",
+      "diff": "diff --git a/crates/behavior-engine/src/lib.rs b/crates/behavior-engine/src/lib.rs\nindex 349ce72..9531cb0 100644\n--- a/crates/behavior-engine/src/lib.rs\n+++ b/crates/behavior-engine/src/lib.rs\n@@ -137,3 +137,8 @@ pub mod wire {\n     pub use behavior_core::wire::WRead;\n     pub use behavior_core::wire::WType;\n }\n+\n+#[test]\n+fn gate_proof_failure() {\n+    panic!(\"T079 deliberately failing core test\");\n+}\n",
+      "pull_request": {
+        "url": "https://github.com/kallistoteles/behavior-ir-core/pull/6",
+        "state": "closed",
+        "merged": false,
+        "merged_at": null,
+        "closed_at": "2026-10-04T21:16:54Z",
+        "head_sha": "17cba0235b37a67b2490601734f6e584da86b449"
+      },
+      "run_url": "https://github.com/kallistoteles/behavior-ir-core/actions/runs/37235151067",
+      "run_conclusion": "failure",
+      "primary_job": "gates",
+      "required_diagnostic": "T079 deliberately failing core test",
+      "jobs": {
+        "consumer": {
+          "id": 111532664236,
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/kallistoteles/behavior-ir-core/actions/runs/37235151067/job/111532664236",
+          "failed_steps": []
+        },
+        "gates": {
+          "id": 111532664497,
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/kallistoteles/behavior-ir-core/actions/runs/37235151067/job/111532664497",
+          "failed_steps": [
+            "Run nix develop -c scripts/gates.sh"
+          ]
+        }
+      },
+      "verified_logs": {
+        "gates": {
+          "tested_merge_commit": "38bb19051a8ab490a7b79bedb74b28922b6ab97f",
+          "diagnostic_excerpt": [
+            "T079 deliberately failing core test",
+            "gates: FAILED cargo test"
+          ]
+        }
+      }
+    },
+    {
+      "repository": "core",
+      "gate": "determinism",
+      "changed_file": "crates/behavior-store/examples/history.rs",
+      "probe_commit": "404643a396aad75258f8670a768a2aa1fae13115",
+      "baseline_commit": "b7fd6aef276041442219224f63b8f7771266e81d",
+      "diff_sha256": "c9aa3158bdc4455a43f71550fa2fb6dd96b7729f318ec178c0bd552fafbfb619",
+      "diff": "diff --git a/crates/behavior-store/examples/history.rs b/crates/behavior-store/examples/history.rs\nindex 95b3cc1..e93d68a 100644\n--- a/crates/behavior-store/examples/history.rs\n+++ b/crates/behavior-store/examples/history.rs\n@@ -12,6 +12,7 @@ use behavior_store::{Backend, InMemoryBackend, Store};\n use serde_json::json;\n \n fn main() -> Result<(), Box<dyn std::error::Error>> {\n+    println!(\"{:?}\", std::time::SystemTime::now());\n     let m = behavior_core::admit(LEDGER_WIRE).map_err(|r| format!(\"{:?}\", r.errors))?;\n     let seed = [\"a1\", \"a2\", \"a3\"]\n         .iter()\n",
+      "pull_request": {
+        "url": "https://github.com/kallistoteles/behavior-ir-core/pull/7",
+        "state": "closed",
+        "merged": false,
+        "merged_at": null,
+        "closed_at": "2026-10-04T21:18:32Z",
+        "head_sha": "404643a396aad75258f8670a768a2aa1fae13115"
+      },
+      "run_url": "https://github.com/kallistoteles/behavior-ir-core/actions/runs/37235154769",
+      "run_conclusion": "failure",
+      "primary_job": "gates",
+      "required_diagnostic": "NOT DETERMINISTIC: store history",
+      "jobs": {
+        "gates": {
+          "id": 111532675465,
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/kallistoteles/behavior-ir-core/actions/runs/37235154769/job/111532675465",
+          "failed_steps": [
+            "Run nix develop -c scripts/gates.sh"
+          ]
+        },
+        "consumer": {
+          "id": 111532675667,
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/kallistoteles/behavior-ir-core/actions/runs/37235154769/job/111532675667",
+          "failed_steps": []
+        }
+      },
+      "verified_logs": {
+        "gates": {
+          "tested_merge_commit": "a7648c9e55700f3f3586ec12904ccd645511ef12",
+          "diagnostic_excerpt": [
+            "NOT DETERMINISTIC: store history",
+            "gates: FAILED determinism check"
+          ]
+        }
+      }
+    },
+    {
+      "repository": "core",
+      "gate": "boundary",
+      "changed_file": "README.md",
+      "probe_commit": "d762c75b343857c9602dc1b62ca7f6a1e996b787",
+      "baseline_commit": "b7fd6aef276041442219224f63b8f7771266e81d",
+      "diff_sha256": "8ebc1e631c7e18a386d5b3e6499b250e404cc4f40a1eafbde852c6984253cd41",
+      "diff": "diff --git a/README.md b/README.md\nindex ca0c015..ace1aca 100644\n--- a/README.md\n+++ b/README.md\n@@ -108,3 +108,5 @@ Layout:\n - `crates/behavior-cli`: the command line.\n - `crates/behavior-engine`: the public API.\n - `consumer/`, `schema/`, `tests/fixtures/` (see its README), `docs/`, `specs/`.\n+\n+T079 boundary probe: import from python/behavior.\n",
+      "pull_request": {
+        "url": "https://github.com/kallistoteles/behavior-ir-core/pull/8",
+        "state": "closed",
+        "merged": false,
+        "merged_at": null,
+        "closed_at": "2026-10-04T21:20:02Z",
+        "head_sha": "d762c75b343857c9602dc1b62ca7f6a1e996b787"
+      },
+      "run_url": "https://github.com/kallistoteles/behavior-ir-core/actions/runs/37235158209",
+      "run_conclusion": "failure",
+      "primary_job": "gates",
+      "required_diagnostic": "check-boundary: README.md:",
+      "jobs": {
+        "consumer": {
+          "id": 111532686413,
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/kallistoteles/behavior-ir-core/actions/runs/37235158209/job/111532686413",
+          "failed_steps": []
+        },
+        "gates": {
+          "id": 111532686531,
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/kallistoteles/behavior-ir-core/actions/runs/37235158209/job/111532686531",
+          "failed_steps": [
+            "Run nix develop -c scripts/gates.sh"
+          ]
+        }
+      },
+      "verified_logs": {
+        "gates": {
+          "tested_merge_commit": "800d5cb03b08a1f43a2bfa5ea53cbba32fa1aad7",
+          "diagnostic_excerpt": [
+            "check-boundary: README.md:112:T079 boundary probe: import from python/behavior.",
+            "gates: FAILED boundary"
+          ]
+        }
+      }
+    },
+    {
+      "repository": "core",
+      "gate": "surface",
+      "changed_file": "crates/behavior-engine/src/lib.rs",
+      "probe_commit": "af9ad0e815e12981e054a58ee724308de1011f23",
+      "baseline_commit": "b7fd6aef276041442219224f63b8f7771266e81d",
+      "diff_sha256": "4db4bb0de35fa69c52e28384f2d0548f66f53777e48710c59db72921284f8a8e",
+      "diff": "diff --git a/crates/behavior-engine/src/lib.rs b/crates/behavior-engine/src/lib.rs\nindex 349ce72..1ff2237 100644\n--- a/crates/behavior-engine/src/lib.rs\n+++ b/crates/behavior-engine/src/lib.rs\n@@ -37,7 +37,6 @@ pub use behavior_core::replay;\n pub use behavior_core::schema;\n pub mod builder {\n     pub use behavior_core::builder::BuildError;\n-    pub use behavior_core::builder::Builder;\n     pub use behavior_core::builder::Node;\n     pub use behavior_core::builder::ScopeSite;\n }\n",
+      "pull_request": {
+        "url": "https://github.com/kallistoteles/behavior-ir-core/pull/9",
+        "state": "closed",
+        "merged": false,
+        "merged_at": null,
+        "closed_at": "2026-10-04T21:20:05Z",
+        "head_sha": "af9ad0e815e12981e054a58ee724308de1011f23"
+      },
+      "run_url": "https://github.com/kallistoteles/behavior-ir-core/actions/runs/37235161847",
+      "run_conclusion": "failure",
+      "primary_job": "gates",
+      "required_diagnostic": "listed in api/engine-surface.txt but not exported: builder::Builder",
+      "jobs": {
+        "consumer": {
+          "id": 111532697247,
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/kallistoteles/behavior-ir-core/actions/runs/37235161847/job/111532697247",
+          "failed_steps": [
+            "Run nix develop -c scripts/check-consumer.sh"
+          ]
+        },
+        "gates": {
+          "id": 111532697462,
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/kallistoteles/behavior-ir-core/actions/runs/37235161847/job/111532697462",
+          "failed_steps": [
+            "Run nix develop -c scripts/gates.sh"
+          ]
+        }
+      },
+      "verified_logs": {
+        "gates": {
+          "tested_merge_commit": "41e8e735b08aec42852c4a980efb8e96f7515269",
+          "diagnostic_excerpt": [
+            "check-public-surface: listed in api/engine-surface.txt but not exported: builder::Builder",
+            "gates: FAILED public surface"
+          ]
+        },
+        "consumer": {
+          "tested_merge_commit": "41e8e735b08aec42852c4a980efb8e96f7515269",
+          "diagnostic_excerpt": [
+            "error[E0433]: cannot find `Builder` in `builder`",
+            "23 |     let _builder = behavior_engine::builder::Builder::new();",
+            "   |                                              ^^^^^^^ could not find `Builder` in `builder`",
+            " 7 + use std::thread::Builder;",
+            "help: if you import `Builder`, refer to it directly",
+            "23 -     let _builder = behavior_engine::builder::Builder::new();",
+            "23 +     let _builder = Builder::new();"
+          ]
+        }
+      }
+    },
+    {
+      "repository": "ecosystem",
+      "gate": "fmt",
+      "changed_file": "crates/behavior-py/src/lib.rs",
+      "probe_commit": "a18cb9b3de05a4b915d1da8d5ad5472b11fdef50",
+      "baseline_commit": "0a5cf3a88881da882232ba9ec1727271bab7ec1f",
+      "diff_sha256": "99d66fea2ae2e4306b68cead54bcf03703a7f2388c518b0f8e859f1a9ba9e009",
+      "diff": "diff --git a/crates/behavior-py/src/lib.rs b/crates/behavior-py/src/lib.rs\nindex b6eecd7..7a679e5 100644\n--- a/crates/behavior-py/src/lib.rs\n+++ b/crates/behavior-py/src/lib.rs\n@@ -50,7 +50,7 @@ create_exception!(\n     \"A rejected intent: args are (errors,), a list of {code, message, path} dicts.\"\n );\n \n-fn loc(file: String, line: u64) -> Loc {\n+fn loc(file:String,line:u64)->Loc{\n     Loc {\n         file,\n         line: line.max(1),\n",
+      "pull_request": {
+        "url": "https://github.com/kallistoteles/behavior-ir/pull/5",
+        "state": "closed",
+        "merged": false,
+        "merged_at": null,
+        "closed_at": "2026-10-04T21:16:57Z",
+        "head_sha": "a18cb9b3de05a4b915d1da8d5ad5472b11fdef50"
+      },
+      "run_url": "https://github.com/kallistoteles/behavior-ir/actions/runs/37235166208",
+      "run_conclusion": "failure",
+      "primary_job": "gates",
+      "required_diagnostic": "formatting diff",
+      "jobs": {
+        "gates": {
+          "id": 111532710152,
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/kallistoteles/behavior-ir/actions/runs/37235166208/job/111532710152",
+          "failed_steps": [
+            "Run nix develop -c scripts/gates.sh"
+          ]
+        },
+        "surface": {
+          "id": 111532710239,
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/kallistoteles/behavior-ir/actions/runs/37235166208/job/111532710239",
+          "failed_steps": []
+        },
+        "pin": {
+          "id": 111532710254,
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/kallistoteles/behavior-ir/actions/runs/37235166208/job/111532710254",
+          "failed_steps": []
+        },
+        "package": {
+          "id": 111532710294,
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/kallistoteles/behavior-ir/actions/runs/37235166208/job/111532710294",
+          "failed_steps": []
+        }
+      },
+      "verified_logs": {
+        "gates": {
+          "tested_merge_commit": "384643f493d97ad58ba0da107ee399b6aed3bf0b",
+          "diagnostic_excerpt": [
+            "Diff in /home/runner/work/behavior-ir/behavior-ir/crates/behavior-py/src/lib.rs:50:",
+            "gates: FAILED cargo fmt"
+          ]
+        }
+      }
+    },
+    {
+      "repository": "ecosystem",
+      "gate": "clippy",
+      "changed_file": "crates/behavior-py/src/lib.rs",
+      "probe_commit": "ab703dc16e5ecf7bc7d4fd378442a71af85f32e6",
+      "baseline_commit": "0a5cf3a88881da882232ba9ec1727271bab7ec1f",
+      "diff_sha256": "85b3ed9bd58bd6be1b764d66c6ef0d0214f9b28cbe01aa24956d287eb1f96886",
+      "diff": "diff --git a/crates/behavior-py/src/lib.rs b/crates/behavior-py/src/lib.rs\nindex b6eecd7..6340b06 100644\n--- a/crates/behavior-py/src/lib.rs\n+++ b/crates/behavior-py/src/lib.rs\n@@ -51,6 +51,7 @@ create_exception!(\n );\n \n fn loc(file: String, line: u64) -> Loc {\n+    let _gate_proof = 0_u8.clone();\n     Loc {\n         file,\n         line: line.max(1),\n",
+      "pull_request": {
+        "url": "https://github.com/kallistoteles/behavior-ir/pull/6",
+        "state": "closed",
+        "merged": false,
+        "merged_at": null,
+        "closed_at": "2026-10-04T21:17:00Z",
+        "head_sha": "ab703dc16e5ecf7bc7d4fd378442a71af85f32e6"
+      },
+      "run_url": "https://github.com/kallistoteles/behavior-ir/actions/runs/37235170567",
+      "run_conclusion": "failure",
+      "primary_job": "gates",
+      "required_diagnostic": "clone_on_copy",
+      "jobs": {
+        "pin": {
+          "id": 111532721819,
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/kallistoteles/behavior-ir/actions/runs/37235170567/job/111532721819",
+          "failed_steps": []
+        },
+        "gates": {
+          "id": 111532721946,
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/kallistoteles/behavior-ir/actions/runs/37235170567/job/111532721946",
+          "failed_steps": [
+            "Run nix develop -c scripts/gates.sh"
+          ]
+        },
+        "package": {
+          "id": 111532721958,
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/kallistoteles/behavior-ir/actions/runs/37235170567/job/111532721958",
+          "failed_steps": []
+        },
+        "surface": {
+          "id": 111532721990,
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/kallistoteles/behavior-ir/actions/runs/37235170567/job/111532721990",
+          "failed_steps": []
+        }
+      },
+      "verified_logs": {
+        "gates": {
+          "tested_merge_commit": "26d99807ec0ab894b1ceaf8ab5efdd2ea0dbc3d4",
+          "diagnostic_excerpt": [
+            "error: using `clone` on type `u8` which implements the `Copy` trait",
+            "   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#clone_on_copy",
+            "   = note: `-D clippy::clone-on-copy` implied by `-D warnings`",
+            "   = help: to override `-D warnings` add `#[allow(clippy::clone_on_copy)]`",
+            "gates: FAILED clippy"
+          ]
+        }
+      }
+    },
+    {
+      "repository": "ecosystem",
+      "gate": "test",
+      "changed_file": "python/tests/test_gate_proof_failure.py",
+      "probe_commit": "c27d5226f04a619600839288aca41362d33d6337",
+      "baseline_commit": "0a5cf3a88881da882232ba9ec1727271bab7ec1f",
+      "diff_sha256": "55eccc93c4bb6615b7e68570eabc2810e1b4bc2ce78dc3f2239060f3d896235b",
+      "diff": "diff --git a/python/tests/test_gate_proof_failure.py b/python/tests/test_gate_proof_failure.py\nnew file mode 100644\nindex 0000000..2d06b2f\n--- /dev/null\n+++ b/python/tests/test_gate_proof_failure.py\n@@ -0,0 +1,2 @@\n+def test_gate_proof_failure() -> None:\n+    raise AssertionError(\"T079 deliberately failing ecosystem test\")\n",
+      "pull_request": {
+        "url": "https://github.com/kallistoteles/behavior-ir/pull/7",
+        "state": "closed",
+        "merged": false,
+        "merged_at": null,
+        "closed_at": "2026-10-04T21:17:03Z",
+        "head_sha": "c27d5226f04a619600839288aca41362d33d6337"
+      },
+      "run_url": "https://github.com/kallistoteles/behavior-ir/actions/runs/37235174681",
+      "run_conclusion": "failure",
+      "primary_job": "gates",
+      "required_diagnostic": "T079 deliberately failing ecosystem test",
+      "jobs": {
+        "pin": {
+          "id": 111532733197,
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/kallistoteles/behavior-ir/actions/runs/37235174681/job/111532733197",
+          "failed_steps": []
+        },
+        "gates": {
+          "id": 111532733342,
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/kallistoteles/behavior-ir/actions/runs/37235174681/job/111532733342",
+          "failed_steps": [
+            "Run nix develop -c scripts/gates.sh"
+          ]
+        },
+        "package": {
+          "id": 111532733389,
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/kallistoteles/behavior-ir/actions/runs/37235174681/job/111532733389",
+          "failed_steps": []
+        },
+        "surface": {
+          "id": 111532733450,
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/kallistoteles/behavior-ir/actions/runs/37235174681/job/111532733450",
+          "failed_steps": []
+        }
+      },
+      "verified_logs": {
+        "gates": {
+          "tested_merge_commit": "b435758655ec38ff27cc5f0b97712122ec6a4986",
+          "diagnostic_excerpt": [
+            ">       raise AssertionError(\"T079 deliberately failing ecosystem test\")",
+            "E       AssertionError: T079 deliberately failing ecosystem test",
+            "FAILED python/tests/test_gate_proof_failure.py::test_gate_proof_failure - AssertionError: T079 deliberately failing ecosystem test",
+            "gates: FAILED pytest"
+          ]
+        }
+      }
+    },
+    {
+      "repository": "ecosystem",
+      "gate": "determinism",
+      "changed_file": "examples/invoice/run.py",
+      "probe_commit": "50fb59cf85dd6d2866d2f4f6c368994597d5544c",
+      "baseline_commit": "0a5cf3a88881da882232ba9ec1727271bab7ec1f",
+      "diff_sha256": "3fa3993df4d0c082fae03595bbe2a397bdf72822cbddef0eb3b4eb4e5e12abf5",
+      "diff": "diff --git a/examples/invoice/run.py b/examples/invoice/run.py\nindex 90716a1..e37dde0 100644\n--- a/examples/invoice/run.py\n+++ b/examples/invoice/run.py\n@@ -37,3 +37,5 @@ try:\n              context={\"actor\": ANNA}, data_version=\"18342\")\n except TypeError as e:\n     print(f\"== float input: TypeError: {e}\")\n+\n+print(__import__(\"time\").time_ns())\n",
+      "pull_request": {
+        "url": "https://github.com/kallistoteles/behavior-ir/pull/8",
+        "state": "closed",
+        "merged": false,
+        "merged_at": null,
+        "closed_at": "2026-10-04T21:18:35Z",
+        "head_sha": "50fb59cf85dd6d2866d2f4f6c368994597d5544c"
+      },
+      "run_url": "https://github.com/kallistoteles/behavior-ir/actions/runs/37235179038",
+      "run_conclusion": "failure",
+      "primary_job": "gates",
+      "required_diagnostic": "NOT DETERMINISTIC: examples.invoice.run",
+      "jobs": {
+        "surface": {
+          "id": 111532745518,
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/kallistoteles/behavior-ir/actions/runs/37235179038/job/111532745518",
+          "failed_steps": []
+        },
+        "package": {
+          "id": 111532745665,
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/kallistoteles/behavior-ir/actions/runs/37235179038/job/111532745665",
+          "failed_steps": []
+        },
+        "pin": {
+          "id": 111532745711,
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/kallistoteles/behavior-ir/actions/runs/37235179038/job/111532745711",
+          "failed_steps": []
+        },
+        "gates": {
+          "id": 111532745806,
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/kallistoteles/behavior-ir/actions/runs/37235179038/job/111532745806",
+          "failed_steps": [
+            "Run nix develop -c scripts/gates.sh"
+          ]
+        }
+      },
+      "verified_logs": {
+        "gates": {
+          "tested_merge_commit": "3f760217906a05ae39ca5486630a8cd3a3501c52",
+          "diagnostic_excerpt": [
+            "NOT DETERMINISTIC: examples.invoice.run",
+            "gates: FAILED determinism check"
+          ]
+        }
+      }
+    },
+    {
+      "repository": "ecosystem",
+      "gate": "surface",
+      "changed_file": "crates/behavior-py/src/lib.rs",
+      "probe_commit": "878c397d222d6f91ac1408aca22b3cf588588631",
+      "baseline_commit": "0a5cf3a88881da882232ba9ec1727271bab7ec1f",
+      "diff_sha256": "ade0633f9f578775d9c0a0d596b1fb58cbb218ecfd4e0365150b210673a579b6",
+      "diff": "diff --git a/crates/behavior-py/src/lib.rs b/crates/behavior-py/src/lib.rs\nindex b6eecd7..7a83ea5 100644\n--- a/crates/behavior-py/src/lib.rs\n+++ b/crates/behavior-py/src/lib.rs\n@@ -5,6 +5,7 @@\n //! Values cross the boundary as Python objects; JSON appears only for artifacts (wire files,\n //! the canonical serialization, decision records). No behavior logic lives here.\n \n+use behavior_core as _;\n use behavior_engine::builder::{BuildError, Builder, Node, ScopeSite};\n use behavior_engine::semantic::Module;\n use behavior_engine::wire::{DerivedKind, Loc, Role, WField, WLifecycle, WParam, WType};\n",
+      "pull_request": {
+        "url": "https://github.com/kallistoteles/behavior-ir/pull/9",
+        "state": "closed",
+        "merged": false,
+        "merged_at": null,
+        "closed_at": "2026-10-04T21:17:06Z",
+        "head_sha": "878c397d222d6f91ac1408aca22b3cf588588631"
+      },
+      "run_url": "https://github.com/kallistoteles/behavior-ir/actions/runs/37235185042",
+      "run_conclusion": "failure",
+      "primary_job": "surface",
+      "required_diagnostic": "internal core crate used: crates/behavior-py/src/lib.rs:",
+      "jobs": {
+        "gates": {
+          "id": 111532761746,
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/kallistoteles/behavior-ir/actions/runs/37235185042/job/111532761746",
+          "failed_steps": [
+            "Run nix develop -c scripts/gates.sh"
+          ]
+        },
+        "surface": {
+          "id": 111532761913,
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/kallistoteles/behavior-ir/actions/runs/37235185042/job/111532761913",
+          "failed_steps": [
+            "Run nix develop -c scripts/check-public-surface.sh"
+          ]
+        },
+        "package": {
+          "id": 111532761954,
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/kallistoteles/behavior-ir/actions/runs/37235185042/job/111532761954",
+          "failed_steps": [
+            "Run nix develop -c scripts/release-check.sh --skip-gates"
+          ]
+        },
+        "pin": {
+          "id": 111532762000,
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/kallistoteles/behavior-ir/actions/runs/37235185042/job/111532762000",
+          "failed_steps": []
+        }
+      },
+      "verified_logs": {
+        "surface": {
+          "tested_merge_commit": "166f07b42e2a4016c11dc467a94b8344bb1fc545",
+          "diagnostic_excerpt": [
+            "check-public-surface: internal core crate used: crates/behavior-py/src/lib.rs:8:use behavior_core as _;"
+          ]
+        }
+      }
+    },
+    {
+      "repository": "ecosystem",
+      "gate": "pin",
+      "changed_file": "Cargo.toml",
+      "probe_commit": "d1be3ccb90c67ae527a3f39fc7c849917afd74d4",
+      "baseline_commit": "0a5cf3a88881da882232ba9ec1727271bab7ec1f",
+      "diff_sha256": "3a33ad3751c954157048ed6c470acb587834dd0b21fc248b905d37189d48d2b3",
+      "diff": "diff --git a/Cargo.toml b/Cargo.toml\nindex 9c7fcda..ded29fc 100644\n--- a/Cargo.toml\n+++ b/Cargo.toml\n@@ -15,4 +15,4 @@ expect_used = \"deny\"\n # The only core dependency: the public API of the Core Release declared in core-release.json,\n # pinned by its exact commit (feature 011, FR-007, FR-017). scripts/check-core-pin.sh keeps the\n # three in step.\n-behavior-engine = { git = \"https://github.com/kallistoteles/behavior-ir-core\", rev = \"aaded167d8a937e2357a0b01bf38f439c199a5e9\" }\n+behavior-engine = { path = \"../behavior-ir-core/crates/behavior-engine\" }\n",
+      "pull_request": {
+        "url": "https://github.com/kallistoteles/behavior-ir/pull/10",
+        "state": "closed",
+        "merged": false,
+        "merged_at": null,
+        "closed_at": "2026-10-04T21:17:09Z",
+        "head_sha": "d1be3ccb90c67ae527a3f39fc7c849917afd74d4"
+      },
+      "run_url": "https://github.com/kallistoteles/behavior-ir/actions/runs/37235190216",
+      "run_conclusion": "failure",
+      "primary_job": "pin",
+      "required_diagnostic": "check-core-pin: Cargo.toml",
+      "jobs": {
+        "pin": {
+          "id": 111532775076,
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/kallistoteles/behavior-ir/actions/runs/37235190216/job/111532775076",
+          "failed_steps": [
+            "Run nix develop -c scripts/check-core-pin.sh"
+          ]
+        },
+        "gates": {
+          "id": 111532775173,
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/kallistoteles/behavior-ir/actions/runs/37235190216/job/111532775173",
+          "failed_steps": [
+            "Run nix develop -c scripts/gates.sh"
+          ]
+        },
+        "surface": {
+          "id": 111532775227,
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/kallistoteles/behavior-ir/actions/runs/37235190216/job/111532775227",
+          "failed_steps": []
+        },
+        "package": {
+          "id": 111532775251,
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/kallistoteles/behavior-ir/actions/runs/37235190216/job/111532775251",
+          "failed_steps": [
+            "Run nix develop -c scripts/release-check.sh --skip-gates"
+          ]
+        }
+      },
+      "verified_logs": {
+        "pin": {
+          "tested_merge_commit": "8b34554f6b2a6f2ae5d3a87aa475424ecd2c2e35",
+          "diagnostic_excerpt": [
+            "check-core-pin: Cargo.toml takes behavior-engine from {'path': '../behavior-ir-core/crates/behavior-engine'}, core-release.json declares https://github.com/kallistoteles/behavior-ir-core",
+            "check-core-pin: Cargo.toml pins behavior-engine at None, core-release.json declares aaded167d8a937e2357a0b01bf38f439c199a5e9"
+          ]
+        }
+      }
+    },
+    {
+      "repository": "ecosystem",
+      "gate": "equivalence",
+      "changed_file": "examples/invoice/behavior.py",
+      "probe_commit": "48aa88ae0de1b70e3d54a59f7f77b9e18d86830c",
+      "baseline_commit": "0a5cf3a88881da882232ba9ec1727271bab7ec1f",
+      "diff_sha256": "9a976ceac84fd2bb5862626b737b252d47a1fa2952ebe911bde092b68a795777",
+      "diff": "diff --git a/examples/invoice/behavior.py b/examples/invoice/behavior.py\nindex b8828a2..8c7f010 100644\n--- a/examples/invoice/behavior.py\n+++ b/examples/invoice/behavior.py\n@@ -40,6 +40,7 @@ def non_negative_amount(invoice: Invoice):\n def approve_invoice(invoice: Invoice, *, actor: Context[User]):\n     requires(invoice.status == InvoiceStatus.PENDING)\n     requires(actor.role == \"manager\")\n+    requires(actor.role == \"manager\")\n     requires(invoice.amount <= actor.approval_limit)\n     set_(invoice.status, InvoiceStatus.APPROVED)\n     set_(invoice.approved_by, actor.id)\n",
+      "pull_request": {
+        "url": "https://github.com/kallistoteles/behavior-ir/pull/11",
+        "state": "closed",
+        "merged": false,
+        "merged_at": null,
+        "closed_at": "2026-10-04T21:18:38Z",
+        "head_sha": "48aa88ae0de1b70e3d54a59f7f77b9e18d86830c"
+      },
+      "run_url": "https://github.com/kallistoteles/behavior-ir/actions/runs/37235193994",
+      "run_conclusion": "failure",
+      "primary_job": "gates",
+      "required_diagnostic": "test_the_binding_builds_the_canonical_module[invoice]",
+      "jobs": {
+        "surface": {
+          "id": 111532784636,
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/kallistoteles/behavior-ir/actions/runs/37235193994/job/111532784636",
+          "failed_steps": []
+        },
+        "gates": {
+          "id": 111532784873,
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/kallistoteles/behavior-ir/actions/runs/37235193994/job/111532784873",
+          "failed_steps": [
+            "Run nix develop -c scripts/gates.sh"
+          ]
+        },
+        "package": {
+          "id": 111532784893,
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/kallistoteles/behavior-ir/actions/runs/37235193994/job/111532784893",
+          "failed_steps": [
+            "Run nix develop -c scripts/release-check.sh --skip-gates"
+          ]
+        },
+        "pin": {
+          "id": 111532784952,
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/kallistoteles/behavior-ir/actions/runs/37235193994/job/111532784952",
+          "failed_steps": []
+        }
+      },
+      "verified_logs": {
+        "gates": {
+          "tested_merge_commit": "5e209187d180f3d9f428823e362ee160d975f997",
+          "diagnostic_excerpt": [
+            "____________ test_the_binding_builds_the_canonical_module[invoice] _____________",
+            "E       AssertionError: assert 'sha256:fdad9...7cbda570131\\n' == 'sha256:5f1b7...84e3f674636\\n'",
+            "E         - sha256:5f1b7be8c2b313eca58bb0fa15ab446b7ebc42a5fe416e8cac58584e3f674636",
+            "E         + sha256:fdad94456fcd85fb888d07203b19442b76ab3884fc00961244a197cbda570131",
+            "E             {'trace': [{'expr_text': 'invoice.amount >= Money(0.00)', 'hash': 'sha256:2cef6fffe14dba679aa4509d454d7fe8197325caa56f...531e90f04ae812e9ff3105ceb211cd12fa281f860871f82c3', 'outcome': {'assigned': 'approved'}, 'phase': 'effect', ...}, ...]} != {'trace': [{'expr_text': 'invoice.amount >= Money(0.00)', 'hash': 'sha256:2cef6fffe14dba679aa4509d454d7fe8197325caa56f...800f592fc1e1e8d5d4fecf86a3698e7063c895acd564a0116ecde', 'outcome': {'assigned': 'anna'}, 'phase': 'effect', ...}, ...]}",
+            "E             {'behavior_version': 'sha256:fdad94456fcd85fb888d07203b19442b76ab3884fc00961244a197cbda570131'} != {'behavior_version': 'sha256:5f1b7be8c2b313eca58bb0fa15ab446b7ebc42a5fe416e8cac58584e3f674636'}",
+            "E             {'action': {'hash': 'sha256:bc7592b2206ae97736adba4d547eb594091d0d5168839038d1f86bc76752837f', 'name': 'approve_invoice'}} != {'action': {'hash': 'sha256:391888e2ead353bd11163c30e755dab9a141748bbdf802aae38c860dc8ddec03', 'name': 'approve_invoice'}}",
+            "E             -         'hash': 'sha256:391888e2ead353bd11163c30e755dab9a141748bbdf802aae38c860dc8ddec03',",
+            "E             +         'hash': 'sha256:bc7592b2206ae97736adba4d547eb594091d0d5168839038d1f86bc76752837f',",
+            "E             -     'behavior_version': 'sha256:5f1b7be8c2b313eca58bb0fa15ab446b7ebc42a5fe416e8cac58584e3f674636',",
+            "E             +     'behavior_version': 'sha256:fdad94456fcd85fb888d07203b19442b76ab3884fc00961244a197cbda570131',",
+            "E                           'hash': 'sha256:2cef6fffe14dba679aa4509d454d7fe8197325caa56f60206ded5d48a371d884',",
+            "E                           'hash': 'sha256:72eee1a3c8fa7cf7a1b0675457904df5d9120bdf1abca653515304c462b36006',",
+            "E                           'hash': 'sha256:82b828d0c1326835288db7e5d8ad27cec8137c38f4eb71f358078320f7839ff0',",
+            "E             +             'hash': 'sha256:82b828d0c1326835288db7e5d8ad27cec8137c38f4eb71f358078320f7839ff0',",
+            "E                           'hash': 'sha256:acde1f628530d307cac9e90aa19d6c98c61cab6c14e989082f82457db9210207',"
+          ]
+        }
+      }
+    },
+    {
+      "repository": "ecosystem",
+      "gate": "skill-example",
+      "changed_file": "skills/behavior-authoring/examples/entities_and_types.py",
+      "probe_commit": "41f0c55095474f0ec5f1691210124ce982459937",
+      "baseline_commit": "0a5cf3a88881da882232ba9ec1727271bab7ec1f",
+      "diff_sha256": "228dd36c11267c27338d3ade5186314d0390bb59dbc772c5bfe01594971eea12",
+      "diff": "diff --git a/skills/behavior-authoring/examples/entities_and_types.py b/skills/behavior-authoring/examples/entities_and_types.py\nindex 30a272a..ba0c993 100644\n--- a/skills/behavior-authoring/examples/entities_and_types.py\n+++ b/skills/behavior-authoring/examples/entities_and_types.py\n@@ -76,3 +76,5 @@ assert as_manager.result == \"ALLOW\", as_manager.reasons\n negative = dict(state[\"invoice\"], amount=Decimal(\"250.001\"))\n assert evaluate(model, \"approve\", state=dict(state, invoice=negative), data_version=\"1\",\n                 facts=facts).result == \"INVALID_INPUT\"  # three decimals do not fit Money\n+\n+raise AssertionError(\"T079 deliberately broken skill example\")\n",
+      "pull_request": {
+        "url": "https://github.com/kallistoteles/behavior-ir/pull/12",
+        "state": "closed",
+        "merged": false,
+        "merged_at": null,
+        "closed_at": "2026-10-04T21:18:41Z",
+        "head_sha": "41f0c55095474f0ec5f1691210124ce982459937"
+      },
+      "run_url": "https://github.com/kallistoteles/behavior-ir/actions/runs/37235200618",
+      "run_conclusion": "failure",
+      "primary_job": "gates",
+      "required_diagnostic": "entities_and_types.py",
+      "jobs": {
+        "gates": {
+          "id": 111532801568,
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/kallistoteles/behavior-ir/actions/runs/37235200618/job/111532801568",
+          "failed_steps": [
+            "Run nix develop -c scripts/gates.sh"
+          ]
+        },
+        "package": {
+          "id": 111532801748,
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/kallistoteles/behavior-ir/actions/runs/37235200618/job/111532801748",
+          "failed_steps": [
+            "Run nix develop -c scripts/release-check.sh --skip-gates"
+          ]
+        },
+        "surface": {
+          "id": 111532801784,
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/kallistoteles/behavior-ir/actions/runs/37235200618/job/111532801784",
+          "failed_steps": []
+        },
+        "pin": {
+          "id": 111532801852,
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/kallistoteles/behavior-ir/actions/runs/37235200618/job/111532801852",
+          "failed_steps": []
+        }
+      },
+      "verified_logs": {
+        "gates": {
+          "tested_merge_commit": "85c88def0bb149189587f221ea6853a842804228",
+          "diagnostic_excerpt": [
+            "E           AssertionError: behavior-authoring/examples/entities_and_types.py:   File \"/home/runner/work/behavior-ir/behavior-ir/skills/behavior-authoring/examples/entities_and_types.py\", line 80, in <module> |     raise AssertionError(\"T079 deliberately broken skill example\") | AssertionError: T079 deliberately broken skill example",
+            "FAILED python/tests/test_skills.py::test_examples_run_against_the_installed_package[behavior-authoring] - AssertionError: behavior-authoring/examples/entities_and_types.py:   File \"/home/runner/work/behavior-ir/behavior-ir/skills/behavior-authoring/examples/entities_and_types.py\", line 80, in <module> |     raise AssertionError(\"T079 deliberately broken skill example\") | AssertionError: T079 deliberately broken skill example",
+            "gates: FAILED pytest"
+          ]
+        },
+        "package": {
+          "tested_merge_commit": "85c88def0bb149189587f221ea6853a842804228",
+          "diagnostic_excerpt": [
+            "release-check: step 1 gates",
+            "release-check: gates skipped",
+            "release-check: step 2 wheel compliance",
+            "release-check: step 3 clean environment",
+            "release-check: step 4 install",
+            "release-check: step 5 smoke scenario",
+            "release-check: step 6 missing solver",
+            "release-check: step 7 versions",
+            "release-check: step 8 byte identity with the repository",
+            "release-check: step 9 skill examples",
+            "release-check: FAILED step 9 skill examples: skill examples: skills/behavior-authoring/examples/entities_and_types.py:   File \"/tmp/nix-shell.6uLcLx/tmp.I7s7PWjnom/example/entities_and_types.py\", line 80, in <module>",
+            "    raise AssertionError(\"T079 deliberately broken skill example\")",
+            "AssertionError: T079 deliberately broken skill example"
+          ]
+        }
+      }
+    }
+  ]
+}

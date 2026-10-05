@@ -3,10 +3,10 @@
 # FR-024, data-model.md "Ecosystem pin"). Fails, naming both values, unless:
 #   1. the `rev` of behavior-engine in Cargo.toml and its source in Cargo.lock are the commit of
 #      core-release.json, from its repository;
-#   2. no path or [patch] override of the core is active. A development override is allowed
-#      only with BEHAVIOR_DEV_CORE_PATH set and never in CI;
-#   3. cargo resolves behavior-engine from that git revision (skipped with
-#      CHECK_CORE_PIN_NO_METADATA=1, for the script's own tests).
+#   2. no path or [patch] override is active in the supported dependency graph;
+#   3. cargo resolves the engine and its internal core crates from that git revision without
+#      changing the lockfile (including overrides inherited from outside the checkout).
+# Private experiments must disable their overrides before running this check. No bypass exists.
 #
 #   scripts/check-core-pin.sh [--root DIR]
 set -euo pipefail
@@ -15,7 +15,7 @@ if [ "${1:-}" = "--root" ]; then root="$(cd "${2:?--root needs a directory}" && 
 cd "$root"
 
 python3 - <<'PY'
-import json, os, pathlib, sys, tomllib
+import json, pathlib, sys, tomllib
 
 errors = []
 pin = json.load(open("core-release.json"))
@@ -27,6 +27,8 @@ if dep.get("git") != repo:
 if dep.get("rev") != commit:
     errors.append(f"Cargo.toml pins behavior-engine at {dep.get('rev')}, "
                   f"core-release.json declares {commit}")
+if "path" in dep:
+    errors.append(f"Cargo.toml declares a forbidden core path dependency: {dep['path']}")
 want = f"git+{repo}?rev={commit}#{commit}"
 lock = [p for p in tomllib.load(open("Cargo.lock", "rb"))["package"]
         if p["name"] == "behavior-engine"]
@@ -34,34 +36,39 @@ if [p.get("source") for p in lock] != [want]:
     errors.append(f"Cargo.lock resolves behavior-engine from "
                   f"{[p.get('source') for p in lock]}, expected {want}")
 
-dev = os.environ.get("BEHAVIOR_DEV_CORE_PATH") and not os.environ.get("CI")
-for cfg in (pathlib.Path(".cargo/config.toml"), pathlib.Path(".cargo/config")):
+for cfg in (pathlib.Path("Cargo.toml"), pathlib.Path(".cargo/config.toml"), pathlib.Path(".cargo/config")):
     if not cfg.is_file():
         continue
     data = tomllib.load(open(cfg, "rb"))
     overrides = [f"{cfg}: [patch.\"{src}\"] {name} = {spec}"
                  for src, deps in data.get("patch", {}).items() for name, spec in deps.items()]
     overrides += [f"{cfg}: paths = {p}" for p in data.get("paths", [])]
+    overrides += [f"{cfg}: [replace] {name} = {spec}"
+                  for name, spec in data.get("replace", {}).items()]
     for o in overrides:
-        if dev:
-            print(f"check-core-pin: development override active: {o}", file=sys.stderr)
-        else:
-            errors.append(f"core override active (allowed only with BEHAVIOR_DEV_CORE_PATH, "
-                          f"never in CI): {o}")
+        errors.append(f"core override active; disable it before required gates or release work: {o}")
 
 for e in errors:
     print(f"check-core-pin: {e}", file=sys.stderr)
 sys.exit(1 if errors else 0)
 PY
 
-if [ -z "${CHECK_CORE_PIN_NO_METADATA:-}" ] && ! { [ -n "${BEHAVIOR_DEV_CORE_PATH:-}" ] && [ -z "${CI:-}" ]; }; then
-  source="$(cargo metadata -q --format-version 1 | python3 -c '
+want="$(python3 -c 'import json; p = json.load(open("core-release.json")); r, c = p["repository"], p["commit"]; print(f"git+{r}?rev={c}#{c}")')"
+cargo metadata --locked -q --format-version 1 | python3 -c '
 import json, sys
-print(next((p["source"] or "a path") for p in json.load(sys.stdin)["packages"] if p["name"] == "behavior-engine"))')"
-  want="$(python3 -c 'import json; p = json.load(open("core-release.json")); r, c = p["repository"], p["commit"]; print(f"git+{r}?rev={c}#{c}")')"
-  if [ "$source" != "$want" ]; then
-    echo "check-core-pin: cargo resolves behavior-engine from $source, expected $want" >&2
-    exit 1
-  fi
-fi
+expected = sys.argv[1]
+names = {"behavior-engine", "behavior-core", "behavior-store", "behavior-verify", "behavior-cli"}
+core = [p for p in json.load(sys.stdin)["packages"] if p["name"] in names]
+errors = []
+if sum(p["name"] == "behavior-engine" for p in core) != 1:
+    errors.append("expected exactly one resolved behavior-engine")
+for p in sorted(core, key=lambda p: p["name"]):
+    name = p["name"]
+    source = p.get("source") or "a path"
+    if source != expected:
+        errors.append(f"cargo resolves {name} from {source}, expected {expected}")
+for error in errors:
+    print(f"check-core-pin: {error}", file=sys.stderr)
+sys.exit(1 if errors else 0)
+' "$want"
 echo "check-core-pin: OK ($(python3 -c 'import json; p = json.load(open("core-release.json")); print(p["tag"], p["commit"])'))"

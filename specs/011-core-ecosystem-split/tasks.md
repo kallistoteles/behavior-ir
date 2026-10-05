@@ -13,6 +13,14 @@ NON-NEGOTIABLE. Every new check is written and run against the current tree, whe
 before the change that makes it pass. Moved tests are not new code; their evidence is the
 conformance digest and their pass counts before and after the move.
 
+**Remediation rule (C2):** all new deterministic scripts require reviewed behavioral tests
+observed failing before implementation. For the already completed T003/T017/T019, preserve the
+original execution history: new tests cannot establish past test-first compliance. Before any
+new implementation or behavior change, cover digest sorting/input changes/CLI failure;
+staging executable permissions/build failure/missing binary; and gate order/named failure/no
+later execution. The old staging script has been removed; these requirements apply if staging
+is reintroduced, while the current fetcher's installation behavior keeps its own tests.
+
 **Organization**: Tasks are grouped by user story. Paths without a prefix are in this repository
 (`behavior-ir`, the ecosystem after stage 3). Paths prefixed `core:` are in `../behavior-ir-core`.
 
@@ -368,9 +376,11 @@ before building. A local `release-verify` matches the published checksums.
 
   Drop every Python step from today's script.
 - [X] T037 [US6] Rewrite `core:scripts/release.sh <version>`:
-  `check-tag.sh v<version>` → `release-check.sh` → `release-build.sh <v> dist/v<v>`, and write
+  `check-tag.sh v<version>` → `release-check.sh` (temporary validation artifacts) →
+  `check-consumer.sh --rev <tag commit>` → `release-build.sh <v> dist/v<v>`, and write
   `dist/v<v>/NOTES.md`, which lists the versions from the manifest. It neither tags nor
-  publishes.
+  publishes. The exact pushed revision must pass before the final artifact build; failure stops
+  the release. See T089 for the regression test added after the original implementation.
 - [X] T038 [P] [US6] Write `core:scripts/release-verify.sh v<version>`. It downloads the release
   assets with `gh release download`, rebuilds from the tag in a `git worktree`, and diffs the
   `SHA256SUMS`. It prints `release-verify: identical` or the differing files.
@@ -396,10 +406,9 @@ before building. A local `release-verify` matches the published checksums.
     "$GITHUB_REF_NAME"`, `nix develop -c scripts/release.sh "${GITHUB_REF_NAME#v}"`, then
     `gh release create "$GITHUB_REF_NAME" dist/$GITHUB_REF_NAME/* --verify-tag --notes-file
     dist/$GITHUB_REF_NAME/NOTES.md`;
-  - then `nix develop -c scripts/check-consumer.sh --rev "$(git rev-parse
-    "$GITHUB_REF_NAME^{commit}")"` (FR-006d). It needs the pushed tag, so it runs after
-    publishing. If it fails, the workflow fails, and the fix is a new patch release; the tag is
-    never moved.
+  - `release.sh` performs the external consumer test against the exact pushed tag commit before
+    the final artifact build and publication (FR-006d). No post-publication validation step is
+    needed. The pushed revision is available without a GitHub Release; publication is last.
 - [X] T042 [US6] Bump `core:Cargo.toml` `[workspace.package] version` to `0.10.1`. Add a
   "Release 0.10.1 is a patch release" paragraph to `core:docs/versioning.md`: additive public
   Rust surface; no identity, format or verifier change. Update the version pins in the core tests
@@ -407,8 +416,10 @@ before building. A local `release-verify` matches the published checksums.
   `core:crates/behavior-cli/tests/cli_engine_info.rs`).
 - [X] T043 [US6] Configure branch protection on `core:main` requiring `gates` and `consumer`.
   This is a precondition of T044. Then merge `011-core-extraction` into `core:main` through a
-  pull request and confirm that `core-ci` is green. Push a test tag `v0.10.2` and confirm that `core-release` refuses before building,
-  naming 0.10.2 and 0.10.1. Delete only that unreleased test tag.
+  pull request and confirm that `core-ci` is green. Exercise wrong-version rejection in a
+  disposable Git repository using the shell-test harness. Assert failure before artifact
+  construction and a diagnostic naming both expected and actual versions. Never create or
+  delete test release tags in a product repository (see T089).
 - [X] T044 [US6] Tag `git tag -a v0.10.1 -m "Behavior Core 0.10.1"` on the green `main` commit
   and push it. Confirm that the GitHub Release has the four assets. Run
   `scripts/check-consumer.sh --rev <v0.10.1 sha>` locally; it must pass. Run
@@ -435,8 +446,11 @@ gates. Each of the three negative checks fails and names its offender.
   - a `Cargo.toml` rev ≠ `core-release.json` commit fails, naming both;
   - a `Cargo.lock` source rev ≠ commit fails;
   - an active `[patch."https://github.com/kallistoteles/behavior-ir-core"]` in
-    `.cargo/config.toml` fails, naming the path. The exception is
-    `BEHAVIOR_DEV_CORE_PATH` set while `CI` is unset.
+    `.cargo/config.toml` fails, naming the path, including outside CI;
+  - legacy environment bypasses cannot suppress config or resolved-source checks;
+  - tracked manifest path/patch overrides fail, and metadata resolution uses `--locked`.
+  - the engine's resolved internal core dependencies must have the same pinned Git source,
+    including overrides inherited from outside the checkout.
 
   It fails before T049.
 - [X] T046 [P] [US2] Write `scripts/tests/test_fetch_core.sh`. With a local fake release
@@ -512,15 +526,16 @@ gates. Each of the three negative checks fails and names its offender.
   - `scripts/determinism-check.sh`: keep only the `--ecosystem` section, using
     `$BEHAVIOR_CORE_DIR` and the bundled CLI.
   - `scripts/gates.sh`: `check-core-pin.sh`, `check-public-surface.sh --consumer`,
-    `fetch-core.sh`, `cargo fmt --check`, clippy for `behavior-py`, `maturin develop`, pytest,
-    mypy, then `determinism-check.sh`.
+    `fetch-core.sh`, `cargo fmt --check`, clippy for `behavior-py`, `maturin develop`,
+    `python -m pytest -q python/tests models`, mypy, then `determinism-check.sh`.
   - `docs/versioning.md`: the package policy; link to the core's format table. The Binding row
     becomes "the ecosystem release version; requires exactly the core release in
     `core-release.json` (checked at import)". New row "Core: the exact core release a package
     bundles (`core-release.json`)".
   - `README.md`: the ecosystem's purpose, install, the dev loop (`fetch-core.sh`, then
-    `maturin develop`), the local core override (`BEHAVIOR_DEV_CORE_PATH` plus an untracked
-    `.cargo/config.toml` patch, never in CI), and "Specifications: ecosystem features are
+    `maturin develop`), explicit private untracked core overrides in a separate checkout and
+    build environment (never used by required gates, release builds or verification), and
+    "Specifications: ecosystem features are
     numbered 500 onward; 008 and 011 live here; core features live in behavior-ir-core".
 - [X] T055 [US2] Run quickstart §4 in a fresh clone of this repository, with no
   `../behavior-ir-core` visible (`mv` it away temporarily):
@@ -699,7 +714,9 @@ concepts.
 - [X] T074 [US5] Write `models/examples/state_machine/lower.py`. It is a pure function from the
   state machine dict to a DSL module using only public `behavior` API (`entity`, `action`,
   `requires`, `set_`, `ensures`). Make T073 pass. Add `models` to `testpaths` in
-  `pyproject.toml`.
+  `pyproject.toml`. Required gates explicitly pass both `python/tests` and `models`; verify
+  collection of the actual lowering tests and gate failure with a deliberately broken lowering
+  in a disposable copy (T087).
 - [X] T075 [P] [US5] Write `core:ARCHITECTURE.md`:
   - the layer diagram;
   - the terminology (Core, Binding, Model, Adapter);
@@ -736,9 +753,17 @@ concepts.
 
 ## Phase 10: Polish & Cross-Cutting Concerns
 
-- [ ] T079 Prove every required gate (SC-010). In each repository, open one throwaway pull
+- [X] T079 Prove every required gate (SC-010). In each repository, open one throwaway pull
   request per gate listed in `contracts/workflows.md` §Proving each gate. Confirm each one turns
-  its job red, then close it unmerged. Record the run URLs in `checklists/implementation-review.md`.
+  its job red, then close it unmerged. Record the run URLs in `gate-proofs.json`, a separate
+  implementation audit that keeps reviewer-owned checklists read-only during implementation.
+
+  Completed with user authorization on 2026-10-04: [all 14 live CI proofs](gate-proofs.json)
+  (six core, eight ecosystem) failed for their intended reasons, and every PR was closed
+  unmerged. The audit records the published baselines, probe and tested merge commits,
+  diagnostics, failed-job links and closure state. The missing facade export also failed the
+  external consumer; the broken skill example also failed the package job. These proofs do not
+  establish historical test-first compliance.
 - [X] T080 [P] Verify Spec Kit numbering (SC-012) without keeping the features:
   - In a scratch clone of each repository, run `.specify/scripts/bash/create-new-feature.sh
     --json --number 500 "probe"` (ecosystem) and the same with no number (core). They must
@@ -770,6 +795,34 @@ concepts.
     is a contract change for a later core feature).
 
 ---
+
+## Phase 11: Approved analysis remediation (C1–C3, I1–I2)
+
+These tasks record follow-up work after the original implementation. They do not establish
+historical test-first compliance. T079 was deferred during this remediation; the user later
+authorized its live proofs, now recorded in `gate-proofs.json`.
+
+- [X] T085 Amend the ecosystem constitution separately to 2.0.0: one supported released
+  dependency graph, with explicit private untracked experiments outside validation. Synchronize
+  FR-024, this plan, dependency contracts and README guidance.
+- [X] T086 Write and observe failing pin-check regression tests before removing the development
+  and metadata bypasses. Reject tracked and active local overrides, use locked metadata, and
+  check that resolved internal core crates use the same exact revision as the engine. Also
+  verify the pin at release-build/check/verify entrypoints even when other gates are skipped.
+- [X] T087 Write and observe failing shared-gate tests before including `models`: assert the
+  actual model tests are collected, deliberately broken lowering fails, the failing gate is
+  named, and later gates do not execute.
+- [X] T088 Add digest tests for canonical sorting, changed input and propagated CLI failure.
+  Record these as coverage of existing code, not historical red/green evidence. Record the
+  missing original T003/T017/T019 evidence in Complexity Tracking and the implementation review.
+- [X] T089 In the core, first observe a failing release-order regression test in a disposable
+  repository, then make `release.sh` check the exact pushed revision after full release checks
+  and before final artifact construction. Keep publication last in the workflow. Test that a
+  failed consumer and a wrong-version tag stop the release, naming the version mismatch before
+  any artifact construction. Product tags are untouched.
+- [X] T090 Run the shared ecosystem gates, the core release-order/tag/workflow checks, and
+  review the document/code diff. Record results and any limitations without changing historical
+  claims or running the deferred throwaway-PR gate proofs.
 
 ## Dependencies & Execution Order
 

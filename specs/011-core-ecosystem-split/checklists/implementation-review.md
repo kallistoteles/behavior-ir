@@ -336,3 +336,69 @@ core-owned deletions; the history stays.
   belongs to a core feature.
 - **The SC-004 headroom of reads** (from 010), and the evidence-inspection and pagination
   follow-ups of 010, stay open in the core.
+
+
+## Approved analysis remediation (2026-10-04)
+
+This section records work performed after the original split. Earlier sections retain the
+original release and execution evidence; this remediation does not claim to have preceded it.
+
+- **C1 — one supported graph:** constitution 2.0.0 replaces the unconditional local path ban
+  with the user-approved distinction between canonical builds and private, explicit untracked
+  experiments. Official pin checks have no development or metadata bypass, reject manifest and
+  active local overrides, and resolve metadata with `--locked`. Release-build, release-check
+  (including `--skip-gates`) and release-verify check the pin before artifact work. The README,
+  FR-024, plan, tasks and contracts use the same rule. The constitution bump is MAJOR because it
+  changes the scope of a previous prohibition; no runtime behavior or package version changed.
+- **C2 — honest test-first evidence:** the original T003/T017/T019 evidence remains incomplete.
+  Two current digest tests cover canonical sorting, changed input and propagated CLI failure;
+  these are coverage of existing code and cannot establish historical test-first compliance.
+  The removed staging script was not reintroduced. Any new staging implementation must first
+  have reviewed failing tests for permissions, build failure and a missing binary. The plan's
+  blanket Constitution Check PASS was replaced with an explicit historical deviation.
+- **C3 — models in the shared gate:** the actual command now includes `python/tests models`.
+  The runner tests collect all three actual state-machine tests and deliberately break lowering
+  in a disposable copy. Before changing the gate, three tests failed: expected execution order,
+  model collection and the broken-lowering refusal. Afterwards all four runner tests passed.
+- **C1 red/green evidence:** six new pin assertions failed before implementation (locked
+  resolution, the two legacy bypasses, local override acceptance, tracked patch and path).
+  Afterwards the pin suite passed. All three release-entrypoint guard tests also failed before
+  the guards were added and passed afterwards; they prove no artifact operation precedes the
+  dependency check.
+- **Transitive pin regression:** two additional assertions first demonstrated that a correctly
+  pinned engine could coexist with a path-backed or differently pinned internal core crate in
+  resolved metadata. The pin check now requires the known internal core crates to resolve from
+  the same exact Git source as the engine, catching overrides inherited outside the checkout.
+  Both assertions passed after the change.
+- **I1/I2 — core release ordering:** `../behavior-ir-core/scripts/release.sh` validates the tag,
+  runs full release checks into temporary validation output, tests the consumer against that
+  exact pushed revision, and then builds final artifacts. Its workflow publishes last. The new
+  shell regression test first failed against the original script (trace contained only `check`)
+  and then passed with order `check`, `consumer --rev <tag commit>`, `build`. It also proves that
+  consumer failure stops before the final build, and a wrong tag stops before any artifact
+  construction while naming both versions. The test tags exist only in disposable repositories
+  and are not deleted individually. Core tag and workflow checks passed.
+- **Gate setup:** the first ecosystem gate attempt stopped because the pre-existing ten
+  `.agents/skills/speckit-*` files had no ownership rule. Rule 16 now classifies the Codex
+  integration alongside the existing Spec Kit integrations. Their contents and the pre-existing
+  integration configuration edits were not changed by this remediation.
+- **Initial focused validation:** 13 Python tests passed (runner, release guards, digest,
+  disposable wrong-tag rejection and the three model tests); the pin shell tests passed.
+- **Final ecosystem verification:** `nix develop -c scripts/gates.sh` passed after the final
+  transitive-pin correction: 256 Python tests passed, 4 existing slow release tests skipped;
+  fmt, clippy, mypy (18 source files), determinism, ownership, terms, workflows and all script
+  suites passed. Log: `/tmp/ecosystem-remediation-gates-complete.log`.
+- **Final core verification:** the full `scripts/gates.sh` passed with 415 Cargo tests including
+  the 8 external-consumer tests, 20 existing ignored stress cases, fmt, clippy, determinism,
+  boundary, public surface, terms, workflows and all script suites (including release-order).
+  Log: `/tmp/core-remediation-gates-compact.log`.
+- **Resource recovery:** initial full-gate attempts filled the disk with Rust debug binaries,
+  causing compiler failures and Python temporary-directory failures. With approval, only
+  generated build caches were cleaned. The successful core run used `CARGO_BUILD_JOBS=2`,
+  `CARGO_INCREMENTAL=0`, `CARGO_PROFILE_DEV_DEBUG=0` and `CARGO_PROFILE_TEST_DEBUG=0` to reduce
+  build space; no source, dependency pin or test-case configuration was changed for that run.
+  The successful ecosystem run used its ordinary gate command.
+- **Final diff review:** both repositories passed `git diff --check`; package manifests,
+  lockfiles and `core-release.json` are unchanged. Pre-existing integration edits and the
+  untracked core 012 feature were preserved. No release or CI-status claim is inferred from
+  the stubbed regression tests. T079 remains deferred by the user.

@@ -5,6 +5,7 @@
 #   scripts/release-verify.sh v<version> [owner/repo]
 set -euo pipefail
 cd "$(dirname "$0")/.."
+scripts/check-core-pin.sh
 tag="${1:?usage: scripts/release-verify.sh v<version> [owner/repo]}"
 repo="${2:-kallistoteles/behavior-ir}"
 tmp="$(mktemp -d)"

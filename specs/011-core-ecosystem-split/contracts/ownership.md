@@ -26,7 +26,7 @@ filter-repo path list is every `core` and `both` rule.
 | 13 | `specs/008-*/**`, `specs/011-*/**` | ecosystem | packaging and the split itself (the core also keeps a reference copy of 011, rule 14) |
 | 14 | `specs/0[0-1][0-9]-*/**` | core | 001–007, 009, 010, plus the 011 reference copy |
 | 15 | `.claude/skills/behavior-engine-development/**` | core | engine development guidance |
-| 16 | `.claude/skills/speckit-*/**`, `.specify/**` | both | separate Spec Kit installations (FR-032) |
+| 16 | `.claude/skills/speckit-*/**`, `.agents/skills/speckit-*/**`, `.specify/**` | both | separate Spec Kit installations and agent integrations (FR-032) |
 | 17 | `skills/**` | ecosystem | consumer skills and evals |
 | 18 | `python/**`, `pyproject.toml`, `release/**`, `examples/**`, `models/**` | ecosystem | binding, DSL, packaging, examples, models |
 | 19 | `scripts/record-diff.py` | core | record tooling over core formats |

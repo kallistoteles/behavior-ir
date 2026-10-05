@@ -340,19 +340,26 @@ maturin develop                     # builds behavior._engine against behavior-e
 scripts/gates.sh                    # every quality gate, as ecosystem-ci runs it
 ```
 
-The core is a Git dependency on the exact commit in `core-release.json`
-(`behavior-engine = { git = …, rev = … }`), never a path into the core's sources.
+The supported dependency graph uses the exact published commit in `core-release.json`
+(`behavior-engine = { git = …, rev = … }`). Committed configuration, required gates, CI and
+release commands all use that graph.
 
-**Developing against an unreleased core.** Set `BEHAVIOR_DEV_CORE_PATH=1` and add an untracked
-`.cargo/config.toml`:
+**Developing against an unreleased core.** Private cross-repository experiments may use an
+explicit, untracked `.cargo/config.toml` in a separate checkout, with its own target directory
+and Python environment. For example (adjust the absolute path to your checkout):
 
 ```toml
 [patch."https://github.com/kallistoteles/behavior-ir-core"]
-behavior-engine = { path = "../behavior-ir-core/crates/behavior-engine" }
+behavior-engine = { path = "/absolute/path/to/behavior-ir-core/crates/behavior-engine" }
 ```
 
-`scripts/check-core-pin.sh` refuses this in CI and releases. A change that needs both
-repositories lands in the core first, as a Core Release; the ecosystem then moves its pin.
+Keep this file out of Git using that checkout's `.git/info/exclude`. Never commit an
+experimental manifest or lockfile change. These experiments are outside project validation:
+`scripts/check-core-pin.sh`, required gates, release builds and release verification reject
+active overrides, including locally. There is no development bypass in the official scripts.
+Disable the override, restore the pinned dependency metadata, and rebuild in the canonical
+environment before running required gates. A change that needs both repositories lands in the
+core first, as a Core Release; the ecosystem then moves its pin.
 
 **Specifications.** Features are specified with GitHub Spec Kit.
 - **This repository:** ecosystem features are numbered 500 onward. 008 (the package) and 011 (the

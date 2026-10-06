@@ -151,7 +151,19 @@ class StaleIndex(DictBackend):
 def test_reference_and_dict_backends_pass_every_case() -> None:
     for factory in (InMemoryBackend, DictBackend):
         report = run_conformance(factory)
-        assert len(report.cases) == 30
+        assert len(report.cases) == 31
+        assert report.ok, report.failed()
+
+
+def test_current_core_collects_command_history_conformance_for_both_backends() -> None:
+    """Feature 500: durable command history runs through the shared suite and Python backend."""
+    for factory in (InMemoryBackend, DictBackend):
+        report = run_conformance(factory)
+        cases = {name: (ok, message) for name, ok, message in report.cases}
+        assert len(cases) == len(report.cases) == 31
+        assert "command_history" in cases
+        ok, message = cases["command_history"]
+        assert ok, message
         assert report.ok, report.failed()
 
 

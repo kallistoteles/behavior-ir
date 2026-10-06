@@ -6,10 +6,10 @@ change for different reasons, and every one of them is reported, never implied
 
 | Kind | Example | What it identifies | Where it lives |
 |---|---|---|---|
-| **Release** | `0.10.4` | this repository's release: the Python package and everything it bundles | `[workspace.package] version` in `Cargo.toml`, the single source |
-| **Core** | `0.10.2`, commit `aaded16…` | the exact Core Release the package is built against and bundles (feature 011) | `core-release.json`; `behavior.versions()["core"]` |
-| **Binding** | `python 0.10.4` | the installable package of the Python binding | the release version in Python's form (PEP 440); the package requires *exactly* the core in `core-release.json` (checked at import) |
-| **Formats and verifier** | wire IR `0.1` … `0.7`, records `0.4` … `0.6`, verifier `0.6.0` | the document formats and the verification encoding | defined by the core: [its versioning](https://github.com/kallistoteles/behavior-ir-core/blob/v0.10.2/docs/versioning.md); reported by `behavior engine-info` |
+| **Release** | `0.12.0` | this repository's release: the Python package and everything it bundles | `[workspace.package] version` in `Cargo.toml`, the single source |
+| **Core** | `0.12.0` | the exact Core Release the package is built against and bundles (feature 011) | `core-release.json`; `behavior.versions()["core"]` reports the full immutable commit |
+| **Binding** | `python 0.12.0` | the installable package of the Python binding | the release version in Python's form (PEP 440); the package requires *exactly* the core in `core-release.json` (checked at import) |
+| **Formats and verifier** | accepted wire IR `0.1` … `0.8`, records `0.4` … `0.7`, verifier `0.8.0` | the document formats and the verification encoding | defined by the core: [its versioning](https://github.com/kallistoteles/behavior-ir-core/blob/v0.12.0/docs/versioning.md); reported by `behavior engine-info` |
 
 A module document, a record or a store document says which format version it is written in.
 That is what a reader checks, not the release number.
@@ -29,6 +29,36 @@ While the release is below 1.0, the **minor** number marks anything a consumer m
   - documentation and skills.
 
 After 1.0, the same rules apply with **major** in place of minor.
+
+Release 0.12.0 aligns the package with Core Release 0.12.0 (ecosystem feature 500). Its minor
+bump reflects current document formats, verifier outcomes and governance refusal behavior:
+
+- `BehaviorModule.from_wire_json` admits current documents explicitly. The existing Python DSL
+  retains its legacy profile, semantic identities and replay paths.
+- Unified invocation handles reads and actions with typed bindings, explicit snapshots and
+  host context. The package exposes canonical invocation records, candidates and replay.
+- Wire IR 0.8 introduces command intents and decision record 0.7. Durable occurrences are
+  streamed using exact history anchors; source diagnostics remain outside record identity.
+- Current reads on Wire 0.8 produce `behavior.read_record.v2`. Historical v1 records retain
+  their replay path. Verifier 0.8.0 corrects read-filter assumptions and entity-role validity;
+  fresh verification outcomes can therefore differ from the older release.
+- Store-v2 and trusted governance are explicit. Fresh writes to required-governance v1
+  histories refuse with `TRUSTED_GOVERNANCE_UPGRADE_REQUIRED`, including migrations. Exporting
+  validated state into a new v2 genesis preserves content without authenticating old history.
+- The bundled CLI exposes `invoke`, `invoke-intent`, `invoke-replay` and `governance`. Signed
+  proof and authorization generation use that CLI; Python commits independently supplied
+  authorization context through the public core contract.
+
+Core's historical `wire_ir` version-report array remains 0.1–0.7. The additional
+`accepted_wire_ir` array reports decoder support through 0.8. `records`, `read_records`,
+`command_stream` and `command_occurrence_domain` report the actual current formats/domains.
+The ecosystem public API manifest lists all accepted wire formats, including the explicit
+current profile; it does not imply the legacy Python DSL emits that profile.
+
+See the pinned core documentation for
+[invocation](https://github.com/kallistoteles/behavior-ir-core/blob/v0.12.0/docs/invocation.md),
+[commands](https://github.com/kallistoteles/behavior-ir-core/blob/v0.12.0/docs/commands.md) and
+[governance](https://github.com/kallistoteles/behavior-ir-core/blob/v0.12.0/docs/governance.md).
 
 Release 0.10.4 makes the package reproducible across machines (SC-011): maturin's generated
 Rust SBOM recorded the absolute build directory, so the wheel built in CI and one built locally

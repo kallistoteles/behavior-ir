@@ -54,7 +54,7 @@ def test_a_dirty_tree_is_refused_and_not_tagged(repo: Path) -> None:
     stray = repo / "stray.txt"
     stray.write_text("uncommitted\n")
     try:
-        r = _run(repo, "scripts/release.sh", "0.10.4")
+        r = _run(repo, "scripts/release.sh", "0.12.0")
     finally:
         stray.unlink()
     assert r.returncode != 0
@@ -65,15 +65,15 @@ def test_a_dirty_tree_is_refused_and_not_tagged(repo: Path) -> None:
 def test_a_version_other_than_the_workspace_version_is_refused(repo: Path) -> None:
     r = _run(repo, "scripts/release.sh", "0.11.0")
     assert r.returncode != 0
-    assert "0.11.0" in r.stderr and "0.10.4" in r.stderr, r.stderr
+    assert "0.11.0" in r.stderr and "0.12.0" in r.stderr, r.stderr
     assert _git(repo, "tag", "-l") == ""
 
 
 @pytest.fixture(scope="module")
 def dist(repo: Path) -> Path:
-    r = _run(repo, "scripts/release.sh", "--build-only", "0.10.4")
+    r = _run(repo, "scripts/release.sh", "--build-only", "0.12.0")
     assert r.returncode == 0, r.stderr
-    d = repo / "dist" / "v0.10.4"
+    d = repo / "dist" / "v0.12.0"
     assert (d / "SHA256SUMS").is_file() and (d / "release-manifest.json").is_file()
     return d
 

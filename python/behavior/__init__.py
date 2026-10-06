@@ -30,9 +30,11 @@ from .migration import (
 from .reads import (
     ReadExecution, ReadRecord, ReadResponse, ReadResult, evaluate_read, read_intent, replay_read,
 )
+from .invocation import Invocation, InvocationRecord, invoke, replay_invocation
 from .store import (
-    CommitResult, ConformanceReport, Evaluation, InMemoryBackend, ReplayReport, SchemaRef,
-    StateRef, Store, replay_behavior, replay_data, run_conformance,
+    CommandStreamPage, CommitResult, ConformanceReport, Evaluation, HistoryRef, InMemoryBackend,
+    ReplayReport, SchemaRef, StateRef, Store, governance_candidate, replay_behavior, replay_data,
+    run_conformance, with_trusted_evidence,
 )
 
 
@@ -138,6 +140,9 @@ def replay(model: BehaviorModule, record_json: str) -> ReplayResult:
 
 
 __all__ = [
+    "Invocation", "InvocationRecord", "invoke", "replay_invocation", "HistoryRef",
+    "CommandStreamPage",
+    "governance_candidate", "with_trusted_evidence",
     "CommitRefused", "CommitResult", "ConformanceReport", "Evaluation", "InMemoryBackend",
     "ReplayReport", "SchemaRef", "StateConflict", "StateRef", "Store", "replay_behavior",
     "replay_data", "run_conformance",

@@ -81,7 +81,8 @@ Only the explicit ownership rule changed before the successful complete rerun.
 ## Delivery
 
 The upgrade branch is published in [PR 14](https://github.com/kallistoteles/behavior-ir/pull/14).
-The original `/home/kalle/repos/behaviour-ir` checkout is on that branch. All 14 pre-existing
+The verified upgrade was delivered to the original `/home/kalle/repos/behaviour-ir` checkout
+via that branch. All 14 pre-existing
 modified/untracked files retain their recorded SHA256 hashes. The local virtualenv's old
 interpreter no longer existed; the broken environment was preserved at
 `/tmp/behavior-original-venv-before-0.12.0-20261007` and rebuilt with the pinned interpreter.

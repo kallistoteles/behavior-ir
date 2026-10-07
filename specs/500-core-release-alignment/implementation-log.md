@@ -59,4 +59,34 @@ expectation; its assertion now matches the native canonicalization diagnostic. C
 and ordered diagnostic behavior were preserved.
 
 Formatting and Python types passed; independent native/Python API reviews found no blocking
-mismatch. Full required gates and packaged release verification are pending.
+mismatch. Full required gates and packaged release verification passed for implementation revision
+`3fe06334d0898fd0629771a11f4aba7bc2612727` through canonical
+`nix develop -c scripts/release-check.sh` (debug symbols/incremental caches disabled to fit
+available temporary storage). No official check used an override or local release asset source.
+
+- Full gates: **352 tests passed**, including collected models; formatting, clippy, mypy,
+  determinism, ownership, terms, workflow and script checks passed.
+- Packaged checks: clean hashed install without Rust, smoke and missing-solver paths,
+  exact bundled CLI hash, version parity, byte identity with the repository and all skill
+  examples passed. Public API/skills/equivalence: **48 tests passed**.
+- Two rebuilds produced identical wheel bytes. Checked wheel SHA256:
+  `9947987dd3d190679da882f3cee98ff21f0b9fbb4405acd325f4cdc4739c7606`.
+- Full log `/tmp/behavior-ecosystem-0.12.0-release-check.log`, SHA256
+  `82bb6b40967a1e819386a4b4a8e9bcdd4a969d77d5d837462b962886d1f164bc`.
+
+An initial required public-surface check named nine unclassified feature-500 documents.
+The ownership manifest now classifies new ecosystem feature numbers; no gate was bypassed.
+Only the explicit ownership rule changed before the successful complete rerun.
+
+## Delivery
+
+The upgrade branch is published in [PR 14](https://github.com/kallistoteles/behavior-ir/pull/14).
+The original `/home/kalle/repos/behaviour-ir` checkout is on that branch. All 14 pre-existing
+modified/untracked files retain their recorded SHA256 hashes. The local virtualenv's old
+interpreter no longer existed; the broken environment was preserved at
+`/tmp/behavior-original-venv-before-0.12.0-20261007` and rebuilt with the pinned interpreter.
+The installed local binding reports package/core 0.12.0 and the exact published core revision.
+
+This evidence update changes documentation only. GitHub's required checks validate the
+final delivered head through the normal PR workflow; merge follows successful checks.
+Core 0.12.0 is published; this source upgrade does not publish an ecosystem package release.

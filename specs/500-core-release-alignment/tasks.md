@@ -33,8 +33,8 @@ Independent test: invocation/commands frozen release fixtures match bytes and al
 ## Phase 5: Polish and delivery
 
 - [x] T012 [P] Update README.md/docs/versioning.md and public API manifest with actual capabilities and authoring limits.
-- [ ] T013 Run canonical ecosystem scripts/gates.sh and scripts/release-check.sh; record exact-revision verification in implementation-log.md.
-- [ ] T014 Review focused diff, publish upgrade branch and deliver verified changes to the user checkout without modifying existing Spec Kit changes.
+- [x] T013 Run canonical ecosystem scripts/gates.sh and scripts/release-check.sh; record exact-revision verification in implementation-log.md.
+- [x] T014 Review focused diff, publish upgrade branch and deliver verified changes to the user checkout without modifying existing Spec Kit changes.
 
 ## Dependencies and parallel execution
 

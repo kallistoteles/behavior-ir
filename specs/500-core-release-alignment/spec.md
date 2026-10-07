@@ -2,7 +2,7 @@
 
 **Feature Branch**: `500-core-release-alignment`
 **Created**: 2026-10-06
-**Status**: Specified
+**Status**: Implemented and verified
 **Input**: Bring behavior-ir up to date with the current Behavior Core.
 
 ## User Scenarios & Testing

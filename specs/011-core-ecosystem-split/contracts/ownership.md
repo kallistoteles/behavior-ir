@@ -23,7 +23,7 @@ filter-repo path list is every `core` and `both` rule.
 | 10 | `docs/persistence.md`, `docs/verification.md`, `docs/proposals/**` | core | semantic documents |
 | 11 | `docs/versioning.md` | both | the core gets the format table and policy for the engine (`docs/versioning.md`); the ecosystem keeps the package release policy and links the core's table |
 | 12 | `PRINCIPLES.md`, `ARCHITECTURE.md` | core | semantics and the admission criterion; the ecosystem links them |
-| 13 | `specs/008-*/**`, `specs/011-*/**` | ecosystem | packaging and the split itself (the core also keeps a reference copy of 011, rule 14) |
+| 13 | `specs/008-*/**`, `specs/011-*/**`, `specs/[5-9][0-9][0-9]-*/**` | ecosystem | packaging, the split itself and new ecosystem features numbered 500 onward (the core also keeps a reference copy of 011, rule 14) |
 | 14 | `specs/0[0-1][0-9]-*/**` | core | 001–007, 009, 010, plus the 011 reference copy |
 | 15 | `.claude/skills/behavior-engine-development/**` | core | engine development guidance |
 | 16 | `.claude/skills/speckit-*/**`, `.agents/skills/speckit-*/**`, `.specify/**` | both | separate Spec Kit installations and agent integrations (FR-032) |

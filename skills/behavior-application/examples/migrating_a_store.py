@@ -76,12 +76,12 @@ assert store.load("Ticket", "t1")["value"]["region"] == "north"
 assert replay_data(store).ok
 assert replay_behavior(store, [v1.model, v2.model, v3.model], migrations=[broaden, narrow]).ok
 
-# 5. A store can demand more evidence for migrations than for actions.
+# 5. Fresh required-governance writes in legacy history require explicit v2 adoption.
 policy = {"format": "behavior.evidence_policy.v1", "require": "none",
           "migration": {"require": "commit_authorization"}}
 strict = Store.create(InMemoryBackend(), v1.model, Store.genesis_for(v1.model, seed, policy))
 try:
     strict.migrate(broaden, commit_time=NOW)
 except CommitRefused as e:
-    assert e.code == "EVIDENCE_REQUIRED"
+    assert e.code == "TRUSTED_GOVERNANCE_UPGRADE_REQUIRED"
 print("ok")

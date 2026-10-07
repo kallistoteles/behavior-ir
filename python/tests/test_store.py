@@ -69,10 +69,27 @@ def test_replay_and_history() -> None:
     assert b.ok and b.checked == 3
 
 
-def test_evidence_policy_requires_authorization() -> None:
+def test_legacy_evidence_policy_requires_explicit_governance_upgrade() -> None:
     store = new_store({"format": "behavior.evidence_policy.v1", "require": "commit_authorization"})
     ev = transfer(store, "a1", "a2", "1.00")
     assert ev.bundle is not None
     with pytest.raises(CommitRefused) as e:
         store.commit(model, ev.bundle)
-    assert e.value.code == "EVIDENCE_REQUIRED"
+    assert e.value.code == "TRUSTED_GOVERNANCE_UPGRADE_REQUIRED"
+
+
+def test_legacy_required_governance_commit_refuses_without_changing_state_or_history() -> None:
+    """Feature 500: structural v1 history requires explicit adoption before a fresh write."""
+    store = new_store({"format": "behavior.evidence_policy.v1", "require": "commit_authorization"})
+    before = store.current()
+    history = list(store.history())
+    accounts = [store.load("Account", id_) for id_ in ("a1", "a2")]
+    ev = transfer(store, "a1", "a2", "1.00")
+    assert ev.decision.result == "ALLOW" and ev.bundle is not None
+    for _ in range(2):
+        with pytest.raises(CommitRefused) as e:
+            store.commit(model, ev.bundle)
+        assert e.value.code == "TRUSTED_GOVERNANCE_UPGRADE_REQUIRED"
+        assert store.current() == before
+        assert list(store.history()) == history
+        assert [store.load("Account", id_) for id_ in ("a1", "a2")] == accounts

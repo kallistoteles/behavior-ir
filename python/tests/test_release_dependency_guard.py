@@ -13,9 +13,9 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 @pytest.mark.parametrize(("script", "args"), [
-    ("release-build.sh", ["0.10.4", "dist"]),
+    ("release-build.sh", ["0.12.0", "dist"]),
     ("release-check.sh", ["--skip-gates", "dist"]),
-    ("release-verify.sh", ["v0.10.4"]),
+    ("release-verify.sh", ["v0.12.0"]),
 ])
 def test_release_entrypoint_checks_pin_first(tmp_path: Path, script: str, args: list[str]) -> None:
     scripts = tmp_path / "scripts"

@@ -33,7 +33,13 @@
   "engine-info": [],
   "eval": [
    "<wire>",
-   "<request>"
+   "<request>",
+   "--diagnostics"
+  ],
+  "governance": [
+   "verify",
+   "verify-migration",
+   "authorize"
   ],
   "hashes": [
    "<wire>"
@@ -42,6 +48,24 @@
    "<wire>",
    "<intent>",
    "<host>"
+  ],
+  "invoke": [
+   "<wire>",
+   "<invocation>",
+   "<snapshot>",
+   "--diagnostics"
+  ],
+  "invoke-intent": [
+   "<wire>",
+   "<intent>",
+   "<snapshot>",
+   "--context",
+   "--diagnostics"
+  ],
+  "invoke-replay": [
+   "<wire>",
+   "<record>",
+   "--diagnostics"
   ],
   "migration": [
    "admit",
@@ -64,7 +88,8 @@
   ],
   "replay": [
    "<wire>",
-   "<record>"
+   "<record>",
+   "--diagnostics"
   ],
   "schema-hash": [
    "<wire>"
@@ -91,7 +116,8 @@
   "records": [
    "0.4",
    "0.5",
-   "0.6"
+   "0.6",
+   "0.7"
   ],
   "store_documents": [
    "behavior.entity_content.v1",
@@ -101,7 +127,12 @@
    "behavior.store_genesis.v1",
    "behavior.commit_bundle.v1",
    "behavior.transition_record.v1",
-   "behavior.replay_report.v1"
+   "behavior.replay_report.v1",
+   "behavior.migration_bundle.v1",
+   "behavior.store_genesis.v2",
+   "behavior.commit_bundle.v2",
+   "behavior.migration_bundle.v2",
+   "behavior.transition_record.v2"
   ],
   "wire_ir": {
    "0.1": "schema/wire-ir-0.1.schema.json",
@@ -110,11 +141,21 @@
    "0.4": "schema/wire-ir-0.4.schema.json",
    "0.5": "schema/wire-ir-0.5.schema.json",
    "0.6": "schema/wire-ir-0.6.schema.json",
-   "0.7": "schema/wire-ir-0.7.schema.json"
+   "0.7": "schema/wire-ir-0.7.schema.json",
+   "0.8": "schema/wire-ir-0.8.schema.json"
   },
   "read_records": [
-   "behavior.read_record.v1"
-  ]
+   "behavior.read_record.v1",
+   "behavior.read_record.v2"
+  ],
+  "invocation": {
+   "behavior.invocation.v1": "schema/invocation-0.1.schema.json",
+   "behavior.capability_intent.v1": "schema/capability-intent-0.1.schema.json",
+   "behavior.snapshot.v1": "schema/snapshot-0.1.schema.json",
+   "behavior.invocation_record.v1": "schema/invocation-record-0.1.schema.json"
+  },
+  "command_stream": "behavior.command_stream_request.v1",
+  "command_occurrence_domain": "behavior.command_occurrence.v1"
  },
  "python": {
   "module": "behavior",
@@ -129,6 +170,7 @@
    "BehaviorModule": "class",
    "BehaviorTypeError": "exception",
    "Change": "class",
+   "CommandStreamPage": "class",
    "CommitRefused": "exception",
    "CommitResult": "class",
    "ConformanceReport": "class",
@@ -136,10 +178,13 @@
    "Decision": "class",
    "Evaluation": "class",
    "Exact": "type",
+   "HistoryRef": "class",
    "Id": "type",
    "InMemoryBackend": "class",
    "Input": "type",
    "IntentRejected": "exception",
+   "Invocation": "class",
+   "InvocationRecord": "class",
    "Migration": "class",
    "MigrationAdmission": "class",
    "Option": "type",
@@ -180,7 +225,9 @@
    "evaluate_read": "function",
    "exists": "function",
    "field": "function",
+   "governance_candidate": "function",
    "invariant": "decorator",
+   "invoke": "function",
    "max_": "function",
    "min_": "function",
    "nominal": "function",
@@ -195,6 +242,7 @@
    "replay": "function",
    "replay_behavior": "function",
    "replay_data": "function",
+   "replay_invocation": "function",
    "replay_read": "function",
    "requires": "function",
    "rescale": "function",
@@ -211,10 +259,11 @@
    "verify": "function",
    "verify_migration": "function",
    "versions": "function",
-   "waiver_hash": "function"
+   "waiver_hash": "function",
+   "with_trusted_evidence": "function"
   }
  },
- "release": "0.10.4",
+ "release": "0.12.0",
  "solver": {
   "name": "z3",
   "version": "4.16.0"

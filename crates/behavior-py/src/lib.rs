@@ -151,6 +151,18 @@ fn object(obj: &Bound<'_, PyAny>) -> PyResult<Value> {
     }
 }
 
+/// Raw JSON text reaches Core unchanged; Python documents use the existing value boundary.
+fn document_text(obj: &Bound<'_, PyAny>) -> PyResult<String> {
+    if let Ok(text) = obj.downcast::<PyString>() {
+        return Ok(text.to_str()?.to_string());
+    }
+    Ok(to_value(obj)?.to_string())
+}
+
+fn transport_err(e: behavior_engine::invocation::TransportError) -> PyErr {
+    EngineError::new_err(("DECODE_ERROR", e.to_string()))
+}
+
 // --- types -------------------------------------------------------------------------------
 
 /// A behavior type as the engine names it.
@@ -325,6 +337,7 @@ impl PyNode {
 struct PyRecord {
     data: Value,
     json: String,
+    diagnostics: Value,
 }
 
 #[pymethods]
@@ -340,6 +353,51 @@ impl PyRecord {
     #[getter]
     fn json(&self) -> String {
         self.json.clone()
+    }
+    #[getter]
+    fn diagnostics(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        to_py(py, &self.diagnostics)
+    }
+}
+
+/// Core owns canonical invocation evidence and detached diagnostics.
+#[pyclass(name = "InvocationRecord", frozen, module = "behavior._engine")]
+struct PyInvocationRecord {
+    inner: behavior_engine::invocation::InvocationRecord,
+}
+
+#[pymethods]
+impl PyInvocationRecord {
+    #[getter]
+    fn data(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        to_py(py, self.inner.as_json())
+    }
+    #[getter]
+    fn json(&self) -> String {
+        self.inner.to_json_string()
+    }
+    #[getter]
+    fn record_id(&self) -> &str {
+        self.inner.record_id()
+    }
+    #[getter]
+    fn outcome_kind(&self) -> &str {
+        self.inner.outcome_kind()
+    }
+    #[getter]
+    fn refusal_stage(&self) -> Option<&str> {
+        self.inner.refusal_stage()
+    }
+    #[getter]
+    fn inner_record(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        match self.inner.inner_record() {
+            Some(record) => to_py(py, record),
+            None => Ok(py.None()),
+        }
+    }
+    #[getter]
+    fn diagnostics(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        to_py(py, self.inner.diagnostics())
     }
 }
 
@@ -430,6 +488,7 @@ fn record(r: behavior_engine::DecisionRecord) -> PyRecord {
     PyRecord {
         json: r.to_json_string(),
         data: r.as_json().clone(),
+        diagnostics: r.diagnostics().clone(),
     }
 }
 
@@ -551,6 +610,30 @@ impl EngineModule {
     /// Canonical wire JSON serialized from the admitted module.
     fn wire_json(&self) -> String {
         behavior_engine::serialize::to_wire_json(&self.inner)
+    }
+
+    /// Checked requested invocation, or capability intent with explicit host context.
+    #[pyo3(signature = (document, snapshot, context=None))]
+    fn invoke(
+        &self,
+        document: &Bound<'_, PyAny>,
+        snapshot: &Bound<'_, PyAny>,
+        context: Option<&Bound<'_, PyAny>>,
+    ) -> PyResult<PyInvocationRecord> {
+        let context = context.map(object).transpose()?;
+        let inner = behavior_engine::invocation::invoke_document(
+            &self.inner,
+            &document_text(document)?,
+            &document_text(snapshot)?,
+            context.as_ref(),
+        )
+        .map_err(transport_err)?;
+        Ok(PyInvocationRecord { inner })
+    }
+
+    fn replay_invocation(&self, record_json: &str) -> (bool, Option<String>) {
+        let result = behavior_engine::invocation::replay_invocation(&self.inner, record_json);
+        (result.matches, result.diff)
     }
 
     /// Decides whether the transition in a decision record may be committed under a policy.
@@ -1491,8 +1574,8 @@ impl PyBuilder {
 
 use behavior_engine::store::conformance::run as run_store_conformance;
 use behavior_engine::store::documents::{
-    CommitBundle, EntityKey, EntityVersion, Evidence, EvidencePolicy, Genesis, Head, RefChange,
-    SeedEntity, StateRef, StoreError, TransitionRecord, decode,
+    CommitBundle, EntityKey, EntityVersion, Evidence, EvidencePolicy, Genesis, Head, HistoryRef,
+    RefChange, SeedEntity, StateRef, StoreError, TransitionRecord, decode,
 };
 use behavior_engine::store::replay::replay_data;
 use behavior_engine::store::{Backend, BackendError, CasOutcome, InMemoryBackend, RefEdge, Store};
@@ -1503,6 +1586,61 @@ fn to_json<T: serde::Serialize>(t: &T) -> Value {
 
 fn doc<T: for<'de> serde::Deserialize<'de>>(what: &str, obj: &Bound<'_, PyAny>) -> PyResult<T> {
     decode(what, &to_value(obj)?).map_err(|e| PyValueError::new_err(e.to_string()))
+}
+
+fn serialize_py<T: serde::Serialize>(py: Python<'_>, value: &T) -> PyResult<Py<PyAny>> {
+    let value = serde_json::to_value(value)
+        .map_err(|e| EngineError::new_err(("SERIALIZATION_ERROR", e.to_string())))?;
+    to_py(py, &value)
+}
+
+fn trusted_store_err(e: behavior_engine::verify::governance::TrustedError) -> PyErr {
+    EngineStoreRefused::new_err((e.code, e.message))
+}
+
+fn checked_bundle(py: Python<'_>, obj: &Bound<'_, PyAny>) -> PyResult<CommitBundle> {
+    CommitBundle::from_json(&document_text(obj)?).map_err(|e| store_err(py, e))
+}
+
+fn store_invocation(
+    py: Python<'_>,
+    result: behavior_engine::invocation::Invocation,
+) -> PyResult<(PyInvocationRecord, Py<PyAny>)> {
+    let bundle = match result.bundle {
+        Some(bundle) => serialize_py(py, &bundle)?,
+        None => py.None(),
+    };
+    Ok((
+        PyInvocationRecord {
+            inner: result.record,
+        },
+        bundle,
+    ))
+}
+
+/// Derive the exact signed-governance candidate through Core's checked bundle contract.
+#[pyfunction]
+fn governance_candidate(py: Python<'_>, bundle: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
+    let candidate = checked_bundle(py, bundle)?
+        .governance_candidate()
+        .map_err(|e| store_err(py, e))?;
+    to_py(py, &candidate.as_json())
+}
+
+#[pyfunction]
+fn with_trusted_evidence(
+    py: Python<'_>,
+    bundle: &Bound<'_, PyAny>,
+    evidence: &Bound<'_, PyAny>,
+) -> PyResult<Py<PyAny>> {
+    let bundle = checked_bundle(py, bundle)?;
+    let evidence =
+        behavior_engine::verify::governance::EvidenceV2::from_json(&document_text(evidence)?)
+            .map_err(trusted_store_err)?;
+    let attached = bundle
+        .with_trusted_evidence(&evidence)
+        .map_err(|e| store_err(py, e))?;
+    serialize_py(py, &attached)
 }
 
 fn store_err(py: Python<'_>, e: StoreError) -> PyErr {
@@ -1810,6 +1948,27 @@ impl PyStore {
         )
     }
 
+    /// Explicit store-v2 history with a checked trusted evidence policy.
+    #[staticmethod]
+    fn genesis_v2_for(
+        py: Python<'_>,
+        module: &EngineModule,
+        seed: &Bound<'_, PyAny>,
+        policy: &Bound<'_, PyAny>,
+    ) -> PyResult<Py<PyAny>> {
+        let policy = behavior_engine::verify::governance::EvidencePolicyV2::from_json(
+            &document_text(policy)?,
+        )
+        .map_err(trusted_store_err)?;
+        let genesis = behavior_engine::store::store::genesis_v2_for(
+            &module.inner,
+            policy,
+            doc("seed", seed)?,
+        )
+        .map_err(|e| store_err(py, e))?;
+        serialize_py(py, &genesis)
+    }
+
     #[staticmethod]
     fn create(
         py: Python<'_>,
@@ -1842,6 +2001,46 @@ impl PyStore {
     fn current(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
         let r = self.inner.current().map_err(|e| store_err(py, e))?;
         to_py(py, &to_json(&r))
+    }
+
+    fn current_history(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        let history = self.inner.current_history().map_err(|e| store_err(py, e))?;
+        to_py(py, &history.as_json())
+    }
+
+    fn history_at(&self, py: Python<'_>, position: u64) -> PyResult<Py<PyAny>> {
+        let history = self
+            .inner
+            .history_at(position)
+            .map_err(|e| store_err(py, e))?;
+        to_py(py, &history.as_json())
+    }
+
+    fn commands_since(&self, py: Python<'_>, request: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
+        let request = behavior_engine::store::commands::CommandStreamRequest::from_json(
+            &document_text(request)?,
+        )
+        .map_err(|e| store_err(py, e))?;
+        let page = self
+            .inner
+            .commands_since(&request)
+            .map_err(|e| store_err(py, e))?;
+        to_py(py, &page.as_json())
+    }
+
+    fn export_seed_at(
+        &self,
+        py: Python<'_>,
+        module: &EngineModule,
+        history: &Bound<'_, PyAny>,
+    ) -> PyResult<Py<PyAny>> {
+        let history =
+            HistoryRef::from_json(&document_text(history)?).map_err(|e| store_err(py, e))?;
+        let exported = self
+            .inner
+            .export_seed_at(&module.inner, &history)
+            .map_err(|e| store_err(py, e))?;
+        serialize_py(py, &exported)
     }
 
     fn state_at(&self, py: Python<'_>, position: u64) -> PyResult<Py<PyAny>> {
@@ -1897,12 +2096,91 @@ impl PyStore {
         let rec = PyRecord {
             json: behavior_engine::canonical::to_canonical_string(&ev.record).unwrap_or_default(),
             data: ev.record,
+            diagnostics: Value::Null,
         };
         let bundle = match &ev.bundle {
             Some(b) => to_py(py, &to_json(b))?,
             None => py.None(),
         };
         Ok((rec, bundle))
+    }
+
+    /// Core's typed store request boundary reports shape problems before resolution.
+    #[pyo3(signature = (module, document, commit_time, evidence=None, at=None))]
+    fn invoke(
+        &self,
+        py: Python<'_>,
+        module: &EngineModule,
+        document: &Bound<'_, PyAny>,
+        commit_time: &str,
+        evidence: Option<&Bound<'_, PyAny>>,
+        at: Option<&Bound<'_, PyAny>>,
+    ) -> PyResult<(PyInvocationRecord, Py<PyAny>)> {
+        let (requested, errors) =
+            behavior_engine::invocation::RequestedInvocation::decode(&document_text(document)?)
+                .map_err(transport_err)?;
+        let Some(requested) = requested else {
+            let diagnostics = serde_json::to_string(&errors)
+                .map_err(|e| EngineError::new_err(("SERIALIZATION_ERROR", e.to_string())))?;
+            return Err(EngineError::new_err(("INVALID_INVOCATION", diagnostics)));
+        };
+        let at = at.map(state_ref).transpose()?;
+        let evidence = evidence
+            .map(|e| {
+                let value = behavior_engine::canonical::decode_strict(&document_text(e)?)
+                    .map_err(|e| EngineError::new_err(("DECODE_ERROR", e.to_string())))?;
+                decode::<Evidence>("evidence", &value).map_err(|e| store_err(py, e))
+            })
+            .transpose()?;
+        let result = self
+            .inner
+            .invoke(
+                &module.inner,
+                &requested,
+                commit_time,
+                evidence,
+                at.as_ref(),
+            )
+            .map_err(|e| store_err(py, e))?;
+        store_invocation(py, result)
+    }
+
+    /// Core's store capability-intent boundary retains parseable decode refusals as records.
+    #[pyo3(signature = (module, intent, context, commit_time, at=None))]
+    fn invoke_intent(
+        &self,
+        py: Python<'_>,
+        module: &EngineModule,
+        intent: &Bound<'_, PyAny>,
+        context: &Bound<'_, PyAny>,
+        commit_time: &str,
+        at: Option<&Bound<'_, PyAny>>,
+    ) -> PyResult<(PyInvocationRecord, Py<PyAny>)> {
+        let at = at.map(state_ref).transpose()?;
+        let result = self
+            .inner
+            .invoke_intent(
+                &module.inner,
+                &document_text(intent)?,
+                &object(context)?,
+                commit_time,
+                at.as_ref(),
+            )
+            .map_err(|e| store_err(py, e))?;
+        store_invocation(py, result)
+    }
+
+    fn replay_invocation(
+        &self,
+        py: Python<'_>,
+        module: &EngineModule,
+        record_json: &str,
+    ) -> PyResult<(bool, Option<String>)> {
+        let result = self
+            .inner
+            .replay_invocation(&module.inner, record_json)
+            .map_err(|e| store_err(py, e))?;
+        Ok((result.matches, result.diff))
     }
 
     /// A read intent (feature 010) against this store at `at` or the head; raises
@@ -1979,22 +2257,65 @@ impl PyStore {
 
     /// Commits a bundle on `expected_parent`; returns {record_id, result_state, already,
     /// evidence_trust}. Raises EngineStoreConflict or EngineStoreRefused.
+    #[pyo3(signature = (module, expected_parent, bundle))]
     fn commit(
         &mut self,
         py: Python<'_>,
         module: &EngineModule,
-        expected_parent: &Bound<'_, PyAny>,
+        expected_parent: Option<&Bound<'_, PyAny>>,
         bundle: &Bound<'_, PyAny>,
     ) -> PyResult<Py<PyAny>> {
-        let bundle: CommitBundle = doc("commit bundle", bundle)?;
+        let bundle = checked_bundle(py, bundle)?;
+        let parent = expected_parent
+            .map(state_ref)
+            .transpose()?
+            .unwrap_or_else(|| bundle.evaluated_state.clone());
         let c = self
             .inner
-            .commit(&module.inner, &state_ref(expected_parent)?, &bundle)
+            .commit(&module.inner, &parent, &bundle)
             .map_err(|e| store_err(py, e))?;
         to_py(
             py,
             &json!({"record_id": c.record_id, "result_state": to_json(&c.result_state),
                     "already": c.already, "evidence_trust": c.evidence_trust}),
+        )
+    }
+
+    /// Supply live host context independently from the signed evidence in the bundle.
+    #[pyo3(signature = (module, expected_parent, bundle, context, execution_policy))]
+    #[allow(clippy::too_many_arguments)]
+    fn commit_with_context(
+        &mut self,
+        py: Python<'_>,
+        module: &EngineModule,
+        expected_parent: Option<&Bound<'_, PyAny>>,
+        bundle: &Bound<'_, PyAny>,
+        context: &Bound<'_, PyAny>,
+        execution_policy: &Bound<'_, PyAny>,
+    ) -> PyResult<Py<PyAny>> {
+        let bundle = checked_bundle(py, bundle)?;
+        let parent = expected_parent
+            .map(state_ref)
+            .transpose()?
+            .unwrap_or_else(|| bundle.evaluated_state.clone());
+        let policy = behavior_engine::verify::governance::ExecutionPolicyV2::from_json(
+            &document_text(execution_policy)?,
+        )
+        .map_err(trusted_store_err)?;
+        let context = behavior_engine::verify::governance::AuthorizationContextV2::from_json(
+            &document_text(context)?,
+            &policy,
+        )
+        .map_err(trusted_store_err)?;
+        let committed = self
+            .inner
+            .commit_with_context(&module.inner, &parent, &bundle, &context)
+            .map_err(|e| store_err(py, e))?;
+        to_py(
+            py,
+            &json!({"record_id": committed.record_id,
+            "result_state": committed.result_state, "already": committed.already,
+            "evidence_trust": committed.evidence_trust}),
         )
     }
 
@@ -2173,6 +2494,7 @@ fn _engine(m: &Bound<'_, pyo3::types::PyModule>) -> PyResult<()> {
     m.add_class::<PyBuilder>()?;
     m.add_class::<PyNode>()?;
     m.add_class::<PyRecord>()?;
+    m.add_class::<PyInvocationRecord>()?;
     m.add_class::<PyReadItem>()?;
     m.add_class::<PyReadExecution>()?;
     m.add_class::<EngineModule>()?;
@@ -2186,6 +2508,8 @@ fn _engine(m: &Bound<'_, pyo3::types::PyModule>) -> PyResult<()> {
     m.add("TARGET_SIDE", behavior_engine::wire::TARGET_SIDE)?;
     m.add_class::<PyInMemoryBackend>()?;
     m.add_function(wrap_pyfunction!(run_conformance, m)?)?;
+    m.add_function(wrap_pyfunction!(governance_candidate, m)?)?;
+    m.add_function(wrap_pyfunction!(with_trusted_evidence, m)?)?;
     m.add(
         "EngineStoreConflict",
         m.py().get_type::<EngineStoreConflict>(),

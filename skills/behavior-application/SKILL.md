@@ -1,13 +1,19 @@
 ---
 name: behavior-application
 description: Build the host application around a Behavior model (stores, evaluate and commit, reads and read intents for agents, conflicts, replay, custom storage backends, supplying facts), keeping every business rule in behavior. Use when writing services, handlers, jobs or storage code that use a behavior model.
-release: 0.10.4
+release: 0.12.0
 ---
 
 # Building an application on Behavior
 
-This skill describes **Behavior release 0.10.4**. Use only what is described here or listed in the
+This skill describes **Behavior release 0.12.0**. Use only what is described here or listed in the
 release's public API.
+
+Existing Python authoring and evaluation retain their legacy profile. Admitted current
+documents also support unified invocation, explicit store-v2 genesis and durable command
+history through the public APIs listed in the release README. Trusted proof and authorization
+generation use the bundled `behavior governance` commands; a fresh trusted commit receives
+independent host context through `Store.commit_with_context`.
 
 > If the public Behavior API cannot express a requirement, record a semantic gap in
 > `SEMANTIC_GAPS.md` (format: skills/README.md). Do not work around it: no engine internals,
@@ -183,8 +189,12 @@ history, identities and references carry over, and old states still load exactly
   `MIGRATION_TRANSFORM_ERROR`, `MIGRATION_INVALID_RESULT`, `RETIRED_TYPE_NOT_EMPTY`) name the rule
   and the entities, and the store is unchanged.
 - **Evidence**: an evidence policy can demand more for migrations than for actions (its
-  `migration` section). Use `authorize_migration` with a migration attestation, and pass the
-  evidence to `store.migrate`.
+  `migration` section). Required-governance v1 histories refuse fresh migrations with
+  `TRUSTED_GOVERNANCE_UPGRADE_REQUIRED`; structural `authorize_migration` evidence does not
+  upgrade that trust. Adopt validated state into an explicit v2 genesis for new trusted
+  history. Trusted migrations follow the
+  [public core migration contract](https://github.com/kallistoteles/behavior-ir-core/blob/v0.12.0/specs/013-durable-command-intents/contracts/governance.md);
+  the legacy Python `store.migrate` helper supplies no independent v2 authorization context.
 - **Replay**: `replay_behavior(store, models, migrations=[...])` re-runs every migration.
 
 ```python

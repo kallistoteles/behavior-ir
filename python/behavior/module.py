@@ -139,7 +139,29 @@ def trace_read(session: CompileSession, fn: ReadFn, declared: bool) -> Any:
 
 
 class BehaviorModule:
-    """A behavior module compiled by the engine. Construction traces every body."""
+    """A behavior module admitted by the engine, from Python authoring or wire JSON."""
+
+    @classmethod
+    def from_wire_json(cls, text: str) -> BehaviorModule:
+        """Admits a behavior document through Core, retaining its explicit semantic profile.
+
+        Raw JSON text reaches the checked decoder unchanged. A refused document raises
+        BehaviorInvalid with the engine's admission result. Imported modules retain core
+        semantics without reconstructing Python declarations; use Migration.from_json for
+        migrations between imported schemas.
+        """
+        from .results import AdmissionResult
+
+        engine, admission = _engine.Module.from_wire(text)
+        if engine is None:
+            raise BehaviorInvalid(AdmissionResult.from_dict(admission))
+        model = cls.__new__(cls)
+        model.entities = []
+        model.reads = []
+        model.declared_types = {}
+        model._module = engine
+        model._admission = admission
+        return model
 
     def __init__(
         self,

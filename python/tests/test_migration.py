@@ -170,13 +170,33 @@ def test_migration_evidence_follows_the_store_policy() -> None:
     store = Store.create(InMemoryBackend(), v1.model, Store.genesis_for(v1.model, SEED, policy))
     with pytest.raises(CommitRefused) as e:
         store.migrate(broaden(), commit_time=T1)
-    assert e.value.code == "EVIDENCE_REQUIRED"
+    assert e.value.code == "TRUSTED_GOVERNANCE_UPGRADE_REQUIRED"
     auth = authorize_migration(
         broaden(), store, policy={"policy_version": "1", "require": "verified"}, now=T1,
     )
     assert not auth.allowed
     assert auth.data["data_version"] == store.data_version()
     assert [r["code"] for r in auth.reasons] == ["unverified"]
+
+
+def test_legacy_required_governance_migration_refuses_without_changing_store() -> None:
+    """Feature 500: a v1 migration policy is never implicitly authenticated or replaced."""
+    policy = {"format": "behavior.evidence_policy.v1", "require": "none",
+              "migration": {"require": "commit_authorization"}}
+    store = Store.create(InMemoryBackend(), v1.model, Store.genesis_for(v1.model, SEED, policy))
+    before = store.current()
+    history = list(store.history())
+    schemas = store.schema_history()
+    entities = [store.load(item["entity"], item["value"]["id"]) for item in SEED]
+    migration = broaden()
+    for _ in range(2):
+        with pytest.raises(CommitRefused) as e:
+            store.migrate(migration, commit_time=T1)
+        assert e.value.code == "TRUSTED_GOVERNANCE_UPGRADE_REQUIRED"
+        assert store.current() == before
+        assert list(store.history()) == history
+        assert store.schema_history() == schemas
+        assert [store.load(item["entity"], item["value"]["id"]) for item in SEED] == entities
 
 
 def test_verify_authorize_and_apply_a_migration_under_a_strict_policy() -> None:

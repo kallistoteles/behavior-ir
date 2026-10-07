@@ -96,8 +96,10 @@ def authorize_migration(
     now: str,
 ) -> Authorization:
     """Decides whether `migration` may be applied to `store` in its current state under the
-    execution `policy` at `now` (feature 009). The authorization binds the migration and the
-    store state; pass it with the attestation as `evidence` to `Store.migrate`."""
+    execution `policy` at `now` (feature 009). This legacy structural authorization binds
+    the migration and store state. Fresh required-governance writes now require trusted v2
+    governance; this result cannot supply its independent authorization context. Core's
+    public Rust prepared-migration APIs provide the trusted migration commit path."""
     try:
         a = migration.engine.authorize(
             policy,

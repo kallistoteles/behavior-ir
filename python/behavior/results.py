@@ -39,11 +39,11 @@ class AdmissionResult:
 @dataclass(frozen=True)
 class TraceStep:
     phase: str
-    expr_text: str
+    expr_text: str | None
     hash: str
     reads: dict[str, Any]
     outcome: Any
-    loc: dict[str, Any]
+    loc: dict[str, Any] | None
     name: str | None = None
 
 
@@ -69,6 +69,10 @@ class Decision:
     #: The evaluation facts the decision observed (feature 006; query and field facts, feature
     #: 007), or an empty dict.
     facts: dict[str, Any] = field(default_factory=dict)
+    #: Candidate command intents, never committed occurrences (current semantic profile).
+    commands: list[dict[str, Any]] = field(default_factory=list)
+    #: Source/display information detached by Core from canonical current-profile records.
+    diagnostics: dict[str, Any] | None = None
 
     @staticmethod
     def from_record(record: Any) -> Decision:
@@ -78,8 +82,8 @@ class Decision:
             changes=[Change(c["param"], c["field"], c["old"], c["new"]) for c in v["changes"]],
             reasons=v["reasons"],
             trace=[
-                TraceStep(s["phase"], s["expr_text"], s["hash"], s["reads"], s["outcome"],
-                          s["loc"], s.get("name"))
+                TraceStep(s["phase"], s.get("expr_text"), s["hash"], s["reads"], s["outcome"],
+                          s.get("loc"), s.get("name"))
                 for s in v["trace"]
             ],
             derived=v["derived"],
@@ -87,6 +91,8 @@ class Decision:
             record_json=record.json,
             lifecycle=v.get("lifecycle", []),
             facts=v.get("facts", {}),
+            commands=v.get("commands", {}).get("intents", []),
+            diagnostics=record.diagnostics,
         )
 
 

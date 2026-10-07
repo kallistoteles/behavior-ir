@@ -9,19 +9,20 @@ skills, the models area and the installable package. The deterministic semantic 
 [Behavior Core](https://github.com/kallistoteles/behavior-ir-core) (`behavior-ir-core`). Core
 defines meaning; this repository defines ways to author and use it. The package is built
 against exactly one Core Release, named in [`core-release.json`](core-release.json) (core
-v0.10.2), and bundles it, so users install one thing.
+v0.12.0), and bundles it, so users install one thing.
 
 The semantics are specified and documented in the core:
-- [PRINCIPLES.md](https://github.com/kallistoteles/behavior-ir-core/blob/v0.10.2/PRINCIPLES.md): the first principles every feature is checked against;
-- [ARCHITECTURE.md](https://github.com/kallistoteles/behavior-ir-core/blob/v0.10.2/ARCHITECTURE.md): core, bindings and models, and where a new concept
+- [PRINCIPLES.md](https://github.com/kallistoteles/behavior-ir-core/blob/v0.12.0/PRINCIPLES.md): the first principles every feature is checked against;
+- [ARCHITECTURE.md](https://github.com/kallistoteles/behavior-ir-core/blob/v0.12.0/ARCHITECTURE.md): core, bindings and models, and where a new concept
   belongs;
-- `docs/persistence.md`, `docs/verification.md` and the specifications 001–007, 009 and 010.
+- `docs/persistence.md`, `docs/verification.md` and the specifications 001–007, 009, 010,
+  012 and 013.
 
 Paths below that name them refer to the core repository. Fixtures named `tests/fixtures/…` are
 the core's conformance fixtures; `scripts/fetch-core.sh` installs them in
 `.core/<version>/` (`$BEHAVIOR_CORE_DIR`).
 
-## What v0.1 does
+## Python authoring
 
 ```python
 from decimal import Decimal
@@ -228,7 +229,7 @@ behavior waiver-hash waiver.json
 behavior sign-waiver waiver.json --seed key.hex
 ```
 
-The same is available from Rust (`behavior_verify::{verify, governance::authorize}`) and Python
+The same is available through the public Rust `behavior_engine::verify` API and Python
 (`verify(model)`, `authorize(model, decision, policy=..., ...)`). Details:
 `specs/002-smt-verification/` (quickstart, contracts); overview, guarantees, and known
 limitations: `docs/verification.md`.
@@ -289,6 +290,54 @@ entry points, not building blocks: shared computation is a derived value. `behav
 for evaluation errors. See `python -m examples.lab_reads.run`, `PRINCIPLES.md` (14),
 `docs/persistence.md` and `specs/010-first-class-reads/`.
 
+## Current invocation and durable commands (feature 500)
+
+The package exposes Core 012's unified invocation and Core 013's durable command intents.
+Import a versioned behavior document through normal admission, then invoke either a read or
+an action against an explicit snapshot:
+
+```python
+from pathlib import Path
+from behavior import BehaviorModule, invoke, replay_invocation
+
+model = BehaviorModule.from_wire_json(Path("module.json").read_text())
+record = invoke(model, Path("invocation.json").read_text(), Path("snapshot.json").read_text())
+assert replay_invocation(model, record).matches
+```
+
+The invocation document uses typed `{entity, id}` bindings. For untrusted capability intents,
+pass host context explicitly with `invoke(..., context=...)`; the caller supplies neither
+state nor acting context. Passing raw JSON text preserves duplicate keys for the core's
+checked decoder. Canonical records, refusal order, semantic hashes and replay come from core.
+See the pinned [invocation contract](https://github.com/kallistoteles/behavior-ir-core/blob/v0.12.0/docs/invocation.md).
+
+The existing Python DSL retains its legacy semantic profile. Current command modules are
+explicitly selected Wire IR 0.8 documents, admitted with `BehaviorModule.from_wire_json`.
+Their decision record 0.7 retains typed command candidates and keeps source diagnostics
+outside canonical identity. A Python command authoring DSL is separate work.
+
+For persistence, create a v2 genesis explicitly with `Store.genesis_v2_for(model, seed, policy)`.
+`store.invoke` and `store.invoke_intent` return an invocation record and an optional candidate
+bundle. Only an allowed action at the current head has a bundle; commit is a separate step.
+Reads, refusals and uncommitted candidates leave history unchanged.
+
+`store.current_history()` and `store.history_at(position)` provide exact history anchors.
+`store.commands_since(request)` reads committed occurrences after an anchor, with an optional
+upper anchor and a limit on whole history events. Duplicate emissions retain multiplicity;
+each committed occurrence has a stable identity. Command-only commits advance history while
+preserving state content. Adapters consume these occurrences and own dispatch, retries and
+delivery status. See the pinned [command contract](https://github.com/kallistoteles/behavior-ir-core/blob/v0.12.0/docs/commands.md).
+
+Trusted proof generation and authorization are available through the bundled
+`behavior governance verify`, `verify-migration` and `authorize` commands. Python can derive
+the exact candidate with `governance_candidate`, attach signed evidence with
+`with_trusted_evidence`, and commit through `store.commit_with_context` with independently
+supplied host context and the exact execution policy. Historical v1 policies requiring
+authorization refuse fresh action or migration writes with
+`TRUSTED_GOVERNANCE_UPGRADE_REQUIRED`. Validated state export and an explicit v2 genesis begin
+a new lineage; historical evidence retains its original trust level. See the pinned
+[governance contract](https://github.com/kallistoteles/behavior-ir-core/blob/v0.12.0/docs/governance.md).
+
 ## Using a release (feature 008)
 
 Applications use Behavior through a **release**: an immutable tag `vX.Y.Z` of this repository
@@ -297,15 +346,15 @@ pinned by file and hash; no Rust toolchain is needed:
 
 ```text
 # requirements.txt of the application
-behavior @ file:///path/to/behavior-0.10.4-cp313-abi3-manylinux_2_28_x86_64.whl --hash=sha256:<from SHA256SUMS>
+behavior @ file:///path/to/behavior-0.12.0-cp313-abi3-manylinux_2_28_x86_64.whl --hash=sha256:<from SHA256SUMS>
 ```
 
 - **Install.** Run `pip install --require-hashes -r requirements.txt`. The wheel also installs
   the `behavior` command line: the core's own CLI, bundled as a static binary from the Core
   Release the package names (`behavior.versions()["core"]`).
 - **Versions.** `behavior.versions()` and `behavior engine-info` report the release:
-  - the engine and binding versions, which must match exactly;
-  - the wire IR, record and store document formats it reads;
+  - the binding's own version and the exact declared core version and commit;
+  - accepted wire IR, decision/read records, store formats and command stream domains;
   - the verifier version.
 - **Solver.** Verification needs the Z3 SMT solver at the version the release names (`z3` on
   PATH, or `BEHAVIOR_Z3`). Without it, verification fails with an error naming the prerequisite;
@@ -370,5 +419,5 @@ core first, as a Core Release; the ecosystem then moves its pin.
 Layout:
 - `crates/behavior-py`: the native extension; it depends on `behavior-engine` only.
 - `python/behavior`: the DSL and binding.
-- `examples/`, `skills/` (consumer skills), `models/` (rules for models; no models yet).
+- `examples/`, `skills/` (consumer skills), `models/` (model rules and a state-machine example).
 - `release/`, `api/public-api.json`, `scripts/`.

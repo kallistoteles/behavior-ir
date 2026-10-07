@@ -1,14 +1,19 @@
 ---
 name: behavior-authoring
 description: Model a domain as Behavior with the Python binding (entities, field types, actions, creation and removal, references, queries over sets, entity constraints, module invariants, exact arithmetic, declared reads and projections). Use when writing or changing a behavior model.
-release: 0.10.4
+release: 0.12.0
 ---
 
 # Authoring behavior
 
-This skill describes **Behavior release 0.10.4**. Use only what is described here or listed in the
+This skill describes **Behavior release 0.12.0**. Use only what is described here or listed in the
 release's public API (`behavior.versions()` reports the installed release). Everything is imported
 from the `behavior` package.
+
+The Python DSL described here retains its legacy semantic profile. Versioned documents from
+other authoring paths can be admitted explicitly through `BehaviorModule.from_wire_json`,
+including current Wire IR 0.8 command modules. A Python command authoring DSL remains separate
+work; importing a current document delegates its admission and meaning to core.
 
 > If the public Behavior API cannot express a requirement, record a semantic gap in
 > `SEMANTIC_GAPS.md` (format: skills/README.md). Do not work around it: no engine internals,
@@ -373,7 +378,7 @@ refused = BehaviorModule(entities=[Customer, Order], constraints=[few_orders])
 assert [e.code for e in admit(refused).errors] == ["QUERY_NOT_ALLOWED"]
 ```
 
-## Requirements that are semantic gaps in 0.10.4
+## Requirements that are semantic gaps in 0.12.0
 
 Record these, do not approximate them:
 

@@ -8,11 +8,13 @@ reference backend; any object with the seven backend methods (`genesis`, `head`,
 
 from __future__ import annotations
 
+import copy
 from dataclasses import dataclass
 from typing import Any, Callable, Iterator, Sequence
 
 from . import _engine
-from .errors import CommitRefused, StateConflict
+from .errors import BehaviorError, CommitRefused, StateConflict
+from .invocation import Document, Invocation, InvocationRecord, record_json
 from .module import BehaviorModule
 from .results import Decision, ReplayResult
 
@@ -32,6 +34,59 @@ class StateRef:
     @staticmethod
     def of(d: dict[str, Any]) -> StateRef:
         return StateRef(d["state"], d["position"])
+
+
+@dataclass(frozen=True)
+class HistoryRef:
+    """An exact committed event: store, state, position and record identity.
+
+    Core checks anchors returned by Store and validates every supplied anchor at its boundary.
+    """
+
+    store: str
+    state: str
+    position: int
+    record: str
+    format: str = "behavior.history_ref.v1"
+
+    def as_dict(self) -> dict[str, Any]:
+        return {"format": self.format, "store": self.store, "state": self.state,
+                "position": self.position, "record": self.record}
+
+    @staticmethod
+    def of(data: dict[str, Any]) -> HistoryRef:
+        return HistoryRef(data["store"], data["state"], data["position"], data["record"],
+                          data["format"])
+
+
+@dataclass(frozen=True)
+class CommandStreamPage:
+    """Core's validated committed occurrences and checkpoint for a whole-event page."""
+
+    _data: dict[str, Any]
+
+    @property
+    def data(self) -> dict[str, Any]:
+        return copy.deepcopy(self._data)
+
+    @property
+    def items(self) -> list[dict[str, Any]]:
+        return copy.deepcopy(self._data["items"])
+
+    @property
+    def observed_head(self) -> HistoryRef:
+        return HistoryRef.of(self._data["observed_head"])
+
+    @property
+    def next_after(self) -> HistoryRef:
+        return HistoryRef.of(self._data["next_after"])
+
+    @property
+    def complete(self) -> bool:
+        return bool(self._data["complete"])
+
+    def as_dict(self) -> dict[str, Any]:
+        return self.data
 
 
 @dataclass(frozen=True)
@@ -61,7 +116,7 @@ class CommitResult:
     record_id: str
     result_state: StateRef
     already: bool  # the same transition was already committed
-    evidence_trust: str | None  # "structural" when an authorization was bound
+    evidence_trust: str | None  # historical "structural", or v2 "authenticated"
 
 
 @dataclass(frozen=True)
@@ -100,6 +155,21 @@ def _ref(r: StateRef | dict[str, Any]) -> dict[str, Any]:
     return r.as_dict() if isinstance(r, StateRef) else r
 
 
+def governance_candidate(bundle: Document) -> dict[str, Any]:
+    """Inspects Core's exact candidate document without asserting live commitment."""
+    with _Translate():
+        return _engine.governance_candidate(bundle)
+
+
+def with_trusted_evidence(bundle: Document, evidence: Document) -> dict[str, Any]:
+    """Attaches checked v2 evidence while preserving the candidate's identity.
+
+    A fresh governed commit still needs independently supplied authorization context.
+    """
+    with _Translate():
+        return _engine.with_trusted_evidence(bundle, evidence)
+
+
 class Store:
     """Engine-owned store semantics over a backend."""
 
@@ -113,6 +183,14 @@ class Store:
         """A genesis for the model's entities: `seed` lists {"entity", "value"} dicts; `policy`
         is an evidence policy (default: no governance evidence required)."""
         return _engine.Store.genesis_for(model.engine, list(seed), policy)
+
+    @staticmethod
+    def genesis_v2_for(
+        model: BehaviorModule, seed: Sequence[dict[str, Any]], policy: Document
+    ) -> dict[str, Any]:
+        """Begins a v2 lineage with an explicit immutable trusted evidence policy."""
+        with _Translate():
+            return _engine.Store.genesis_v2_for(model.engine, list(seed), policy)
 
     @staticmethod
     def create(backend: Any, model: BehaviorModule, genesis: dict[str, Any]) -> Store:
@@ -136,6 +214,28 @@ class Store:
     def state_at(self, position: int) -> StateRef:
         with _Translate():
             return StateRef.of(self._inner.state_at(position))
+
+    def current_history(self) -> HistoryRef:
+        """The exact committed head; command-only events can retain the same state identity."""
+        with _Translate():
+            return HistoryRef.of(self._inner.current_history())
+
+    def history_at(self, position: int) -> HistoryRef:
+        with _Translate():
+            return HistoryRef.of(self._inner.history_at(position))
+
+    def commands_since(self, request: Document) -> CommandStreamPage:
+        """Enumerates committed commands through checked anchors, preserving whole events."""
+        with _Translate():
+            return CommandStreamPage(self._inner.commands_since(request))
+
+    def export_seed_at(
+        self, model: BehaviorModule, history: HistoryRef | Document
+    ) -> dict[str, Any]:
+        """Exports the validated live state at an exact history anchor for a new lineage."""
+        anchor = history.as_dict() if isinstance(history, HistoryRef) else history
+        with _Translate():
+            return self._inner.export_seed_at(model.engine, anchor)
 
     def data_version(self, at: StateRef | None = None) -> str:
         """`store:<id>;state:<state>;position:<n>` of state `at` (default: the current state):
@@ -177,16 +277,92 @@ class Store:
             )
         return Evaluation(Decision.from_record(record), bundle)
 
+    def invoke(
+        self,
+        model: BehaviorModule,
+        document: Document,
+        *,
+        commit_time: str,
+        evidence: Document | None = None,
+        at: StateRef | None = None,
+    ) -> Invocation:
+        """Invokes a checked requested document against one store snapshot.
+
+        Resolution/evaluation refusals return records; invalid document shapes or transport
+        raise BehaviorError with Core's ordered diagnostics. Use invoke_intent for capability
+        intents and their decode-refusal records. Only an allowed action at the captured head
+        has a candidate bundle.
+        Reads, refusals and past-state invocations never commit anything.
+        """
+        try:
+            with _Translate():
+                record, bundle = self._inner.invoke(
+                    model.engine, document, commit_time, evidence,
+                    _ref(at) if at is not None else None,
+                )
+        except _engine.EngineError as error:
+            raise BehaviorError(str(error.args[1])) from None
+        return Invocation(InvocationRecord(record), bundle)
+
+    def invoke_intent(
+        self,
+        model: BehaviorModule,
+        intent: Document,
+        *,
+        context: dict[str, Any],
+        commit_time: str,
+        at: StateRef | None = None,
+    ) -> Invocation:
+        """Invokes a capability intent with independently supplied host context."""
+        with _Translate():
+            record, bundle = self._inner.invoke_intent(
+                model.engine, intent, context, commit_time, _ref(at) if at is not None else None,
+            )
+        return Invocation(InvocationRecord(record), bundle)
+
+    def replay_invocation(
+        self, model: BehaviorModule, record: InvocationRecord | str
+    ) -> ReplayResult:
+        """Replays Core's outcome against its original position in this store."""
+        with _Translate():
+            matches, diff = self._inner.replay_invocation(model.engine, record_json(record))
+        return ReplayResult(matches, diff)
+
     def commit(
-        self, model: BehaviorModule, bundle: dict[str, Any], expected_parent: StateRef | None = None
+        self, model: BehaviorModule, bundle: Document, expected_parent: StateRef | None = None
     ) -> CommitResult:
         """Commits `bundle` on the state it was evaluated against (or `expected_parent`); raises
         StateConflict when the store moved on, CommitRefused for any other refusal."""
-        parent = _ref(expected_parent) if expected_parent else bundle["evaluated_state"]
+        parent = _ref(expected_parent) if expected_parent is not None else None
         with _Translate():
             r = self._inner.commit(model.engine, parent, bundle)
         return CommitResult(
             r["record_id"], StateRef.of(r["result_state"]), r["already"], r["evidence_trust"]
+        )
+
+    def commit_with_context(
+        self,
+        model: BehaviorModule,
+        bundle: Document,
+        *,
+        context: Document,
+        execution_policy: Document,
+        expected_parent: StateRef | None = None,
+    ) -> CommitResult:
+        """Commits with explicit host authorization context decoded against execution_policy.
+
+        Core decodes the bundle, chooses its evaluated parent when none is supplied, and
+        compares this context with the signed context before any fresh governed write.
+        Core independently enforces the actual signed policy allowed by the store genesis.
+        """
+        with _Translate():
+            result = self._inner.commit_with_context(
+                model.engine, _ref(expected_parent) if expected_parent is not None else None,
+                bundle, context, execution_policy,
+            )
+        return CommitResult(
+            result["record_id"], StateRef.of(result["result_state"]), result["already"],
+            result["evidence_trust"],
         )
 
     def migrate(
@@ -194,8 +370,10 @@ class Store:
     ) -> CommitResult:
         """Applies a migration (feature 009) as one atomic transition: the store's schema must be
         the migration's source; source validity, requirements, transforms and target validity
-        are checked on the complete state. Raises CommitRefused (`MIGRATION_*`,
-        `RETIRED_TYPE_NOT_EMPTY`, `EVIDENCE_REQUIRED`, …) or StateConflict."""
+        are checked on the complete state. Fresh required-governance writes need explicit
+        trusted governance; legacy authorization evidence cannot supply the independent v2
+        context. Core returns its upgrade or context refusal before mutation. Other migration
+        refusals raise CommitRefused; concurrent state changes raise StateConflict."""
         with _Translate():
             r = self._inner.migrate(
                 migration.engine, migration.source.engine, migration.target.engine, commit_time,

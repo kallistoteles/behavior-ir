@@ -17,7 +17,8 @@ repository script that runs identically on a laptop inside `nix develop` (FR-030
 
 ## `core-ci.yml` (behavior-ir-core)
 
-**Triggers**: `pull_request`; `push` to `main` and `dev`.
+**Triggers**: `pull_request`; `push` to `main`. GitHub Flow uses feature PRs and
+versioned releases; no permanent development branch is required.
 
 | Job | Script(s) | Covers |
 |---|---|---|
@@ -47,7 +48,7 @@ tested in disposable repositories; product release tags are never created or del
 
 ## `ecosystem-ci.yml` (behavior-ir)
 
-**Triggers**: `pull_request`; `push` to `main` and `dev`.
+**Triggers**: `pull_request`; `push` to `main`.
 
 | Job | Script(s) | Covers |
 |---|---|---|

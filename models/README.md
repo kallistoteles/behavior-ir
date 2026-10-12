@@ -4,49 +4,122 @@ A **Behavior Model** is a higher-level modeling abstraction, such as a state mac
 an approval process or a saga. It lowers completely to ordinary Behavior IR.
 
 **Behavior IR is the semantic assembly language; models are languages above it.** The core
-admits the lowered IR like any other module and never learns which model produced it. See the
-core's [ARCHITECTURE.md](https://github.com/kallistoteles/behavior-ir-core/blob/v0.10.2/ARCHITECTURE.md)
+admits the lowered IR like any other module and never learns which model produced it:
+`Meaning(M) := Meaning_Core(Lower(M))`. See the core's
+[ARCHITECTURE.md](https://github.com/kallistoteles/behavior-ir-core/blob/v0.12.0/ARCHITECTURE.md)
 for the layers and the dependency direction.
 
-No model exists yet. This area holds the rules every model follows, and one worked example.
+## The model authority
+
+[`crates/behavior-models`](../crates/behavior-models) is the **single authority** for every model
+kind (feature 501). It owns resolution, normalization, validation, canonical identity
+(ModelHash), composition and ownership, generated names, lowering, receipts and source maps. It
+depends only on the public `behavior-engine`.
+
+Bindings only describe what the author wrote and trace Core expressions inside scopes the model
+crate opens. The Python syntax is in [`python/behavior/models.py`](../python/behavior/models.py).
+A binding never sorts, deduplicates, defaults, renames or validates model semantics.
+
+The full contracts are in
+[`specs/501-model-lowering-state-machine/contracts/`](../specs/501-model-lowering-state-machine/contracts/).
 
 ## Rules
 
-1. **Complete, deterministic lowering (FR-009).**
-   - A model lowers to ordinary Behavior IR, and the same model always gives the same IR, byte
-     for byte.
-   - It may restrict, compose or generate core semantics. It never introduces runtime semantics
-     the core does not know: there is no model-specific evaluation, hook or side channel.
-2. **One authoritative lowering (FR-010).**
-   - Each model has exactly one definition of its normalization, validation and lowering.
-   - Every binding's syntax for the model calls that definition; no binding reimplements it.
-3. **What cannot be lowered faithfully (FR-011).** A construct that Behavior IR cannot represent
-   faithfully is never implemented as hidden model behavior. Either:
-   - it is redesigned on existing core semantics; or
-   - the missing concept is proposed as a core primitive in a core feature (numbered 012+ in
-     behavior-ir-core), and the model waits for the Core Release that adds it.
-4. **Model identity (FR-012).**
-   - A model may have its own canonical form and content hash. An audit can then keep both what
-     was authored (the model's identity) and what was executed (the Behavior module hash).
+1. **Complete, deterministic lowering.**
+   - A model lowers to ordinary Behavior IR. The same model always gives the same IR and the
+     same BehaviorHash. Lowering reads no clock, randomness, environment or source order.
+   - A model may restrict, compose or generate core semantics. It never introduces runtime
+     semantics the core does not know: no model-specific evaluation, hook, error or side
+     channel.
+2. **One authoritative lowering.** Each model kind has exactly one implementation, in
+   `behavior-models`, and every binding calls it.
+3. **What cannot be lowered faithfully.** A construct that Behavior IR cannot represent
+   faithfully is never implemented as hidden model behavior. Either it is redesigned on
+   existing core semantics, or the missing concept is proposed as a core primitive (a core
+   feature numbered 012+). The model waits for the Core Release that adds it. Inconvenience is
+   not evidence of a missing primitive.
+4. **Model identity.**
+   - `ModelHash` is the content hash of a canonical document of semantic facts only. Display
+     names, descriptions, source locations and authoring order never change it.
+   - Every build returns a receipt: ModelHash, model kind, model semantic version, lowerer
+     version, exact Core Release, BehaviorHash, the canonical document and a source map.
    - The module hash is always authoritative for runtime semantics.
-5. **Where a concept belongs.** Ask: *must the evaluator understand this construct for its
-   semantics to be correct?*
-   - If not, it is a model, a library or tooling here.
-   - If so, it is a candidate core primitive.
+5. **Versions identify functions.** For a fixed (model kind, model semantic version, lowerer
+   version, Core Release), the ModelHash → BehaviorHash mapping of the reference cases in
+   [`fixtures/compat.json`](fixtures/compat.json) is immutable. The gate `models compat` rejects
+   any change that is not accompanied by a version bump.
+6. **Where a concept belongs.** Ask: *must the evaluator understand this construct for its
+   semantics to be correct?* If not, it is a model, a library or tooling here. If so, it is a
+   candidate core primitive.
 
-## Worked example: a state machine
+## StateMachine
 
-[`examples/state_machine/lower.py`](examples/state_machine/lower.py) lowers a transition
-`submit: DRAFT -> SUBMITTED` over `Order.status` to one action:
+A state machine governs one enum field `f` of an entity type `E`:
+
+```text
+SM = (E, f, Q_entry, 𝒯)        Q := Cases(T_f)        Q_entry ⊆ Q
+t  = (F_t, q_t, G_t, E_t, P_t, K_t)
+```
+
+- **State domain.** The enum defines which values the field can hold; the machine defines which
+  changes between them are permitted. There is no separate list of states.
+- **Transitions.** Each transition lowers to one ordinary action `<machine id>__<transition id>`
+  with the layout below. Only the first requirement, effect and postcondition are generated by
+  the machine. Guards, extra effects, postconditions and commands are ordinary Core expressions,
+  placed unchanged.
+
+  ```text
+  requires  subject.f in F_t ;  G_t
+  effects   subject.f := q_t ;  E_t
+  ensures   subject.f == q_t ;  P_t
+  ```
+- **Outcomes.** Invoking a transition from another state, or with a false guard, gives Core's
+  ordinary denial. A guard that fails to evaluate gives Core's ordinary evaluation error.
+- **Ownership.** No other ordinary action may write `f`, and every creation of `E` must set `f`
+  to a literal entry state. The build checks this over the final admitted module, and there is
+  no escape hatch.
+- **Creation and removal.** These remain Core lifecycle and are never transitions.
+- **Not a workflow engine.** The machine never schedules, triggers, queues, retries or
+  orchestrates; a transition happens only when its action is invoked.
 
 ```python
-requires(order.status == OrderStatus.DRAFT)
+machine = StateMachine("purchase_request", subject=PurchaseRequest, state_field="status",
+                       entry_states={RequestStatus.DRAFT})
+machine.transition("submit", from_={RequestStatus.DRAFT}, to=RequestStatus.SUBMITTED)
+machine.transition("approve", from_={RequestStatus.IN_REVIEW}, to=RequestStatus.APPROVED,
+                   context={"actor": Id[Actor]},
+                   requires=[lambda r, actor: actor == r.approver],
+                   effects=[lambda r, actor: set_(r.approved_by, actor)])
+module = BehaviorModule(entities=[Actor, PurchaseRequest], enums=[RequestStatus],
+                        models=[machine])
+module.model_receipts      # provenance: ModelHash, versions, BehaviorHash, source map
+module.model_diagnostics   # warnings only (terminal or unreachable states), never verification
+```
+
+Callables receive the subject, then the inputs, then the context parameters, *by position*, in
+the order the model crate chooses: inputs and context sorted by name. Their Python parameter
+names do not matter.
+
+Transitions can emit commands (`K_t`). Declare them with `@command`, pass them to
+`BehaviorModule(commands=[...])` (which selects Core's command profile), and emit them with
+`emits=[lambda r, ...: emit(NotifyRequester, when=..., approver=...)]`. An emission is an intent
+recorded with the commit, never an effect.
+
+`module.model_receipts` are typed `LoweringReceipt`s. Their source locations are relative, so
+the same model gives the same receipt in every checkout.
+
+## Worked example
+
+[`examples/state_machine/machine.py`](examples/state_machine/machine.py) declares the `Order`
+machine with one transition, `submit: DRAFT → SUBMITTED`. Its test
+([`examples/state_machine/test_state_machine.py`](examples/state_machine/test_state_machine.py))
+checks that the lowered module is *the same module* as one with a hand-written action
+`order__submit`:
+
+```python
+requires(order.status.in_([OrderStatus.DRAFT]))
 set_(order.status, OrderStatus.SUBMITTED)
 ensures(order.status == OrderStatus.SUBMITTED)
 ```
 
-Its tests (`examples/state_machine/test_state_machine.py`) check that:
-- the lowered IR holds exactly these three statements;
-- the core admits the module;
-- nothing in the IR names a state machine;
-- lowering twice gives byte-identical IR.
+The two modules have the same Behavior IR and the same BehaviorHash.

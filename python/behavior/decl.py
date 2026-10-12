@@ -60,6 +60,30 @@ def entity_decl(spec: Any) -> EntityDecl | None:
     return getattr(spec, "__behavior_entity__", None)
 
 
+@dataclass
+class CommandDecl:
+    """A declared command (feature 501): a named intent with typed payload fields."""
+
+    name: str
+    fields: list[tuple[str, BType, tuple[str, int]]]
+    loc: tuple[str, int]
+
+
+def command(cls: type) -> type:
+    """Marks a class whose `field(...)` attributes describe a command's payload. A module that
+    declares commands uses Core's command profile; actions emit commands as intents that Core
+    records with the commit, never as effects."""
+    file, line = caller_loc()
+    loc = (file, getattr(cls, "__firstlineno__", line))
+    fields = [(n, v.type, v.loc) for n, v in vars(cls).items() if isinstance(v, FieldSpec)]
+    cls.__behavior_command__ = CommandDecl(cls.__name__, fields, loc)  # type: ignore[attr-defined]
+    return cls
+
+
+def command_decl(spec: Any) -> CommandDecl | None:
+    return getattr(spec, "__behavior_command__", None)
+
+
 class EntityVar:
     """A symbolic entity parameter; attribute access builds field references."""
 

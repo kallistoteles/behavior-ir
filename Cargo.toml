@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/behavior-py"]
+members = ["crates/behavior-models", "crates/behavior-py"]
 resolver = "3"
 
 [workspace.package]

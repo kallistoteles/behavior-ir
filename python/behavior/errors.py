@@ -39,6 +39,15 @@ class BehaviorInvalid(BehaviorError):
         super().__init__(f"behavior module was not admitted: {errors}")
 
 
+class ModelBuildError(BehaviorError):
+    """A Behavior Model could not be built (feature 501). `errors` is the model authority's
+    typed error list, unchanged: dicts with a stable `code` and their payload, sorted."""
+
+    def __init__(self, errors: list[dict[str, Any]]) -> None:
+        self.errors = errors
+        super().__init__("model build failed: " + "; ".join(e["message"] for e in errors))
+
+
 class IntentRejected(BehaviorError):
     """A structured intent was rejected before evaluation."""
 

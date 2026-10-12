@@ -1,0 +1,22 @@
+[package]
+name = "behavior-models"
+description = "Behavior Models: the single authority that resolves, identifies, composes and lowers models to ordinary Behavior IR"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+build = "build.rs"
+
+[dependencies]
+# The only core dependency is the public facade of the pinned Core Release (feature 501, FR-007).
+behavior-engine.workspace = true
+serde_json = "1"
+thiserror = "2"
+
+[build-dependencies]
+serde_json = "1"
+
+[dev-dependencies]
+proptest = { version = "1", default-features = false, features = ["std"] }
+
+[lints]
+workspace = true

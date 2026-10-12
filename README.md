@@ -290,6 +290,15 @@ entry points, not building blocks: shared computation is a derived value. `behav
 for evaluation errors. See `python -m examples.lab_reads.run`, `PRINCIPLES.md` (14),
 `docs/persistence.md` and `specs/010-first-class-reads/`.
 
+## Behavior Models (feature 501)
+
+A Behavior Model is an authoring abstraction that lowers completely to ordinary Behavior IR; the
+core never learns it existed. The first model is `StateMachine`: it governs every change of one
+enum field and lowers each transition to an ordinary action `<machine>__<transition>`. The Rust
+crate `crates/behavior-models` is the single authority for models; Python only records what the
+author wrote. See [`models/README.md`](models/README.md) for the rules, the API and the worked
+example.
+
 ## Current invocation and durable commands (feature 500)
 
 The package exposes Core 012's unified invocation and Core 013's durable command intents.

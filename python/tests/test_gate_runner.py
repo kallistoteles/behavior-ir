@@ -66,7 +66,9 @@ def test_gate_order_is_deterministic(tmp_path: Path) -> None:
     assert (tmp_path / "trace").read_text().splitlines() == [
         "check-core-pin.sh", "check-public-surface.sh", "fetch-core.sh",
         "cargo fmt --all --check", "cargo clippy -q --workspace --all-targets -- -D warnings",
+        "cargo test -q -p behavior-models",
         "maturin develop -q", "python -m pytest -q python/tests models", "mypy",
+        "python3 scripts/check-models-compat.py",
         "determinism-check.sh", "python3 scripts/check-ownership.py", "check-terms.sh",
         "check-workflows.sh", "test_stub.sh",
     ]
@@ -92,8 +94,11 @@ def test_shared_gate_collects_the_actual_model_tests(tmp_path: Path) -> None:
 
 def test_broken_lowering_fails_the_shared_gate(tmp_path: Path) -> None:
     _model_tree(tmp_path)
-    lowering = tmp_path / "models/examples/state_machine/lower.py"
-    lowering.write_text('def lower(machine):\n    raise AssertionError("broken lowering probe")\n')
+    # The lowering lives in the Rust model authority; break the example's model input instead.
+    machine = tmp_path / "models/examples/state_machine/machine.py"
+    machine.write_text('def module():\n    raise AssertionError("broken lowering probe")\n'
+                       'def order_machine():\n    raise AssertionError("broken lowering probe")\n'
+                       'Order = OrderStatus = None\n')
     result = _run(tmp_path, pytest_mode="run")
     assert result.returncode != 0, result.stdout + result.stderr
     assert "broken lowering probe" in result.stdout

@@ -19,9 +19,11 @@ gate "public surface" scripts/check-public-surface.sh
 gate "fetch core" sh -c 'scripts/fetch-core.sh >/dev/null'
 gate "cargo fmt" cargo fmt --all --check
 gate "clippy" cargo clippy -q --workspace --all-targets -- -D warnings
+gate "cargo test" cargo test -q -p behavior-models
 gate "maturin develop" maturin develop -q
 gate "pytest" python -m pytest -q python/tests models
 gate "mypy" mypy
+gate "models compat" python3 scripts/check-models-compat.py
 gate "determinism check" scripts/determinism-check.sh
 gate "ownership" python3 scripts/check-ownership.py
 gate "terms" scripts/check-terms.sh

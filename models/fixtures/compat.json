@@ -1,0 +1,41 @@
+{
+ "format": "behavior.model_compat.v1",
+ "tuples": [
+  {
+   "cases": {
+    "order": {
+     "behavior_hash": "sha256:eaeae2756f0624ccdb8acb57711fc4a9b07c032256c6f35d87aaa4fb1c65d970",
+     "models": {
+      "order": "sha256:d1736e102f4cf0925fe1ca28cf8125bc0f3922b380a29b5921b69114c887aad4"
+     }
+    },
+    "purchase_request": {
+     "behavior_hash": "sha256:02286fb386b82177012dfc4328b39b06bbe4ffbeb200da2b02ea59b69dbaa10a",
+     "models": {
+      "purchase_request": "sha256:82fc685b77238ba8af3491771d51cc51faebc0c5c69a3a3a56192a33e380642b"
+     }
+    },
+    "request_flow_reference": {
+     "behavior_hash": "sha256:7192caa4714bd3a2eff38a4058a2803ed04f718222316e3bf1157b08bff75d30",
+     "models": {
+      "request": "sha256:6da1d88ce821d013f44b40724d4a975f20a07c3362f7da401580d79ffd0a683b"
+     }
+    },
+    "two_machines_same_local_ids": {
+     "behavior_hash": "sha256:5bd2c5c65f10f56a6097a1942e342e6ff5c3db0ebc002a8e67d01f837efeb88f",
+     "models": {
+      "invoice": "sha256:51330af4f86904ba4bee17f12a5475c6daa6c92540ebb88569b01a72ec6c7761",
+      "quote": "sha256:ac6c01890bd53f0e5a54979140c638aa2d0b510880c72764daf1d4dc763c7423"
+     }
+    }
+   },
+   "core_release": {
+    "commit": "b525da46d4282166418a90141f0c94fd099e9b47",
+    "version": "0.12.0"
+   },
+   "lowerer_version": 1,
+   "model_kind": "state_machine",
+   "model_semantic_version": 1
+  }
+ ]
+}

@@ -25,6 +25,8 @@ use pyo3::prelude::*;
 use pyo3::types::{PyBool, PyDict, PyFloat, PyInt, PyList, PyString, PyTuple};
 use serde_json::{Map, Value, json};
 
+mod models;
+
 create_exception!(
     _engine,
     EngineError,
@@ -1004,11 +1006,44 @@ struct PyBuilder {
 
 #[pymethods]
 impl PyBuilder {
+    /// `profile` selects Core's semantic profile: `None` (the default, legacy profile) or
+    /// `"command_intents"`, which a module needs to declare and emit commands (feature 501).
     #[new]
-    fn new() -> Self {
-        PyBuilder {
-            inner: Builder::new(),
-        }
+    #[pyo3(signature = (profile=None))]
+    fn new(profile: Option<&str>) -> PyResult<Self> {
+        let inner = match profile {
+            None => Builder::new(),
+            Some("command_intents") => Builder::with_semantic_profile(
+                behavior_engine::builder::SemanticProfile::CommandIntents,
+            ),
+            Some(other) => {
+                return Err(PyValueError::new_err(format!(
+                    "unknown semantic profile `{other}`"
+                )));
+            }
+        };
+        Ok(PyBuilder { inner })
+    }
+
+    /// Declares a command (command profile only). `fields`: `(name, Type, file, line)`.
+    fn add_command(
+        &mut self,
+        name: &str,
+        fields: Vec<(String, PyType_, String, u64)>,
+        file: String,
+        line: u64,
+    ) -> PyResult<()> {
+        let fields = fields
+            .into_iter()
+            .map(|(n, t, f, l)| WField {
+                name: n,
+                ty: t.inner,
+                loc: loc(f, l),
+            })
+            .collect();
+        self.inner
+            .add_command(name, fields, loc(file, line))
+            .map_err(build_err)
     }
 
     fn declare_enum(
@@ -2492,6 +2527,7 @@ fn _engine(m: &Bound<'_, pyo3::types::PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(solver_notice, m)?)?;
     m.add_class::<PyType_>()?;
     m.add_class::<PyBuilder>()?;
+    m.add_function(wrap_pyfunction!(models::compose_models, m)?)?;
     m.add_class::<PyNode>()?;
     m.add_class::<PyRecord>()?;
     m.add_class::<PyInvocationRecord>()?;

@@ -12,16 +12,26 @@ cd "$(dirname "$0")/.."
 case "${1:-}" in "" | --consumer) ;; *) echo "usage: scripts/check-public-surface.sh" >&2; exit 2 ;; esac
 
 fail=0
-for d in $(python3 - <<'PY'
+# Every ecosystem crate: the binding and the model authority (feature 501).
+for hit in $(python3 - <<'PY'
 import tomllib
-deps = tomllib.load(open("crates/behavior-py/Cargo.toml", "rb")).get("dependencies", {})
 internal = {"behavior-core", "behavior-store", "behavior-verify", "behavior-cli"}
-print("\n".join(sorted(internal & set(deps))))
+for crate in ("behavior-py", "behavior-models"):
+    deps = tomllib.load(open(f"crates/{crate}/Cargo.toml", "rb")).get("dependencies", {})
+    for d in sorted(internal & set(deps)):
+        print(f"{crate}:{d}")
 PY
 ); do
-  echo "check-public-surface: crates/behavior-py depends on internal core crate $d" >&2
+  echo "check-public-surface: crates/${hit%%:*} depends on internal core crate ${hit#*:}" >&2
   fail=1
 done
+# Models never use Wire IR as their interface (feature 501, research R2): fragments stay Core
+# nodes in the shared builder; nothing serializes or reads wire expressions.
+wire="$(grep -rnE '\b(into_wire|to_wire_json)\b' crates/behavior-models/src || true)"
+if [ -n "$wire" ]; then
+  while IFS= read -r hit; do echo "check-public-surface: wire IR used as model interface: $hit" >&2; done <<<"$wire"
+  fail=1
+fi
 hits="$(grep -rnIE '\bbehavior_(core|store|verify|cli)\b' crates python examples skills release || true)"
 if [ -n "$hits" ]; then
   while IFS= read -r hit; do echo "check-public-surface: internal core crate used: $hit" >&2; done <<<"$hits"

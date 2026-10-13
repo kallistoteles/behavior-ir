@@ -71,6 +71,7 @@ if python3 -c "import behavior._engine" 2>/dev/null; then
   run_twice "examples.accounts.run" python3 -m examples.accounts.run
   run_twice "examples.orders.run" python3 -m examples.orders.run
   run_twice "examples.lab_reads.run" python3 -m examples.lab_reads.run
+  run_twice "models receipts" python3 scripts/check-models-compat.py --print
 else
   echo "determinism-check: the Python engine is not built; run maturin develop" >&2
   fail=1

@@ -11,7 +11,7 @@ filter-repo path list is every `core` and `both` rule.
 
 | # | Glob | Owner | Note |
 |---|---|---|---|
-| 1 | `crates/behavior-py/**` | ecosystem | the native extension of the Python binding |
+| 1 | `crates/behavior-py/**`, `crates/behavior-models/**` | ecosystem | the native extension of the Python binding; the Behavior Models authority (feature 501) |
 | 2 | `crates/behavior-engine/**` | core | new facade (created in the preflight) |
 | 3 | `crates/**` | core | behavior-core, -verify, -store, -cli |
 | 4 | `consumer/**` | core | external consumer (FR-006d) |

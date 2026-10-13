@@ -12,7 +12,7 @@ from typing import Any, Sequence
 from . import _engine
 from .decl import (
     ActionFn, BehaviorFn, ConstraintFn, DerivedFn, EntityDecl, InvariantFn, ParamInfo, ReadFn,
-    entity_decl,
+    command_decl, entity_decl,
 )
 from .errors import BehaviorDefinitionError, BehaviorInvalid
 from .expr import engine_error, lift
@@ -23,8 +23,8 @@ from .types import BType, EnumT, ExactT, NominalT, OptionT
 class CompileSession:
     """One module compilation: the engine builder plus which bodies are traced."""
 
-    def __init__(self) -> None:
-        self.builder = _engine.Builder()
+    def __init__(self, profile: str | None = None) -> None:
+        self.builder = _engine.Builder(profile)
         self.started: set[int] = set()
         self._declared: set[str] = set()
         #: Every enum and nominal type declared to the builder, by name (feature 009: a
@@ -174,6 +174,8 @@ class BehaviorModule:
         nominals: Sequence[NominalT] = (),
         root: str | None = None,
         reads: Sequence[ReadFn] = (),
+        models: Sequence[Any] = (),
+        commands: Sequence[type] = (),
     ) -> None:
         decls: list[EntityDecl] = []
         for cls in entities:
@@ -183,7 +185,15 @@ class BehaviorModule:
             decls.append(d)
         self.entities = decls
 
-        session = CompileSession()
+        command_decls = []
+        for cls in commands:
+            c = command_decl(cls)
+            if c is None:
+                raise BehaviorDefinitionError(f"{cls!r} is not a @command class")
+            command_decls.append(c)
+        # Commands need Core's command profile (feature 501); without them the module keeps the
+        # legacy profile, so existing modules and their hashes are unchanged.
+        session = CompileSession("command_intents" if command_decls else None)
         token = _SESSION.set(session)
         try:
             from .types import enum_type
@@ -201,6 +211,14 @@ class BehaviorModule:
                     session.builder.declare_entity(d.name, fields, *d.loc)
                 except _engine.EngineError as e:
                     raise engine_error(e, d.loc) from None
+            for c in command_decls:
+                for _, t, _ in c.fields:
+                    session.declare(t)
+                cfields = [(n, t.engine(), l[0], l[1]) for n, t, l in c.fields]
+                try:
+                    session.builder.add_command(c.name, cfields, *c.loc)
+                except _engine.EngineError as e:
+                    raise engine_error(e, c.loc) from None
             for fn in derived:
                 session.trace_derived(fn)
             for inv in invariants:
@@ -211,6 +229,12 @@ class BehaviorModule:
                 self._trace_action(session, act)
             for r in reads:
                 trace_read(session, r, declared=True)
+            # Models last (feature 501): every ordinary declaration and hand-written item is
+            # traced before the model authority composes the module.
+            self.model_receipts: list[Any] = []
+            self.model_diagnostics: list[dict[str, Any]] = []
+            if models:
+                self._compose(session, models, root)
         finally:
             _SESSION.reset(token)
 
@@ -219,6 +243,22 @@ class BehaviorModule:
         #: The enum and nominal types this module declares, by name (feature 009).
         self.declared_types: dict[str, BType] = dict(session.types)
         self._module, self._admission = session.builder.finish(root)
+
+    def _compose(self, session: CompileSession, models: Sequence[Any], root: str | None) -> None:
+        from .errors import ModelBuildError
+
+        for m in models:
+            for t in m.parameter_types():
+                session.declare(t)
+        inputs = [m.engine_input() for m in models]
+        _, errors, receipts, diagnostics = _engine.compose_models(session.builder, inputs, root)
+        if errors:
+            raise ModelBuildError(list(errors))
+        from .models import LoweringReceipt
+
+        #: One LoweringReceipt per model, in model-id order (feature 501).
+        self.model_receipts = [LoweringReceipt.from_dict(r) for r in receipts]
+        self.model_diagnostics = list(diagnostics)
 
     @staticmethod
     def _trace_invariant(session: CompileSession, fn: InvariantFn | ConstraintFn) -> None:

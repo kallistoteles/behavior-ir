@@ -1,22 +1,23 @@
-"""A Behavior Model lowers completely to ordinary Behavior IR (feature 011, US5, FR-009): the
-`submit` transition of a state machine becomes a precondition, an effect and a postcondition,
-and the core admits the result without knowing it came from a state machine."""
+"""A Behavior Model lowers completely to ordinary Behavior IR (features 011 US5 and 501): the
+`submit` transition of a state machine becomes one ordinary action, and Core admits the result
+without knowing it came from a state machine. The lowering itself lives in the Rust model
+authority (`crates/behavior-models`); nothing here lowers."""
 
 from __future__ import annotations
 
 import json
 from typing import Any
 
-from behavior import admit
+from behavior import BehaviorModule, action, admit, ensures, requires, set_
 
-from .lower import lower
+from .machine import Order, OrderStatus, module
 
-ORDER_MACHINE = {
-    "entity": "Order",
-    "field": "status",
-    "states": ["DRAFT", "SUBMITTED"],
-    "transitions": [{"name": "submit", "from": "DRAFT", "to": "SUBMITTED"}],
-}
+
+@action
+def order__submit(order: Order):  # noqa: N802 - the generated action's name
+    requires(order.status.in_([OrderStatus.DRAFT]))
+    set_(order.status, OrderStatus.SUBMITTED)
+    ensures(order.status == OrderStatus.SUBMITTED)
 
 
 def _strip(v: Any) -> Any:
@@ -28,25 +29,20 @@ def _strip(v: Any) -> Any:
 
 
 def test_a_transition_lowers_to_requires_set_ensures() -> None:
-    wire = _strip(json.loads(lower(ORDER_MACHINE).to_wire_json()))
-    [submit] = wire["actions"]
-    assert submit["name"] == "submit"
-    lit = {"op": "lit", "type": {"name": "OrderStatus", "t": "enum"}}
-    status = {"op": "field", "param": "order", "field": "status"}
-    assert submit["preconditions"] == [
-        {"expr": {"op": "eq", "args": [status, {**lit, "value": "DRAFT"}]}}]
-    assert submit["effects"] == [{"target": {"param": "order", "field": "status"},
-                                  "value": {**lit, "value": "SUBMITTED"}}]
-    assert submit["postconditions"] == [
-        {"expr": {"op": "eq", "args": [status, {**lit, "value": "SUBMITTED"}]}}]
+    """The lowered module is the hand-written one: same Behavior IR, same BehaviorHash."""
+    by_hand = BehaviorModule(entities=[Order], enums=[OrderStatus], actions=[order__submit])
+    lowered = module()
+    assert lowered.behavior_version == by_hand.behavior_version
+    assert _strip(json.loads(lowered.to_wire_json())) == _strip(json.loads(by_hand.to_wire_json()))
 
 
 def test_the_core_admits_it_without_knowing_the_model() -> None:
-    module = lower(ORDER_MACHINE)
-    assert admit(module).ok
-    text = module.to_wire_json().lower()
-    assert "state machine" not in text and "state_machine" not in text and "transition" not in text
+    lowered = module()
+    assert admit(lowered).ok
+    wire = json.loads(lowered.to_wire_json())
+    assert [a["name"] for a in wire["actions"]] == ["order__submit"]
 
 
 def test_lowering_is_deterministic() -> None:
-    assert lower(ORDER_MACHINE).to_wire_json() == lower(ORDER_MACHINE).to_wire_json()
+    assert module().to_wire_json() == module().to_wire_json()
+    assert module().model_receipts == module().model_receipts

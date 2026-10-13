@@ -67,6 +67,34 @@ expect PASS "tuple of an unpinned core removed" "$(repo unpinned "$old")" "$base
 expect FAIL "tuple of the pinned core removed" "$(repo pinned "$base")" \
   "$(manifest "$(tuple 2 1.0 "$A2")")" "$(computed 2 "$A2")"
 
+# Feature 502: a RequestFlow tuple beside the StateMachine tuple (research R10).
+rf_tuple() { # rf_tuple <embedded lowerer> <cases json>
+  printf '{"core_release":{"commit":"c1.0","version":"1.0"},"embedded":[{"kind":"state_machine","lowerer_version":%s,"model_semantic_version":1}],"lowerer_version":1,"model_kind":"request_flow","model_semantic_version":1,"cases":%s}' \
+    "$1" "$2"
+}
+groups() { # groups <sm lowerer> <sm cases> <embedded lowerer> <rf cases>
+  printf '{"groups":[{"tuple":{"core_release":{"commit":"c1.0","version":"1.0"},"lowerer_version":%s,"model_kind":"state_machine","model_semantic_version":1},"cases":%s},{"tuple":{"core_release":{"commit":"c1.0","version":"1.0"},"embedded":[{"kind":"state_machine","lowerer_version":%s,"model_semantic_version":1}],"lowerer_version":1,"model_kind":"request_flow","model_semantic_version":1},"cases":%s}]}\n' \
+    "$1" "$2" "$3" "$4"
+}
+R1='{"rf":{"behavior_hash":"sha256:r1","embedded":{"f":"sha256:e1"},"entities":{"f":"F"},"models":{"f":"sha256:f1"}}}'
+R2='{"rf":{"behavior_hash":"sha256:r2","embedded":{"f":"sha256:e2"},"entities":{"f":"F"},"models":{"f":"sha256:f2"}}}'
+both="$(manifest "$(tuple 1 1.0 "$A1")" "$(rf_tuple 1 "$R1")")"
+expect PASS "both tuples, unchanged" "$(repo both "$base")" "$both" "$(groups 1 "$A1" 1 "$R1")"
+expect PASS "both tuples established, unchanged" "$(repo both2 "$both")" "$both" \
+  "$(groups 1 "$A1" 1 "$R1")"
+expect FAIL "edited RF case hash" "$(repo rfedit "$both")" \
+  "$(manifest "$(tuple 1 1.0 "$A1")" "$(rf_tuple 1 "$R2")")" "$(groups 1 "$A1" 1 "$R2")"
+expect FAIL "RF output changed under the same tuple" "$(repo rfdrift "$both")" "$both" \
+  "$(groups 1 "$A1" 1 "$R2")"
+expect FAIL "embedded lowerer bump reusing the old RF tuple" "$(repo rfold "$both")" \
+  "$(manifest "$(tuple 1 1.0 "$A1")" "$(tuple 2 1.0 "$A2")" "$(rf_tuple 1 "$R2")")" \
+  "$(groups 2 "$A2" 1 "$R2")"
+expect PASS "embedded lowerer bump with new tuples" "$(repo rfbump "$both")" \
+  "$(manifest "$(tuple 1 1.0 "$A1")" "$(tuple 2 1.0 "$A2")" "$(rf_tuple 1 "$R1")" "$(rf_tuple 2 "$R2")")" \
+  "$(groups 2 "$A2" 2 "$R2")"
+expect FAIL "StateMachine tuple edited beside an RF tuple" "$(repo smedit "$both")" \
+  "$(manifest "$(tuple 1 1.0 "$A2")" "$(rf_tuple 1 "$R1")")" "$(groups 1 "$A2" 1 "$R1")"
+
 # No merge base: the gate fails, it never passes silently.
 nobase="$tmp/nobase"
 mkdir -p "$nobase/models/fixtures"

@@ -3,6 +3,64 @@
  "tuples": [
   {
    "cases": {
+    "rf_purchase_request": {
+     "behavior_hash": "sha256:6a51f91049227d70d7b61dcd53f1e4e23127c8329e6ad0cb21f6bc1d2b182062",
+     "embedded": {
+      "purchase_request": "sha256:f4ae4732806ad8dba9bf4277788068f2a1cae52f67617dcfc4386f6330959188"
+     },
+     "entities": {
+      "purchase_request": "PurchaseRequest"
+     },
+     "models": {
+      "purchase_request": "sha256:daaff141c929a78a1e5ef8fbc159936504fe0983bfb6b26fb769e1c78accb352"
+     }
+    },
+    "rf_two_flows_local_submit": {
+     "behavior_hash": "sha256:98c6b300c763d24b699bdb30f60c24e2ac20f6aea76ea6a3c4a76a6fb49f920b",
+     "embedded": {
+      "leave_request": "sha256:4af97001f77a8f4cbb8e1d577d0fe6cca9a9e1330fc97b35bda18c132519a35e",
+      "purchase_request": "sha256:a2e560ee1aadc0707e6730c29969dbed09d95ee05b5e3d251123063de34a63f7"
+     },
+     "entities": {
+      "leave_request": "LeaveRequest",
+      "purchase_request": "PurchaseRequest"
+     },
+     "models": {
+      "leave_request": "sha256:76107e6a338c57e01014c97e3cf5104bd72a95d1d4b0c4312244ef9543d45132",
+      "purchase_request": "sha256:e5ada30a69daf5e3ab947b4e53f2e89047152bc2a345a928061d3a084a13468b"
+     }
+    },
+    "rf_with_standalone_machine": {
+     "behavior_hash": "sha256:8cabd65707a101b365b714f6db4aea285a7244aa1df55521cbb0f5b38ce6ccf2",
+     "embedded": {
+      "purchase_request": "sha256:a2e560ee1aadc0707e6730c29969dbed09d95ee05b5e3d251123063de34a63f7"
+     },
+     "entities": {
+      "purchase_request": "PurchaseRequest"
+     },
+     "models": {
+      "budget": "sha256:54d5ff236caf984caf6ab2063da10b09a0b8489721a991d122116d8d616b8604",
+      "purchase_request": "sha256:e5ada30a69daf5e3ab947b4e53f2e89047152bc2a345a928061d3a084a13468b"
+     }
+    }
+   },
+   "core_release": {
+    "commit": "b525da46d4282166418a90141f0c94fd099e9b47",
+    "version": "0.12.0"
+   },
+   "embedded": [
+    {
+     "kind": "state_machine",
+     "lowerer_version": 1,
+     "model_semantic_version": 1
+    }
+   ],
+   "lowerer_version": 1,
+   "model_kind": "request_flow",
+   "model_semantic_version": 1
+  },
+  {
+   "cases": {
     "order": {
      "behavior_hash": "sha256:eaeae2756f0624ccdb8acb57711fc4a9b07c032256c6f35d87aaa4fb1c65d970",
      "models": {

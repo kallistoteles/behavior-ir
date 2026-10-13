@@ -73,6 +73,51 @@ fn all() -> Vec<ModelError> {
             field: "f".into(),
             state: "X".into(),
         },
+        ModelError::UnknownEnum {
+            model_ref: m(),
+            name: "T".into(),
+        },
+        ModelError::ReservedField {
+            model_ref: m(),
+            name: "status".into(),
+        },
+        ModelError::NoCreation { model_ref: m() },
+        ModelError::CapabilityIdCollision {
+            model_ref: m(),
+            id: "submit".into(),
+        },
+        ModelError::InitializerMissingField {
+            model_ref: m(),
+            field: "title".into(),
+        },
+        ModelError::InitializerUnknownField {
+            model_ref: m(),
+            field: "x".into(),
+        },
+        ModelError::InitializerSetsStatus { model_ref: m() },
+        ModelError::InitializerDuplicateField {
+            model_ref: m(),
+            field: "title".into(),
+        },
+        ModelError::DeclarationCollision {
+            name: "E".into(),
+            model_ref: m(),
+            existing_kind: "enum".into(),
+        },
+        ModelError::DeclarationMismatch {
+            name: "E".into(),
+            model_ref: m(),
+        },
+        ModelError::UnauthorizedRequestCreation {
+            action: "a".into(),
+            entity: "E".into(),
+            owner: m(),
+        },
+        ModelError::UnauthorizedRequesterWrite {
+            action: "a".into(),
+            entity: "E".into(),
+            owner: m(),
+        },
     ]
 }
 
@@ -98,11 +143,11 @@ fn sorting_is_deterministic_and_removes_duplicates() {
     // Stages are ordered resolve < set < lower < finish < compose.
     assert_eq!(
         expected.first().map(ModelError::code),
-        Some("DUPLICATE_TRANSITION_ID")
+        Some("CAPABILITY_ID_COLLISION")
     );
     assert_eq!(
         expected.last().map(ModelError::code),
-        Some("UNAUTHORIZED_OWNED_FIELD_WRITE")
+        Some("UNAUTHORIZED_REQUEST_CREATION")
     );
 }
 

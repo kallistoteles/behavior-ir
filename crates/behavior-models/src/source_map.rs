@@ -25,7 +25,7 @@ pub struct Diagnostic {
     pub message: String,
 }
 
-fn display_json(d: &DisplayMeta) -> Option<Value> {
+pub(crate) fn display_json(d: &DisplayMeta) -> Option<Value> {
     let mut m = Map::new();
     if let Some(n) = &d.display_name {
         m.insert("display_name".into(), json!(n));
@@ -40,29 +40,38 @@ fn display_json(d: &DisplayMeta) -> Option<Value> {
 /// out (Constitution IV): the build `root` when one is given (as Core relativizes module
 /// locations), otherwise the common directory of the model's own source files. Unrelated files
 /// of the module never influence a model's receipt.
-struct RelativeSources {
+pub(crate) struct RelativeSources {
     base: std::path::PathBuf,
 }
 
 impl RelativeSources {
     fn new(m: &ResolvedStateMachine, root: Option<&str>) -> RelativeSources {
+        Self::from_sources(
+            m.transitions
+                .values()
+                .filter_map(|t| t.source.as_ref())
+                .chain(m.source.as_ref()),
+            root,
+        )
+    }
+
+    /// The base for a model whose own sources are `sources` (any model kind).
+    pub(crate) fn from_sources<'a>(
+        sources: impl Iterator<Item = &'a SourceLoc>,
+        root: Option<&str>,
+    ) -> RelativeSources {
         use std::path::{Path, PathBuf};
         if let Some(root) = root {
             return RelativeSources {
                 base: PathBuf::from(root),
             };
         }
-        let dirs = m
-            .transitions
-            .values()
-            .filter_map(|t| t.source.as_ref())
-            .chain(m.source.as_ref())
-            .map(|s| {
-                Path::new(&s.file)
-                    .parent()
-                    .map(Path::to_path_buf)
-                    .unwrap_or_default()
-            });
+        let dirs = sources.map(|s| {
+            Path::new(&s.file)
+                .parent()
+                .map(Path::to_path_buf)
+                .unwrap_or_default()
+        });
         let mut base: Option<PathBuf> = None;
         for d in dirs {
             base = Some(match base {
@@ -95,7 +104,7 @@ impl RelativeSources {
             .join("/")
     }
 
-    fn json(&self, s: &Option<SourceLoc>) -> Option<Value> {
+    pub(crate) fn json(&self, s: &Option<SourceLoc>) -> Option<Value> {
         s.as_ref()
             .map(|s| json!({"file": self.file(&s.file), "line": s.line}))
     }

@@ -14,13 +14,21 @@ pub mod composition;
 pub mod error;
 pub mod identity;
 pub mod ids;
+pub mod kinds;
+pub mod request_flow;
 pub mod source_map;
 pub mod state_machine;
 
 use behavior_engine::builder::Builder;
 use behavior_engine::semantic::Module;
 
+pub use composition::DeclaredSchema;
 pub use error::ModelError;
+pub use kinds::{AnyModel, compose_models, declare_models};
+pub use request_flow::input::{
+    CreationFragments, CreationInput, CreationScope, RequestFlowInput, RequestFlowSource,
+    RequestFlowSpec,
+};
 pub use source_map::{Diagnostic, LoweringReceipt};
 pub use state_machine::input::{
     BindingError, DisplayMeta, FragmentSource, ModelInput, ModelSpec, NoFragments, SourceLoc,
@@ -33,6 +41,11 @@ pub const STATE_MACHINE_SEMANTIC_VERSION: u32 = 1;
 /// The StateMachine lowerer version: changes when the same model contract intentionally lowers
 /// to different Core IR (lowering contract §7).
 pub const STATE_MACHINE_LOWERER_VERSION: u32 = 1;
+
+/// The RequestFlow model semantic version (feature 502, data model §9).
+pub const REQUEST_FLOW_SEMANTIC_VERSION: u32 = 1;
+/// The RequestFlow lowerer version (feature 502, data model §9).
+pub const REQUEST_FLOW_LOWERER_VERSION: u32 = 1;
 
 /// The exact Core Release this crate builds against (`core-release.json`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -75,5 +88,9 @@ pub fn compose(
     models: Vec<ModelSpec<'_>>,
     root: Option<&str>,
 ) -> Result<BuildOutput, Vec<ModelError>> {
-    composition::compose(builder, models, root)
+    kinds::compose_models(
+        builder,
+        models.into_iter().map(AnyModel::from).collect(),
+        root,
+    )
 }

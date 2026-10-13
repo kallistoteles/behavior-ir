@@ -8,11 +8,8 @@ use behavior_engine::semantic::Module;
 use behavior_engine::wire::{Loc, WType};
 use serde_json::json;
 
-use crate::BuildOutput;
 use crate::error::{ModelError, sorted_unique};
-use crate::state_machine::input::ModelSpec;
-use crate::state_machine::lower::lower_transition;
-use crate::state_machine::resolve::{ResolvedStateMachine, resolve};
+use crate::state_machine::resolve::ResolvedStateMachine;
 
 /// A model-crate failure reported in the Core admission error shape (`code`, `message`).
 pub(crate) fn admission_failed_message(code: &str, message: String) -> ModelError {
@@ -35,86 +32,178 @@ pub(crate) fn admission_failed(report: behavior_engine::AdmissionResult) -> Mode
 /// `(entity, field) → owning model id` (data-model §8).
 pub type OwnershipTable = BTreeMap<(String, String), String>;
 
-/// A model of the set after resolution, with the actions it generates.
+/// A state machine of the internal composition set after lowering, with the actions it
+/// generates. `supplied` is false for a machine derived from another model (feature 502): such
+/// a machine is checked and lowered like any other, but gets no receipt of its own.
 pub struct Composed {
     pub machine: ResolvedStateMachine,
     /// `action name → transition id` of every generated action.
     pub generated: BTreeMap<String, String>,
+    pub supplied: bool,
 }
 
-pub(crate) fn compose(
-    builder: &mut Builder,
-    models: Vec<ModelSpec<'_>>,
-    root: Option<&str>,
-) -> Result<BuildOutput, Vec<ModelError>> {
-    // Step 1: the ordinary behavior, admitted on its own, provides the declarations.
-    let base = builder
-        .finish(root)
-        .map_err(|r| vec![admission_failed(r)])?;
+/// An entity declaration a model contributes to the declaration environment (feature 502,
+/// declaration-staging contract §3): its name and fields in canonical order.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DeclaredSchema {
+    pub model_id: String,
+    pub entity: String,
+    pub fields: Vec<(String, WType)>,
+    pub loc: Loc,
+}
 
-    // Steps 1–2: resolve every model and check the set. Models are a set keyed by id.
-    let mut errors = Vec::new();
-    let mut by_id: BTreeMap<String, Vec<ModelSpec<'_>>> = BTreeMap::new();
-    for spec in models {
-        by_id
-            .entry(spec.input.model_id.clone())
-            .or_default()
-            .push(spec);
+/// How the declarations of `module` relate to a contributed schema.
+pub(crate) enum Existing {
+    /// No item has the schema's name.
+    Absent,
+    /// An entity with exactly the schema's fields (names, order, types; no references).
+    Identical,
+    /// Some other item has the name: its kind.
+    Other(String),
+}
+
+/// Compares a contributed schema with what `module` declares (laws D4, D6).
+pub(crate) fn existing(module: &Module, schema: &DeclaredSchema) -> Existing {
+    if let Some(entity) = module.entities().get(&schema.entity) {
+        // Core gives every entity its own identity field `id: Id(Self)`; it is not declared.
+        let own_id = WType::Id(schema.entity.clone());
+        let fields: Vec<(String, WType)> = entity
+            .fields()
+            .iter()
+            .map(|(n, t)| (n.clone(), t.to_wire_type()))
+            .filter(|(n, t)| !(n == "id" && *t == own_id))
+            .collect();
+        let references = entity.fields().iter().any(|(n, _)| entity.is_reference(n));
+        return if fields == schema.fields && !references {
+            Existing::Identical
+        } else {
+            Existing::Other("an entity with other fields".into())
+        };
     }
-    let mut resolved = Vec::new();
-    for (id, specs) in by_id {
-        if specs.len() > 1 {
-            errors.push(ModelError::DuplicateModelId { model_id: id });
+    match module
+        .name_table()
+        .keys()
+        .find(|(_, name)| name == &schema.entity)
+    {
+        Some((kind, _)) => Existing::Other(kind.as_str().to_string()),
+        None => Existing::Absent,
+    }
+}
+
+/// The canonical declaration merge (declaration-staging contract, laws D2, D3, D6): schemas in
+/// model-id order, each identical-or-error against the declarations already in `builder`.
+/// Without contributions the builder is not touched at all.
+pub(crate) fn merge_declarations(
+    builder: &mut Builder,
+    mut schemas: Vec<DeclaredSchema>,
+) -> Result<Vec<DeclaredSchema>, Vec<ModelError>> {
+    if schemas.is_empty() {
+        return Ok(schemas);
+    }
+    schemas.sort_by(|a, b| a.model_id.cmp(&b.model_id));
+    let base = builder
+        .finish(None)
+        .map_err(|r| vec![admission_failed(r)])?;
+    let mut errors = Vec::new();
+    let mut declared = std::collections::BTreeSet::new();
+    for schema in &schemas {
+        if !declared.insert(schema.entity.clone()) {
+            errors.push(ModelError::DeclarationCollision {
+                name: schema.entity.clone(),
+                model_ref: schema.model_id.clone(),
+                existing_kind: "another model's declaration".into(),
+            });
             continue;
         }
-        for spec in specs {
-            match resolve(&spec.input, &base) {
-                Ok(machine) => resolved.push((machine, spec)),
-                Err(es) => errors.extend(es),
-            }
-        }
-    }
-    let ownership = ownership_table(resolved.iter().map(|(m, _)| m), &mut errors);
-    if !errors.is_empty() {
-        return Err(sorted_unique(errors));
-    }
-
-    // Step 3: lower every transition, in (model_id, transition_id) order.
-    let mut composed = Vec::new();
-    for (machine, mut spec) in resolved {
-        let mut generated = BTreeMap::new();
-        for t in machine.transitions.values() {
-            match lower_transition(builder, &machine, t, spec.fragments.as_mut()) {
-                Ok(()) => {
-                    generated.insert(t.action_name.clone(), t.transition_id.to_string());
+        match existing(&base, schema) {
+            Existing::Identical => {}
+            Existing::Other(kind) => errors.push(ModelError::DeclarationCollision {
+                name: schema.entity.clone(),
+                model_ref: schema.model_id.clone(),
+                existing_kind: kind,
+            }),
+            Existing::Absent => {
+                let fields = schema
+                    .fields
+                    .iter()
+                    .map(|(name, ty)| behavior_engine::wire::WField {
+                        name: name.clone(),
+                        ty: ty.clone(),
+                        loc: schema.loc.clone(),
+                    })
+                    .collect();
+                if let Err(e) = builder.declare_entity(&schema.entity, fields, schema.loc.clone()) {
+                    errors.push(ModelError::DeclarationCollision {
+                        name: schema.entity.clone(),
+                        model_ref: schema.model_id.clone(),
+                        existing_kind: e.message,
+                    });
                 }
-                Err(es) => errors.extend(es),
             }
         }
-        composed.push(Composed { machine, generated });
     }
-    if !errors.is_empty() {
-        return Err(sorted_unique(errors));
+    if errors.is_empty() {
+        Ok(schemas)
+    } else {
+        Err(sorted_unique(errors))
     }
+}
 
-    // Step 4: Core admits the composed module.
+/// Declares `schemas` (in model-id order) without first admitting the authored declarations,
+/// then admits the result. Used when the authored declarations alone do not admit because they
+/// name a contributed entity (law D5: Core checks declarations together, so such a forward
+/// reference is legal once the contribution is in place). A name already taken is left as it
+/// is; the caller compares it with the contribution on the returned module.
+pub(crate) fn declare_then_admit(
+    builder: &mut Builder,
+    mut schemas: Vec<DeclaredSchema>,
+) -> Result<(Module, Vec<DeclaredSchema>), Vec<ModelError>> {
+    schemas.sort_by(|a, b| a.model_id.cmp(&b.model_id));
+    for schema in &schemas {
+        let fields = schema
+            .fields
+            .iter()
+            .map(|(name, ty)| behavior_engine::wire::WField {
+                name: name.clone(),
+                ty: ty.clone(),
+                loc: schema.loc.clone(),
+            })
+            .collect();
+        // `DUPLICATE_NAME`: an authored entity holds the name; compared below by the caller.
+        let _ = builder.declare_entity(&schema.entity, fields, schema.loc.clone());
+    }
     let module = builder
-        .finish(root)
+        .finish(None)
         .map_err(|r| vec![admission_failed(r)])?;
+    Ok((module, schemas))
+}
 
-    // Step 5: the final pass over every write and creation.
-    let errors = final_pass(&module, &composed, &ownership);
-    if !errors.is_empty() {
-        return Err(sorted_unique(errors));
+/// D6 after [`declare_then_admit`]: the declaration under the contributed name must be the
+/// contribution itself (or an identical authored one).
+pub(crate) fn check_contributed(module: &Module, schema: &DeclaredSchema) -> Option<ModelError> {
+    match existing(module, schema) {
+        Existing::Identical => None,
+        Existing::Other(kind) => Some(ModelError::DeclarationCollision {
+            name: schema.entity.clone(),
+            model_ref: schema.model_id.clone(),
+            existing_kind: kind,
+        }),
+        Existing::Absent => Some(ModelError::DeclarationMismatch {
+            name: schema.entity.clone(),
+            model_ref: schema.model_id.clone(),
+        }),
     }
+}
 
-    // Step 6: identity, receipts, diagnostics.
-    let (receipts, diagnostics) = crate::identity::outputs(&module, &composed, root)?;
-    Ok(BuildOutput {
-        module,
-        receipts,
-        diagnostics,
-    })
+/// Law D4: at composition the builder must hold exactly the contributed declaration.
+pub(crate) fn check_declared(module: &Module, schema: &DeclaredSchema) -> Option<ModelError> {
+    match existing(module, schema) {
+        Existing::Identical => None,
+        _ => Some(ModelError::DeclarationMismatch {
+            name: schema.entity.clone(),
+            model_ref: schema.model_id.clone(),
+        }),
+    }
 }
 
 /// One owner per field (composition contract §2.2). Conflicts list their models sorted.

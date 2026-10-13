@@ -201,6 +201,7 @@
    "Ref": "type",
    "ReplayReport": "class",
    "ReplayResult": "class",
+   "RequestFlow": "class",
    "Rounding": "class",
    "SchemaRef": "class",
    "StateConflict": "exception",

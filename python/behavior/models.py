@@ -69,11 +69,14 @@ class LoweringReceipt:
     behavior_hash: str
     model: dict[str, Any]
     source_map: dict[str, Any]
+    #: Identity records of embedded models (feature 502: a RequestFlow's StateMachine); absent
+    #: from receipts of models that embed none.
+    embedded: list[dict[str, Any]] | None = None
 
     @classmethod
     def from_dict(cls, d: Mapping[str, Any]) -> LoweringReceipt:
         names = {f.name for f in fields(cls)}
-        if set(d) != names:
+        if not names - {"embedded"} <= set(d) <= names:
             raise RuntimeError(
                 f"receipt fields {sorted(d)} differ from LoweringReceipt {sorted(names)}: "
                 "the binding is out of step with the model authority"
@@ -82,7 +85,8 @@ class LoweringReceipt:
 
     def to_dict(self) -> dict[str, Any]:
         """The receipt as the model authority produced it."""
-        return {f.name: copy.deepcopy(getattr(self, f.name)) for f in fields(self)}
+        return {f.name: copy.deepcopy(getattr(self, f.name)) for f in fields(self)
+                if not (f.name == "embedded" and self.embedded is None)}
 
 
 class Emission:

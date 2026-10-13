@@ -86,6 +86,45 @@ pub enum ModelError {
         field: String,
         state: String,
     },
+    // --- RequestFlow (feature 502) ------------------------------------------------------------
+    #[error("{model_ref}: unknown enum `{name}` (the status enum must be declared by the author)")]
+    UnknownEnum { model_ref: String, name: String },
+    #[error("{model_ref}: `{name}` is a reserved request field")]
+    ReservedField { model_ref: String, name: String },
+    #[error("{model_ref}: a request flow needs at least one creation")]
+    NoCreation { model_ref: String },
+    #[error("{model_ref}: `{id}` is used by more than one creation or transition")]
+    CapabilityIdCollision { model_ref: String, id: String },
+    #[error("{model_ref}: the initializer does not set `{field}`")]
+    InitializerMissingField { model_ref: String, field: String },
+    #[error("{model_ref}: the initializer sets unknown field `{field}`")]
+    InitializerUnknownField { model_ref: String, field: String },
+    #[error(
+        "{model_ref}: the initializer must not set `status`; it comes from the creation's target"
+    )]
+    InitializerSetsStatus { model_ref: String },
+    #[error("{model_ref}: the initializer sets `{field}` more than once")]
+    InitializerDuplicateField { model_ref: String, field: String },
+    #[error("{model_ref}: `{name}` is already declared as {existing_kind}")]
+    DeclarationCollision {
+        name: String,
+        model_ref: String,
+        existing_kind: String,
+    },
+    #[error("{model_ref}: the declaration of `{name}` differs from the one the model contributes")]
+    DeclarationMismatch { name: String, model_ref: String },
+    #[error("`{action}` creates `{entity}`, which only flow `{owner}` may create")]
+    UnauthorizedRequestCreation {
+        action: String,
+        entity: String,
+        owner: String,
+    },
+    #[error("`{action}` writes `{entity}.requester`, which is fixed at creation by flow `{owner}`")]
+    UnauthorizedRequesterWrite {
+        action: String,
+        entity: String,
+        owner: String,
+    },
 }
 
 impl ModelError {
@@ -110,6 +149,18 @@ impl ModelError {
             ModelError::UnauthorizedOwnedFieldWrite { .. } => "UNAUTHORIZED_OWNED_FIELD_WRITE",
             ModelError::EntryStateNotStatic { .. } => "ENTRY_STATE_NOT_STATIC",
             ModelError::EntryStateNotAllowed { .. } => "ENTRY_STATE_NOT_ALLOWED",
+            ModelError::UnknownEnum { .. } => "UNKNOWN_ENUM",
+            ModelError::ReservedField { .. } => "RESERVED_FIELD",
+            ModelError::NoCreation { .. } => "NO_CREATION",
+            ModelError::CapabilityIdCollision { .. } => "CAPABILITY_ID_COLLISION",
+            ModelError::InitializerMissingField { .. } => "INITIALIZER_MISSING_FIELD",
+            ModelError::InitializerUnknownField { .. } => "INITIALIZER_UNKNOWN_FIELD",
+            ModelError::InitializerSetsStatus { .. } => "INITIALIZER_SETS_STATUS",
+            ModelError::InitializerDuplicateField { .. } => "INITIALIZER_DUPLICATE_FIELD",
+            ModelError::DeclarationCollision { .. } => "DECLARATION_COLLISION",
+            ModelError::DeclarationMismatch { .. } => "DECLARATION_MISMATCH",
+            ModelError::UnauthorizedRequestCreation { .. } => "UNAUTHORIZED_REQUEST_CREATION",
+            ModelError::UnauthorizedRequesterWrite { .. } => "UNAUTHORIZED_REQUESTER_WRITE",
         }
     }
 
@@ -133,7 +184,20 @@ impl ModelError {
             ModelError::CoreAdmissionFailed { .. } => Stage::Finish,
             ModelError::UnauthorizedOwnedFieldWrite { .. }
             | ModelError::EntryStateNotStatic { .. }
-            | ModelError::EntryStateNotAllowed { .. } => Stage::Compose,
+            | ModelError::EntryStateNotAllowed { .. }
+            | ModelError::UnauthorizedRequestCreation { .. }
+            | ModelError::UnauthorizedRequesterWrite { .. } => Stage::Compose,
+            ModelError::UnknownEnum { .. }
+            | ModelError::ReservedField { .. }
+            | ModelError::NoCreation { .. }
+            | ModelError::CapabilityIdCollision { .. } => Stage::Resolve,
+            ModelError::DeclarationCollision { .. } | ModelError::DeclarationMismatch { .. } => {
+                Stage::Set
+            }
+            ModelError::InitializerMissingField { .. }
+            | ModelError::InitializerUnknownField { .. }
+            | ModelError::InitializerSetsStatus { .. }
+            | ModelError::InitializerDuplicateField { .. } => Stage::Lower,
         }
     }
 
@@ -203,6 +267,40 @@ impl ModelError {
                 field,
                 state,
             } => json!({"action": action, "entity": entity, "field": field, "state": state}),
+            ModelError::UnknownEnum { model_ref, name }
+            | ModelError::ReservedField { model_ref, name } => {
+                json!({"model_ref": model_ref, "name": name})
+            }
+            ModelError::NoCreation { model_ref }
+            | ModelError::InitializerSetsStatus { model_ref } => {
+                json!({"model_ref": model_ref})
+            }
+            ModelError::CapabilityIdCollision { model_ref, id } => {
+                json!({"model_ref": model_ref, "id": id})
+            }
+            ModelError::InitializerMissingField { model_ref, field }
+            | ModelError::InitializerUnknownField { model_ref, field }
+            | ModelError::InitializerDuplicateField { model_ref, field } => {
+                json!({"model_ref": model_ref, "field": field})
+            }
+            ModelError::DeclarationCollision {
+                name,
+                model_ref,
+                existing_kind,
+            } => json!({"name": name, "model_ref": model_ref, "existing_kind": existing_kind}),
+            ModelError::DeclarationMismatch { name, model_ref } => {
+                json!({"name": name, "model_ref": model_ref})
+            }
+            ModelError::UnauthorizedRequestCreation {
+                action,
+                entity,
+                owner,
+            }
+            | ModelError::UnauthorizedRequesterWrite {
+                action,
+                entity,
+                owner,
+            } => json!({"action": action, "entity": entity, "owner": owner}),
         };
         if let Value::Object(m) = &mut v {
             m.insert("code".into(), json!(self.code()));

@@ -2528,6 +2528,8 @@ fn _engine(m: &Bound<'_, pyo3::types::PyModule>) -> PyResult<()> {
     m.add_class::<PyType_>()?;
     m.add_class::<PyBuilder>()?;
     m.add_function(wrap_pyfunction!(models::compose_models, m)?)?;
+    m.add_function(wrap_pyfunction!(models::declare_models, m)?)?;
+    m.add_function(wrap_pyfunction!(models::encode_entity_name, m)?)?;
     m.add_class::<PyNode>()?;
     m.add_class::<PyRecord>()?;
     m.add_class::<PyInvocationRecord>()?;

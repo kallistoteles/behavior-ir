@@ -211,6 +211,11 @@ class BehaviorModule:
                     session.builder.declare_entity(d.name, fields, *d.loc)
                 except _engine.EngineError as e:
                     raise engine_error(e, d.loc) from None
+            # P2 (feature 502, declaration-staging contract): the models' contributed
+            # declarations, after the authored ones and before commands and every hand-written
+            # item, so those may name a generated entity. A no-op without contributions.
+            if models:
+                self._declare_models(session, models)
             for c in command_decls:
                 for _, t, _ in c.fields:
                     session.declare(t)
@@ -243,6 +248,21 @@ class BehaviorModule:
         #: The enum and nominal types this module declares, by name (feature 009).
         self.declared_types: dict[str, BType] = dict(session.types)
         self._module, self._admission = session.builder.finish(root)
+
+    @staticmethod
+    def _declare_models(session: CompileSession, models: Sequence[Any]) -> None:
+        from .errors import ModelBuildError
+
+        for m in models:
+            for t in getattr(m, "declaration_types", list)():
+                session.declare(t)
+        inputs = [m.engine_input() for m in models]
+        schemas, errors = _engine.declare_models(session.builder, inputs)
+        if errors:
+            raise ModelBuildError(list(errors))
+        by_id = {getattr(m, "flow_id", None): m for m in models}
+        for schema in schemas:
+            by_id[schema["model_id"]].bind_schema(schema)
 
     def _compose(self, session: CompileSession, models: Sequence[Any], root: str | None) -> None:
         from .errors import ModelBuildError

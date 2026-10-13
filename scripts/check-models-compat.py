@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Model lowering compatibility gate (feature 501, lowering contract §7, spec FR-001a).
+"""Model lowering compatibility gate (features 501, 502; lowering contract §7, spec FR-001a).
 
 Version identifiers identify semantic functions, not source-code releases. For a fixed tuple
 (model kind, model semantic version, lowerer version, Core Release) the mapping
@@ -12,7 +12,15 @@ recorded in `models/fixtures/compat.json` is immutable:
 2. against the merge base with `main`, every established tuple must be byte-identical here, so
    editing an expected hash never passes; a changed lowering needs a version bump (a new
    tuple). Only a tuple whose Core Release is no longer pinned may be removed;
-3. the current tuple must cover every reference case.
+3. the current tuples together cover every reference case, each case under exactly one.
+
+Cases are grouped by tuple (feature 502, research R10). A receipt's tuple is its (model kind,
+model semantic version, lowerer version, Core Release), plus, when the model embeds others (a
+RequestFlow's StateMachine), the embedded models' (kind, semantic version, lowerer version): a
+StateMachine lowerer bump is then also a new RequestFlow tuple. Without embedded models the key
+is exactly feature 501's, so its established entries stay byte-identical. A case whose
+receipts differ in tuple (a flow beside a standalone machine) belongs to the embedding tuple
+when that tuple's embedded versions cover the others.
 
     scripts/check-models-compat.py                 # the gate
     scripts/check-models-compat.py --write         # record the current tuple if it is new
@@ -43,29 +51,77 @@ def canonical(v: Any) -> str:
     return json.dumps(v, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
 
+KEY_FIELDS = ("model_kind", "model_semantic_version", "lowerer_version", "core_release")
+
+
 def tuple_key(t: dict[str, Any]) -> str:
-    return canonical({k: t[k] for k in
-                      ("model_kind", "model_semantic_version", "lowerer_version", "core_release")})
+    fields = KEY_FIELDS + (("embedded",) if "embedded" in t else ())
+    return canonical({k: t[k] for k in fields})
 
 
-def compute(root: Path) -> tuple[dict[str, Any], dict[str, Any], list[Any]]:
-    """Builds every reference case: (current tuple, cases, receipts)."""
+def receipt_tuple(r: dict[str, Any]) -> dict[str, Any]:
+    t = {k: r[k] for k in KEY_FIELDS}
+    if "embedded" in r:
+        records = {canonical(v): v for v in (
+            {"kind": e["kind"], "model_semantic_version": e["model_semantic_version"],
+             "lowerer_version": e["lowerer_version"]} for e in r["embedded"])}
+        t["embedded"] = [records[k] for k in sorted(records)]
+    return t
+
+
+def case_tuple(name: str, receipts: list[dict[str, Any]]) -> dict[str, Any]:
+    """The one tuple a case belongs to (see the module documentation)."""
+    tuples = {tuple_key(t): t for t in map(receipt_tuple, receipts)}
+    if len(tuples) == 1:
+        return next(iter(tuples.values()))
+    embedding = [t for t in tuples.values() if "embedded" in t]
+    if len(embedding) == 1:
+        e = embedding[0]
+        covered = {canonical(x) for x in e["embedded"]}
+        if all(t["core_release"] == e["core_release"] and canonical(
+                {"kind": t["model_kind"], "model_semantic_version": t["model_semantic_version"],
+                 "lowerer_version": t["lowerer_version"]}) in covered
+               for t in tuples.values() if "embedded" not in t):
+            return e
+    fail(f"case `{name}` has no single version tuple: {sorted(tuples)}")
+    return {}
+
+
+def model_id(model: dict[str, Any]) -> str:
+    return str(model.get("model_id", model.get("flow_id")))
+
+
+def case_entry(module: Any, receipts: list[dict[str, Any]]) -> dict[str, Any]:
+    entry: dict[str, Any] = {
+        "behavior_hash": module.behavior_version,
+        "models": {model_id(r["model"]): r["model_hash"] for r in receipts},
+    }
+    flows = [r for r in receipts if "embedded" in r]
+    if flows:
+        entry["embedded"] = {e["id"]: e["model_hash"] for r in flows for e in r["embedded"]}
+        entry["entities"] = {
+            model_id(r["model"]): next(x["core"]["name"] for x in r["source_map"]["entries"]
+                                       if x["model"] == f"{model_id(r['model'])}/request_entity")
+            for r in flows
+        }
+    return entry
+
+
+def compute(root: Path) -> tuple[dict[str, dict[str, Any]], list[Any]]:
+    """Builds every reference case: ({tuple key: {tuple, cases}}, receipts)."""
     sys.path.insert(0, str(root))
     from models.fixtures.reference_cases import CASES  # noqa: PLC0415
 
-    tuples, cases, receipts = set(), {}, []
+    groups: dict[str, dict[str, Any]] = {}
+    all_receipts: list[Any] = []
     for name, build in sorted(CASES.items()):
         module = build()
-        models = {}
-        for receipt in module.model_receipts:
-            r = receipt.to_dict()
-            tuples.add(tuple_key(r))
-            models[r["model"]["model_id"]] = r["model_hash"]
-            receipts.append(r)
-        cases[name] = {"behavior_hash": module.behavior_version, "models": models}
-    if len(tuples) != 1:
-        fail(f"reference cases disagree on the version tuple: {sorted(tuples)}")
-    return json.loads(next(iter(tuples))), cases, receipts
+        receipts = [r.to_dict() for r in module.model_receipts]
+        t = case_tuple(name, receipts)
+        groups.setdefault(tuple_key(t), {"tuple": t, "cases": {}})["cases"][name] = \
+            case_entry(module, receipts)
+        all_receipts += receipts
+    return groups, all_receipts
 
 
 def load(text: str | None, what: str) -> dict[str, Any]:
@@ -109,9 +165,12 @@ def main() -> None:
 
     if a.computed is not None:
         doc = json.loads(a.computed.read_text())
-        current, cases, receipts = doc["tuple"], doc["cases"], []
+        listed = doc["groups"] if "groups" in doc else [doc]
+        groups = {tuple_key(g["tuple"]): {"tuple": g["tuple"], "cases": g["cases"]}
+                  for g in listed}
+        receipts: list[Any] = []
     else:
-        current, cases, receipts = compute(root)
+        groups, receipts = compute(root)
     if a.print_:
         print(canonical(receipts))
         return
@@ -119,30 +178,31 @@ def main() -> None:
     path = root / MANIFEST
     manifest = load(path.read_text() if path.exists() else None, str(MANIFEST))
     by_key = {tuple_key(t): t for t in manifest["tuples"]}
-    key = tuple_key(current)
 
     if a.write:
-        if key in by_key:
-            if by_key[key]["cases"] != cases:
-                fail("the current tuple is established with other hashes; bump a version")
-            print("check-models-compat: current tuple already recorded")
-            return
-        manifest["tuples"].append({**current, "cases": cases})
+        for key, g in sorted(groups.items()):
+            if key in by_key:
+                if by_key[key]["cases"] != g["cases"]:
+                    fail(f"tuple {key} is established with other hashes; bump a version")
+                continue
+            manifest["tuples"].append({**g["tuple"], "cases": g["cases"]})
+            print(f"check-models-compat: recorded tuple {key}")
         manifest["tuples"].sort(key=tuple_key)
         path.write_text(json.dumps(manifest, indent=1, sort_keys=True) + "\n")
-        print("check-models-compat: recorded the current tuple")
         return
 
-    # 1 and 3: the current tuple reproduces and covers every case.
-    recorded = by_key.get(key)
-    if recorded is None:
-        fail(f"no manifest entry for the current tuple {key}; record it with --write")
-    if sorted(recorded["cases"]) != sorted(cases):
-        fail(f"the current tuple does not cover exactly the reference cases {sorted(cases)}")
-    for name, got in sorted(cases.items()):
-        if recorded["cases"][name] != got:
-            fail(f"case `{name}` lowers differently under an unchanged version tuple: "
-                 f"recorded {canonical(recorded['cases'][name])}, now {canonical(got)}")
+    # 1 and 3: each current tuple reproduces and covers exactly its cases.
+    for key, g in sorted(groups.items()):
+        recorded = by_key.get(key)
+        if recorded is None:
+            fail(f"no manifest entry for the current tuple {key}; record it with --write")
+        cases = g["cases"]
+        if sorted(recorded["cases"]) != sorted(cases):
+            fail(f"tuple {key} does not cover exactly the reference cases {sorted(cases)}")
+        for name, got in sorted(cases.items()):
+            if recorded["cases"][name] != got:
+                fail(f"case `{name}` lowers differently under an unchanged version tuple: "
+                     f"recorded {canonical(recorded['cases'][name])}, now {canonical(got)}")
 
     # 2: established tuples are immutable.
     base = merge_base_manifest(root)
@@ -157,7 +217,8 @@ def main() -> None:
             if canonical(by_key[k]["cases"]) != canonical(t["cases"]):
                 fail(f"established tuple {k} was changed; a changed lowering needs a new "
                      "model semantic version or lowerer version")
-    print(f"check-models-compat: OK ({len(cases)} cases, tuple {key})")
+    summary = ", ".join(f"{len(g['cases'])} cases under {k}" for k, g in sorted(groups.items()))
+    print(f"check-models-compat: OK ({summary})")
 
 
 if __name__ == "__main__":

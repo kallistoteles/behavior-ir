@@ -299,6 +299,11 @@ crate `crates/behavior-models` is the single authority for models; Python only r
 author wrote. See [`models/README.md`](models/README.md) for the rules, the API and the worked
 example.
 
+`RequestFlow` (feature 502) adds requests on top: a generated request entity, creation actions
+and an embedded `StateMachine` for its status, lowered by the unchanged StateMachine lowerer.
+Hand-written behavior can reference the request entity, because models declare their entities
+before any hand-written item is traced.
+
 ## Current invocation and durable commands (feature 500)
 
 The package exposes Core 012's unified invocation and Core 013's durable command intents.

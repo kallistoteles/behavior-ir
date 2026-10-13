@@ -10,6 +10,7 @@ from behavior import BehaviorModule, Id, Option, StateMachine, entity, field, se
 
 from ..examples.state_machine import machine as order_example
 from . import request_flow
+from . import rf_purchase_request as rf
 
 
 class RequestStatus(Enum):
@@ -75,4 +76,7 @@ CASES: dict[str, Callable[[], BehaviorModule]] = {
     "purchase_request": purchase_request,
     "request_flow_reference": request_flow.module,
     "two_machines_same_local_ids": two_machines_same_local_ids,
+    "rf_purchase_request": rf.rf_purchase_request,
+    "rf_two_flows_local_submit": rf.rf_two_flows_local_submit,
+    "rf_with_standalone_machine": rf.rf_with_standalone_machine,
 }

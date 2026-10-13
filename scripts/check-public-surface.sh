@@ -26,8 +26,16 @@ PY
   fail=1
 done
 # Models never use Wire IR as their interface (feature 501, research R2): fragments stay Core
-# nodes in the shared builder; nothing serializes or reads wire expressions.
-wire="$(grep -rnE '\b(into_wire|to_wire_json)\b' crates/behavior-models/src || true)"
+# nodes in the shared builder; nothing serializes or reads wire expressions. The one exception
+# (feature 502, research R4): RequestFlow creation lowering passes Core nodes to the builder's
+# creation input type with `into_wire`, in exactly one file. Nor does the model crate serialize
+# to text or bytes with serde (`to_string`, `to_vec`, `to_writer`): identity hashes go through
+# Core's canonical hashing. `serde_json::to_value` of a `WType` is allowed, because canonical
+# documents hold parameter types as `"type": <WType>` (data model §7).
+wire="$( (grep -rnE '\bto_wire_json\b|\bserde_json::to_(string|string_pretty|vec|vec_pretty|writer)\b' \
+            crates/behavior-models/src;
+          grep -rnE '\binto_wire\b' crates/behavior-models/src \
+            | grep -v '^crates/behavior-models/src/request_flow/create.rs:') || true)"
 if [ -n "$wire" ]; then
   while IFS= read -r hit; do echo "check-public-surface: wire IR used as model interface: $hit" >&2; done <<<"$wire"
   fail=1

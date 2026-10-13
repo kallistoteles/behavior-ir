@@ -45,7 +45,8 @@ The full contracts are in
      version, exact Core Release, BehaviorHash, the canonical document and a source map.
    - The module hash is always authoritative for runtime semantics.
 5. **Versions identify functions.** For a fixed (model kind, model semantic version, lowerer
-   version, Core Release), the ModelHash → BehaviorHash mapping of the reference cases in
+   version, Core Release, and the versions of any embedded model), the ModelHash → BehaviorHash
+   mapping of the reference cases in
    [`fixtures/compat.json`](fixtures/compat.json) is immutable. The gate `models compat` rejects
    any change that is not accompanied by a version bump.
 6. **Where a concept belongs.** Ask: *must the evaluator understand this construct for its
@@ -107,6 +108,102 @@ recorded with the commit, never an effect.
 
 `module.model_receipts` are typed `LoweringReceipt`s. Their source locations are relative, so
 the same model gives the same receipt in every checkout.
+
+## RequestFlow
+
+A request flow (feature 502) is a persistent request that an actor creates, that carries typed
+data, and whose status evolves through a finite set of cases. **RequestFlow owns request
+creation and request conventions; StateMachine remains the single authority for status
+evolution.**
+
+```text
+RF = (id, A, E, Q, Π, 𝒞, 𝒯)       Q := Cases(T_status)      E := EncodeEntityName(id)
+c  = (id_c, q_c, S_c, I_c, C_c, G_c, V_c, E_c, P_c, K_c)        Q_entry := { q_c | c ∈ 𝒞 }
+
+L_RF(R) = Compose(Decls(R), Creates(R), L_SM(SM(R)))      SM(R) = (E, status, Q_entry, 𝒯)
+```
+
+- **Meaning.** `Meaning(RF) := Meaning_Core(L_RF(RF))`. The flow lowers to one ordinary entity,
+  ordinary creation actions, and the transitions of an ordinary StateMachine, lowered by the
+  unchanged StateMachine lowerer. There is no second transition semantics.
+- **Lifecycle theorem.** A creation sets `status = q_c ∈ Q_entry`, and the embedded machine owns
+  every later write of `status`. So every ordinary status trace of a request lies in
+  `Q_entry · R_T*`, where `R_T = {(q, q_t) | t ∈ 𝒯, q ∈ F_t}`.
+- **The request entity.** It is generated, with fields `requester: Id<A>`,
+  `status: T_status`, `assignee: Option<Id<A>>` (when enabled) and the payload, sorted by name.
+  Its name is `EncodeEntityName(id)`, an injective encoding (`purchase_request` →
+  `PurchaseRequest`, `a_1b` → `A_1b`, `a1b` → `A1b`). The status enum stays an authored
+  declaration; the flow references it.
+- **Identities, never references.** `requester` and `assignee` are `Id`, not `Ref`. They add no
+  existence constraint, reverse reference or removal blocking. A guard that needs the actor to
+  exist says so with ordinary `exists(...)`.
+- **Creation.** Each creation is one action `<flow>__<creation>`. Its parameters are
+  `request_id: Id<E>`, then inputs, state bindings and context, each group sorted by name. It
+  holds exactly one `Create E` with `status = q_c`, plus the author's guards, effects (over the
+  state bindings, committed atomically with the creation), postconditions and commands. The
+  initializer `V_c` must set every field except `status` exactly once; anything else is a static
+  `INITIALIZER_*` error. Creation and transition ids share one namespace.
+- **Authority is explicit.** Neither `requester` nor `assignee` authorizes anything; write the
+  guard (`actor == r.assignee`). There is no clock (`created_at` comes from context), no
+  generated identity, no notification beyond ordinary command intents, and no generated reads.
+
+### Ownership
+
+| Field or item | Who may write it |
+|---|---|
+| request creation | the flow's creation actions only (`UNAUTHORIZED_REQUEST_CREATION`) |
+| `status` | the creation (as `q_c`), then the embedded StateMachine only |
+| `requester` | the creation only (`UNAUTHORIZED_REQUESTER_WRITE`) |
+| `assignee`, payload | any ordinary action |
+
+The checks run over the final admitted module, like the StateMachine's.
+
+### Declaration staging
+
+A RequestFlow contributes a declaration, so hand-written behavior must be able to see it.
+`BehaviorModule` builds in four phases
+([contract](../specs/502-request-flow/contracts/declaration-staging.md)):
+
+| Phase | What happens |
+|---|---|
+| P1 | authored enums, nominal types and entities |
+| P2 | `declare_models`: each model's contributed declarations, identical-or-error (a no-op for StateMachine-only modules, whose hashes are unchanged) |
+| P2b | commands (their payloads may name the request entity) |
+| P3 | hand-written derived values, invariants, constraints, actions and reads |
+| P4 | `compose`: creations, transitions, the final ownership pass, receipts |
+
+Authored entities may hold `Id[...]` or `Ref[...]` fields of the request entity, because Core
+checks declarations together.
+
+```python
+S = PurchaseRequestStatus       # an authored enum: Draft, Submitted, InReview, Approved, ...
+flow = RequestFlow("purchase_request", actor=User, status=S,
+                   payload={"title": str, "amount": int}, assignee=True)
+flow.create("create", to=S.DRAFT, inputs={"title": str, "amount": int},
+            context={"actor": Id[User]},
+            values=lambda request_id, amount, title, actor: {
+                "requester": actor, "title": title, "amount": amount, "assignee": None})
+flow.transition("approve", from_={S.IN_REVIEW}, to=S.APPROVED, context={"actor": Id[User]},
+                requires=[lambda r, actor: actor == r.assignee])
+
+PR = flow.request_entity        # a typed handle: annotations, Id[PR], select(PR)
+
+@action
+def retitle(r: PR, *, title: Input[str]):
+    set_(r.title, title)
+
+module = BehaviorModule(entities=[User], enums=[S], models=[flow],
+                        actions=[retitle])
+```
+
+`flow.request_entity` takes its name from Rust; its fields are a view that the build checks
+against the schema Rust declares. There is one receipt per flow (`model_kind: "request_flow"`),
+and its `embedded` record carries the StateMachine's identity and ModelHash. The source map
+links `purchase_request/transition/approve` to `state_machine:purchase_request/transition/approve`
+and to the Core action `purchase_request__approve`.
+
+The reference flow is
+[`fixtures/rf_purchase_request.py`](fixtures/rf_purchase_request.py).
 
 ## Worked example
 

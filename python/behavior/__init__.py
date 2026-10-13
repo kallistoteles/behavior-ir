@@ -17,6 +17,7 @@ from .errors import (
 )
 from .expr import and_, exists, none, not_, or_, referenced, rescale, underlying
 from .models import Emission, LoweringReceipt, StateMachine, emit
+from .request_flow import RequestFlow
 from .module import BehaviorModule
 from .query import Projection, Query, all_, any_, count, max_, min_, project, select, sum_, unique
 from .results import AdmissionError, AdmissionResult, Change, Decision, ReplayResult, TraceStep
@@ -152,7 +153,7 @@ __all__ = [
     "AdmissionError", "AdmissionResult", "Change", "Decision", "ReplayResult", "TraceStep",
     "evaluate", "evaluate_intent", "replay", "BehaviorDefinitionError", "BehaviorError",
     "BehaviorInvalid", "BehaviorModule", "BehaviorTypeError", "Context", "Id", "Input",
-    "IntentRejected", "Emission", "LoweringReceipt", "ModelBuildError", "StateMachine", "command", "emit", "Option", "action", "admit", "constraint", "and_", "derived", "ensures", "entity",
+    "IntentRejected", "Emission", "LoweringReceipt", "ModelBuildError", "RequestFlow", "StateMachine", "command", "emit", "Option", "action", "admit", "constraint", "and_", "derived", "ensures", "entity",
     "field", "invariant", "nominal", "none", "not_", "or_", "requires", "rule", "set_",
     "underlying", "Ref", "create", "remove", "exists", "referenced",
     "Query", "select", "count", "any_", "all_", "sum_", "min_", "max_", "unique",

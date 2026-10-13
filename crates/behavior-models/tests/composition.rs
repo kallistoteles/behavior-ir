@@ -105,20 +105,32 @@ fn state_machine_contributes_only_actions() {
     }
 }
 
-/// T067 (US5, FR-032): StateMachine and the shared lowering infrastructure stay free of
-/// request concepts. Comments and rustdoc may use the reference examples; code may not.
+/// T067 (US5, FR-032), scope fixed in feature 502 (T002): StateMachine and the shared model
+/// infrastructure stay free of request concepts, so future models can reuse them. Kind-specific
+/// code (`request_flow/`), the kind registry (`lib.rs`) and the shared error catalogue
+/// (`error.rs`) are outside the scan. Comments and rustdoc may use the reference examples.
 #[test]
 fn the_model_crate_is_domain_neutral() {
     let src = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
-    let mut stack = vec![src];
+    let mut stack: Vec<std::path::PathBuf> = [
+        "state_machine",
+        "ids.rs",
+        "composition.rs",
+        "identity.rs",
+        "source_map.rs",
+    ]
+    .iter()
+    .map(|p| src.join(p))
+    .collect();
     let mut hits = Vec::new();
-    while let Some(dir) = stack.pop() {
-        for entry in std::fs::read_dir(dir).unwrap() {
-            let path = entry.unwrap().path();
-            if path.is_dir() {
-                stack.push(path);
-                continue;
+    while let Some(path) = stack.pop() {
+        if path.is_dir() {
+            for entry in std::fs::read_dir(&path).unwrap() {
+                stack.push(entry.unwrap().path());
             }
+            continue;
+        }
+        {
             let text = std::fs::read_to_string(&path).unwrap();
             for (n, line) in text.lines().enumerate() {
                 let code = line.split("//").next().unwrap_or("").to_lowercase();

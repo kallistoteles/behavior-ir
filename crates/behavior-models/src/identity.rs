@@ -22,11 +22,11 @@ use crate::{STATE_MACHINE_SEMANTIC_VERSION, composition::admission_failed_messag
 
 pub const MODEL_HASH_TAG: &str = "behavior.model.v1";
 
-fn identity_error(message: String) -> ModelError {
+pub(crate) fn identity_error(message: String) -> ModelError {
     admission_failed_message("MODEL_IDENTITY_FAILED", message)
 }
 
-fn params(
+pub(crate) fn params(
     m: &std::collections::BTreeMap<String, behavior_engine::wire::WType>,
 ) -> Result<Value, ModelError> {
     m.iter()
@@ -115,10 +115,15 @@ pub(crate) fn outputs(
     let mut receipts = Vec::new();
     let mut diags = Vec::new();
     for c in composed {
+        // Every machine is diagnosed; only supplied machines get a receipt (derived machines
+        // are recorded inside their parent model's receipt).
+        diags.extend(diagnostics(&c.machine, module));
+        if !c.supplied {
+            continue;
+        }
         let doc = canonical_document(&c.machine, module).map_err(|e| vec![e])?;
         let hash = model_hash(&doc).map_err(|e| vec![e])?;
         receipts.push(receipt(module, &c.machine, doc, hash, root));
-        diags.extend(diagnostics(&c.machine, module));
     }
     diags.sort();
     Ok((receipts, diags))

@@ -1,16 +1,16 @@
 ---
 name: behavior-verification
 description: Run Behavior verification and act on its results (proven, counterexample, inconclusive), fixing the model rather than weakening checks, and telling verifier precision debt from a missing requirement. Use after writing or changing a behavior model, and whenever an attestation is not verified.
-release: 0.12.0
+release: 0.13.0
 ---
 
 # Verifying behavior
 
-This skill describes **Behavior release 0.12.0**. Use only what is described here or listed in the
+This skill describes **Behavior release 0.13.0**. Use only what is described here or listed in the
 release's public API.
 
-The package uses current core verification, including verifier 0.8.0's corrected read-filter
-and entity-role assumptions. Existing verification helpers return core's findings.
+The package uses current core verification: verifier 0.9.0, with 0.8.0's corrected read-filter
+and entity-role assumptions and 0.9.0's corrected outcomes for invalid resulting child states. Existing verification helpers return core's findings.
 Cryptographically authenticated proof and authorization generation use the bundled
 `behavior governance` commands. Structural v1 authorization retains its historical trust;
 fresh required-governance v1 writes require explicit adoption into store-v2 history.
@@ -191,7 +191,7 @@ assert check["outcome"] == "inconclusive" and not debt.verified
 
 The command line has `behavior migration verify <source> <target> <migration>`.
 
-## Precision debt catalogue (release 0.12.0)
+## Precision debt catalogue (release 0.13.0)
 
 These properties can hold and still be inconclusive. They are verifier limits, not model errors.
 

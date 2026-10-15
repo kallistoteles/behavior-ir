@@ -30,8 +30,9 @@ def allocate(share: Share):
 
 
 model = BehaviorModule(entities=[Share], derived=[portion], actions=[allocate])
-decision = evaluate(model, "allocate", data_version="1", state={"share": {
-    "id": "s1", "amount": Decimal("10.00"), "budget": Decimal("30.00"), "part": Decimal("0")}})
+share = {"id": "s1", "amount": Decimal("10.00"), "budget": Decimal("30.00"), "part": Decimal("0")}
+decision = evaluate(model, "allocate", data_version="1", state={"share": share},
+                    facts={"universe": [{"entity": "Share", "members": [share]}]})
 assert decision.result == "ALLOW", decision.reasons
 assert decision.changes[0].new == "10.00"
 

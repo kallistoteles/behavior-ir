@@ -26,11 +26,23 @@ def request(status: str, assignee: str | None = "bob", **extra: Any) -> dict[str
             "title": "Laptop", "amount": 900, **extra}
 
 
+def universe(*requests: dict[str, Any],
+             budgets: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    """The complete parent snapshot (Core 017): every declared entity type, the given requests,
+    the three users and, for a module that declares `Budget`, the given budgets."""
+    users = [{"id": u, "name": u} for u in ("alice", "bob", "carol")]
+    types = [{"entity": "PurchaseRequest", "members": list(requests)},
+             {"entity": "User", "members": users}]
+    if budgets is not None:
+        types.append({"entity": "Budget", "members": budgets})
+    return {"universe": types}
+
+
 def run(m: BehaviorModule, transition: str, r: dict[str, Any], actor: str | None = None,
         **kw: Any) -> Any:
     return evaluate(m, f"purchase_request__{transition}", state={"purchase_request": r},
                     context={} if actor is None else {"actor": actor}, input={},
-                    data_version="1", **kw)
+                    data_version="1", facts=kw.pop("facts", universe(r)), **kw)
 
 
 def create(m: BehaviorModule, amount: int = 900, context: dict[str, Any] | None = None,
@@ -39,7 +51,7 @@ def create(m: BehaviorModule, amount: int = 900, context: dict[str, Any] | None 
                     context=context or {"actor": "alice"},
                     input={"request_id": "q1", "title": "Laptop", "amount": amount,
                            **kw.pop("input", {})},
-                    data_version="1", facts=kw.pop("facts", FRESH), **kw)
+                    data_version="1", facts=kw.pop("facts", {**FRESH, **universe()}), **kw)
 
 
 # --- T031: authority is explicit ------------------------------------------------------------
@@ -81,20 +93,15 @@ def test_guards_have_core_outcomes_and_failed_creations_create_nothing() -> None
     # Core's ordinary evaluation error (the task text's `DIVISION_BY_ZERO` is not a Core code).
     assert d.result == "ERROR" and d.lifecycle == []
     assert [r["code"] for r in d.reasons] == ["EVALUATION_ERROR"]
-    assert "division by zero" in d.reasons[0]["message"]
+    # Decision 0.8 (Core 017) keeps the canonical reason codes and moves the human message
+    # into the detached diagnostics.
+    assert "division by zero" in d.diagnostics["reasons"][0]["message"]
 
 
 # --- T032: commands and time ----------------------------------------------------------------
 
 def with_commands() -> BehaviorModule:
     return rf_purchase_request()
-
-
-def universe(*requests: dict[str, Any]) -> dict[str, Any]:
-    """Complete snapshot facts, which the command profile requires (ordinary Core)."""
-    users = [{"id": u, "name": u} for u in ("alice", "bob", "carol")]
-    return {"universe": [{"entity": "PurchaseRequest", "members": list(requests)},
-                         {"entity": "User", "members": users}]}
 
 
 def test_commands_are_ordinary_intents_of_the_same_commit() -> None:
@@ -160,16 +167,18 @@ def with_budget(post: bool = True, aliasing: bool = False) -> BehaviorModule:
 
 
 def test_creation_and_its_effects_commit_together() -> None:
-    d = create(with_budget(), creation="reserve",
-               state={"budget": {"id": "b1", "reserved": 50}})
+    budget = {"id": "b1", "reserved": 50}
+    d = create(with_budget(), creation="reserve", state={"budget": budget},
+               facts={**FRESH, **universe(budgets=[budget])})
     assert d.result == "ALLOW"
     assert d.lifecycle[0]["value"]["status"] == "Draft"
     assert [(c.param, c.field, c.new) for c in d.changes] == [("budget", "reserved", 950)]
 
 
 def test_a_failing_postcondition_rolls_back_both() -> None:
-    d = create(with_budget(), creation="reserve",
-               state={"budget": {"id": "b1", "reserved": 500}})
+    budget = {"id": "b1", "reserved": 500}
+    d = create(with_budget(), creation="reserve", state={"budget": budget},
+               facts={**FRESH, **universe(budgets=[budget])})
     assert d.result != "ALLOW"
     assert d.lifecycle == [] and d.changes == []
 
@@ -177,7 +186,8 @@ def test_a_failing_postcondition_rolls_back_both() -> None:
 def test_aliasing_state_bindings_are_cores_ordinary_case() -> None:
     m = with_budget(aliasing=True)
     budget = {"id": "b1", "reserved": 50}
-    d = create(m, creation="reserve", state={"budget": budget, "other": budget})
+    d = create(m, creation="reserve", state={"budget": budget, "other": budget},
+               facts={**FRESH, **universe(budgets=[budget])})
     assert d.result != "ALLOW"
     assert not any("REQUEST" in json.dumps(r) for r in d.reasons)
 
@@ -188,8 +198,8 @@ def test_requester_and_assignee_are_identities_not_references() -> None:
         remove(u)
 
     m = module(actions=[remove_user])
-    # Removing a user that requests reference is allowed: Id adds no existence constraint.
-    d = evaluate(m, "remove_user", state={"u": {"id": "alice", "name": "A"}},
-                 context={}, input={}, data_version="1")
+    # Removing a user that a request references is allowed: Id adds no existence constraint.
+    d = evaluate(m, "remove_user", state={"u": {"id": "alice", "name": "alice"}},
+                 context={}, input={}, data_version="1", facts=universe(request("Draft")))
     assert d.result == "ALLOW", d.reasons
     assert "exists" not in m.to_wire_json()

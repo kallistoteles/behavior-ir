@@ -40,9 +40,13 @@ MODEL = BehaviorModule(entities=[Employee, Account], constraints=[non_negative_l
 
 
 def run(limit: object):  # type: ignore[no-untyped-def]
-    return evaluate(MODEL, "review", state={"account": {"id": "a1", "balance": Decimal("1")}},
+    account = {"id": "a1", "balance": Decimal("1")}
+    # The complete parent snapshot (Core 017); the actor is context, not state.
+    facts = {"universe": [{"entity": "Account", "members": [account]},
+                          {"entity": "Employee", "members": []}]}
+    return evaluate(MODEL, "review", state={"account": account},
                     context={"actor": {"id": "e1", "role": "manager", "approval_limit": limit}},
-                    data_version="1")
+                    data_version="1", facts=facts)
 
 
 def test_valid_context_is_allowed() -> None:

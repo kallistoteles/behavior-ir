@@ -87,12 +87,22 @@ def request(status: str, **over: Any) -> dict[str, Any]:
     return base
 
 
+def universe(req: dict[str, Any]) -> dict[str, Any]:
+    """The complete parent snapshot (Core 017): every declared entity type, here the one request
+    and the approver."""
+    return {"universe": [
+        {"entity": "PurchaseRequest", "members": [req]},
+        {"entity": "Actor", "members": [{"id": "anna", "name": "Anna"}]},
+    ]}
+
+
 def invoke(module: BehaviorModule, transition: str, status: str, actor: str = "anna") -> Any:
     context = {"actor": actor} if transition == "approve" else {}
+    req = request(status)
     return evaluate(
         module, f"purchase_request__{transition}",
-        state={"purchase_request": request(status)}, context=context, input={},
-        data_version="1",
+        state={"purchase_request": req}, context=context, input={},
+        data_version="1", facts=universe(req),
     )
 
 
@@ -235,15 +245,9 @@ def with_commands(emits: list[Any]) -> BehaviorModule:
 
 
 def invoke_commands(m: BehaviorModule, status: str) -> Any:
-    """Under Core's command profile an evaluation takes a complete state snapshot (Core 012):
-    every declared entity type, here the one request and the approver."""
     req = request(status)
-    facts = {"universe": [
-        {"entity": "PurchaseRequest", "members": [req]},
-        {"entity": "Actor", "members": [{"id": "anna", "name": "Anna"}]},
-    ]}
     return evaluate(m, "purchase_request__escalate", state={"purchase_request": req},
-                    context={}, input={}, data_version="1", facts=facts)
+                    context={}, input={}, data_version="1", facts=universe(req))
 
 
 def test_a_transition_emits_a_command_in_the_same_commit() -> None:

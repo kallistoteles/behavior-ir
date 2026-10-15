@@ -1,12 +1,12 @@
 ---
 name: behavior-authoring
 description: Model a domain as Behavior with the Python binding (entities, field types, actions, creation and removal, references, queries over sets, entity constraints, module invariants, exact arithmetic, declared reads and projections). Use when writing or changing a behavior model.
-release: 0.12.0
+release: 0.13.0
 ---
 
 # Authoring behavior
 
-This skill describes **Behavior release 0.12.0**. Use only what is described here or listed in the
+This skill describes **Behavior release 0.13.0**. Use only what is described here or listed in the
 release's public API (`behavior.versions()` reports the installed release). Everything is imported
 from the `behavior` package.
 
@@ -140,8 +140,8 @@ These rules are **local**: they read one entity and may not contain queries. The
 one parameter. A rule relating two entities, such as "an order never exceeds its customer's
 limit", cannot be a constraint or invariant in this release; see the semantic gaps below.
 
-An incoming entity that breaks a constraint is not a decision. The result is `INVALID_STATE`
-with `CONSTRAINT_VIOLATED`.
+An incoming entity that breaks a constraint is not a decision: the parent snapshot is invalid,
+and the result is `INVALID_INPUT` with `INVALID_STATE_SNAPSHOT`, naming the rule.
 
 ```python
 # from examples/actions_and_lifecycle.py
@@ -193,7 +193,8 @@ so a decision over a set is reproducible.
 **Module invariants assume a valid starting state.** On the resulting state, a `unique` that is
 a top-level part of a module invariant is checked only for the entities the transition touched,
 because it already held before. A store guarantees that: it checks module invariants at creation
-and after every commit. With plain `evaluate`, you supply the state, and it must be valid.
+and after every commit. With plain `evaluate`, you supply the complete state, and the engine
+refuses an invalid one (`INVALID_STATE_SNAPSHOT`).
 
 ## Derived values and rules
 
@@ -378,7 +379,7 @@ refused = BehaviorModule(entities=[Customer, Order], constraints=[few_orders])
 assert [e.code for e in admit(refused).errors] == ["QUERY_NOT_ALLOWED"]
 ```
 
-## Requirements that are semantic gaps in 0.12.0
+## Requirements that are semantic gaps in 0.13.0
 
 Record these, do not approximate them:
 

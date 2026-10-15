@@ -14,7 +14,7 @@ import pytest
 import behavior
 
 ROOT = Path(__file__).resolve().parents[2]
-CURRENT_CORE = "0.12.0"
+CURRENT_CORE = "0.13.0"
 
 
 def test_the_declared_core_release_is_current() -> None:
@@ -56,10 +56,11 @@ def test_the_extension_and_dependencies_name_the_exact_declared_core_revision() 
 
 @pytest.mark.parametrize(("key", "expected"), [
     ("engine", CURRENT_CORE),
-    ("accepted_wire_ir", ["0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8"]),
-    ("records", ["0.4", "0.5", "0.6", "0.7"]),
+    # Core 020 (0.13.0): reports only what fresh admission accepts; 0.1–0.3 never were.
+    ("accepted_wire_ir", ["0.4", "0.5", "0.6", "0.7", "0.8"]),
+    ("records", ["0.4", "0.5", "0.6", "0.7", "0.8"]),
     ("read_records", ["behavior.read_record.v1", "behavior.read_record.v2"]),
-    ("verifier", "0.8.0"),
+    ("verifier", "0.9.0"),
     ("command_stream", "behavior.command_stream_request.v1"),
     ("command_occurrence_domain", "behavior.command_occurrence.v1"),
 ])

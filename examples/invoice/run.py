@@ -14,6 +14,11 @@ def invoice(amount: object) -> dict[str, object]:
     return {"id": "1042", "amount": amount, "status": "pending", "approved_by": None}
 
 
+def snapshot(inv: dict[str, object]) -> dict[str, object]:
+    """The complete parent snapshot: every declared entity type, empty ones too."""
+    return {"universe": [{"entity": "Invoice", "members": [inv]}, {"entity": "User", "members": []}]}
+
+
 CASES = [
     ("allowed", invoice(Decimal("43200")), ANNA),
     ("above limit", invoice(Decimal("60000")), ANNA),
@@ -24,9 +29,9 @@ CASES = [
 
 for label, inv, actor in CASES:
     d = evaluate(model, "approve_invoice", state={"invoice": inv}, context={"actor": actor},
-                 data_version="18342")
+                 data_version="18342", facts=snapshot(inv))
     print(f"== {label}: {d.result}")
-    for r in d.reasons:
+    for r in d.diagnostics["reasons"]:  # messages are diagnostics, outside the record
         print(f"   reason: {r['code']}: {r['message']}")
     for c in d.changes:
         print(f"   change: {c.param}.{c.field}: {c.old!r} -> {c.new!r}")
@@ -34,6 +39,6 @@ for label, inv, actor in CASES:
 
 try:
     evaluate(model, "approve_invoice", state={"invoice": invoice(43200.0)},
-             context={"actor": ANNA}, data_version="18342")
+             context={"actor": ANNA}, data_version="18342", facts=snapshot(invoice(43200.0)))
 except TypeError as e:
     print(f"== float input: TypeError: {e}")

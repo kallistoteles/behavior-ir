@@ -6,7 +6,7 @@ an approval process or a saga. It lowers completely to ordinary Behavior IR.
 **Behavior IR is the semantic assembly language; models are languages above it.** The core
 admits the lowered IR like any other module and never learns which model produced it:
 `Meaning(M) := Meaning_Core(Lower(M))`. See the core's
-[ARCHITECTURE.md](https://github.com/kallistoteles/behavior-ir-core/blob/v0.12.0/ARCHITECTURE.md)
+[ARCHITECTURE.md](https://github.com/kallistoteles/behavior-ir-core/blob/v0.13.0/ARCHITECTURE.md)
 for the layers and the dependency direction.
 
 ## The model authority

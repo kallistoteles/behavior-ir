@@ -26,36 +26,49 @@ def test_the_accounts_model_is_a_0_5_module_with_a_reference() -> None:
     assert effects["close_account"] == [{"remove": "account", "loc": effects["close_account"][0]["loc"]}]
 
 
+ADA = {"id": "c1", "name": "Ada"}
+
+
+def universe(accounts: list[dict[str, object]] | None = None,
+             **more: object) -> dict[str, object]:
+    """The complete parent snapshot (Core 017): every declared entity type, empty ones too."""
+    return {"universe": [{"entity": "Account", "members": accounts or []},
+                         {"entity": "AuditNote", "members": []},
+                         {"entity": "Customer", "members": [ADA]}], **more}
+
+
 def test_creation_needs_an_unused_identity() -> None:
-    state = {"owner": {"id": "c1", "name": "Ada"}}
+    state = {"owner": ADA}
     inp = {"account_id": "a9", "initial": Decimal("10.00")}
     ok = evaluate(model, "open_account", state=state, input=inp, data_version="1",
-                  facts={"identities": [{"entity": "Account", "id": "a9", "used": False}]})
+                  facts=universe(identities=[{"entity": "Account", "id": "a9", "used": False}]))
     assert ok.result == "ALLOW"
     assert ok.lifecycle == [{"op": "create", "entity": "Account", "id": "a9",
                              "value": {"id": "a9", "owner": "c1", "balance": "10.00"}}]
     assert replay(model, ok.record_json).matches
+    # Historical usage stays a separate fact: the current universe does not answer it.
     used = evaluate(model, "open_account", state=state, input=inp, data_version="1",
-                    facts={"identities": [{"entity": "Account", "id": "a9", "used": True}]})
+                    facts=universe(identities=[{"entity": "Account", "id": "a9", "used": True}]))
     assert used.result == "ENTITY_ID_ALREADY_USED"
-    unknown = evaluate(model, "open_account", state=state, input=inp, data_version="1")
+    unknown = evaluate(model, "open_account", state=state, input=inp, data_version="1",
+                       facts=universe())
     assert unknown.result == "ERROR"
     assert unknown.reasons[0]["code"] == "UNKNOWN_FACT"
 
 
 def test_removal_and_references() -> None:
-    customer = {"customer": {"id": "c1", "name": "Ada"}}
-    edge = {"entity": "Account", "id": "a1", "field": "owner"}
+    customer = {"customer": ADA}
+    account = {"id": "a1", "owner": "c1", "balance": "1.00"}
+    # Core 017: incoming references follow from the complete universe.
     denied = evaluate(model, "remove_customer", state=customer, data_version="1",
-                      facts={"references": [{"entity": "Customer", "id": "c1", "incoming": [edge]}]})
+                      facts=universe([account]))
     assert denied.result == "DENY"
-    free = evaluate(model, "remove_customer", state=customer, data_version="1",
-                    facts={"references": [{"entity": "Customer", "id": "c1", "incoming": []}]})
+    free = evaluate(model, "remove_customer", state=customer, data_version="1", facts=universe())
     assert free.result == "ALLOW"
     assert free.lifecycle[0]["op"] == "remove"
-    assert free.facts == {"references": [{"entity": "Customer", "id": "c1", "incoming": []}]}
+    assert free.facts["universe"] == universe()["universe"]
     bad = evaluate(model, "remove_customer", state=customer, data_version="1",
-                   facts={"existence": [{"entity": "Customer", "id": "c1", "exists": False}]})
+                   facts=universe(existence=[{"entity": "Customer", "id": "c1", "exists": False}]))
     assert bad.result == "INVALID_INPUT"
     assert bad.reasons[0]["code"] == "INCONSISTENT_FACTS"
 

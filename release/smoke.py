@@ -122,8 +122,12 @@ def check(cond: bool, message: str) -> None:
 
 
 CUSTOMER = {"id": "c1", "name": "Ada", "credit_limit": Decimal("100.00")}
-ORDERS = {"universe": [{"entity": "Order", "members": [
-    {"id": "o1", "customer": "c1", "amount": "60.00", "status": "open"}]}],
+# The complete parent snapshot (Core 017): every declared entity type, empty ones too.
+ORDERS = {"universe": [
+    {"entity": "Customer", "members": [{"id": "c1", "name": "Ada", "credit_limit": "100.00"}]},
+    {"entity": "Employee", "members": []},
+    {"entity": "Order", "members": [
+        {"id": "o1", "customer": "c1", "amount": "60.00", "status": "open"}]}],
     "identities": [{"entity": "Order", "id": "o9", "used": False}]}
 
 

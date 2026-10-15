@@ -22,8 +22,8 @@ checksum = "2af50177e190e07a26ab74f8b1efbfe2ef87da2116221318cb1c2e82baf7de06"
 
 [[package]]
 name = "behavior-core"
-version = "0.12.0"
-source = "git+https://github.com/kallistoteles/behavior-ir-core?rev=b525da46d4282166418a90141f0c94fd099e9b47#b525da46d4282166418a90141f0c94fd099e9b47"
+version = "0.13.0"
+source = "git+https://github.com/kallistoteles/behavior-ir-core?rev=15094972191aa0ae79705df0397c551a18745399#15094972191aa0ae79705df0397c551a18745399"
 dependencies = [
  "num-bigint",
  "num-integer",
@@ -38,8 +38,8 @@ dependencies = [
 
 [[package]]
 name = "behavior-engine"
-version = "0.12.0"
-source = "git+https://github.com/kallistoteles/behavior-ir-core?rev=b525da46d4282166418a90141f0c94fd099e9b47#b525da46d4282166418a90141f0c94fd099e9b47"
+version = "0.13.0"
+source = "git+https://github.com/kallistoteles/behavior-ir-core?rev=15094972191aa0ae79705df0397c551a18745399#15094972191aa0ae79705df0397c551a18745399"
 dependencies = [
  "behavior-core",
  "behavior-store",
@@ -49,7 +49,7 @@ dependencies = [
 
 [[package]]
 name = "behavior-models"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "behavior-engine",
  "proptest",
@@ -59,7 +59,7 @@ dependencies = [
 
 [[package]]
 name = "behavior-py"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "behavior-engine",
  "behavior-models",
@@ -70,8 +70,8 @@ dependencies = [
 
 [[package]]
 name = "behavior-store"
-version = "0.12.0"
-source = "git+https://github.com/kallistoteles/behavior-ir-core?rev=b525da46d4282166418a90141f0c94fd099e9b47#b525da46d4282166418a90141f0c94fd099e9b47"
+version = "0.13.0"
+source = "git+https://github.com/kallistoteles/behavior-ir-core?rev=15094972191aa0ae79705df0397c551a18745399#15094972191aa0ae79705df0397c551a18745399"
 dependencies = [
  "behavior-core",
  "behavior-verify",
@@ -86,8 +86,8 @@ dependencies = [
 
 [[package]]
 name = "behavior-verify"
-version = "0.12.0"
-source = "git+https://github.com/kallistoteles/behavior-ir-core?rev=b525da46d4282166418a90141f0c94fd099e9b47#b525da46d4282166418a90141f0c94fd099e9b47"
+version = "0.13.0"
+source = "git+https://github.com/kallistoteles/behavior-ir-core?rev=15094972191aa0ae79705df0397c551a18745399#15094972191aa0ae79705df0397c551a18745399"
 dependencies = [
  "behavior-core",
  "ed25519-dalek",

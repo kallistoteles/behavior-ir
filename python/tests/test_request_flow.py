@@ -24,6 +24,14 @@ def request(status: str, assignee: str | None = None) -> dict[str, Any]:
             "title": "Laptop", "amount": 900}
 
 
+def snapshot(*requests: dict[str, Any], **facts: Any) -> dict[str, Any]:
+    """The complete parent snapshot (Core 017): every declared entity type, the given requests
+    and the three users; `facts` adds further facts (e.g. `identities`)."""
+    users = [{"id": u, "name": u.title()} for u in ("alice", "bob", "carol")]
+    return {"universe": [{"entity": "PurchaseRequest", "members": list(requests)},
+                         {"entity": "User", "members": users}], **facts}
+
+
 def test_the_generated_items_are_ordinary() -> None:
     receipt, = M.model_receipts
     assert receipt.model_kind == "request_flow"
@@ -35,8 +43,8 @@ def test_creation_starts_in_the_target_state() -> None:
                  context={"actor": "alice"},
                  input={"request_id": "q1", "title": "Laptop", "amount": 900},
                  data_version="1",
-                 facts={"identities": [{"entity": "PurchaseRequest", "id": "q1",
-                                        "used": False}]})
+                 facts=snapshot(identities=[{"entity": "PurchaseRequest", "id": "q1",
+                                             "used": False}]))
     assert d.result == "ALLOW", d
     value = d.lifecycle[0]["value"]
     assert value["status"] == "Draft"
@@ -48,8 +56,8 @@ def test_a_creation_guard_is_an_ordinary_guard() -> None:
                  context={"actor": "alice"},
                  input={"request_id": "q1", "title": "Laptop", "amount": 0},
                  data_version="1",
-                 facts={"identities": [{"entity": "PurchaseRequest", "id": "q1",
-                                        "used": False}]})
+                 facts=snapshot(identities=[{"entity": "PurchaseRequest", "id": "q1",
+                                             "used": False}]))
     assert d.result != "ALLOW"
 
 
@@ -64,9 +72,9 @@ def test_the_reference_lifecycle_runs_end_to_end() -> None:
     ]
     status, assignee = "Draft", None
     for transition, inp, ctx, target, after in steps:
-        d = evaluate(M, f"purchase_request__{transition}",
-                     state={"purchase_request": request(status, assignee)},
-                     context=ctx, input=inp, data_version="1")
+        r = request(status, assignee)
+        d = evaluate(M, f"purchase_request__{transition}", state={"purchase_request": r},
+                     context=ctx, input=inp, data_version="1", facts=snapshot(r))
         assert d.result == "ALLOW", (transition, d)
         assert ("status", target) in [(c.field, c.new) for c in d.changes]
         status, assignee = target, after
@@ -74,14 +82,14 @@ def test_the_reference_lifecycle_runs_end_to_end() -> None:
 
 def test_authority_is_explicit() -> None:
     # Only the authored guards decide: the assignee approves, nobody else.
-    d = evaluate(M, "purchase_request__approve",
-                 state={"purchase_request": request("InReview", "bob")},
-                 context={"actor": "alice"}, input={}, data_version="1")
+    r = request("InReview", "bob")
+    d = evaluate(M, "purchase_request__approve", state={"purchase_request": r},
+                 context={"actor": "alice"}, input={}, data_version="1", facts=snapshot(r))
     assert d.result != "ALLOW"
     # A transition outside its source states is refused by the StateMachine guard.
-    d = evaluate(M, "purchase_request__approve",
-                 state={"purchase_request": request("Draft", "bob")},
-                 context={"actor": "bob"}, input={}, data_version="1")
+    r = request("Draft", "bob")
+    d = evaluate(M, "purchase_request__approve", state={"purchase_request": r},
+                 context={"actor": "bob"}, input={}, data_version="1", facts=snapshot(r))
     assert d.result != "ALLOW"
 
 
@@ -121,10 +129,10 @@ def test_a_transition_commits_iff_its_source_set_and_guards_allow(
     inp = {"reviewer": "bob"} if transition == "start_review" else {}
     actors = [None] if admitted is None else [admitted, "carol"]
     for actor in actors:
-        d = evaluate(M, f"purchase_request__{transition}",
-                     state={"purchase_request": request(status, assignee="bob")},
+        r = request(status, assignee="bob")
+        d = evaluate(M, f"purchase_request__{transition}", state={"purchase_request": r},
                      context={} if actor is None else {"actor": actor},
-                     input=inp, data_version="1")
+                     input=inp, data_version="1", facts=snapshot(r))
         expected = status in sources and actor in (None, admitted)
         assert (d.result == "ALLOW") == expected, (status, transition, actor, d)
         if expected:
@@ -152,8 +160,8 @@ def test_every_creation_starts_in_exactly_its_target(creation: str, target: str)
                  context={"actor": "alice"},
                  input={"request_id": "q1", "title": "Laptop", "amount": 900},
                  data_version="1",
-                 facts={"identities": [{"entity": "PurchaseRequest", "id": "q1",
-                                        "used": False}]})
+                 facts=snapshot(identities=[{"entity": "PurchaseRequest", "id": "q1",
+                                             "used": False}]))
     assert d.result == "ALLOW", d
     created, = d.lifecycle
     assert created["value"]["status"] == target

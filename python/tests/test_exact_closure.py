@@ -46,13 +46,14 @@ def test_ratio_is_an_exact_dimensionless_value() -> None:
     m = BehaviorModule(entities=[Share], derived=[portion], actions=[scaled])
     wire = json.loads(m.to_wire_json())
     assert wire["derived"][0]["type"] == {"t": "exact"}
-    d = evaluate(m, "scaled", state={"share": {"id": "s1", "amount": Decimal("10.00"),
-                                               "budget": Decimal("30.00"),
-                                               "part": Decimal("0")}}, data_version="1")
+    share = {"id": "s1", "amount": Decimal("10.00"), "budget": Decimal("30.00"),
+             "part": Decimal("0")}
+    d = evaluate(m, "scaled", state={"share": share}, data_version="1",
+                 facts={"universe": [{"entity": "Share", "members": [share]}]})
     assert d.result == "ALLOW"
     assert d.changes[0].new == "10.00"
     record = json.loads(d.record_json)
-    assert record["record_version"] == "0.4"
+    assert record["record_version"] == "0.8"  # Core 017: fresh decisions are record 0.8
     assert record["derived"][0]["value"] == "1/3"
 
 

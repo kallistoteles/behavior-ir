@@ -40,10 +40,12 @@ def test_a_missing_solver_is_named_and_only_verification_needs_it(
     monkeypatch.setenv("BEHAVIOR_Z3", "/nonexistent/z3")
     with pytest.raises(BehaviorError, match=r"verification needs the Z3 SMT solver"):
         verify(model)
-    d = evaluate(model, "check_orders",
-                 state={"customer": {"id": "c1", "name": "Ada", "credit_limit": Decimal("100.00"),
-                                     "region": "north"}},
-                 data_version="1", facts={"universe": [{"entity": "Order", "members": []}]})
+    ada = {"id": "c1", "name": "Ada", "credit_limit": Decimal("100.00"), "region": "north"}
+    # The complete parent snapshot (Core 017): every declared entity type.
+    d = evaluate(model, "check_orders", state={"customer": ada}, data_version="1",
+                 facts={"universe": [{"entity": "Customer", "members": [ada]},
+                                     {"entity": "Employee", "members": []},
+                                     {"entity": "Order", "members": []}]})
     assert d.result == "ALLOW"
     env = dict(os.environ, BEHAVIOR_Z3="/nonexistent/z3")
     cli = _run([sys.executable, "-m", "behavior._cli", "verify", ORDERS], env=env)

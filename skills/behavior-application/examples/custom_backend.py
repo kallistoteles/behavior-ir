@@ -1,6 +1,7 @@
 """A custom storage backend. A host may keep Behavior's documents anywhere, but a backend is
-trusted only after it passes the engine's conformance suite. Only `create` and `commit` write, and
-`commit` must be one atomic compare-and-set."""
+trusted only after it passes the engine's conformance suite. Only `create` and `commit` write;
+`commit` must be one atomic compare-and-set, and `create` must accept a retry of the identical
+original creation without writing (Core 019)."""
 
 import copy
 from typing import Any
@@ -18,6 +19,7 @@ class DictBackend:
     def __init__(self) -> None:
         self._genesis: Doc | None = None
         self._head: Doc | None = None
+        self._created: Doc | None = None  # the head of the original creation (position 0)
         self._versions: dict[tuple[str, str], list[Doc]] = {}
         self._records: list[Doc] = []
         self._removed: dict[tuple[str, str], int] = {}
@@ -43,11 +45,29 @@ class DictBackend:
         return copy.deepcopy(self._head)
 
     def create(self, genesis: Doc, head: Doc, seed: list[Doc], seed_refs: list[Doc]) -> None:
-        assert self._genesis is None, "already created"
-        self._genesis, self._head = genesis, head
+        """Publishes the original creation, or recovers it (Core 019): a retry of the identical
+        creation writes nothing and keeps all later history; any other creation is refused."""
+        candidate = DictBackend()  # built privately: nothing is visible until it is complete
+        candidate._genesis, candidate._head, candidate._created = genesis, head, head
         for v in seed:
-            self._versions.setdefault((v["entity"], v["id"]), []).append(v)
-        self._apply_refs(seed_refs, 0)
+            candidate._versions.setdefault((v["entity"], v["id"]), []).append(v)
+        candidate._apply_refs(seed_refs, 0)
+        if self._genesis is None:
+            self.__dict__.update(copy.deepcopy(candidate.__dict__))
+            return
+        if self._genesis != genesis:
+            raise ValueError("conflicting Store creation identity")
+        for entity in genesis["entity_declarations"]:  # key order is never semantic
+            if (sorted(k["id"] for k in self.keys_at(entity, 0))
+                    != sorted(k["id"] for k in candidate.keys_at(entity, 0))):
+                raise ValueError("original creation universe differs")
+        for v in seed:
+            key = {"entity": v["entity"], "id": v["id"]}
+            if (self.version_at(key, 0) != v or self.version(key, 1) != v
+                    or self.incoming_at(key, 0) != candidate.incoming_at(key, 0)):
+                raise ValueError("original creation product differs")
+        if (self._created or {}).get("state_ref") != head["state_ref"]:
+            raise ValueError("original creation state anchor differs")
 
     def removed_at(self, key: Doc) -> int | None:
         return self._removed.get((key["entity"], key["id"]))
@@ -104,4 +124,5 @@ class DictBackend:
 
 report = run_conformance(DictBackend)
 assert report.ok, report.failed()
-assert len(report.cases) == 31
+# Core 019: creation must be recoverable; an identical retry of `create` writes nothing.
+assert "creation_lost_ack_recovery" in [name for name, _, _ in report.cases]

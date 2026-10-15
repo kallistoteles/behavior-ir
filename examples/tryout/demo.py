@@ -22,7 +22,7 @@ def title(text: str) -> None:
 
 def show(decision) -> None:  # type: ignore[no-untyped-def]
     print(f"result: {decision.result}")
-    for r in decision.reasons:
+    for r in decision.diagnostics["reasons"]:  # messages are diagnostics, outside the record
         print(f"  reason: {r['code']}: {r['message']}")
     for c in decision.changes:
         print(f"  change: {c.param}.{c.field}: {c.old!r} -> {c.new!r}")
@@ -46,9 +46,17 @@ def purchase(amount: str) -> dict[str, object]:
     return {"id": "po-1", "amount": Decimal(amount), "status": Status.PENDING, "approved_by": None}
 
 
+def snapshot(pur: dict[str, object], proj: dict[str, object]) -> dict[str, object]:
+    """The complete parent snapshot the host supplies: every declared entity type."""
+    return {"universe": [{"entity": "Employee", "members": []},
+                         {"entity": "Project", "members": [proj]},
+                         {"entity": "Purchase", "members": [pur]}]}
+
+
 def run(amount: str, actor: dict[str, object] = anna, proj: dict[str, object] = project):  # type: ignore[no-untyped-def]
-    return evaluate(model, "approve", state={"purchase": purchase(amount), "project": proj},
-                    context={"actor": actor}, data_version="42")
+    pur = purchase(amount)
+    return evaluate(model, "approve", state={"purchase": pur, "project": proj},
+                    context={"actor": actor}, data_version="42", facts=snapshot(pur, proj))
 
 
 title("Approve 15 000 (within limit and budget)")
@@ -72,7 +80,7 @@ show(run("1000", proj={**project, "spent": Decimal("120000")}))
 
 title("Decision record of the first approval")
 record = json.loads(ok.record_json)
-for step in record["trace"]:
+for step in ok.diagnostics["trace"]:  # source text is a diagnostic, outside the record
     print(f"  {step['phase']:<15} {step['expr_text']:<50} {step['outcome']}")
 print(f"replay matches: {replay(model, ok.record_json).matches}")
 tampered = dict(record, result="DENY")
@@ -82,7 +90,8 @@ print(f"tampered record replays: {replay(model, json.dumps(tampered)).matches} "
 # --- 5. An AI acting through the capability boundary -----------------------------------------
 
 title("AI intent: approve po-1 (host supplies state and the logged-in user)")
-host = {"state": {"purchase": purchase("15000"), "project": project}, "context": {"actor": anna}}
+host = {"state": {"purchase": purchase("15000"), "project": project}, "context": {"actor": anna},
+        "facts": snapshot(purchase("15000"), project)}
 d = evaluate_intent(model, {"capability": "approve",
                             "targets": {"purchase": "po-1", "project": "p7"}, "input": {}},
                     data_version="42", **host)

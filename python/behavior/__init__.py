@@ -95,20 +95,22 @@ def evaluate(
     input: dict[str, Any] | None = None,
     context: dict[str, Any] | None = None,
     data_version: str,
+    facts: dict[str, Any],
     git_revision: str | None = None,
-    facts: dict[str, Any] | None = None,
 ) -> Decision:
     """Evaluates `action` as a transition over state, input, and context (engine-side).
 
+    `facts` is the complete parent snapshot, supplied by the host (Core 017): `"universe"` lists
+    every declared entity type, `{"entity": T, "members": [...]}`, an empty type with
+    `"members": []`; the bound `state` must agree with it. Nothing is inferred from `state`: an
+    incomplete or invalid snapshot gives `INVALID_INPUT` with `INVALID_STATE_SNAPSHOT`. Historical
+    facts (`"existence"`, `"identities"`, ...) may be added alongside.
+
     Values are passed as Python objects (`Decimal`, `Enum` members, `None`, ...); floats raise
-    `TypeError` at the engine boundary. `facts` supplies the evaluation facts a lifecycle
-    decision needs (feature 006): `{"existence": [...], "identities": [...], "references":
-    [...]}`, and for queries (feature 007) `"queries"` (memberships) and `"fields"` (member
-    values), or `"universe"` sections listing every entity of a type. A needed fact that is missing gives the result `ERROR` with `UNKNOWN_FACT`; facts
-    that cannot describe one valid state give `INVALID_INPUT` with `INCONSISTENT_FACTS`.
+    `TypeError` at the engine boundary.
     """
     record = model.engine.evaluate(
-        action, state, input or {}, context or {}, data_version, git_revision, facts
+        action, state, input or {}, context or {}, data_version, facts, git_revision
     )
     return Decision.from_record(record)
 
@@ -120,15 +122,17 @@ def evaluate_intent(
     state: dict[str, Any],
     context: dict[str, Any] | None = None,
     data_version: str,
+    facts: dict[str, Any],
     git_revision: str | None = None,
 ) -> Decision:
-    """Evaluates a structured intent (capability, targets, input) with host-supplied state and
-    context. Raises IntentRejected listing every problem; nothing is evaluated then."""
+    """Evaluates a structured intent (capability, targets, input) with host-supplied state,
+    context and complete parent snapshot `facts` (as for `evaluate`; the untrusted intent cannot
+    supply it). Raises IntentRejected listing every problem; nothing is evaluated then."""
     from . import _engine
 
     try:
         record = model.engine.evaluate_intent(
-            intent, state, context or {}, data_version, git_revision
+            intent, state, context or {}, data_version, facts, git_revision
         )
     except _engine.EngineIntentRejected as e:
         raise IntentRejected(e.args[0]) from None

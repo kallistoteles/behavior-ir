@@ -43,6 +43,13 @@ def state(amount: Decimal) -> dict[str, object]:
     }
 
 
+def snapshot(state: dict[str, object]) -> dict[str, object]:
+    """The complete parent snapshot (Core 017): the bound rows are the whole world here."""
+    return {"universe": [{"entity": "Invoice", "members": [state["invoice"]]},
+                         {"entity": "Budget", "members": [state.get("budget")] if "budget" in state
+                          else []}]}
+
+
 def test_scale_is_declared_in_the_wire_ir() -> None:
     wire = json.loads(model.to_wire_json())
     assert wire["ir_version"] == "0.4"
@@ -62,10 +69,12 @@ def test_scale_needs_decimal_and_range() -> None:
 
 
 def test_off_grid_input_is_rejected_and_values_keep_their_scale() -> None:
-    bad = evaluate(model, "add_spent", state=state(Decimal("100.505")), data_version="1")
+    bad = evaluate(model, "add_spent", state=state(Decimal("100.505")), data_version="1",
+                   facts=snapshot(state(Decimal("100.505"))))
     assert bad.result == "INVALID_INPUT"
     assert bad.reasons[0]["code"] == "OFF_GRID"
-    ok = evaluate(model, "add_spent", state=state(Decimal("100.5")), data_version="1")
+    ok = evaluate(model, "add_spent", state=state(Decimal("100.5")), data_version="1",
+                  facts=snapshot(state(Decimal("100.5"))))
     assert ok.result == "ALLOW"
     (change,) = ok.changes
     # Decisions carry the record's canonical text: exactly two decimals.
@@ -109,8 +118,8 @@ def test_rescale_matches_the_fixture_and_is_traced() -> None:
         return v
 
     assert no_loc(ours) == no_loc(theirs)
-    d = evaluate(m, "charge", state={"invoice": {"id": "i1", "amount": Decimal("10.01"), "fee": Decimal("0")}},
-                 data_version="1")
+    bound = {"invoice": {"id": "i1", "amount": Decimal("10.01"), "fee": Decimal("0")}}
+    d = evaluate(m, "charge", state=bound, data_version="1", facts=snapshot(bound))
     assert d.result == "ALLOW"
     assert d.changes[0].new == "2.50"
     effect = next(s for s in json.loads(d.record_json)["trace"] if s["phase"] == "effect")

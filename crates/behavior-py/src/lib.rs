@@ -709,9 +709,9 @@ impl EngineModule {
         })
     }
 
-    /// `facts`: the evaluation facts section (feature 006: existence, identities, references),
-    /// or None.
-    #[pyo3(signature = (action, state, input, context, data_version, git_revision=None, facts=None))]
+    /// `facts`: the complete parent snapshot and any further facts (Core 017): `universe` lists
+    /// every declared entity type. Required; nothing is inferred from `state`.
+    #[pyo3(signature = (action, state, input, context, data_version, facts, git_revision=None))]
     #[allow(clippy::too_many_arguments)]
     fn evaluate(
         &self,
@@ -720,8 +720,8 @@ impl EngineModule {
         input: &Bound<'_, PyAny>,
         context: &Bound<'_, PyAny>,
         data_version: String,
+        facts: &Bound<'_, PyAny>,
         git_revision: Option<String>,
-        facts: Option<&Bound<'_, PyAny>>,
     ) -> PyResult<PyRecord> {
         let mut request = json!({
             "action": action,
@@ -729,12 +729,10 @@ impl EngineModule {
             "state": object(state)?,
             "input": object(input)?,
             "context": object(context)?,
+            "facts": object(facts)?,
         });
         if let (Some(g), Value::Object(m)) = (git_revision, &mut request) {
             m.insert("git_revision".into(), json!(g));
-        }
-        if let (Some(f), Value::Object(m)) = (facts, &mut request) {
-            m.insert("facts".into(), to_value(f)?);
         }
         Ok(record(behavior_engine::evaluate(
             &self.inner,
@@ -742,9 +740,11 @@ impl EngineModule {
         )))
     }
 
-    /// Evaluates a structured intent with host-supplied state and context; raises
+    /// Evaluates a structured intent with host-supplied state, context and complete parent
+    /// snapshot (`facts`, forwarded unchanged into the host document); raises
     /// EngineIntentRejected listing every problem.
-    #[pyo3(signature = (intent, state, context, data_version, git_revision=None))]
+    #[pyo3(signature = (intent, state, context, data_version, facts, git_revision=None))]
+    #[allow(clippy::too_many_arguments)]
     fn evaluate_intent(
         &self,
         py: Python<'_>,
@@ -752,12 +752,14 @@ impl EngineModule {
         state: &Bound<'_, PyAny>,
         context: &Bound<'_, PyAny>,
         data_version: String,
+        facts: &Bound<'_, PyAny>,
         git_revision: Option<String>,
     ) -> PyResult<PyRecord> {
         let mut host = json!({
             "data_version": data_version,
             "state": object(state)?,
             "context": object(context)?,
+            "facts": object(facts)?,
         });
         if let (Some(g), Value::Object(m)) = (git_revision, &mut host) {
             m.insert("git_revision".into(), json!(g));

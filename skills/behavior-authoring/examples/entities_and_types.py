@@ -61,7 +61,9 @@ state = {
                 "approved_by": None, "owner": "u1"},
     "approver": {"id": "u1", "role": "manager", "approval_limit": Decimal("500.00")},
 }
-facts = {"existence": [{"entity": "User", "id": "u1", "exists": True}]}
+# Plain evaluation takes the complete parent snapshot: every declared entity type.
+facts = {"universe": [{"entity": "User", "members": [state["approver"]]},
+                      {"entity": "Invoice", "members": [state["invoice"]]}]}
 decision = evaluate(model, "approve", state=state, data_version="1", facts=facts)
 assert decision.result == "ALLOW", decision.reasons
 assert [(c.field, c.new) for c in decision.changes] == [("status", "approved"), ("approved_by", "u1")]
@@ -71,8 +73,9 @@ as_manager = evaluate(model, "approve_as", state={"invoice": state["invoice"]}, 
                                          "approval_limit": Decimal("1000.00")}}, facts=facts)
 assert as_manager.result == "ALLOW", as_manager.reasons
 
-# Malformed data is not a decision: a value that does not fit its type is INVALID_INPUT (an
-# incoming entity that breaks a constraint would be INVALID_STATE).
+# Malformed data is not a decision: a value that does not fit its type is INVALID_INPUT.
 negative = dict(state["invoice"], amount=Decimal("250.001"))
+bad = {"universe": [{"entity": "User", "members": [state["approver"]]},
+                    {"entity": "Invoice", "members": [negative]}]}
 assert evaluate(model, "approve", state=dict(state, invoice=negative), data_version="1",
-                facts=facts).result == "INVALID_INPUT"  # three decimals do not fit Money
+                facts=bad).result == "INVALID_INPUT"  # three decimals do not fit Money

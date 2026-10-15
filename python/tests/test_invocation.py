@@ -53,12 +53,30 @@ def test_wire_import_preserves_admission_and_canonical_roundtrip() -> None:
         bh.BehaviorModule.from_wire_json(json.dumps(invalid))
 
 
+def assert_matches_golden(module: Any, record: Any, golden: str) -> None:
+    """The fresh record agrees with Core's frozen golden as Core's own 0.13.0 test checks it
+    (`behavior-cli/tests/cli_invoke.rs`): a decision is now record 0.8 (Core 017) with the
+    golden's result and changes, a self-consistent identity (replay refuses a wrong one) and both
+    records replay; any other outcome is byte-identical."""
+    expected = json.loads(golden)
+    if expected["outcome"].get("record_kind") == "decision":
+        fresh = record.data["outcome"]["record"]
+        assert fresh["record_version"] == "0.8"
+        assert fresh["result"] == expected["outcome"]["record"]["result"]
+        assert fresh["changes"] == expected["outcome"]["record"]["changes"]
+        assert bh.replay_invocation(module, golden).matches
+    else:
+        assert record.json == golden
+    assert record.record_id == record.data["record_id"]
+    assert bh.replay_invocation(module, record.json).matches
+
+
 @pytest.mark.parametrize("name", REQUESTS)
 def test_plain_requests_equal_core_records_and_replay(name: str) -> None:
     module = model()
     record = bh.invoke(module, fixture(f"invocations/{name}.json"),
                        fixture("snapshots/s1.json"))
-    assert record.json == fixture(f"records/{name}.expected.json")
+    assert_matches_golden(module, record, fixture(f"records/{name}.expected.json"))
     assert record.data == json.loads(record.json)
     assert record.record_id == record.data["record_id"]
     assert record.outcome_kind == record.data["outcome"]["kind"]
@@ -71,7 +89,7 @@ def test_capability_intents_equal_core_records_with_explicit_host_context(name: 
     module = model()
     record = bh.invoke(module, fixture(f"intents/{name}.json"),
                        fixture("snapshots/s1.json"), context={})
-    assert record.json == fixture(f"intent-records/{name}.expected.json")
+    assert_matches_golden(module, record, fixture(f"intent-records/{name}.expected.json"))
     assert bh.replay_invocation(module, record).matches
     if record.outcome_kind == "pre_evaluation_refusal":
         assert record.inner_record is None
@@ -132,7 +150,9 @@ def test_modified_record_fails_replay_with_a_difference() -> None:
     assert not result.matches
     assert result.diff is not None
     # Inspecting a returned dictionary does not mutate the engine-owned artifact.
-    assert record.json == fixture("records/transfer.expected.json")
+    assert json.loads(record.json)["outcome"]["record"]["changes"][0]["new"] == (
+        altered["outcome"]["record"]["changes"][0]["new"] - 1)
+    assert bh.replay_invocation(module, record).matches
 
 
 @pytest.mark.parametrize("name", REQUESTS)

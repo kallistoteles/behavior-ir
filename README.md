@@ -9,11 +9,11 @@ skills, the models area and the installable package. The deterministic semantic 
 [Behavior Core](https://github.com/kallistoteles/behavior-ir-core) (`behavior-ir-core`). Core
 defines meaning; this repository defines ways to author and use it. The package is built
 against exactly one Core Release, named in [`core-release.json`](core-release.json) (core
-v0.12.0), and bundles it, so users install one thing.
+v0.13.0), and bundles it, so users install one thing.
 
 The semantics are specified and documented in the core:
-- [PRINCIPLES.md](https://github.com/kallistoteles/behavior-ir-core/blob/v0.12.0/PRINCIPLES.md): the first principles every feature is checked against;
-- [ARCHITECTURE.md](https://github.com/kallistoteles/behavior-ir-core/blob/v0.12.0/ARCHITECTURE.md): core, bindings and models, and where a new concept
+- [PRINCIPLES.md](https://github.com/kallistoteles/behavior-ir-core/blob/v0.13.0/PRINCIPLES.md): the first principles every feature is checked against;
+- [ARCHITECTURE.md](https://github.com/kallistoteles/behavior-ir-core/blob/v0.13.0/ARCHITECTURE.md): core, bindings and models, and where a new concept
   belongs;
 - `docs/persistence.md`, `docs/verification.md` and the specifications 001–007, 009, 010,
   012 and 013.
@@ -47,11 +47,15 @@ def approve(invoice: Invoice, *, actor: Context[User]):
     set_(invoice.approved, True)
 
 model = BehaviorModule(entities=[User, Invoice], actions=[approve])
+invoice = {"id": "1042", "amount": Decimal("43200"), "approved": False}
 decision = evaluate(
     model, "approve",
-    state={"invoice": {"id": "1042", "amount": Decimal("43200"), "approved": False}},
+    state={"invoice": invoice},
     context={"actor": {"id": "anna", "role": "manager", "approval_limit": 50000}},
     data_version="18342",
+    # The complete parent snapshot: every declared entity type, empty ones too.
+    facts={"universe": [{"entity": "Invoice", "members": [invoice]},
+                        {"entity": "User", "members": []}]},
 )
 decision.result      # "ALLOW"; decision.record_json is the replayable decision record
 ```
@@ -64,11 +68,13 @@ decision.result      # "ALLOW"; decision.record_json is the replayable decision 
   the same pipeline the builder finishes through, detects cycles, and computes a content hash
   for every node. The module hash is the behavior version; names, comments, and source lines
   are not part of it. Admitted modules serialize to canonical JSON (`model.to_wire_json()`).
-- Evaluation checks invariants on the current state, preconditions, computes the change set,
-  then checks postconditions and invariants on the proposed state. Every call produces a
+- Evaluation takes the **complete parent snapshot** from the host (`facts["universe"]` lists every
+  declared entity type; nothing is inferred from the bound state) and refuses an incomplete or
+  invalid one as `INVALID_INPUT` / `INVALID_STATE_SNAPSHOT`. It then checks preconditions,
+  computes the change set, and checks postconditions and the complete resulting state. Every call produces a
   canonical decision record that can be replayed byte for byte.
 - Structured intents (for an AI interface) name only a capability, target ids, and input; the
-  trusted host supplies state and the acting user.
+  trusted host supplies state, the complete snapshot and the acting user.
 
 The `behavior` CLI exposes the same engine: `admit`, `version`, `hashes`, `eval`, `intent`,
 `replay` (contracts/engine-api.md).
@@ -174,7 +180,8 @@ def remove_customer(customer: Customer):
 Removal keeps history, a removed identity is never reused (`ENTITY_ID_ALREADY_USED`), and
 referential integrity is checked on the resulting state (`DANGLING_REFERENCE`). Evaluation observes
 existence, identity and reference *facts*: a store answers them as of the evaluated position,
-plain `evaluate(..., facts={...})` takes them from the request, and records keep the observed ones
+plain `evaluate(..., facts={...})` derives current ones from the request's complete `universe` and
+takes historical ones (`used`) from the request, and records keep the observed ones
 for replay. Any lifecycle form needs wire IR 0.5. See `docs/persistence.md`,
 `python -m examples.accounts.run` and `specs/006-entity-lifecycle/`.
 
@@ -204,8 +211,8 @@ def place_order(customer: Customer, *, order_id: Input[Id[Order]], amount: Input
 candidate-local; relational invariants live at module level ("local invariants describe entities;
 global invariants describe relations"). A query result is a *fact* about the evaluated state:
 stores answer it as of the evaluated position (with an optional field index that never changes a
-result), plain `evaluate(..., facts={...})` takes `queries`/`fields` (or whole `universe`
-sections) from the request, records keep the observed memberships and member values, and
+result), plain `evaluate(..., facts={...})` derives it from the request's complete `universe`,
+records keep the observed memberships and member values, and
 resulting-state queries are derived from the change, never stored. When a complete `universe`
 and redundant query or field facts overlap, they must exactly agree; the universe determines the
 query result and contradictions are `INCONSISTENT_FACTS`. Any query form needs wire IR
@@ -323,7 +330,7 @@ The invocation document uses typed `{entity, id}` bindings. For untrusted capabi
 pass host context explicitly with `invoke(..., context=...)`; the caller supplies neither
 state nor acting context. Passing raw JSON text preserves duplicate keys for the core's
 checked decoder. Canonical records, refusal order, semantic hashes and replay come from core.
-See the pinned [invocation contract](https://github.com/kallistoteles/behavior-ir-core/blob/v0.12.0/docs/invocation.md).
+See the pinned [invocation contract](https://github.com/kallistoteles/behavior-ir-core/blob/v0.13.0/docs/invocation.md).
 
 The existing Python DSL retains its legacy semantic profile. Current command modules are
 explicitly selected Wire IR 0.8 documents, admitted with `BehaviorModule.from_wire_json`.
@@ -340,7 +347,7 @@ Reads, refusals and uncommitted candidates leave history unchanged.
 upper anchor and a limit on whole history events. Duplicate emissions retain multiplicity;
 each committed occurrence has a stable identity. Command-only commits advance history while
 preserving state content. Adapters consume these occurrences and own dispatch, retries and
-delivery status. See the pinned [command contract](https://github.com/kallistoteles/behavior-ir-core/blob/v0.12.0/docs/commands.md).
+delivery status. See the pinned [command contract](https://github.com/kallistoteles/behavior-ir-core/blob/v0.13.0/docs/commands.md).
 
 Trusted proof generation and authorization are available through the bundled
 `behavior governance verify`, `verify-migration` and `authorize` commands. Python can derive
@@ -350,7 +357,7 @@ supplied host context and the exact execution policy. Historical v1 policies req
 authorization refuse fresh action or migration writes with
 `TRUSTED_GOVERNANCE_UPGRADE_REQUIRED`. Validated state export and an explicit v2 genesis begin
 a new lineage; historical evidence retains its original trust level. See the pinned
-[governance contract](https://github.com/kallistoteles/behavior-ir-core/blob/v0.12.0/docs/governance.md).
+[governance contract](https://github.com/kallistoteles/behavior-ir-core/blob/v0.13.0/docs/governance.md).
 
 ## Using a release (feature 008)
 
@@ -360,7 +367,7 @@ pinned by file and hash; no Rust toolchain is needed:
 
 ```text
 # requirements.txt of the application
-behavior @ file:///path/to/behavior-0.12.0-cp313-abi3-manylinux_2_28_x86_64.whl --hash=sha256:<from SHA256SUMS>
+behavior @ file:///path/to/behavior-0.13.0-cp313-abi3-manylinux_2_28_x86_64.whl --hash=sha256:<from SHA256SUMS>
 ```
 
 - **Install.** Run `pip install --require-hashes -r requirements.txt`. The wheel also installs

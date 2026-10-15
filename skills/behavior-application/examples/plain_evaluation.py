@@ -1,5 +1,6 @@
-"""Evaluation without a store: the host supplies the facts a decision reads. Missing facts are
-never guessed. The decision record is the audit artifact, and it replays on its own."""
+"""Evaluation without a store: the host supplies the complete parent snapshot, every declared
+entity type. Nothing is inferred from the bound entities. The decision record is the audit
+artifact, and it replays on its own."""
 
 from decimal import Decimal
 
@@ -31,12 +32,16 @@ def close_customer(customer: Customer):
 model = BehaviorModule(entities=[Customer, Order], actions=[close_customer])
 state = {"customer": {"id": "c1", "name": "Ada"}}
 
-# The set the decision depends on must be supplied, here as the whole universe of orders.
-missing = evaluate(model, "close_customer", state=state, data_version="1")
-assert missing.result == "ERROR" and missing.reasons[0]["code"] == "UNKNOWN_FACT"
+# The snapshot must list every declared entity type; the bound customer is not a universe.
+partial = {"universe": [{"entity": "Customer", "members": [state["customer"]]}]}
+missing = evaluate(model, "close_customer", state=state, data_version="1", facts=partial)
+assert missing.result == "INVALID_INPUT"
+assert missing.reasons[0]["code"] == "INVALID_STATE_SNAPSHOT"
 
-universe = {"universe": [{"entity": "Order", "members": [
-    {"id": "o1", "customer": "c2", "amount": "5.00"}]}]}
+universe = {"universe": [
+    {"entity": "Customer", "members": [state["customer"]]},
+    {"entity": "Order", "members": [{"id": "o1", "customer": "c2", "amount": "5.00"}]},
+]}
 decision = evaluate(model, "close_customer", state=state, data_version="snapshot-17",
                     facts=universe)
 assert decision.result == "ALLOW"

@@ -1,4 +1,4 @@
-//! Behavior Models for Python (features 501, 502): glue between the Python authoring layer and the
+//! Behavior Models for Python (features 501, 502, 503): glue between the Python authoring layer and the
 //! model authority `behavior-models`. Nothing here decides model semantics: Python model input is
 //! passed through unchanged, and fragments are traced by Python inside the scopes the model crate
 //! opens.
@@ -11,7 +11,8 @@
 use behavior_engine::builder::{Builder, CommandEmissionSpec, Node};
 use behavior_engine::wire::{Loc, WParam};
 use behavior_models::{
-    AnyModel, BindingError, CreationFragments, CreationInput, CreationScope, DisplayMeta,
+    AnyModel, ApprovalInput, ApprovalSource, ApprovalSpec, BindingError, CapabilityInput,
+    CreationFragments, CreationInput, CreationScope, DecisionFragments, DecisionScope, DisplayMeta,
     FragmentSource, ModelInput, ModelSpec, RequestFlowInput, RequestFlowSource, RequestFlowSpec,
     SourceLoc, TransitionFragments, TransitionInput, TransitionScope,
 };
@@ -114,6 +115,34 @@ fn request_flow_input(d: &Bound<'_, PyAny>) -> PyResult<RequestFlowInput> {
     })
 }
 
+/// An Approval input dict (feature 503), exactly as the authoring layer recorded it.
+fn approval_input(d: &Bound<'_, PyAny>) -> PyResult<ApprovalInput> {
+    let capabilities = item(d, "capabilities")?
+        .try_iter()?
+        .map(|c| {
+            let c = c?;
+            Ok(CapabilityInput {
+                capability_id: item(&c, "capability_id")?.extract()?,
+                inputs: params(&c, "inputs")?,
+                context: params(&c, "context")?,
+                display: display(&c)?,
+                source: source(&c)?,
+            })
+        })
+        .collect::<PyResult<Vec<_>>>()?;
+    Ok(ApprovalInput {
+        approval_id: item(d, "approval_id")?.extract()?,
+        subject_entity: item(d, "subject_entity")?.extract()?,
+        actor_entity: item(d, "actor_entity")?.extract()?,
+        approve_threshold: item(d, "approve_threshold")?.extract()?,
+        reject_threshold: item(d, "reject_threshold")?.extract()?,
+        payload: params(d, "payload")?,
+        capabilities,
+        display: display(d)?,
+        source: source(d)?,
+    })
+}
+
 /// `(command, when node or None, [(field, node)], file, line)` from the Python tracer.
 type PyEmission<'py> = (
     String,
@@ -131,6 +160,7 @@ struct PyFragments<'py> {
     builder: Py<PyBuilder>,
     tracer: Py<PyAny>,
     creation_tracer: Option<Py<PyAny>>,
+    decision_tracer: Option<Py<PyAny>>,
 }
 
 fn roles(ps: &[WParam]) -> Vec<(String, &'static str)> {
@@ -242,6 +272,44 @@ impl PyFragments<'_> {
         })
     }
 
+    fn call_decision(&self, scope: &DecisionScope) -> PyResult<DecisionFragments> {
+        let Some(tracer) = &self.decision_tracer else {
+            return Err(pyo3::exceptions::PyRuntimeError::new_err(
+                "the model has no decision tracer",
+            ));
+        };
+        let out = tracer
+            .bind(self.py)
+            .call1((scope.capability_id.clone(), roles(&scope.params)))?;
+        let cond = |key: &str| -> PyResult<Option<(Node, Loc)>> {
+            let v = item(&out, key)?;
+            if v.is_none() {
+                return Ok(None);
+            }
+            let (n, f, l): (Bound<'_, PyAny>, String, u64) = v.extract()?;
+            Ok(Some((node(&n)?, loc(f, l))))
+        };
+        let actor = cond("actor")?.ok_or_else(|| {
+            pyo3::exceptions::PyValueError::new_err("a decision capability needs an actor")
+        })?;
+        let payload = item(&out, "payload")?
+            .try_iter()?
+            .map(|v| {
+                let (field, n): (String, Bound<'_, PyAny>) = v?.extract()?;
+                Ok((field, node(&n)?))
+            })
+            .collect::<PyResult<Vec<_>>>()?;
+        let (guards, _, _, commands) = fragments(&out)?;
+        Ok(DecisionFragments {
+            actor,
+            open: cond("open")?,
+            eligible: cond("eligible")?,
+            guards,
+            payload,
+            commands,
+        })
+    }
+
     fn binding_error(&self, e: PyErr) -> BindingError {
         let value = e.value(self.py);
         let code = value
@@ -282,8 +350,21 @@ impl RequestFlowSource for PyFragments<'_> {
     }
 }
 
-/// A model dict of either kind (`kind` is `"request_flow"` for a RequestFlow; StateMachine
-/// dicts from feature 501 carry no kind).
+impl ApprovalSource for PyFragments<'_> {
+    fn trace_decision(
+        &mut self,
+        builder: &mut Builder,
+        scope: &DecisionScope,
+    ) -> Result<DecisionFragments, BindingError> {
+        self.swap(builder);
+        let result = self.call_decision(scope);
+        self.swap(builder);
+        result.map_err(|e| self.binding_error(e))
+    }
+}
+
+/// A model dict of any kind (`kind` is `"request_flow"` or `"approval"`; StateMachine dicts
+/// from feature 501 carry no kind).
 fn any_model<'py>(
     py: Python<'py>,
     builder: &Py<PyBuilder>,
@@ -301,12 +382,23 @@ fn any_model<'py>(
             } else {
                 None
             },
+            decision_tracer: None,
         })
     };
     Ok(match kind.as_deref() {
         Some("request_flow") => AnyModel::RequestFlow(RequestFlowSpec {
             input: request_flow_input(d)?,
             fragments: Box::new(tracers(true)?),
+        }),
+        Some("approval") => AnyModel::Approval(ApprovalSpec {
+            input: approval_input(d)?,
+            fragments: Box::new(PyFragments {
+                py,
+                builder: builder.clone_ref(py),
+                tracer: item(d, "decision_tracer")?.unbind(),
+                creation_tracer: None,
+                decision_tracer: Some(item(d, "decision_tracer")?.unbind()),
+            }),
         }),
         None | Some("state_machine") => AnyModel::StateMachine(ModelSpec {
             input: model_input(d)?,
@@ -339,15 +431,31 @@ pub(crate) fn encode_entity_name(flow_id: &str) -> PyResult<String> {
         })
 }
 
-/// P2 of the build protocol (declaration-staging contract): declares every model's contributed
-/// declarations in the session builder. Returns `(schemas, errors)`; each schema is
-/// `{model_id, entity, fields: [(name, Type)]}` in canonical field order.
+/// `DecisionNames(approval_id)` (feature 503, data model §3): the Core names of an approval's
+/// choice enum and decision entity. Raises `ValueError` for an invalid semantic id.
+#[pyfunction]
+pub(crate) fn decision_names(approval_id: &str) -> PyResult<(String, String)> {
+    behavior_models::ids::SemanticId::parse(approval_id)
+        .map(|id| behavior_models::approval::resolve::decision_names(&id))
+        .ok_or_else(|| {
+            pyo3::exceptions::PyValueError::new_err(format!("`{approval_id}` is not a semantic id"))
+        })
+}
+
+/// `(schemas, errors, definitions)` of P2.
+type Declared = (Py<PyAny>, Py<PyAny>, Py<PyAny>);
+
+/// P2 of the build protocol (declaration-staging contract, feature 503 `declaration-dag.md`):
+/// declares every model's contributed declarations and definitions in the session builder.
+/// Returns `(schemas, errors, definitions)`. Each schema is `{kind: "entity", model_id, entity,
+/// fields: [(name, Type)]}` (canonical field order) or `{kind: "enum", model_id, name, cases}`;
+/// each definition is `{model_id, local, name, kind, params: [(name, Type)], result: Type}`.
 #[pyfunction]
 pub(crate) fn declare_models(
     py: Python<'_>,
     builder: Py<PyBuilder>,
     models: Vec<Bound<'_, PyDict>>,
-) -> PyResult<(Py<PyAny>, Py<PyAny>)> {
+) -> PyResult<Declared> {
     let specs = models
         .iter()
         .map(|m| any_model(py, &builder, m))
@@ -356,10 +464,12 @@ pub(crate) fn declare_models(
     let result = behavior_models::declare_models(&mut b, &specs);
     builder.borrow_mut(py).inner = b;
     let schemas = PyList::empty(py);
+    let definitions = PyList::empty(py);
     match result {
         Ok(declared) => {
-            for s in declared {
+            for s in declared.schemas {
                 let d = PyDict::new(py);
+                d.set_item("kind", "entity")?;
                 d.set_item("model_id", s.model_id)?;
                 d.set_item("entity", s.entity)?;
                 let fields = PyList::empty(py);
@@ -369,12 +479,45 @@ pub(crate) fn declare_models(
                 d.set_item("fields", fields)?;
                 schemas.append(d)?;
             }
+            for e in declared.enums {
+                let d = PyDict::new(py);
+                d.set_item("kind", "enum")?;
+                d.set_item("model_id", e.model_id)?;
+                d.set_item("name", e.name)?;
+                d.set_item("cases", e.cases)?;
+                schemas.append(d)?;
+            }
+            for s in declared.definitions {
+                let d = PyDict::new(py);
+                d.set_item("model_id", s.model_id)?;
+                d.set_item("local", s.local)?;
+                d.set_item("name", s.name)?;
+                d.set_item(
+                    "kind",
+                    match s.kind {
+                        behavior_engine::wire::DerivedKind::Rule => "rule",
+                        behavior_engine::wire::DerivedKind::Derived => "derived",
+                    },
+                )?;
+                let ps = PyList::empty(py);
+                for p in s.params {
+                    ps.append((p.name, PyType_ { inner: p.ty }))?;
+                }
+                d.set_item("params", ps)?;
+                d.set_item("result", PyType_ { inner: s.result })?;
+                definitions.append(d)?;
+            }
             Ok((
                 schemas.into_any().unbind(),
                 PyList::empty(py).into_any().unbind(),
+                definitions.into_any().unbind(),
             ))
         }
-        Err(errors) => Ok((schemas.into_any().unbind(), error_list(py, &errors)?)),
+        Err(errors) => Ok((
+            schemas.into_any().unbind(),
+            error_list(py, &errors)?,
+            definitions.into_any().unbind(),
+        )),
     }
 }
 

@@ -22,6 +22,12 @@ is exactly feature 501's, so its established entries stay byte-identical. A case
 receipts differ in tuple (a flow beside a standalone machine) belongs to the embedding tuple
 when that tuple's embedded versions cover the others.
 
+A case with approvals (feature 503) belongs to the approval tuple. Its key adds `co_supplied`:
+the (kind, semantic version, lowerer version) of every other model in the case and of the
+models they embed, because the approval's subject may be a flow's entity and its hashes depend
+on that lowering. A bump of any co-supplied lowerer is then also a new approval tuple. Its
+entries add each approval's `generated` enum, entity and derived hashes.
+
     scripts/check-models-compat.py                 # the gate
     scripts/check-models-compat.py --write         # record the current tuple if it is new
     scripts/check-models-compat.py --print         # print the canonical receipts (determinism)
@@ -55,8 +61,16 @@ KEY_FIELDS = ("model_kind", "model_semantic_version", "lowerer_version", "core_r
 
 
 def tuple_key(t: dict[str, Any]) -> str:
-    fields = KEY_FIELDS + (("embedded",) if "embedded" in t else ())
+    fields = KEY_FIELDS + tuple(k for k in ("embedded", "co_supplied") if k in t)
     return canonical({k: t[k] for k in fields})
+
+
+def versions(r: dict[str, Any]) -> list[dict[str, Any]]:
+    """The version records of a receipt's model and of the models it embeds."""
+    own = {"kind": r["model_kind"], "model_semantic_version": r["model_semantic_version"],
+           "lowerer_version": r["lowerer_version"]}
+    return [own] + [{"kind": e["kind"], "model_semantic_version": e["model_semantic_version"],
+                     "lowerer_version": e["lowerer_version"]} for e in r.get("embedded", [])]
 
 
 def receipt_tuple(r: dict[str, Any]) -> dict[str, Any]:
@@ -71,6 +85,17 @@ def receipt_tuple(r: dict[str, Any]) -> dict[str, Any]:
 
 def case_tuple(name: str, receipts: list[dict[str, Any]]) -> dict[str, Any]:
     """The one tuple a case belongs to (see the module documentation)."""
+    approvals = [r for r in receipts if r["model_kind"] == "approval"]
+    if approvals:
+        own = {tuple_key(t): t for t in map(receipt_tuple, approvals)}
+        if len(own) != 1:
+            fail(f"case `{name}` has approvals under different version tuples: {sorted(own)}")
+        t = dict(next(iter(own.values())))
+        records = {canonical(v): v for r in receipts if r["model_kind"] != "approval"
+                   for v in versions(r)}
+        if records:
+            t["co_supplied"] = [records[k] for k in sorted(records)]
+        return t
     tuples = {tuple_key(t): t for t in map(receipt_tuple, receipts)}
     if len(tuples) == 1:
         return next(iter(tuples.values()))
@@ -88,7 +113,7 @@ def case_tuple(name: str, receipts: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def model_id(model: dict[str, Any]) -> str:
-    return str(model.get("model_id", model.get("flow_id")))
+    return str(model.get("model_id", model.get("flow_id", model.get("approval_id"))))
 
 
 def case_entry(module: Any, receipts: list[dict[str, Any]]) -> dict[str, Any]:
@@ -104,6 +129,9 @@ def case_entry(module: Any, receipts: list[dict[str, Any]]) -> dict[str, Any]:
                                        if x["model"] == f"{model_id(r['model'])}/request_entity")
             for r in flows
         }
+    approvals = [r for r in receipts if r["model_kind"] == "approval"]
+    if approvals:
+        entry["generated"] = {model_id(r["model"]): r["generated"] for r in approvals}
     return entry
 
 

@@ -39,7 +39,10 @@ jobs:
           # The models compat gate compares the manifest with its merge base (feature 501).
           fetch-depth: 0
       - uses: DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea # v19
+      # The full property suites (1,000 cases each); the default local run is a quick regression.
       - run: nix develop -c scripts/gates.sh
+        env:
+          BEHAVIOR_FULL_PROPERTIES: "1"
 
   package:
     runs-on: ubuntu-24.04

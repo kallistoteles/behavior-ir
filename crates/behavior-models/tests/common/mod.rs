@@ -4,6 +4,7 @@
 
 #![allow(dead_code, clippy::unwrap_used, clippy::expect_used)] // shared test helpers
 
+pub mod ap;
 pub mod rf;
 
 use std::collections::BTreeMap;
@@ -304,5 +305,16 @@ pub fn invoice_machine() -> ModelInput {
         subject_entity: "Invoice".into(),
         transitions: vec![transition("submit", &["Draft"], "Submitted")],
         ..machine()
+    }
+}
+
+/// Cases for the expensive property suites (feature 503): a quick regression by default, the
+/// full 1,000 cases when `BEHAVIOR_FULL_PROPERTIES=1` (CI and the release check set it). The
+/// safety argument is the induction (valid genesis, local preservation, complete ownership);
+/// the properties are its empirical check, so their depth may depend on where they run.
+pub fn property_cases() -> u32 {
+    match std::env::var("BEHAVIOR_FULL_PROPERTIES").as_deref() {
+        Ok("1") => 1000,
+        _ => 32,
     }
 }

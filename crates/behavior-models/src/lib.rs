@@ -10,6 +10,7 @@
 //! Core never learns that a model existed: `Meaning(M) := Meaning_Core(L(M))`.
 #![forbid(unsafe_code)]
 
+pub mod approval;
 pub mod composition;
 pub mod error;
 pub mod identity;
@@ -22,9 +23,12 @@ pub mod state_machine;
 use behavior_engine::builder::Builder;
 use behavior_engine::semantic::Module;
 
-pub use composition::DeclaredSchema;
+pub use approval::input::{
+    ApprovalInput, ApprovalSource, ApprovalSpec, CapabilityInput, DecisionFragments, DecisionScope,
+};
+pub use composition::{Contribution, DeclaredEnum, DeclaredSchema, DefinitionSignature};
 pub use error::ModelError;
-pub use kinds::{AnyModel, compose_models, declare_models};
+pub use kinds::{AnyModel, Staged, compose_models, declare_models};
 pub use request_flow::input::{
     CreationFragments, CreationInput, CreationScope, RequestFlowInput, RequestFlowSource,
     RequestFlowSpec,
@@ -46,6 +50,11 @@ pub const STATE_MACHINE_LOWERER_VERSION: u32 = 1;
 pub const REQUEST_FLOW_SEMANTIC_VERSION: u32 = 1;
 /// The RequestFlow lowerer version (feature 502, data model §9).
 pub const REQUEST_FLOW_LOWERER_VERSION: u32 = 1;
+
+/// The Approval model semantic version (feature 503, data model §10).
+pub const APPROVAL_SEMANTIC_VERSION: u32 = 1;
+/// The Approval lowerer version (feature 503, data model §10).
+pub const APPROVAL_LOWERER_VERSION: u32 = 1;
 
 /// The exact Core Release this crate builds against (`core-release.json`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

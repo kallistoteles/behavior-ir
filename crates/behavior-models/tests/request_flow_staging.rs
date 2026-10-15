@@ -28,7 +28,7 @@ fn declaration_free_models_do_not_touch_the_builder() {
 fn the_request_entity_is_declared_in_p2() {
     let mut b = authored();
     let models = vec![spec(flow(), source())];
-    let declared = declare_models(&mut b, &models).unwrap();
+    let declared = declare_models(&mut b, &models).unwrap().schemas;
     assert_eq!(declared[0].entity, "PurchaseRequest");
     let names: Vec<&str> = declared[0].fields.iter().map(|(n, _)| n.as_str()).collect();
     assert_eq!(
@@ -108,6 +108,7 @@ fn an_identical_authored_declaration_is_accepted() {
     let mut probe = authored();
     let schema = declare_models(&mut probe, &[spec(flow(), source())])
         .unwrap()
+        .schemas
         .remove(0);
     let fields = schema
         .fields

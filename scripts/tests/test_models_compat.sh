@@ -95,6 +95,28 @@ expect PASS "embedded lowerer bump with new tuples" "$(repo rfbump "$both")" \
 expect FAIL "StateMachine tuple edited beside an RF tuple" "$(repo smedit "$both")" \
   "$(manifest "$(tuple 1 1.0 "$A2")" "$(rf_tuple 1 "$R1")")" "$(groups 1 "$A2" 1 "$R1")"
 
+# Feature 503 (SC-010, T050): an approval tuple; a co-supplied flow is part of its key.
+ap_t='{"core_release":{"commit":"c1.0","version":"1.0"},"lowerer_version":1,"model_kind":"approval","model_semantic_version":1'
+co=',"co_supplied":[{"kind":"request_flow","lowerer_version":1,"model_semantic_version":1},{"kind":"state_machine","lowerer_version":1,"model_semantic_version":1}]'
+ap_tuple() { # ap_tuple <with co_supplied: 1|0> <cases json>
+  if [ "$1" = 1 ]; then printf '%s%s,"cases":%s}' "$ap_t" "$co" "$2"; else printf '%s,"cases":%s}' "$ap_t" "$2"; fi
+}
+ap_computed() { # ap_computed <with co_supplied: 1|0> <cases json>
+  if [ "$1" = 1 ]; then printf '{"tuple":%s%s},"cases":%s}\n' "$ap_t" "$co" "$2"
+  else printf '{"tuple":%s},"cases":%s}\n' "$ap_t" "$2"; fi
+}
+G='"generated":{"p":{"derived":{"approved":"sha256:d1"},"entity":{"hash":"sha256:x1","name":"PDecision"},"enum":{"hash":"sha256:c1","name":"PDecisionChoice"}}}'
+P1="{\"ap\":{\"behavior_hash\":\"sha256:b1\",$G,\"models\":{\"p\":\"sha256:p1\"}}}"
+P2="{\"ap\":{\"behavior_hash\":\"sha256:b1\",$G,\"models\":{\"p\":\"sha256:p2\"}}}"
+apbase="$(manifest "$(ap_tuple 1 "$P1")")"
+expect PASS "approval tuple, unchanged" "$(repo ap "$apbase")" "$apbase" "$(ap_computed 1 "$P1")"
+expect FAIL "edited approval hash" "$(repo apedit "$apbase")" "$(manifest "$(ap_tuple 1 "$P2")")" \
+  "$(ap_computed 1 "$P2")"
+expect FAIL "approval lowering changed without a version bump" "$(repo apdrift "$apbase")" \
+  "$apbase" "$(ap_computed 1 "$P2")"
+expect FAIL "approval case recorded without its co-supplied versions" "$(repo apkey "$base")" \
+  "$(manifest "$(tuple 1 1.0 "$A1")" "$(ap_tuple 0 "$P1")")" "$(ap_computed 1 "$P1")"
+
 # No merge base: the gate fails, it never passes silently.
 nobase="$tmp/nobase"
 mkdir -p "$nobase/models/fixtures"

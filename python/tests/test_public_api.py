@@ -63,3 +63,27 @@ def test_backend_methods_equal_the_manifest() -> None:
     assert called | guarded == declared
     assert set(MANIFEST["backend"]["required"]) == called - guarded
     assert set(MANIFEST["backend"]["optional"]) == guarded
+
+
+def test_approval_exposes_its_contract_handles() -> None:
+    """Feature 503 (contracts/approval-contract.md §4): the capabilities, the typed handles to
+    the generated declarations and the five predicate handles."""
+    assert MANIFEST["python"]["names"]["Approval"] == "class"
+    a = behavior.Approval(
+        "doc_approval", subject=_Document, actor=_User, approve_threshold=1
+    )
+    for method in ("approve", "reject", "approve_count", "reject_count", "approved",
+                   "rejected", "pending"):
+        assert callable(getattr(a, method)), method
+    assert a.decision_entity.__name__ == "DocApprovalDecision"
+    assert a.choice.name == "DocApprovalDecisionChoice"
+
+
+@behavior.entity
+class _User:
+    name = behavior.field(str)
+
+
+@behavior.entity
+class _Document:
+    title = behavior.field(str)

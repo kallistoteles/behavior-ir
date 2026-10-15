@@ -365,9 +365,14 @@ def compose_models(
     ...
 def declare_models(
     builder: Builder, models: list[dict[str, Any]]
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    """Feature 502, P2: declares the models' contributed declarations in the builder;
-    (schemas `{model_id, entity, fields: [(name, Type)]}`, errors)."""
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+    """Features 502, 503, P2: declares the models' contributed declarations and definitions in
+    the builder; (schemas `{kind: "entity", model_id, entity, fields: [(name, Type)]}` or
+    `{kind: "enum", model_id, name, cases}`, errors, definitions `{model_id, local, name, kind,
+    params, result}`)."""
+    ...
+def decision_names(approval_id: str) -> tuple[str, str]:
+    """Feature 503: the Core names of an approval's choice enum and decision entity."""
     ...
 def encode_entity_name(flow_id: str) -> str:
     """Feature 502: the Core entity name of a flow's request entity (`EncodeEntityName`)."""

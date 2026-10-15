@@ -205,6 +205,92 @@ and to the Core action `purchase_request__approve`.
 The reference flow is
 [`fixtures/rf_purchase_request.py`](fixtures/rf_purchase_request.py).
 
+## Approval
+
+An approval (feature 503) records immutable decisions about an existing subject and derives an
+outcome from them. **It never changes its subject**; workflows read its outcome through ordinary
+predicates.
+
+```text
+AM = (p, S, A, k_A, k_R, Π, approve, reject)      k_A ≥ 1,  k_R ≥ 1 or ⊥
+C  := <P>DecisionChoice { APPROVE, REJECT }        X := <P>Decision { actor: Id<A>, choice: C,
+                                                                     subject: Id<S>, Π… }
+L_AM = Compose(Decl(AM), Defs(AM), Actions(AM))
+```
+
+- **Meaning.** `Meaning(AM) := Meaning_Core(L_AM(AM))`: one generated enum, one generated
+  entity, five ordinary derived values (`p__approve_count`, `p__reject_count`, `p__approved`,
+  `p__rejected`, `p__pending`, each over `s: S`) and two ordinary actions (`p__approve`,
+  `p__reject`), each holding exactly one `Create X`. Core never learns what an approval is.
+- **Outcome.** `approved = approve_count ≥ k_A ∧ ¬rejected`, `rejected = reject_count ≥ k_R`
+  (false when `k_R = ⊥`), `pending = ¬approved ∧ ¬rejected`. REJECTED takes precedence, so the
+  three are exclusive and exhaustive on every state, valid or not. A refused attempt is
+  **DENIED**; REJECT is a recorded choice and REJECTED a derived outcome.
+- **Three layers of terminality.** A decision action requires, in fixed positions, `[0]` Open,
+  `[1]` `p__pending(subject)` (the terminal guard), `[2]` Eligible, `[3]` no decision of this
+  actor on this subject yet, then the author's guards. Its postconditions check, on the child
+  state, `[0]` at most one decision per `(subject, actor)` and `[1]` never both thresholds
+  reached (when `k_R ≠ ⊥`). Concurrent attempts are serialized by Core's compare-and-set: a
+  stale commit is a `STATE_CONFLICT`, and its retry meets the guards on the new state.
+- **Identities, never references.** `subject` and `actor` are `Id`, not `Ref`: a decision
+  survives the removal of its subject or actor, and an actor need not exist as an entity.
+  Authority is explicit: Eligible is the author's predicate over the actor expression, the
+  actor expression is the author's (never inferred from a parameter name), and there is no
+  implicit "not the requester" or "the assignee" rule. There is no clock; `decided_at` and
+  similar values come from context.
+
+> **Global safety = valid base state + local preservation + complete effect ownership.**
+> If a store starts in a state where every subject has at most one decision per actor and never
+> both thresholds reached (the base state), every committed decision action preserves that
+> (its guards and child-state postconditions), and no other action can create, write or remove
+> a decision (ownership, checked over the final module), then every reachable state is valid by
+> induction. Seeded states that violate the base state are test fixtures, not Approval states.
+
+### Ownership
+
+| Item | Who may touch it |
+|---|---|
+| creation of `X` | `p__approve` and `p__reject` only (`UNAUTHORIZED_DECISION_CREATION`) |
+| any field of `X` | nobody: decisions are immutable (`UNAUTHORIZED_DECISION_WRITE`) |
+| removal of `X` | nobody (`UNAUTHORIZED_DECISION_REMOVAL`) |
+| reads, queries, derived values and guards over `X` | anyone |
+
+The check covers every action of the final module, whatever produced it (hand-written,
+StateMachine, RequestFlow or another approval).
+
+### Declaration DAG
+
+Approval generalizes P2 to a topological pass: a model that references a type another model
+contributes is declared after it (an approval over a flow's request entity, or over another
+approval's decision entity). Cycles are `DECLARATION_CYCLE`, a name contributed twice or
+already authored is `DECLARATION_COLLISION`, and a hand-written item with a generated
+definition's name is `GENERATED_NAME_COLLISION`. Authored declarations may name `X` and `C`
+before they exist (law D5). Model sets without edges and definitions build exactly as before.
+
+### Python
+
+```python
+review = Approval("purchase_request_approval", subject=PR, actor=User,
+                  approve_threshold=2, reject_threshold=1)
+review.approve(actor=lambda decision_id, subject, actor: actor, context={"actor": Id[User]})
+review.reject(actor=lambda decision_id, subject, actor: actor, context={"actor": Id[User]})
+flow.transition("finalize", from_={S.IN_REVIEW}, to=S.APPROVED,
+                requires=[lambda r: review.approved(r)])
+module = BehaviorModule(entities=[User], enums=[S], models=[flow, review])
+```
+
+`review.decision_entity` and `review.choice` are typed handles checked against the schema Rust
+declares; `approved`, `rejected`, `pending`, `approve_count` and `reject_count` take a bound
+entity of the subject type. There is one receipt per approval (`model_kind: "approval"`) with
+its `generated` enum, entity and derived hashes; ApprovalHash references the subject and actor
+by Core declaration hash, so a change to either entity changes it.
+
+**Non-goals.** Automatic RequestFlow transitions, ordered stages, approval chains, delegation,
+substitute approvers, weighted votes, percentage quorum, "all currently eligible users",
+implicit role or manager lookup, deadlines, escalation, timers, withdrawal, decision changes,
+abstention, notifications beyond ordinary command intents, external command execution, a second
+event log and a second expression language.
+
 ## Worked example
 
 [`examples/state_machine/machine.py`](examples/state_machine/machine.py) declares the `Order`

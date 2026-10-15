@@ -125,6 +125,38 @@ pub enum ModelError {
         entity: String,
         owner: String,
     },
+    // --- Approval and the model-declaration DAG (feature 503) ---------------------------------
+    #[error("{model_ref}: the {which} threshold must be at least 1, found {value}")]
+    InvalidThreshold {
+        model_ref: String,
+        which: String,
+        value: i64,
+    },
+    #[error("the generated declarations of {models:?} depend on each other in a cycle")]
+    DeclarationCycle { models: Vec<String> },
+    #[error("the generated definitions {names:?} depend on each other in a cycle")]
+    DefinitionCycle { names: Vec<String> },
+    #[error("{model_ref}: the definition of `{name}` differs from the one the model contributes")]
+    DefinitionMismatch { name: String, model_ref: String },
+    #[error("`{action}` creates `{entity}`, which only approval `{owner}` may create")]
+    UnauthorizedDecisionCreation {
+        action: String,
+        entity: String,
+        owner: String,
+    },
+    #[error("`{action}` writes `{entity}.{field}`: decisions of approval `{owner}` are immutable")]
+    UnauthorizedDecisionWrite {
+        action: String,
+        entity: String,
+        field: String,
+        owner: String,
+    },
+    #[error("`{action}` removes `{entity}`: decisions of approval `{owner}` are never removed")]
+    UnauthorizedDecisionRemoval {
+        action: String,
+        entity: String,
+        owner: String,
+    },
 }
 
 impl ModelError {
@@ -161,6 +193,13 @@ impl ModelError {
             ModelError::DeclarationMismatch { .. } => "DECLARATION_MISMATCH",
             ModelError::UnauthorizedRequestCreation { .. } => "UNAUTHORIZED_REQUEST_CREATION",
             ModelError::UnauthorizedRequesterWrite { .. } => "UNAUTHORIZED_REQUESTER_WRITE",
+            ModelError::InvalidThreshold { .. } => "INVALID_THRESHOLD",
+            ModelError::DeclarationCycle { .. } => "DECLARATION_CYCLE",
+            ModelError::DefinitionCycle { .. } => "DEFINITION_CYCLE",
+            ModelError::DefinitionMismatch { .. } => "DEFINITION_MISMATCH",
+            ModelError::UnauthorizedDecisionCreation { .. } => "UNAUTHORIZED_DECISION_CREATION",
+            ModelError::UnauthorizedDecisionWrite { .. } => "UNAUTHORIZED_DECISION_WRITE",
+            ModelError::UnauthorizedDecisionRemoval { .. } => "UNAUTHORIZED_DECISION_REMOVAL",
         }
     }
 
@@ -198,6 +237,13 @@ impl ModelError {
             | ModelError::InitializerUnknownField { .. }
             | ModelError::InitializerSetsStatus { .. }
             | ModelError::InitializerDuplicateField { .. } => Stage::Lower,
+            ModelError::InvalidThreshold { .. } => Stage::Resolve,
+            ModelError::DeclarationCycle { .. }
+            | ModelError::DefinitionCycle { .. }
+            | ModelError::DefinitionMismatch { .. } => Stage::Set,
+            ModelError::UnauthorizedDecisionCreation { .. }
+            | ModelError::UnauthorizedDecisionWrite { .. }
+            | ModelError::UnauthorizedDecisionRemoval { .. } => Stage::Compose,
         }
     }
 
@@ -301,6 +347,32 @@ impl ModelError {
                 entity,
                 owner,
             } => json!({"action": action, "entity": entity, "owner": owner}),
+            ModelError::InvalidThreshold {
+                model_ref,
+                which,
+                value,
+            } => json!({"model_ref": model_ref, "which": which, "value": value}),
+            ModelError::DeclarationCycle { models } => json!({"models": models}),
+            ModelError::DefinitionCycle { names } => json!({"names": names}),
+            ModelError::DefinitionMismatch { name, model_ref } => {
+                json!({"name": name, "model_ref": model_ref})
+            }
+            ModelError::UnauthorizedDecisionCreation {
+                action,
+                entity,
+                owner,
+            }
+            | ModelError::UnauthorizedDecisionRemoval {
+                action,
+                entity,
+                owner,
+            } => json!({"action": action, "entity": entity, "owner": owner}),
+            ModelError::UnauthorizedDecisionWrite {
+                action,
+                entity,
+                field,
+                owner,
+            } => json!({"action": action, "entity": entity, "field": field, "owner": owner}),
         };
         if let Value::Object(m) = &mut v {
             m.insert("code".into(), json!(self.code()));

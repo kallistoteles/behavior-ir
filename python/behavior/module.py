@@ -257,12 +257,17 @@ class BehaviorModule:
             for t in getattr(m, "declaration_types", list)():
                 session.declare(t)
         inputs = [m.engine_input() for m in models]
-        schemas, errors = _engine.declare_models(session.builder, inputs)
+        schemas, errors, definitions = _engine.declare_models(session.builder, inputs)
         if errors:
             raise ModelBuildError(list(errors))
-        by_id = {getattr(m, "flow_id", None): m for m in models}
+        by_id = {
+            getattr(m, "flow_id", None) or getattr(m, "approval_id", None): m for m in models
+        }
         for schema in schemas:
             by_id[schema["model_id"]].bind_schema(schema)
+        # Feature 503: the derived definitions P2 added, for the models' typed handles.
+        for signature in definitions:
+            by_id[signature["model_id"]].bind_definition(signature)
 
     def _compose(self, session: CompileSession, models: Sequence[Any], root: str | None) -> None:
         from .errors import ModelBuildError

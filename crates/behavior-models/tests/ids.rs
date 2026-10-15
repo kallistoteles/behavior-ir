@@ -116,3 +116,59 @@ proptest! {
         }
     }
 }
+
+// --- Approval's generated names (feature 503, T008, data model §3) ------------------------------
+
+use behavior_models::approval::resolve::decision_names;
+
+#[test]
+fn decision_names_golden() {
+    for (id, choice, decision) in [
+        (
+            "purchase_request_approval",
+            "PurchaseRequestApprovalDecisionChoice",
+            "PurchaseRequestApprovalDecision",
+        ),
+        ("a_1b", "A_1bDecisionChoice", "A_1bDecision"),
+        ("a1b", "A1bDecisionChoice", "A1bDecision"),
+    ] {
+        let (c, x) = decision_names(&SemanticId::parse(id).unwrap());
+        assert_eq!((c.as_str(), x.as_str()), (choice, decision), "{id}");
+    }
+}
+
+/// Across kinds a name may collide: RequestFlow `x_decision` and approval `x` both name
+/// `XDecision`. The common merge reports it (T040); nothing is renamed.
+#[test]
+fn a_cross_kind_name_can_be_equal() {
+    let flow = encode_entity_name(&SemanticId::parse("x_decision").unwrap());
+    let (_, decision) = decision_names(&SemanticId::parse("x").unwrap());
+    assert_eq!(flow, decision);
+    assert_eq!(decision, "XDecision");
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig {
+        cases: 2000,
+        rng_seed: RngSeed::Fixed(503),
+        failure_persistence: None,
+        ..ProptestConfig::default()
+    })]
+
+    /// `C` and `X` are injective, never equal to each other (for any two approvals), and Core
+    /// identifiers.
+    #[test]
+    fn decision_names_are_injective_disjoint_and_core_valid(
+        p in wide_semantic_id(), q in wide_semantic_id()
+    ) {
+        let (cp, xp) = decision_names(&p);
+        let (cq, xq) = decision_names(&q);
+        prop_assert!(core_identifier(&cp) && core_identifier(&xp));
+        prop_assert_ne!(&cp, &xq);
+        prop_assert_ne!(&cq, &xp);
+        if p != q {
+            prop_assert_ne!(&cp, &cq);
+            prop_assert_ne!(&xp, &xq);
+        }
+    }
+}

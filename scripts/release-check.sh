@@ -33,7 +33,7 @@ version="$(python3 -c 'import tomllib; print(tomllib.load(open("Cargo.toml", "rb
 step "1 gates"
 if [ "$skip_gates" -eq 0 ]; then
   # The constitution's gates, the same list Spec Kit and CI run (feature 011, FR-034).
-  BEHAVIOR_RELEASE_TESTS=1 scripts/gates.sh || fail "gates (see the gate named above)"
+  BEHAVIOR_RELEASE_TESTS=1 BEHAVIOR_FULL_PROPERTIES=1 scripts/gates.sh || fail "gates (see the gate named above)"
 else
   echo "release-check: gates skipped" >&2
 fi

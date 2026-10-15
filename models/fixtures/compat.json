@@ -3,6 +3,123 @@
  "tuples": [
   {
    "cases": {
+    "ap_purchase_request": {
+     "behavior_hash": "sha256:2a301cd86097470ff113c79b4db213d95e143a8589cb4d4870df28885b636b12",
+     "embedded": {
+      "purchase_request": "sha256:dac2101dc517c3f91b96bef35f551462d98874b4708b6500063b039952a46216"
+     },
+     "entities": {
+      "purchase_request": "PurchaseRequest"
+     },
+     "generated": {
+      "purchase_request_approval": {
+       "derived": {
+        "approve_count": "sha256:d81b7538f58c22b0cf4a8818fe3d37329a7685a90c7eb12307532011f9b1833c",
+        "approved": "sha256:db77e645328655599b706ed78e476242152cb1f45d6c2c6c9f6882e0c698c7be",
+        "pending": "sha256:017d77c66ef431e36886c06662f49ed4c2d8c0d468430286e7594b01e572e3db",
+        "reject_count": "sha256:660b18bc72aeb0be47cd7888a1ae581e1cc94eb0802b94128ad71cc1c366e43f",
+        "rejected": "sha256:89f0571ba61ffcbf1d278c42b4f78892960f0dbda915899667821d8d4a530fe9"
+       },
+       "entity": {
+        "hash": "sha256:79c58d17b217d03473a60b66886bc1deb4935765a566fd25beb247169ac0cde8",
+        "name": "PurchaseRequestApprovalDecision"
+       },
+       "enum": {
+        "hash": "sha256:1dfffb63bb100e242f0eb475b4d6dc195464bd9689ba18d9fce6ed2de32a1863",
+        "name": "PurchaseRequestApprovalDecisionChoice"
+       }
+      }
+     },
+     "models": {
+      "purchase_request": "sha256:38574bde6496eae4388d6ec535a732cb9f0905375673e1422629cd2f1f3c9768",
+      "purchase_request_approval": "sha256:5f75c1365aa9d8597a211847253772e86d395a871f8c7186d146f627389d9ecd"
+     }
+    }
+   },
+   "co_supplied": [
+    {
+     "kind": "request_flow",
+     "lowerer_version": 1,
+     "model_semantic_version": 1
+    },
+    {
+     "kind": "state_machine",
+     "lowerer_version": 1,
+     "model_semantic_version": 1
+    }
+   ],
+   "core_release": {
+    "commit": "15094972191aa0ae79705df0397c551a18745399",
+    "version": "0.13.0"
+   },
+   "lowerer_version": 1,
+   "model_kind": "approval",
+   "model_semantic_version": 1
+  },
+  {
+   "cases": {
+    "ap_two_approvals": {
+     "behavior_hash": "sha256:8f515e2456ba68e36806814fdd46a6272df934ec3a63407bb98bbb17c3443eb3",
+     "generated": {
+      "finance_approval": {
+       "derived": {
+        "approve_count": "sha256:21999e6e87d38fa5d8ef471b9273c1020a14bea5e76613e1031430bc88279821",
+        "approved": "sha256:c8771f1568c12205562edc3ee30b340e2153801ea34fa20121782e48ed7a41a1",
+        "pending": "sha256:dae4bc00c40a7f2ec1d65ee3b3c618cf73c641f3af192459aaef2467d7096af0",
+        "reject_count": "sha256:8585810811e052a10f67c57b936bc803345052ecac5d1a47c96d222c6ac28f5c",
+        "rejected": "sha256:8cbc12ea9bdba6fc3b6755413e750bc7d9ef4d06755242d4b0b2d2c5046c8c37"
+       },
+       "entity": {
+        "hash": "sha256:41584e4a1697c49680aa480d1b999fdab1f113f5b89f9852a9aae51f00623e8f",
+        "name": "FinanceApprovalDecision"
+       },
+       "enum": {
+        "hash": "sha256:4cd7987855e5c2ed2cd4fae1706c84df8af3eff26852edb650934257d448ee26",
+        "name": "FinanceApprovalDecisionChoice"
+       }
+      },
+      "legal_review": {
+       "derived": {
+        "approve_count": "sha256:b38ba7fb9498e90a68d4333a68f7744fc2fbef4da01207ce6fa74a5671ee09cd",
+        "approved": "sha256:8e8428f469c481f7537d1ac029fad1709b24504ff0c8845f5063a06a9070dc7f",
+        "pending": "sha256:eaaac97fb521f9a002a9718ba37dbee7cf70bdf4cbfd01559e97ee3ee533638c",
+        "reject_count": "sha256:82a3b8e5445deade207274aa114714bf8596cdcaba6b50fb4117036647bf1029",
+        "rejected": "sha256:2bbd58addb2f5e569357478126894f681f6c192a705e87b7ae18cb93ea1beae5"
+       },
+       "entity": {
+        "hash": "sha256:245ef36f5c3279cd320078ac2ed78d705fa535c9f45fa19417b00e33eab5b4a0",
+        "name": "LegalReviewDecision"
+       },
+       "enum": {
+        "hash": "sha256:6de31d9f94e5372563d2a21b354b47677808c26153aa4bccc81a4222c841342b",
+        "name": "LegalReviewDecisionChoice"
+       }
+      }
+     },
+     "models": {
+      "finance_approval": "sha256:59257e0476ec3aca1828851a4dbc36627fb829fee8b9d9d44317851a7e9a6575",
+      "legal_review": "sha256:408a18840eccdb6eec10dc1f6258d5816a7990fbf7a77e2e27e414515ff2dda8",
+      "ticket": "sha256:28cf011caffad0d36692c646c8cd08af42bd80c685018adb37e352392a9219d9"
+     }
+    }
+   },
+   "co_supplied": [
+    {
+     "kind": "state_machine",
+     "lowerer_version": 1,
+     "model_semantic_version": 1
+    }
+   ],
+   "core_release": {
+    "commit": "15094972191aa0ae79705df0397c551a18745399",
+    "version": "0.13.0"
+   },
+   "lowerer_version": 1,
+   "model_kind": "approval",
+   "model_semantic_version": 1
+  },
+  {
+   "cases": {
     "rf_purchase_request": {
      "behavior_hash": "sha256:6a51f91049227d70d7b61dcd53f1e4e23127c8329e6ad0cb21f6bc1d2b182062",
      "embedded": {
@@ -57,6 +174,42 @@
    ],
    "lowerer_version": 1,
    "model_kind": "request_flow",
+   "model_semantic_version": 1
+  },
+  {
+   "cases": {
+    "ap_document_review": {
+     "behavior_hash": "sha256:400dbdc34b7a54c2567556d72e9593fe2a6ae2fe28e6d7dd0f8d3a7ca13db9ef",
+     "generated": {
+      "document_review": {
+       "derived": {
+        "approve_count": "sha256:782f6be2a50111cbf4c3540f88458c775d81fbc8b36c9b90b29c099b155a4b5f",
+        "approved": "sha256:5bd9026a27e66d90a8c3b7d1340a6859c9c6a1b03da153381ba15af18680f7e6",
+        "pending": "sha256:7cea570f22a8838f895869b6b61c1038b66b55a82ece37f24adef88907626560",
+        "reject_count": "sha256:888b173818c3d10c3d49b8c3cf664551247c9ea2287c6a1d4c15af06e862a8fb",
+        "rejected": "sha256:2bbd58addb2f5e569357478126894f681f6c192a705e87b7ae18cb93ea1beae5"
+       },
+       "entity": {
+        "hash": "sha256:7a9dcedbcc379958aa363b9e206fab2a9ef8fdb579680e7df9935ac7fea70689",
+        "name": "DocumentReviewDecision"
+       },
+       "enum": {
+        "hash": "sha256:2e19d21c2a291f50db4ab431afb451c70d60dc08219a5ebe1f5569145c1f2577",
+        "name": "DocumentReviewDecisionChoice"
+       }
+      }
+     },
+     "models": {
+      "document_review": "sha256:29c0a010bfe98e14e8c544f393553e500699ca847b59f79e39970316829dbb5e"
+     }
+    }
+   },
+   "core_release": {
+    "commit": "15094972191aa0ae79705df0397c551a18745399",
+    "version": "0.13.0"
+   },
+   "lowerer_version": 1,
+   "model_kind": "approval",
    "model_semantic_version": 1
   },
   {

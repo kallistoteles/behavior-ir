@@ -105,10 +105,11 @@ fn state_machine_contributes_only_actions() {
     }
 }
 
-/// T067 (US5, FR-032), scope fixed in feature 502 (T002): StateMachine and the shared model
-/// infrastructure stay free of request concepts, so future models can reuse them. Kind-specific
-/// code (`request_flow/`), the kind registry (`lib.rs`) and the shared error catalogue
-/// (`error.rs`) are outside the scan. Comments and rustdoc may use the reference examples.
+/// T067 (US5, FR-032), scope fixed in feature 502 (T002) and extended in feature 503 (T002):
+/// StateMachine and the shared model infrastructure stay free of request and approval concepts,
+/// so future models can reuse them. Kind-specific code (`request_flow/`, `approval/`), the kind
+/// registry (`kinds.rs`, `lib.rs`) and the shared error catalogue (`error.rs`) are outside the
+/// scan. Comments and rustdoc may use the reference examples.
 #[test]
 fn the_model_crate_is_domain_neutral() {
     let src = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
@@ -134,7 +135,14 @@ fn the_model_crate_is_domain_neutral() {
             let text = std::fs::read_to_string(&path).unwrap();
             for (n, line) in text.lines().enumerate() {
                 let code = line.split("//").next().unwrap_or("").to_lowercase();
-                for word in ["request", "approv", "assignee"] {
+                for word in [
+                    "request",
+                    "approv",
+                    "assignee",
+                    "decision",
+                    "reject",
+                    "threshold",
+                ] {
                     if code.contains(word) {
                         hits.push(format!("{}:{}: {line}", path.display(), n + 1));
                     }

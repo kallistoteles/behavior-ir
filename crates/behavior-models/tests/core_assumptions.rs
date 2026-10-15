@@ -224,3 +224,174 @@ fn for_module_probe_does_not_know_module_enums() {
     let errors = probe.finish(None).err().unwrap().errors;
     assert!(errors.iter().all(|e| e.code == "UNKNOWN_TYPE"));
 }
+
+// --- Feature 504 (US2, research R7): command-profile actions that observe a query commit ------
+
+use behavior_engine::builder::SemanticProfile;
+use behavior_engine::semantic::Module;
+use behavior_engine::store::documents::{CommitBundle, SeedEntity};
+use behavior_engine::store::{InMemoryBackend, Store};
+
+const T: &str = "2026-10-15T00:00:00Z";
+
+/// `Item { name }`, `Mark { item: Id<Item> }`, command `Ping { item: Id<Item> }`, and
+/// `mark(item: State Item, mark_id: Input Id<Mark>)` with the single precondition
+/// `¬any(select(Mark), m → m.item == item.id)`, creating `Mark { item: item.id }`.
+fn query_module() -> Module {
+    let mut b = Builder::with_semantic_profile(SemanticProfile::CommandIntents);
+    let field = |name: &str, ty: WType| WField {
+        name: name.into(),
+        ty,
+        loc: loc(),
+    };
+    b.declare_entity("Item", vec![field("name", WType::String)], loc())
+        .unwrap();
+    b.declare_entity("Mark", vec![field("item", WType::Id("Item".into()))], loc())
+        .unwrap();
+    b.add_command("Ping", vec![field("item", WType::Id("Item".into()))], loc())
+        .unwrap();
+    let params = vec![
+        WParam {
+            name: "item".into(),
+            role: Some(Role::State),
+            ty: WType::Entity("Item".into()),
+        },
+        WParam {
+            name: "mark_id".into(),
+            role: Some(Role::Input),
+            ty: WType::Id("Mark".into()),
+        },
+    ];
+    b.push_scope(ScopeSite::Action, params.clone(), loc())
+        .unwrap();
+    let marks = b.select("Mark", loc()).unwrap();
+    b.push_lambda("m", "Mark").unwrap();
+    let marked = b.field("m", "item", loc()).unwrap();
+    let id = b.field("item", "id", loc()).unwrap();
+    let same = b.op("eq", vec![marked, id], loc()).unwrap();
+    b.pop_scope();
+    let any = b.lambda("any", marks, "m", same, loc()).unwrap();
+    let fresh = b.op("not", vec![any], loc()).unwrap();
+    let mark_id = b.param("mark_id", loc()).unwrap();
+    let item_id = b.field("item", "id", loc()).unwrap();
+    let create = WLifecycle::Create {
+        entity: "Mark".into(),
+        id: mark_id.into_wire(),
+        fields: vec![("item".into(), item_id.into_wire())],
+        loc: loc(),
+    };
+    b.add_action(
+        "mark",
+        params,
+        vec![(fresh, loc())],
+        vec![],
+        vec![create],
+        vec![],
+        loc(),
+    )
+    .unwrap();
+    b.pop_scope();
+    b.finish(None)
+        .unwrap_or_else(|r| panic!("not admitted: {:?}", r.errors))
+}
+
+/// A v2 store (evidence policy `none`) with item `i1`.
+fn query_store(module: &Module) -> Store<InMemoryBackend> {
+    let policy = behavior_engine::verify::governance::EvidencePolicyV2::from_json(
+        r#"{"execution_policies":[],"format":"behavior.evidence_policy.v2","require":"none","trusted_authorities":[]}"#,
+    )
+    .unwrap();
+    let seed = vec![SeedEntity {
+        entity: "Item".into(),
+        value: json!({"id": "i1", "name": "i1"}),
+    }];
+    let genesis = behavior_engine::store::store::genesis_v2_for(module, policy, seed).unwrap();
+    Store::create(InMemoryBackend::default(), module, genesis).unwrap()
+}
+
+/// Invokes `mark` on `i1` creating `mark_id`: the candidate bundle, if the action is allowed.
+fn invoke_mark(
+    store: &Store<InMemoryBackend>,
+    module: &Module,
+    mark_id: &str,
+) -> Option<CommitBundle> {
+    let document = json!({
+        "format": "behavior.invocation.v1",
+        "capability": "mark",
+        "bindings": {"item": {"entity": "Item", "id": "i1"}},
+        "input": {"mark_id": mark_id},
+        "context": {},
+    });
+    let (requested, errors) =
+        behavior_engine::invocation::RequestedInvocation::decode(&document.to_string()).unwrap();
+    let requested = requested.unwrap_or_else(|| panic!("{errors:?}"));
+    store
+        .invoke(module, &requested, T, None, None)
+        .unwrap()
+        .bundle
+}
+
+fn commit(
+    store: &mut Store<InMemoryBackend>,
+    module: &Module,
+    bundle: &CommitBundle,
+) -> Result<(), String> {
+    let head = store.current().unwrap();
+    store
+        .commit(module, &head, bundle)
+        .map(|_| ())
+        .map_err(|e| format!("{e:?}"))
+}
+
+/// US2 scenario 1: allowed, commits, and the committed state shows the mark. Core 0.12.0
+/// refused this candidate with `INVALID_CANDIDATE: invalid observed facts` (503 research R13);
+/// fixed by Core 023, released in 0.13.0.
+#[test]
+fn command_profile_query_action_commits() {
+    let module = query_module();
+    let mut store = query_store(&module);
+    let bundle = invoke_mark(&store, &module, "m1").expect("the first mark is allowed");
+    assert_eq!(commit(&mut store, &module, &bundle), Ok(()));
+    let head = store.current().unwrap();
+    assert_ne!(head, bundle.evaluated_state, "the commit advanced the head");
+}
+
+/// US2 scenario 2: once marked, the query makes the precondition false: no candidate, and the
+/// head does not move.
+#[test]
+fn command_profile_query_action_refused_without_commit() {
+    let module = query_module();
+    let mut store = query_store(&module);
+    let first = invoke_mark(&store, &module, "m1").unwrap();
+    commit(&mut store, &module, &first).unwrap();
+    let head = store.current().unwrap();
+    assert!(
+        invoke_mark(&store, &module, "m2").is_none(),
+        "second mark refused"
+    );
+    assert_eq!(store.current().unwrap(), head);
+}
+
+/// US2 scenario 3: a candidate whose query evidence was altered is refused at commit, and the
+/// head does not move.
+#[test]
+fn command_profile_altered_query_evidence_refused() {
+    let module = query_module();
+    let mut store = query_store(&module);
+    let mut bundle = invoke_mark(&store, &module, "m1").unwrap();
+    let queries = bundle.read_facts["queries"]
+        .as_array_mut()
+        .expect("the candidate carries query evidence");
+    let hash = queries[0]["result_hash"]
+        .as_str()
+        .expect("query evidence has a result hash")
+        .to_string();
+    let flipped = if hash.ends_with('0') { "1" } else { "0" };
+    queries[0]["result_hash"] = json!(format!("{}{flipped}", &hash[..hash.len() - 1]));
+    let head = store.current().unwrap();
+    assert!(
+        commit(&mut store, &module, &bundle).is_err(),
+        "altered evidence refused"
+    );
+    assert_eq!(store.current().unwrap(), head);
+}

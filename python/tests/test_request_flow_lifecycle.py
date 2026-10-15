@@ -20,6 +20,15 @@ STATUSES = ["Draft", "Submitted", "InReview", "Approved", "Rejected", "NeedsChan
             "Cancelled"]
 
 
+def snapshot(requests: dict[str, dict[str, Any]], **facts: Any) -> dict[str, Any]:
+    """The complete parent snapshot (Core 017): every declared entity type, the in-test requests
+    (without their traces) and the users; `facts` adds further facts (e.g. `identities`)."""
+    members = [{k: v for k, v in r.items() if k != "trace"} for r in requests.values()]
+    return {"universe": [{"entity": "PurchaseRequest", "members": members},
+                         {"entity": "User", "members": [{"id": u, "name": u} for u in USERS]}],
+            **facts}
+
+
 def step(rng: random.Random, requests: dict[str, dict[str, Any]], n: int) -> None:
     actor = rng.choice(USERS)
     if not requests or rng.random() < 0.25:
@@ -28,8 +37,8 @@ def step(rng: random.Random, requests: dict[str, dict[str, Any]], n: int) -> Non
         d = evaluate(M, f"purchase_request__{creation}", state={}, context={"actor": actor},
                      input={"request_id": rid, "title": "t", "amount": rng.choice([0, 5])},
                      data_version="1",
-                     facts={"identities": [{"entity": "PurchaseRequest", "id": rid,
-                                            "used": False}]})
+                     facts=snapshot(requests, identities=[{"entity": "PurchaseRequest",
+                                                           "id": rid, "used": False}]))
         if d.result == "ALLOW":
             value = d.lifecycle[0]["value"]
             assert value["status"] in ENTRY.values()
@@ -44,7 +53,7 @@ def step(rng: random.Random, requests: dict[str, dict[str, Any]], n: int) -> Non
         else {"actor": actor}
     state = {k: v for k, v in r.items() if k != "trace"}
     d = evaluate(M, f"purchase_request__{transition}", state={"purchase_request": state},
-                 context=context, input=inputs, data_version="1")
+                 context=context, input=inputs, data_version="1", facts=snapshot(requests))
     if d.result != "ALLOW":
         return
     for c in d.changes:

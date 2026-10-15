@@ -46,13 +46,17 @@ def test_engine_errors_carry_code_and_message() -> None:
 
 def test_module_evaluates_native_values() -> None:
     engine = invoice_model.model.engine
+    invoice = {"id": "1042", "amount": Decimal("4.32E+4"), "approved_by": None,
+               "status": invoice_model.InvoiceStatus.PENDING}
     record = engine.evaluate(
         "approve_invoice",
-        {"invoice": {"id": "1042", "amount": Decimal("4.32E+4"), "approved_by": None,
-                     "status": invoice_model.InvoiceStatus.PENDING}},
+        {"invoice": invoice},
         {},
         {"actor": {"id": "anna", "role": "manager", "approval_limit": 50000}},
         "18342",
+        # The complete parent snapshot (Core 017), with the same native values.
+        {"universe": [{"entity": "Invoice", "members": [invoice]},
+                      {"entity": "User", "members": []}]},
     )
     assert record.result == "ALLOW"
     assert isinstance(record.data, dict)
@@ -63,4 +67,5 @@ def test_module_evaluates_native_values() -> None:
 def test_floats_are_rejected_at_the_boundary() -> None:
     engine = invoice_model.model.engine
     with pytest.raises(TypeError):
-        engine.evaluate("approve_invoice", {"invoice": {"amount": 1.5}}, {}, {}, "1")
+        engine.evaluate("approve_invoice", {"invoice": {"amount": 1.5}}, {}, {}, "1",
+                        {"universe": []})

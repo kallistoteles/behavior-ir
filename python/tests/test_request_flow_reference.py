@@ -16,7 +16,8 @@ def test_the_request_lifecycle_runs_end_to_end() -> None:
     m = request_flow.module()
     created = evaluate(m, "create_request", state={}, context={},
                        input={"id": "q1", "title": "Laptop"}, data_version="1",
-                       facts={"identities": [{"entity": "Request", "id": "q1", "used": False}]})
+                       facts={"universe": [{"entity": "Request", "members": []}],
+                              "identities": [{"entity": "Request", "id": "q1", "used": False}]})
     assert created.result == "ALLOW"
     assert created.lifecycle[0]["value"]["state"] == "Draft"
 
@@ -25,8 +26,10 @@ def test_the_request_lifecycle_runs_end_to_end() -> None:
     expected = ["Submitted", "InReview", "NeedsChanges", "Submitted", "InReview", "Approved"]
     for transition, target in zip(path, expected):
         request: dict[str, Any] = {"id": "q1", "state": state, "title": "Laptop"}
+        # The complete parent snapshot (Core 017): the module's one entity type, this request.
         d = evaluate(m, f"request__{transition}", state={"request": request}, context={},
-                     input={}, data_version="1")
+                     input={}, data_version="1",
+                     facts={"universe": [{"entity": "Request", "members": [request]}]})
         assert d.result == "ALLOW", transition
         assert [(c.field, c.new) for c in d.changes] == [("state", target)]
         state = target

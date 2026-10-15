@@ -49,24 +49,33 @@ def test_command_fixture_keeps_frozen_record_and_identities() -> None:
     record = bh.invoke(module, fixture("commands/invocations/receipt.json"),
                        fixture("commands/snapshots/receipt.json"))
     golden = json.loads(fixture("commands/records/receipt.golden.json"))
+    frozen = json.loads(fixture("commands/records/receipt.json"))
     assert module.behavior_version == golden["behavior_version"]
-    assert record.json == fixture("commands/records/receipt.invocation.json")
-    assert record.record_id == golden["invocation_record_id"]
-    assert record.inner_record == json.loads(fixture("commands/records/receipt.json"))
+    # Core 017: a fresh decision is record 0.8; the frozen 0.7 golden stays historical and
+    # replays. Outcome, changes and command intents (their identities) are unchanged.
+    assert record.inner_record["record_version"] == "0.8"
+    for key in ("result", "changes", "commands"):
+        assert record.inner_record[key] == frozen[key], key
     assert [x["intent_hash"] for x in record.inner_record["commands"]["intents"]] == (
         golden["intent_hashes"])
     assert bh.replay_invocation(module, record).matches
+    assert bh.replay_invocation(module, fixture("commands/records/receipt.invocation.json")).matches
 
 
-def test_decision_07_exposes_commands_and_keeps_diagnostics_detached() -> None:
+def test_decisions_expose_commands_and_keep_diagnostics_detached() -> None:
     module = receipt_model()
+    # The module declares no entity type, so the complete parent snapshot is empty (Core 017).
     decision = bh.evaluate(module, "receipt", state={}, input={"recipient": "customer-1"},
-                           data_version="test:commands:empty")
+                           data_version="test:commands:empty", facts={"universe": []})
     expected = json.loads(fixture("commands/records/receipt.json"))
-    assert json.loads(decision.record_json) == expected
+    record = json.loads(decision.record_json)
+    # Core 017: fresh record 0.8; the 0.7 golden's outcome and command intents are unchanged.
+    assert record["record_version"] == "0.8"
+    for key in ("result", "changes", "commands"):
+        assert record[key] == expected[key], key
     assert decision.commands == expected["commands"]["intents"]
     assert decision.diagnostics and decision.diagnostics["trace"]
-    assert all("loc" not in step and "expr_text" not in step for step in expected["trace"])
+    assert all("loc" not in step and "expr_text" not in step for step in record["trace"])
     assert any("loc" in step for step in decision.diagnostics["trace"])
     assert "diagnostics" not in json.loads(decision.record_json)
     assert len(decision.trace) == len(expected["trace"])
@@ -252,8 +261,9 @@ def test_cli_evidence_requires_independent_context_and_attachment_preserves_cand
     assert callable(getattr(bh, "with_trusted_evidence", None)), "evidence attachment is native"
     assert callable(getattr(bh.Store, "commit_with_context", None)), "live context is explicit"
     module = receipt_model()
-    policy_path = FIXTURES / "governance-v2/policy-verifier-0.8.json"
-    evidence_policy_path = FIXTURES / "governance-v2/evidence-policy-verifier-0.8.json"
+    # Fresh authenticated verification selects verifier-0.9.0 policies explicitly (Core 0.13.0).
+    policy_path = FIXTURES / "governance-v2/policy-verifier-0.9.json"
+    evidence_policy_path = FIXTURES / "governance-v2/evidence-policy-verifier-0.9.json"
     context_path = FIXTURES / "governance-v2/context.json"
     genesis = bh.Store.genesis_v2_for(module, [], evidence_policy_path.read_text())
     store = bh.Store.create(bh.InMemoryBackend(), module, genesis)

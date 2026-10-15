@@ -88,8 +88,11 @@ customer = {"id": "c1", "name": "Ada", "credit_limit": Decimal("100.00")}
 
 
 def orders(*members: dict[str, str]) -> dict[str, object]:
-    # A `universe` lists every existing entity of a type; a store supplies this automatically.
-    return {"universe": [{"entity": "Order", "members": list(members)}]}
+    # The complete parent snapshot: every declared entity type, with every existing entity of it.
+    # A store supplies this automatically.
+    return {"universe": [{"entity": "Customer", "members": [customer]},
+                         {"entity": "Order", "members": list(members)},
+                         {"entity": "Employee", "members": []}]}
 
 
 closed = {"id": "o1", "customer": "c1", "amount": "10.00", "status": "closed"}
@@ -107,7 +110,8 @@ assert evaluate(model, "check_orders", state={"customer": customer}, data_versio
 
 # The module invariant refuses a second employee with a taken number, on the resulting state.
 employees = {"universe": [{"entity": "Employee", "members": [{"id": "e1", "personnel_number": "N1"}]},
-                          {"entity": "Order", "members": []}],
+                          {"entity": "Order", "members": []},
+                          {"entity": "Customer", "members": []}],
              "identities": [{"entity": "Employee", "id": "e2", "used": False}]}
 dup = evaluate(model, "hire", state={}, input={"employee_id": "e2", "number": "N1"},
                data_version="1", facts=employees)

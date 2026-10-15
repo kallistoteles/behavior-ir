@@ -59,21 +59,30 @@ model = BehaviorModule(
 )
 assert admit(model).ok
 
-# A creation needs an identity that was never used; evaluation is told so through facts.
-opened = evaluate(model, "open_account", state={"owner": {"id": "c1", "name": "Ada"}},
+# Plain evaluation takes the complete parent snapshot: every declared entity type.
+ada = {"id": "c1", "name": "Ada"}
+no_accounts = {"universe": [{"entity": "Customer", "members": [ada]},
+                            {"entity": "Account", "members": []}]}
+
+# A creation needs an identity that was never used; history is told so through facts.
+opened = evaluate(model, "open_account", state={"owner": ada},
                   input={"account_id": "a1", "initial": Decimal("10.00")}, data_version="1",
-                  facts={"identities": [{"entity": "Account", "id": "a1", "used": False}]})
+                  facts={**no_accounts,
+                         "identities": [{"entity": "Account", "id": "a1", "used": False}]})
 assert opened.result == "ALLOW", opened.reasons
 assert opened.lifecycle[0]["op"] == "create"
 
-reused = evaluate(model, "open_account", state={"owner": {"id": "c1", "name": "Ada"}},
+reused = evaluate(model, "open_account", state={"owner": ada},
                   input={"account_id": "a1", "initial": Decimal("10.00")}, data_version="1",
-                  facts={"identities": [{"entity": "Account", "id": "a1", "used": True}]})
+                  facts={**no_accounts,
+                         "identities": [{"entity": "Account", "id": "a1", "used": True}]})
 assert reused.result == "ENTITY_ID_ALREADY_USED"
 
 # A customer still referenced by an account cannot be removed.
-blocked = evaluate(model, "remove_customer", state={"customer": {"id": "c1", "name": "Ada"}},
-                   data_version="1",
-                   facts={"references": [{"entity": "Customer", "id": "c1", "incoming": [
-                       {"entity": "Account", "id": "a1", "field": "owner"}]}]})
+with_account = {"universe": [
+    {"entity": "Customer", "members": [ada]},
+    {"entity": "Account", "members": [{"id": "a1", "owner": "c1", "balance": "0.00"}]},
+]}
+blocked = evaluate(model, "remove_customer", state={"customer": ada}, data_version="1",
+                   facts=with_account)
 assert blocked.result == "DENY"

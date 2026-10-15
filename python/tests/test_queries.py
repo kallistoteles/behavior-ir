@@ -22,8 +22,14 @@ def order(id_: str, amount: str, status: str = "open", customer: str = "c1") -> 
     return {"id": id_, "customer": customer, "amount": amount, "status": status, "region": "north"}
 
 
-def universe(orders: list[dict[str, str]]) -> dict[str, object]:
-    return {"universe": [{"entity": "Order", "members": orders}]}
+def universe(orders: list[dict[str, str]], employees: list[dict[str, str]] | None = None,
+             customers: list[dict[str, str]] | None = None) -> dict[str, object]:
+    """The complete parent snapshot (Core 017): every declared entity type, empty ones too."""
+    return {"universe": [
+        {"entity": "Customer", "members": [CUSTOMER] if customers is None else customers},
+        {"entity": "Employee", "members": employees or []},
+        {"entity": "Order", "members": orders},
+    ]}
 
 
 def test_the_orders_model_is_a_0_6_module_with_a_module_invariant() -> None:
@@ -40,21 +46,29 @@ def test_decisions_over_sets_use_and_record_query_facts() -> None:
     closed = evaluate(model, "close_customer", state=state, data_version="1",
                       facts=universe([order("o1", "10.00", "closed")]))
     assert closed.result == "ALLOW"
-    assert [q["members"] for q in closed.facts["queries"]] == [[]]
+    # Core 017: an allowed decision also records the resulting-state module invariant's query
+    # (Employee); the action's own Order query is empty.
+    assert [(q["entity"], q["members"]) for q in closed.facts["queries"]] == [
+        ("Order", []), ("Employee", [])]
     assert replay(model, closed.record_json).matches
     blocked = evaluate(model, "close_customer", state=state, data_version="1",
                        facts=universe([order("o1", "10.00", "closed"), order("o2", "5.00")]))
     assert blocked.result == "DENY"
     assert [q["members"] for q in blocked.facts["queries"]] == [[{"id": "o2"}]]
-    # The observed facts alone decide the same way (no universe needed).
+    # The recorded facts (Core 017: they carry the complete parent universe) decide the same way.
     again = evaluate(model, "close_customer", state=state, data_version="1", facts=blocked.facts)
     assert again.record_json == blocked.record_json
 
 
-def test_a_missing_query_fact_is_unknown_never_guessed() -> None:
-    d = evaluate(model, "close_customer", state={"customer": CUSTOMER}, data_version="1")
-    assert d.result == "ERROR"
-    assert d.reasons[0]["code"] == "UNKNOWN_FACT"
+def test_an_incomplete_snapshot_is_refused_never_guessed() -> None:
+    # Core 017: without the Order universe the query cannot be answered; the snapshot is refused
+    # as input (was ERROR / UNKNOWN_FACT before complete parent snapshots were required).
+    partial = {"universe": [{"entity": "Customer", "members": [CUSTOMER]},
+                            {"entity": "Employee", "members": []}]}
+    d = evaluate(model, "close_customer", state={"customer": CUSTOMER}, data_version="1",
+                 facts=partial)
+    assert d.result == "INVALID_INPUT"
+    assert d.reasons[0]["code"] == "INVALID_STATE_SNAPSHOT"
 
 
 def test_exact_sums_and_resulting_state_queries() -> None:
@@ -74,8 +88,8 @@ def test_exact_sums_and_resulting_state_queries() -> None:
 def test_the_module_invariant_refuses_a_duplicate_on_the_resulting_state() -> None:
     d = evaluate(model, "renumber", state={"employee": {"id": "e1", "personnel_number": "N1"}},
                  input={"number": "N2"}, data_version="1",
-                 facts={"universe": [{"entity": "Employee", "members": [
-                     {"id": "e1", "personnel_number": "N1"}, {"id": "e2", "personnel_number": "N2"}]}]})
+                 facts=universe([], customers=[], employees=[
+                     {"id": "e1", "personnel_number": "N1"}, {"id": "e2", "personnel_number": "N2"}]))
     assert d.result == "DENY"
     assert d.reasons[0]["code"] == "INVARIANT_VIOLATED"
 
@@ -114,7 +128,9 @@ def test_extrema_are_optional_and_lambdas_take_one_candidate() -> None:
         requires(min_(select(Order), lambda o: o.amount).is_none())
 
     m = BehaviorModule(entities=[Customer, Order], actions=[cheapest])
-    d = evaluate(m, "cheapest", state={"customer": CUSTOMER}, data_version="1", facts=universe([]))
+    facts = {"universe": [{"entity": "Customer", "members": [CUSTOMER]},
+                          {"entity": "Order", "members": []}]}
+    d = evaluate(m, "cheapest", state={"customer": CUSTOMER}, data_version="1", facts=facts)
     assert d.result == "ALLOW"
 
     @action

@@ -28,8 +28,12 @@ def allowed_decision():  # type: ignore[no-untyped-def]
     purchase = {"id": "po-1", "amount": Decimal("100"), "status": Status.PENDING, "approved_by": None}
     project = {"id": "p7", "budget": Decimal("1000"), "spent": Decimal("0")}
     actor = {"id": "anna", "role": "manager", "approval_limit": Decimal("500")}
+    # The complete parent snapshot (Core 017); the actor is context, not state.
+    facts = {"universe": [{"entity": "Employee", "members": []},
+                          {"entity": "Project", "members": [project]},
+                          {"entity": "Purchase", "members": [purchase]}]}
     d = evaluate(model, "approve", state={"purchase": purchase, "project": project},
-                 context={"actor": actor}, data_version="1")
+                 context={"actor": actor}, data_version="1", facts=facts)
     assert d.result == "ALLOW"
     return d
 

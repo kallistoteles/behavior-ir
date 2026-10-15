@@ -14,9 +14,15 @@ from .fixtures import invoice_model
 HOST = json.loads((FIXTURES / "host" / "invoice_1042.json").read_text())
 
 
+# The complete parent snapshot (Core 017): every declared entity type, empty ones too.
+FACTS = {"universe": [{"entity": "Invoice", "members": [HOST["state"]["invoice"]]},
+                      {"entity": "User", "members": []}]}
+
+
 def run(intent: dict[str, object]):  # type: ignore[no-untyped-def]
     return evaluate_intent(invoice_model.model, intent, state=HOST["state"],
-                           context=HOST["context"], data_version=HOST["data_version"])
+                           context=HOST["context"], data_version=HOST["data_version"],
+                           facts=FACTS)
 
 
 def test_valid_intent_is_evaluated() -> None:

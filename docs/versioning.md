@@ -6,10 +6,10 @@ change for different reasons, and every one of them is reported, never implied
 
 | Kind | Example | What it identifies | Where it lives |
 |---|---|---|---|
-| **Release** | `0.12.0` | this repository's release: the Python package and everything it bundles | `[workspace.package] version` in `Cargo.toml`, the single source |
-| **Core** | `0.12.0` | the exact Core Release the package is built against and bundles (feature 011) | `core-release.json`; `behavior.versions()["core"]` reports the full immutable commit |
-| **Binding** | `python 0.12.0` | the installable package of the Python binding | the release version in Python's form (PEP 440); the package requires *exactly* the core in `core-release.json` (checked at import) |
-| **Formats and verifier** | accepted wire IR `0.1` … `0.8`, records `0.4` … `0.7`, verifier `0.8.0` | the document formats and the verification encoding | defined by the core: [its versioning](https://github.com/kallistoteles/behavior-ir-core/blob/v0.12.0/docs/versioning.md); reported by `behavior engine-info` |
+| **Release** | `0.13.0` | this repository's release: the Python package and everything it bundles | `[workspace.package] version` in `Cargo.toml`, the single source |
+| **Core** | `0.13.0` | the exact Core Release the package is built against and bundles (feature 011) | `core-release.json`; `behavior.versions()["core"]` reports the full immutable commit |
+| **Binding** | `python 0.13.0` | the installable package of the Python binding | the release version in Python's form (PEP 440); the package requires *exactly* the core in `core-release.json` (checked at import) |
+| **Formats and verifier** | accepted wire IR `0.4` … `0.8`, records `0.4` … `0.8`, verifier `0.9.0` | the document formats and the verification encoding | defined by the core: [its versioning](https://github.com/kallistoteles/behavior-ir-core/blob/v0.13.0/docs/versioning.md); reported by `behavior engine-info` |
 
 A module document, a record or a store document says which format version it is written in.
 That is what a reader checks, not the release number.
@@ -29,6 +29,41 @@ While the release is below 1.0, the **minor** number marks anything a consumer m
   - documentation and skills.
 
 After 1.0, the same rules apply with **major** in place of minor.
+
+**No backward compatibility before 1.0.** Until the first stable release, semantic correctness
+takes precedence over compatibility: a minor release may change or remove any API, call pattern
+or helper without a deprecation period, compatibility shim or fallback, and consumers migrate to
+the new contract. What never changes by accident is determinism, canonical content identity
+where semantically required, and evidence integrity; a change of semantic meaning is a
+deliberate design decision, documented with its release.
+
+Release 0.13.0 aligns the package with Core Release 0.13.0 (ecosystem feature 504), which
+includes Core 0.12.1. Its minor bump reflects a new record version, verifier outcomes and two
+contracts consumers must adapt to:
+
+- **Complete parent snapshots (Core 017).** Fresh action evaluation establishes complete
+  resulting-state validity and writes decision record 0.8 (`validation_profile`
+  `behavior.complete_resulting_state.v1`, the complete parent universe archived). Direct
+  `evaluate` and `evaluate_intent` therefore take a required `facts` argument whose `universe`
+  lists every declared entity type, empty ones as `members: []`; nothing is inferred from the
+  bound state. An incomplete or invalid parent snapshot is `INVALID_INPUT` with
+  `INVALID_STATE_SNAPSHOT` (an invalid parent is no longer reported as `INVALID_STATE`). Stores
+  supply the snapshot themselves. Historical records keep their versions and replay unchanged.
+- **Verifier 0.9.0** corrects outcomes for previously uncovered invalid child states. Fresh
+  authenticated verification needs policies selected for verifier 0.9.0; existing policies and
+  historical authorizations are not upgraded implicitly.
+- **Store creation (Core 019).** `Backend.create` must recover an equivalent original creation
+  as an idempotent no-op and refuse a different one; the backend conformance suite has 45
+  cases. Custom backends must implement this.
+- **Command-profile query evidence (Core 023).** Actions that observe a query under the command
+  profile now commit; query evidence in bundles is validated strictly.
+- `accepted_wire_ir` reports `0.4` … `0.8`, what fresh admission actually accepts (Core 020);
+  the legacy Python DSL emits `0.4`. Module bytes and semantic identities are unchanged.
+
+See the pinned core documentation for
+[invocation](https://github.com/kallistoteles/behavior-ir-core/blob/v0.13.0/docs/invocation.md),
+[persistence](https://github.com/kallistoteles/behavior-ir-core/blob/v0.13.0/docs/persistence.md)
+and [governance](https://github.com/kallistoteles/behavior-ir-core/blob/v0.13.0/docs/governance.md).
 
 Release 0.12.0 aligns the package with Core Release 0.12.0 (ecosystem feature 500). Its minor
 bump reflects current document formats, verifier outcomes and governance refusal behavior:

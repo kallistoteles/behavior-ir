@@ -45,8 +45,8 @@
     }
    },
    "core_release": {
-    "commit": "b525da46d4282166418a90141f0c94fd099e9b47",
-    "version": "0.12.0"
+    "commit": "15094972191aa0ae79705df0397c551a18745399",
+    "version": "0.13.0"
    },
    "embedded": [
     {
@@ -88,8 +88,8 @@
     }
    },
    "core_release": {
-    "commit": "b525da46d4282166418a90141f0c94fd099e9b47",
-    "version": "0.12.0"
+    "commit": "15094972191aa0ae79705df0397c551a18745399",
+    "version": "0.13.0"
    },
    "lowerer_version": 1,
    "model_kind": "state_machine",

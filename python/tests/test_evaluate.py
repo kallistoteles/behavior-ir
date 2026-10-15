@@ -27,9 +27,15 @@ def actor(**over: object) -> dict[str, object]:
     return base
 
 
+def universe(*invoices: dict[str, object]) -> dict[str, object]:
+    """The complete parent snapshot (Core 017): every declared entity type, empty ones too."""
+    return {"universe": [{"entity": "Invoice", "members": list(invoices)},
+                         {"entity": "User", "members": []}]}
+
+
 def approve(inv: dict[str, object], act: dict[str, object]):  # type: ignore[no-untyped-def]
     return evaluate(M, "approve_invoice", state={"invoice": inv}, context={"actor": act},
-                    input={}, data_version="18342")
+                    input={}, data_version="18342", facts=universe(inv))
 
 
 def test_allowed() -> None:
@@ -59,9 +65,14 @@ def test_exact_boundary() -> None:
 
 
 def test_invalid_starting_state() -> None:
+    # Core 017 (verifier 0.9.0): the complete parent snapshot is validated before evaluation, so
+    # an invalid parent is an invalid input naming the violated invariant (was INVALID_STATE).
     d = approve(invoice(amount=Decimal("-1")), actor())
-    assert d.result == "INVALID_STATE"
-    assert [s.phase for s in d.trace] == ["invariant_pre"]
+    assert d.result == "INVALID_INPUT"
+    assert d.trace == []
+    assert d.diagnostics["reasons"] == [{
+        "code": "INVALID_STATE_SNAPSHOT",
+        "message": "facts: Invoice#1042: invariant `non_negative_amount` is violated"}]
 
 
 def test_enum_members_are_accepted_as_values() -> None:
@@ -87,8 +98,28 @@ def test_records_are_deterministic_and_replay() -> None:
 
 def test_unadmitted_module_raises() -> None:
     with pytest.raises(BehaviorInvalid):
-        evaluate(cycles.model, "anything", state={}, context={}, input={}, data_version="1")
+        evaluate(cycles.model, "anything", state={}, context={}, input={}, data_version="1",
+                 facts={"universe": []})
 
 
 def test_module_type_hint() -> None:
     assert isinstance(M, BehaviorModule)
+
+
+def test_the_complete_parent_snapshot_is_required() -> None:
+    """Core 017 (feature 504, FR-010): direct evaluation takes the complete parent snapshot from
+    the host; the binding never completes it."""
+    with pytest.raises(TypeError):
+        evaluate(M, "approve_invoice", state={"invoice": invoice()},  # type: ignore[call-arg]
+                 context={"actor": actor()}, input={}, data_version="18342")
+    partial = {"universe": [{"entity": "Invoice", "members": [invoice()]}]}
+    d = evaluate(M, "approve_invoice", state={"invoice": invoice()}, context={"actor": actor()},
+                 input={}, data_version="18342", facts=partial)
+    assert d.result == "INVALID_INPUT"
+    assert [r["code"] for r in d.reasons] == ["INVALID_STATE_SNAPSHOT"]
+
+
+def test_bound_state_must_agree_with_the_snapshot() -> None:
+    d = evaluate(M, "approve_invoice", state={"invoice": invoice()}, context={"actor": actor()},
+                 input={}, data_version="18342", facts=universe(invoice(status="approved")))
+    assert d.result == "INVALID_INPUT"

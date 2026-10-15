@@ -132,8 +132,8 @@ class Module:
         input: dict[str, Any],
         context: dict[str, Any],
         data_version: str,
+        facts: dict[str, Any],
         git_revision: str | None = None,
-        facts: dict[str, Any] | None = None,
     ) -> Record: ...
     def evaluate_intent(
         self,
@@ -141,6 +141,7 @@ class Module:
         state: dict[str, Any],
         context: dict[str, Any],
         data_version: str,
+        facts: dict[str, Any],
         git_revision: str | None = None,
     ) -> Record: ...
     def replay(self, record_json: str) -> tuple[bool, str | None]: ...

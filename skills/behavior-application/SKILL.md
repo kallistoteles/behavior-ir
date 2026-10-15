@@ -1,12 +1,12 @@
 ---
 name: behavior-application
 description: Build the host application around a Behavior model (stores, evaluate and commit, reads and read intents for agents, conflicts, replay, custom storage backends, supplying facts), keeping every business rule in behavior. Use when writing services, handlers, jobs or storage code that use a behavior model.
-release: 0.12.0
+release: 0.13.0
 ---
 
 # Building an application on Behavior
 
-This skill describes **Behavior release 0.12.0**. Use only what is described here or listed in the
+This skill describes **Behavior release 0.13.0**. Use only what is described here or listed in the
 release's public API.
 
 Existing Python authoring and evaluation retain their legacy profile. Admitted current
@@ -193,7 +193,7 @@ history, identities and references carry over, and old states still load exactly
   `TRUSTED_GOVERNANCE_UPGRADE_REQUIRED`; structural `authorize_migration` evidence does not
   upgrade that trust. Adopt validated state into an explicit v2 genesis for new trusted
   history. Trusted migrations follow the
-  [public core migration contract](https://github.com/kallistoteles/behavior-ir-core/blob/v0.12.0/specs/013-durable-command-intents/contracts/governance.md);
+  [public core migration contract](https://github.com/kallistoteles/behavior-ir-core/blob/v0.13.0/specs/013-durable-command-intents/contracts/governance.md);
   the legacy Python `store.migrate` helper supplies no independent v2 authorization context.
 - **Replay**: `replay_behavior(store, models, migrations=[...])` re-runs every migration.
 
@@ -220,7 +220,9 @@ A backend stores Behavior's documents and has nothing else to do. It provides:
 - `removed_at(key)`;
 - `incoming_at(target, position)`;
 - `keys_at(entity_type, position)`;
-- `create(...)`, the genesis write;
+- `create(...)`, the genesis write. A retry of the **same** original creation (same genesis,
+  seed versions, references and original head) must be a no-op that leaves later history
+  intact; any other creation on a created backend must be refused;
 - `commit(...)`: **one atomic compare-and-set** that writes the versions, removals, reference
   changes, record and head together, or nothing.
 
@@ -255,15 +257,14 @@ every case passes.
 explicit data. The engine never looks anything up, so everything a decision reads must be
 supplied.
 
-`data_version` names the snapshot the data came from. `facts` supplies what the model reads
-beyond the bound entities:
-- `existence`;
-- `identities` (whether an identity was ever used);
-- `references` (incoming references);
-- for queries, `queries` and `fields`, or a whole `universe` of a type.
-
-A missing fact is `UNKNOWN_FACT`, never guessed. Facts that contradict each other are
-`INCONSISTENT_FACTS`.
+`data_version` names the snapshot the data came from. `facts` is required and holds the
+**complete parent snapshot**: `universe` lists every declared entity type as
+`{"entity": T, "members": [...]}`, an empty type as `"members": []`, and the bound `state` must
+agree with it. Nothing is inferred from the bound entities: an incomplete, inconsistent or
+invalid snapshot is `INVALID_INPUT` with `INVALID_STATE_SNAPSHOT`. Historical facts that a
+snapshot cannot show, such as `identities` (whether an identity was ever used), go alongside.
+A missing historical fact is `UNKNOWN_FACT`, never guessed. Facts that contradict each other
+are `INCONSISTENT_FACTS`.
 
 **Value formats.**
 - `state`, `input` and `context` accept Python values (`Decimal`, `Enum` members, `None`) or
@@ -271,13 +272,16 @@ A missing fact is `UNKNOWN_FACT`, never guessed. Facts that contradict each othe
 - `facts`, stored values and records always use the canonical JSON form. Decimals are strings
   such as `"5.00"`; enums are their value strings.
 
-**Plain evaluation assumes you supplied a valid state**, as a store would: every constraint
-holds, and so does every module invariant.
+**Plain evaluation checks the snapshot you supplied**, as a store's state would be: an entity
+that breaks a constraint or a module invariant makes it `INVALID_STATE_SNAPSHOT`, naming the
+rule.
 
 ```python
 # from examples/plain_evaluation.py
-universe = {"universe": [{"entity": "Order", "members": [
-    {"id": "o1", "customer": "c2", "amount": "5.00"}]}]}
+universe = {"universe": [
+    {"entity": "Customer", "members": [state["customer"]]},
+    {"entity": "Order", "members": [{"id": "o1", "customer": "c2", "amount": "5.00"}]},
+]}
 decision = evaluate(model, "close_customer", state=state, data_version="snapshot-17",
                     facts=universe)
 assert decision.result == "ALLOW"
@@ -294,8 +298,7 @@ of this automatically, so prefer a store for anything that changes state.
 | `ALLOW` | the transition is allowed; a store evaluation has a bundle | commit it |
 | `DENY` | a rule refused it (`reasons` name the rule) | show the reason; nothing to commit |
 | `ENTITY_ID_ALREADY_USED`, `LIFECYCLE_CONFLICT` | a creation or removal is not possible | choose another id, or fix the request |
-| `INVALID_INPUT` | the request does not fit the model (types, missing fields, bad facts) | a host or client error |
-| `INVALID_STATE` | an incoming entity breaks a declared rule | the supplied state is corrupt: investigate, never commit around it |
+| `INVALID_INPUT` | the request does not fit the model (types, missing fields, an incomplete or invalid snapshot) | a host or client error; with `INVALID_STATE_SNAPSHOT`, the supplied state is incomplete or corrupt: investigate, never commit around it |
 | `ERROR` | evaluation failed (overflow, division by zero, a missing fact) | a model or data problem; the reason says which |
 
 ## Anti-patterns and their corrections

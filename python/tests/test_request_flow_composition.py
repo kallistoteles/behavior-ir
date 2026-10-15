@@ -63,25 +63,38 @@ def request(status: str = "Draft", **over: Any) -> dict[str, Any]:
             "title": "Laptop", "amount": 900, **over}
 
 
+def snapshot(*requests: dict[str, Any], **facts: Any) -> dict[str, Any]:
+    """The complete parent snapshot (Core 017): every declared entity type, the given requests
+    and two users; `facts` adds further facts (e.g. `identities`)."""
+    users = [{"id": u, "name": u} for u in ("alice", "bob")]
+    return {"universe": [{"entity": "Attachment", "members": []},
+                         {"entity": "Comment", "members": []},
+                         {"entity": "PurchaseRequest", "members": list(requests)},
+                         {"entity": "User", "members": users}], **facts}
+
+
 def test_everything_is_admitted_as_ordinary_items() -> None:
     assert M.model_receipts[0].model_kind == "request_flow"
 
 
 def test_a_hand_written_action_over_the_request_entity() -> None:
     ok = evaluate(M, "retitle", state={"request": request()}, context={},
-                  input={"title": "Desk", "actor": "alice"}, data_version="1")
+                  input={"title": "Desk", "actor": "alice"}, data_version="1",
+                  facts=snapshot(request()))
     assert ok.result == "ALLOW"
     assert [(c.field, c.new) for c in ok.changes] == [("title", "Desk")]
     for r, actor in ((request("Submitted"), "alice"), (request(), "bob")):
         denied = evaluate(M, "retitle", state={"request": r}, context={},
-                          input={"title": "Desk", "actor": actor}, data_version="1")
+                          input={"title": "Desk", "actor": actor}, data_version="1",
+                          facts=snapshot(r))
         assert denied.result == "DENY"
 
 
 def test_an_input_identity_of_the_request_entity() -> None:
     d = evaluate(M, "comment", state={}, context={},
                  input={"id": "c1", "on": "q1", "text": "ok?"}, data_version="1",
-                 facts={"identities": [{"entity": "Comment", "id": "c1", "used": False}]})
+                 facts=snapshot(request(),
+                                identities=[{"entity": "Comment", "id": "c1", "used": False}]))
     assert d.result == "ALLOW", d.reasons
     assert d.lifecycle[0]["value"]["on"] == "q1"
 

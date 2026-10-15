@@ -162,6 +162,7 @@
   "names": {
    "AdmissionError": "class",
    "AdmissionResult": "class",
+   "Approval": "class",
    "Attestation": "class",
    "Authorization": "class",
    "BehaviorDefinitionError": "exception",

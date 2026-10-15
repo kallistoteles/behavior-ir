@@ -118,6 +118,37 @@ fn all() -> Vec<ModelError> {
             entity: "E".into(),
             owner: m(),
         },
+        ModelError::InvalidThreshold {
+            model_ref: m(),
+            which: "approve".into(),
+            value: 0,
+        },
+        ModelError::DeclarationCycle {
+            models: vec!["a".into(), "b".into()],
+        },
+        ModelError::DefinitionCycle {
+            names: vec!["f".into(), "g".into()],
+        },
+        ModelError::DefinitionMismatch {
+            name: "m__approved".into(),
+            model_ref: m(),
+        },
+        ModelError::UnauthorizedDecisionCreation {
+            action: "a".into(),
+            entity: "MDecision".into(),
+            owner: m(),
+        },
+        ModelError::UnauthorizedDecisionWrite {
+            action: "a".into(),
+            entity: "MDecision".into(),
+            field: "choice".into(),
+            owner: m(),
+        },
+        ModelError::UnauthorizedDecisionRemoval {
+            action: "a".into(),
+            entity: "MDecision".into(),
+            owner: m(),
+        },
     ]
 }
 
@@ -129,6 +160,18 @@ fn every_code_is_distinct_and_stable() {
     unique.dedup();
     assert_eq!(unique.len(), codes.len());
     assert!(codes.contains(&"UNAUTHORIZED_OWNED_FIELD_WRITE"));
+    // Feature 503 (T004).
+    for code in [
+        "INVALID_THRESHOLD",
+        "DECLARATION_CYCLE",
+        "DEFINITION_CYCLE",
+        "DEFINITION_MISMATCH",
+        "UNAUTHORIZED_DECISION_CREATION",
+        "UNAUTHORIZED_DECISION_WRITE",
+        "UNAUTHORIZED_DECISION_REMOVAL",
+    ] {
+        assert!(codes.contains(&code), "{code}");
+    }
 }
 
 #[test]
@@ -161,4 +204,43 @@ fn errors_render_as_json_with_their_code() {
     let j = e.to_json();
     assert_eq!(j["code"], "UNKNOWN_STATE");
     assert_eq!(j["state"], "X");
+}
+
+/// Feature 503 (T004): the new codes carry their stage and payload.
+#[test]
+fn approval_and_dag_errors_have_their_stage_and_payload() {
+    use behavior_models::error::Stage;
+    let by_code = |code: &str| all().into_iter().find(|e| e.code() == code).unwrap();
+    assert_eq!(by_code("INVALID_THRESHOLD").stage(), Stage::Resolve);
+    for code in [
+        "DECLARATION_CYCLE",
+        "DEFINITION_CYCLE",
+        "DEFINITION_MISMATCH",
+    ] {
+        assert_eq!(by_code(code).stage(), Stage::Set, "{code}");
+    }
+    for code in [
+        "UNAUTHORIZED_DECISION_CREATION",
+        "UNAUTHORIZED_DECISION_WRITE",
+        "UNAUTHORIZED_DECISION_REMOVAL",
+    ] {
+        assert_eq!(by_code(code).stage(), Stage::Compose, "{code}");
+    }
+    let j = by_code("INVALID_THRESHOLD").to_json();
+    assert_eq!(
+        (j["which"].as_str(), j["value"].as_i64()),
+        (Some("approve"), Some(0))
+    );
+    assert_eq!(
+        by_code("DECLARATION_CYCLE").to_json()["models"],
+        serde_json::json!(["a", "b"])
+    );
+    assert_eq!(
+        by_code("DEFINITION_CYCLE").to_json()["names"],
+        serde_json::json!(["f", "g"])
+    );
+    assert_eq!(
+        by_code("UNAUTHORIZED_DECISION_WRITE").to_json()["field"],
+        "choice"
+    );
 }

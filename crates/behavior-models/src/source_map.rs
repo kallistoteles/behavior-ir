@@ -36,10 +36,16 @@ pub(crate) fn display_json(d: &DisplayMeta) -> Option<Value> {
     (!m.is_empty()).then_some(Value::Object(m))
 }
 
+/// Whether `file` is a marker for code without a file (`<string>`, `<stdin>`, `<__main__>`),
+/// not a path.
+fn is_marker(file: &str) -> bool {
+    file.starts_with('<') && file.ends_with('>')
+}
+
 /// Source locations relative to a base that does not depend on where the sources were checked
 /// out (Constitution IV): the build `root` when one is given (as Core relativizes module
-/// locations), otherwise the common directory of the model's own source files. Unrelated files
-/// of the module never influence a model's receipt.
+/// locations), otherwise the common directory of the model's own source files (markers excluded;
+/// they are kept verbatim). Unrelated files of the module never influence a model's receipt.
 pub(crate) struct RelativeSources {
     base: std::path::PathBuf,
 }
@@ -66,7 +72,9 @@ impl RelativeSources {
                 base: PathBuf::from(root),
             };
         }
-        let dirs = sources.map(|s| {
+        // A marker (`<string>`, `<__main__>`: code without a file) names no directory; its
+        // empty parent would empty the base and leave every real path checkout-dependent.
+        let dirs = sources.filter(|s| !is_marker(&s.file)).map(|s| {
             Path::new(&s.file)
                 .parent()
                 .map(Path::to_path_buf)

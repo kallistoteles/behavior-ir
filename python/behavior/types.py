@@ -6,7 +6,6 @@ in the Rust engine (research R10, R17).
 
 from __future__ import annotations
 
-import inspect
 from dataclasses import dataclass, field
 from decimal import Decimal
 from enum import Enum
@@ -14,7 +13,7 @@ from typing import TYPE_CHECKING, Any
 
 from . import _engine
 from .errors import BehaviorDefinitionError
-from .location import caller_loc
+from .location import caller_loc, definition_loc
 
 if TYPE_CHECKING:
     from .expr import Expr
@@ -265,11 +264,7 @@ def enum_type(cls: type[Enum]) -> EnumT:
     values = tuple(m.value for m in cls)
     if not all(isinstance(v, str) for v in values):
         raise BehaviorDefinitionError(f"enum `{cls.__name__}` must have str values", *caller_loc())
-    try:
-        loc: tuple[str, int] | None = (inspect.getfile(cls), cls.__firstlineno__)  # type: ignore[attr-defined]
-    except (TypeError, AttributeError):
-        loc = None
-    t = EnumT(cls.__name__, values, loc)
+    t = EnumT(cls.__name__, values, definition_loc(cls))
     _ENUM_TYPES[cls] = t
     return t
 

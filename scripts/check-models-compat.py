@@ -28,8 +28,17 @@ models they embed, because the approval's subject may be a flow's entity and its
 on that lowering. A bump of any co-supplied lowerer is then also a new approval tuple. Its
 entries add each approval's `generated` enum, entity and derived hashes.
 
+Supersession (feature 505, contract compat-supersession.md) keeps three things apart:
+identity (a tuple always yields the same hashes), supersession (a new tuple explicitly takes
+over a removed tuple's reference cases) and history (the superseded keys stay recorded in the
+replacement's `supersedes`). An established tuple of the pinned Core may be absent only when
+exactly one current tuple lists its key in `supersedes`, with the same model kind and Core
+Release, a version vector that is componentwise >= and different (over the semantic and lowerer
+versions and those of every embedded and co-supplied kind), and every one of its case names.
+
     scripts/check-models-compat.py                 # the gate
     scripts/check-models-compat.py --write         # record the current tuple if it is new
+    scripts/check-models-compat.py --write --supersede  # ...and replace what it supersedes
     scripts/check-models-compat.py --print         # print the canonical receipts (determinism)
     scripts/check-models-compat.py --computed F    # use precomputed cases (script self-test)
 """
@@ -71,6 +80,40 @@ def versions(r: dict[str, Any]) -> list[dict[str, Any]]:
            "lowerer_version": r["lowerer_version"]}
     return [own] + [{"kind": e["kind"], "model_semantic_version": e["model_semantic_version"],
                      "lowerer_version": e["lowerer_version"]} for e in r.get("embedded", [])]
+
+
+def key_of(t: dict[str, Any]) -> dict[str, Any]:
+    """A tuple's key fields: what a `supersedes` entry records."""
+    fields = KEY_FIELDS + tuple(k for k in ("embedded", "co_supplied") if k in t)
+    return {k: t[k] for k in fields}
+
+
+def version_vector(t: dict[str, Any]) -> dict[str, int]:
+    """The semantic and lowerer versions of a tuple and of each embedded and co-supplied kind."""
+    v = {"model_semantic_version": t["model_semantic_version"],
+         "lowerer_version": t["lowerer_version"]}
+    for field in ("embedded", "co_supplied"):
+        for e in t.get(field, []):
+            for n in ("model_semantic_version", "lowerer_version"):
+                v[f"{field}.{e['kind']}.{n}"] = e[n]
+    return v
+
+
+def supersession_error(old: dict[str, Any], new: dict[str, Any]) -> str | None:
+    """Why `new` cannot supersede `old` (contract compat-supersession.md §3(b)), or None."""
+    if new["model_kind"] != old["model_kind"]:
+        return f"model kind {new['model_kind']} is not {old['model_kind']}"
+    if new["core_release"] != old["core_release"]:
+        return "the Core Release differs"
+    vo, vn = version_vector(old), version_vector(new)
+    if vo.keys() != vn.keys():
+        return "the version vectors are incomparable (other embedded or co-supplied kinds)"
+    if vn == vo or any(vn[k] < vo[k] for k in vo):
+        return "the version vector is not higher"
+    lost = sorted(set(old["cases"]) - set(new["cases"]))
+    if lost:
+        return f"case(s) {lost} are not in the replacement"
+    return None
 
 
 def receipt_tuple(r: dict[str, Any]) -> dict[str, Any]:
@@ -186,6 +229,7 @@ def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("--root", type=Path, default=ROOT)
     p.add_argument("--write", action="store_true")
+    p.add_argument("--supersede", action="store_true")
     p.add_argument("--print", dest="print_", action="store_true")
     p.add_argument("--computed", type=Path)
     a = p.parse_args()
@@ -208,13 +252,44 @@ def main() -> None:
     by_key = {tuple_key(t): t for t in manifest["tuples"]}
 
     if a.write:
+        added: list[dict[str, Any]] = []
         for key, g in sorted(groups.items()):
             if key in by_key:
                 if by_key[key]["cases"] != g["cases"]:
                     fail(f"tuple {key} is established with other hashes; bump a version")
                 continue
-            manifest["tuples"].append({**g["tuple"], "cases": g["cases"]})
+            new = {**g["tuple"], "cases": g["cases"]}
+            manifest["tuples"].append(new)
+            added.append(new)
             print(f"check-models-compat: recorded tuple {key}")
+        if a.supersede:
+            # Predecessors resolve against the merge base: only an established tuple can be
+            # superseded. A branch-local tuple that a new one replaces (a second version bump
+            # before the merge) is dropped, and the established predecessors it superseded
+            # carry over to the new tuple when the new tuple validly supersedes them too.
+            base_at_merge = merge_base_manifest(root)
+            predecessors = {tuple_key(t): t for t in
+                            (base_at_merge["tuples"] if base_at_merge is not None else [])}
+            for new in added:
+                taken: dict[str, dict[str, Any]] = {}
+                for t in [t for t in manifest["tuples"] if tuple_key(t) not in groups]:
+                    if supersession_error(t, new) is not None:
+                        continue
+                    if tuple_key(t) in predecessors:
+                        taken[tuple_key(t)] = key_of(t)
+                    else:
+                        for entry in t.get("supersedes", []):
+                            k = tuple_key(entry)
+                            why = supersession_error(predecessors[k], new) if k in predecessors \
+                                else "it was never established"
+                            if why is not None:
+                                fail(f"{tuple_key(new)} cannot carry over the supersession of {k}: "
+                                     f"{why}")
+                            taken[k] = entry
+                    manifest["tuples"].remove(t)
+                    print(f"check-models-compat: {tuple_key(new)} replaces {tuple_key(t)}")
+                if taken:
+                    new["supersedes"] = [taken[k] for k in sorted(taken)]
         manifest["tuples"].sort(key=tuple_key)
         path.write_text(json.dumps(manifest, indent=1, sort_keys=True) + "\n")
         return
@@ -232,17 +307,46 @@ def main() -> None:
                 fail(f"case `{name}` lowers differently under an unchanged version tuple: "
                      f"recorded {canonical(recorded['cases'][name])}, now {canonical(got)}")
 
-    # 2: established tuples are immutable.
+    # 2: established tuples are immutable; one may only be removed with an unpinned Core, or
+    # when exactly one current tuple validly supersedes it.
     base = merge_base_manifest(root)
+    base_tuples = base["tuples"] if base is not None else []
+    established = {tuple_key(t) for t in base_tuples}
+    # Supersessions accepted at the merge base are history: their predecessors are gone there
+    # too, so they are not validated again. Only newly introduced entries are.
+    history = {(tuple_key(t), tuple_key(e)) for t in base_tuples for e in t.get("supersedes", [])}
+    superseders: dict[str, list[dict[str, Any]]] = {}
+    for t in manifest["tuples"]:
+        for entry in t.get("supersedes", []):
+            k = tuple_key(entry)
+            if k in by_key:
+                fail(f"{tuple_key(t)} supersedes {k}, which is still present")
+            if (tuple_key(t), k) in history:
+                continue
+            if k not in established:
+                fail(f"{tuple_key(t)} supersedes {k}, which was never established")
+            # A replacement must be built now, so the cases it takes over are reproduced.
+            if tuple_key(t) not in groups:
+                fail(f"{tuple_key(t)} supersedes {k} but is not a tuple of the current build")
+            superseders.setdefault(k, []).append(t)
     if base is not None:
         pinned = pinned_core(root)
         for t in base["tuples"]:
             k = tuple_key(t)
             if k not in by_key:
-                if t["core_release"] == pinned:
+                if t["core_release"] != pinned:
+                    continue
+                owners = superseders.get(k, [])
+                if not owners:
                     fail(f"established tuple {k} was removed")
+                if len(owners) > 1:
+                    fail(f"established tuple {k} is superseded by more than one tuple")
+                why = supersession_error(t, owners[0])
+                if why is not None:
+                    fail(f"invalid supersession of {k} by {tuple_key(owners[0])}: {why}")
                 continue
-            if canonical(by_key[k]["cases"]) != canonical(t["cases"]):
+            if (canonical(by_key[k]["cases"]) != canonical(t["cases"])
+                    or canonical(by_key[k].get("supersedes")) != canonical(t.get("supersedes"))):
                 fail(f"established tuple {k} was changed; a changed lowering needs a new "
                      "model semantic version or lowerer version")
     summary = ", ".join(f"{len(g['cases'])} cases under {k}" for k, g in sorted(groups.items()))

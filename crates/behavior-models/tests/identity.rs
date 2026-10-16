@@ -5,6 +5,7 @@
 mod common;
 
 use behavior_engine::semantic::types::hash_display;
+use behavior_engine::wire::WType;
 use behavior_models::{CORE_RELEASE, DisplayMeta, SourceLoc};
 use common::*;
 use serde_json::{Value, json};
@@ -30,19 +31,22 @@ fn canonical_document_has_exactly_the_semantic_facts() {
     let approve = &actions["purchase_request__approve"];
     let h = |x: &[u8; 32]| hash_display(x);
     let enum_hash = h(&out.module.enums()["RequestStatus"].hash);
+    let entities = behavior_engine::schema::declarations(&out.module);
     let expected = json!({
-        "format": "behavior.model.state_machine.v1",
+        "format": "behavior.model.state_machine.v2",
         "model_kind": "state_machine",
-        "model_semantic_version": 1,
+        "model_semantic_version": 2,
         "model_id": "purchase_request",
-        "subject": {"entity": "PurchaseRequest"},
+        "subject": {"entity": "PurchaseRequest", "entity_hash": entities["PurchaseRequest"]},
         "field": {"name": "status", "enum": "RequestStatus", "enum_hash": enum_hash},
         "subject_param": "purchase_request",
         "entry_states": ["Draft"],
         "transitions": [
             {
                 "id": "approve", "from": ["InReview"], "to": "Approved",
-                "inputs": [], "context": [{"name": "actor", "type": {"Id": "Actor"}}],
+                "inputs": [],
+                "context": [{"name": "actor", "type": {"Id": "Actor"},
+                             "types": {"Actor": entities["Actor"]}}],
                 "guards": [h(approve.preconditions()[1].expr().hash())],
                 "effects": [h(approve.effects()[1].hash())],
                 "postconditions": [],
@@ -178,7 +182,7 @@ fn receipt_has_exactly_the_contract_fields() {
     );
     assert_eq!(r["format"], "behavior.model_receipt.v1");
     assert_eq!(r["model_kind"], "state_machine");
-    assert_eq!(r["model_semantic_version"], 1);
+    assert_eq!(r["model_semantic_version"], 2);
     assert_eq!(r["lowerer_version"], 1);
     assert_eq!(
         r["core_release"],
@@ -321,4 +325,245 @@ fn a_transition_from_unreachable_states_is_reported_even_if_its_target_is_reacha
             .iter()
             .any(|d| d.code == "UNREACHABLE_STATE" && d.model_ref.ends_with("/Approved"))
     );
+}
+
+// --- feature 505: exact declaration dependencies (contract `declaration-references.md`) ---------
+
+/// The declarations of one build: the reference declarations plus `Mode` (an enum), `Amount` (a
+/// nominal) and optionally an unrelated entity, with the variations the tests below apply.
+#[derive(Clone)]
+struct Decls {
+    mode_name: &'static str,
+    mode: Vec<&'static str>,
+    amount: (WType, Vec<&'static str>, Option<u64>),
+    subject_extra: bool,
+    actor_extra: bool,
+    unrelated: Option<WType>,
+    reverse: bool,
+}
+
+impl Default for Decls {
+    fn default() -> Self {
+        Decls {
+            mode_name: "Mode",
+            mode: vec!["Standard", "Fast"],
+            amount: (WType::Decimal, vec!["add"], Some(2)),
+            subject_extra: false,
+            actor_extra: false,
+            unrelated: None,
+            reverse: false,
+        }
+    }
+}
+
+fn field(name: &str, ty: WType) -> behavior_engine::wire::WField {
+    behavior_engine::wire::WField {
+        name: name.into(),
+        ty,
+        loc: loc(),
+    }
+}
+
+fn builder(d: &Decls) -> behavior_engine::builder::Builder {
+    use behavior_engine::builder::{Builder, SemanticProfile};
+    let mut b = Builder::with_semantic_profile(SemanticProfile::CommandIntents);
+    let status = |b: &mut Builder| {
+        b.declare_enum(
+            "RequestStatus",
+            CASES.iter().map(|c| c.to_string()).collect(),
+            loc(),
+        )
+        .unwrap();
+    };
+    let mode = |b: &mut Builder| {
+        b.declare_enum(
+            d.mode_name,
+            d.mode.iter().map(|c| c.to_string()).collect(),
+            loc(),
+        )
+        .unwrap();
+    };
+    let amount = |b: &mut Builder| {
+        let (underlying, ops, scale) = &d.amount;
+        b.declare_nominal(
+            "Amount",
+            underlying.clone(),
+            ops.iter().map(|o| o.to_string()).collect(),
+            *scale,
+            loc(),
+        )
+        .unwrap();
+    };
+    if d.reverse {
+        amount(&mut b);
+        mode(&mut b);
+        status(&mut b);
+    } else {
+        status(&mut b);
+        mode(&mut b);
+        amount(&mut b);
+    }
+    if let Some(ty) = &d.unrelated {
+        b.declare_entity("Unrelated", vec![field("x", ty.clone())], loc())
+            .unwrap();
+    }
+    let mut actor = vec![field("name", WType::String)];
+    if d.actor_extra {
+        actor.push(field("email", WType::String));
+    }
+    b.declare_entity("Actor", actor, loc()).unwrap();
+    let mut request = vec![
+        field("status", status_ty()),
+        field("approver", WType::Id("Actor".into())),
+        field(
+            "approved_by",
+            WType::Option(Box::new(WType::Id("Actor".into()))),
+        ),
+        field("note", WType::String),
+        field("review", status_ty()),
+    ];
+    if d.subject_extra {
+        request.push(field("internal_note", WType::String));
+    }
+    b.declare_entity("PurchaseRequest", request, loc()).unwrap();
+    b.add_command(
+        "Notify",
+        vec![field("approver", WType::Id("Actor".into()))],
+        loc(),
+    )
+    .unwrap();
+    b
+}
+
+/// The reference machine whose `submit` has the unused context `mode: <mode_name>` and the
+/// unused inputs `amount: Amount` and `who: Id<Actor>`; `reverse` lists them in reverse order.
+fn hash_with(d: &Decls, reverse_params: bool) -> String {
+    let mut m = machine();
+    let submit = m
+        .transitions
+        .iter_mut()
+        .find(|t| t.transition_id == "submit")
+        .unwrap();
+    submit.context = vec![("mode".into(), WType::Enum(d.mode_name.into()))];
+    submit.inputs = vec![
+        ("amount".into(), WType::Nominal("Amount".into())),
+        ("who".into(), WType::Id("Actor".into())),
+    ];
+    if reverse_params {
+        submit.inputs.reverse();
+    }
+    let mut b = builder(d);
+    let out =
+        behavior_models::compose(&mut b, vec![spec(m)], None).unwrap_or_else(|e| panic!("{e:#?}"));
+    model_hash(&out)
+}
+
+/// Acceptance 1–3, 6, 7 (SC-001): every change to a referenced declaration changes the hash, even
+/// where the machine does not use what changed.
+#[test]
+fn declaration_dependencies_change_the_machine_hash() {
+    let base = hash_with(&Decls::default(), false);
+    let changed = [
+        (
+            "the context enum's cases",
+            Decls {
+                mode: vec!["Standard", "Slow"],
+                ..Decls::default()
+            },
+        ),
+        (
+            "the input nominal's operations",
+            Decls {
+                amount: (WType::Decimal, vec![], Some(2)),
+                ..Decls::default()
+            },
+        ),
+        (
+            "the input nominal's scale",
+            Decls {
+                amount: (WType::Decimal, vec!["add"], Some(3)),
+                ..Decls::default()
+            },
+        ),
+        (
+            "the input nominal's underlying type",
+            Decls {
+                amount: (WType::Int, vec!["add"], None),
+                ..Decls::default()
+            },
+        ),
+        (
+            "an unused field of the subject",
+            Decls {
+                subject_extra: true,
+                ..Decls::default()
+            },
+        ),
+        (
+            "the entity of an identity input",
+            Decls {
+                actor_extra: true,
+                ..Decls::default()
+            },
+        ),
+        (
+            "the name of the context enum",
+            Decls {
+                mode_name: "Speed",
+                ..Decls::default()
+            },
+        ),
+    ];
+    for (what, d) in changed {
+        assert_ne!(hash_with(&d, false), base, "{what} must change the hash");
+    }
+}
+
+/// Acceptance 4, 5 (SC-002; laws I2, I4): declarations the machine does not reference, and the
+/// order of declarations and parameters, never change the hash.
+#[test]
+fn unrelated_declarations_and_order_keep_the_machine_hash() {
+    let base = hash_with(&Decls::default(), false);
+    let same = [
+        (
+            "an unrelated entity",
+            Decls {
+                unrelated: Some(WType::String),
+                ..Decls::default()
+            },
+            false,
+        ),
+        (
+            "declaration order",
+            Decls {
+                reverse: true,
+                ..Decls::default()
+            },
+            false,
+        ),
+        ("parameter order", Decls::default(), true),
+    ];
+    for (what, d, reverse_params) in same {
+        assert_eq!(
+            hash_with(&d, reverse_params),
+            base,
+            "{what} must not change the hash"
+        );
+    }
+    // An unrelated entity's fields change: still the same hash.
+    let one = hash_with(
+        &Decls {
+            unrelated: Some(WType::String),
+            ..Decls::default()
+        },
+        false,
+    );
+    let two = hash_with(
+        &Decls {
+            unrelated: Some(WType::Int),
+            ..Decls::default()
+        },
+        false,
+    );
+    assert_eq!(one, two);
 }

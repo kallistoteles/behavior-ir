@@ -41,6 +41,11 @@ The full contracts are in
 4. **Model identity.**
    - `ModelHash` is the content hash of a canonical document of semantic facts only. Display
      names, descriptions, source locations and authoring order never change it.
+   - A model's identity depends on exactly the declarations it references, by their Core
+     declaration identity: its subject, actor and state-binding entities, and every enum,
+     nominal and entity its parameter and payload types mention. Nothing else in the module
+     affects it. This is exact dependency, not behavioral equivalence: adding a field the model
+     never uses to a referenced entity changes the ModelHash (feature 505).
    - Every build returns a receipt: ModelHash, model kind, model semantic version, lowerer
      version, exact Core Release, BehaviorHash, the canonical document and a source map.
    - The module hash is always authoritative for runtime semantics.
@@ -48,7 +53,10 @@ The full contracts are in
    version, Core Release, and the versions of any embedded model), the ModelHash → BehaviorHash
    mapping of the reference cases in
    [`fixtures/compat.json`](fixtures/compat.json) is immutable. The gate `models compat` rejects
-   any change that is not accompanied by a version bump.
+   any change that is not accompanied by a version bump. A tuple replaced by a version bump is
+   removed only through explicit supersession: the new tuple lists it in `supersedes`, has the
+   same model kind and Core Release, a higher version vector and every one of its reference
+   cases (`check-models-compat.py --write --supersede`).
 6. **Where a concept belongs.** Ask: *must the evaluator understand this construct for its
    semantics to be correct?* If not, it is a model, a library or tooling here. If so, it is a
    candidate core primitive.

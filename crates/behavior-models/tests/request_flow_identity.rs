@@ -48,30 +48,36 @@ fn canonical_document_references_instead_of_copying() {
         init
     };
     let sm = &doc["state_machine"];
+    let entities = behavior_engine::schema::declarations(&out.module);
+    let user = || json!({"User": entities["User"]});
+    let none = || json!({});
     let expected = json!({
-        "format": "behavior.model.request_flow.v1",
+        "format": "behavior.model.request_flow.v2",
         "model_kind": "request_flow",
-        "model_semantic_version": 1,
+        "model_semantic_version": 2,
         "flow_id": "purchase_request",
-        "actor": {"entity": "User"},
+        "actor": {"entity": "User", "entity_hash": entities["User"]},
         "status_enum": {
             "name": "PurchaseRequestStatus",
             "enum_hash": h(&out.module.enums()["PurchaseRequestStatus"].hash),
         },
         "assignee": true,
-        "payload": [{"name": "amount", "type": "Int"}, {"name": "title", "type": "String"}],
+        "payload": [{"name": "amount", "type": "Int", "types": none()},
+                    {"name": "title", "type": "String", "types": none()}],
         "creations": [
             {
                 "id": "create", "to": "Draft",
-                "inputs": [{"name": "amount", "type": "Int"}, {"name": "title", "type": "String"}],
-                "state": [], "context": [{"name": "actor", "type": {"Id": "User"}}],
+                "inputs": [{"name": "amount", "type": "Int", "types": none()},
+                           {"name": "title", "type": "String", "types": none()}],
+                "state": [], "context": [{"name": "actor", "type": {"Id": "User"}, "types": user()}],
                 "initializer": creation("purchase_request__create"),
                 "guards": [], "effects": [], "postconditions": [], "commands": [],
             },
             {
                 "id": "import_submitted", "to": "Submitted",
-                "inputs": [{"name": "amount", "type": "Int"}, {"name": "title", "type": "String"}],
-                "state": [], "context": [{"name": "actor", "type": {"Id": "User"}}],
+                "inputs": [{"name": "amount", "type": "Int", "types": none()},
+                           {"name": "title", "type": "String", "types": none()}],
+                "state": [], "context": [{"name": "actor", "type": {"Id": "User"}, "types": user()}],
                 "initializer": creation("purchase_request__import_submitted"),
                 "guards": [], "effects": [], "postconditions": [], "commands": [],
             },
@@ -80,7 +86,12 @@ fn canonical_document_references_instead_of_copying() {
     });
     assert_eq!(doc, &expected);
     // The embedded machine contributes its own document and ModelHash: no second encoding.
-    assert_eq!(sm["document"]["format"], "behavior.model.state_machine.v1");
+    assert_eq!(sm["document"]["format"], "behavior.model.state_machine.v2");
+    // Its subject is the flow's generated request entity, referenced by Core identity.
+    assert_eq!(
+        sm["document"]["subject"],
+        json!({"entity": "PurchaseRequest", "entity_hash": entities["PurchaseRequest"]})
+    );
     assert_eq!(
         sm["document"]["entry_states"],
         json!(["Draft", "Submitted"])
@@ -195,13 +206,15 @@ fn one_receipt_with_an_embedded_identity_record() {
     let out = build_reference();
     let r = receipt(&out);
     assert_eq!(r["model_kind"], "request_flow");
+    assert_eq!(r["model_semantic_version"], 2);
+    assert_eq!(r["lowerer_version"], 1);
     assert_eq!(r["behavior_hash"], json!(out.module.behavior_version()));
     assert_eq!(
         r["embedded"],
         json!([{
             "kind": "state_machine",
             "id": "purchase_request",
-            "model_semantic_version": 1,
+            "model_semantic_version": 2,
             "lowerer_version": 1,
             "model_hash": r["model"]["state_machine"]["model_hash"],
         }])
@@ -343,4 +356,230 @@ proptest! {
         prop_assert_eq!(flow_hash(&out), flow_hash(&reference));
         prop_assert_eq!(out.module.behavior_version(), reference.module.behavior_version());
     }
+}
+
+// --- feature 505: exact declaration dependencies (contract `declaration-references.md`) ---------
+
+/// The declarations of one flow build: the fixture's status enum, `User` and `Budget`, plus
+/// `Priority` (a payload enum), `Mode` (an unused creation context), `Tier` (an unused transition
+/// context) and `Amount` (an unused creation input nominal), with the tests' variations.
+#[derive(Clone)]
+struct FlowDecls {
+    priority: Vec<&'static str>,
+    mode: Vec<&'static str>,
+    tier: Vec<&'static str>,
+    amount: (Vec<&'static str>, Option<u64>),
+    user_extra: bool,
+    budget_extra: bool,
+    budget_bound: bool,
+    unrelated: Option<WType>,
+}
+
+impl Default for FlowDecls {
+    fn default() -> Self {
+        FlowDecls {
+            priority: vec!["Low", "High"],
+            mode: vec!["Standard", "Fast"],
+            tier: vec!["Bronze", "Gold"],
+            amount: (vec!["add"], Some(2)),
+            user_extra: false,
+            budget_extra: false,
+            budget_bound: false,
+            unrelated: None,
+        }
+    }
+}
+
+fn wfield(name: &str, ty: WType) -> behavior_engine::wire::WField {
+    behavior_engine::wire::WField {
+        name: name.into(),
+        ty,
+        loc: loc(),
+    }
+}
+
+fn flow_build_with(d: &FlowDecls) -> BuildOutput {
+    use behavior_engine::builder::SemanticProfile;
+    let mut b = Builder::with_semantic_profile(SemanticProfile::CommandIntents);
+    b.declare_enum(
+        "PurchaseRequestStatus",
+        STATUSES.iter().map(|s| s.to_string()).collect(),
+        loc(),
+    )
+    .unwrap();
+    for (name, cases) in [
+        ("Priority", &d.priority),
+        ("Mode", &d.mode),
+        ("Tier", &d.tier),
+    ] {
+        b.declare_enum(name, cases.iter().map(|c| c.to_string()).collect(), loc())
+            .unwrap();
+    }
+    b.declare_nominal(
+        "Amount",
+        WType::Decimal,
+        d.amount.0.iter().map(|o| o.to_string()).collect(),
+        d.amount.1,
+        loc(),
+    )
+    .unwrap();
+    let mut user = vec![wfield("name", WType::String)];
+    if d.user_extra {
+        user.push(wfield("email", WType::String));
+    }
+    b.declare_entity("User", user, loc()).unwrap();
+    let mut budget = vec![wfield("reserved", WType::Int)];
+    if d.budget_extra {
+        budget.push(wfield("owner", WType::String));
+    }
+    b.declare_entity("Budget", budget, loc()).unwrap();
+    if let Some(ty) = &d.unrelated {
+        b.declare_entity("Unrelated", vec![wfield("x", ty.clone())], loc())
+            .unwrap();
+    }
+
+    let mut f = flow();
+    f.payload
+        .push(("priority".into(), WType::Enum("Priority".into())));
+    for c in &mut f.creations {
+        c.inputs
+            .push(("budget_limit".into(), WType::Nominal("Amount".into())));
+        c.context.push(("mode".into(), WType::Enum("Mode".into())));
+        if d.budget_bound {
+            c.state.push(("budget".into(), "Budget".into()));
+        }
+    }
+    let approve = f
+        .transitions
+        .iter_mut()
+        .find(|t| t.transition_id == "approve")
+        .unwrap();
+    approve
+        .context
+        .push(("tier".into(), WType::Enum("Tier".into())));
+    let first = d.priority[0];
+    let mut s = source();
+    for id in ["create", "import_submitted"] {
+        with_creation(&mut s, id, move |b, _, f| {
+            let p = b
+                .lit(WType::Enum("Priority".into()), json!(first), loc())
+                .unwrap();
+            f.initializer.push(("priority".into(), p));
+        });
+    }
+    let models = vec![spec(f, s)];
+    behavior_models::declare_models(&mut b, &models).unwrap_or_else(|e| panic!("{e:#?}"));
+    commands(&mut b);
+    behavior_models::compose_models(&mut b, models, None).unwrap_or_else(|e| panic!("{e:#?}"))
+}
+
+fn flow_hash_with(d: &FlowDecls) -> String {
+    flow_hash(&flow_build_with(d))
+}
+
+/// US2 acceptance 1–3, 5, 6 (SC-001): every change to a referenced declaration changes the flow
+/// hash; a transition's context type changes the embedded machine's hash with it.
+#[test]
+fn declaration_dependencies_change_the_flow_hash() {
+    let base = flow_hash_with(&FlowDecls::default());
+    let bound = flow_hash_with(&FlowDecls {
+        budget_bound: true,
+        ..FlowDecls::default()
+    });
+    assert_ne!(bound, base, "adding a state binding must change the hash");
+    let bound_changed = flow_hash_with(&FlowDecls {
+        budget_bound: true,
+        budget_extra: true,
+        ..FlowDecls::default()
+    });
+    assert_ne!(
+        bound_changed, bound,
+        "a state-binding entity's declaration must change the hash"
+    );
+    let changed = [
+        (
+            "the payload enum's cases",
+            FlowDecls {
+                priority: vec!["Low", "Urgent"],
+                ..FlowDecls::default()
+            },
+        ),
+        (
+            "the creation input nominal's operations",
+            FlowDecls {
+                amount: (vec![], Some(2)),
+                ..FlowDecls::default()
+            },
+        ),
+        (
+            "the creation input nominal's scale",
+            FlowDecls {
+                amount: (vec!["add"], Some(3)),
+                ..FlowDecls::default()
+            },
+        ),
+        (
+            "the creation context enum's cases",
+            FlowDecls {
+                mode: vec!["Standard", "Slow"],
+                ..FlowDecls::default()
+            },
+        ),
+        (
+            "the actor's declaration",
+            FlowDecls {
+                user_extra: true,
+                ..FlowDecls::default()
+            },
+        ),
+        (
+            "the transition context enum's cases",
+            FlowDecls {
+                tier: vec!["Bronze", "Platinum"],
+                ..FlowDecls::default()
+            },
+        ),
+    ];
+    for (what, d) in changed {
+        assert_ne!(flow_hash_with(&d), base, "{what} must change the hash");
+    }
+}
+
+/// US2 acceptance 3: a transition's context type is recorded in the embedded machine, so
+/// changing it changes the embedded machine's own hash as well as the flow's.
+#[test]
+fn a_transition_context_type_changes_the_embedded_machine_hash() {
+    let embedded = |tier: Vec<&'static str>| {
+        let out = flow_build_with(&FlowDecls {
+            tier,
+            ..FlowDecls::default()
+        });
+        receipt(&out)["model"]["state_machine"]["model_hash"].clone()
+    };
+    assert_ne!(
+        embedded(vec!["Bronze", "Gold"]),
+        embedded(vec!["Bronze", "Platinum"])
+    );
+}
+
+/// US2 acceptance 4 (SC-002): an unreferenced declaration, and a change to it, keep the hash.
+#[test]
+fn unrelated_declarations_keep_the_flow_hash() {
+    let base = flow_hash_with(&FlowDecls::default());
+    let one = flow_hash_with(&FlowDecls {
+        unrelated: Some(WType::String),
+        ..FlowDecls::default()
+    });
+    let two = flow_hash_with(&FlowDecls {
+        unrelated: Some(WType::Int),
+        ..FlowDecls::default()
+    });
+    assert_eq!(one, base);
+    assert_eq!(two, base);
+    // Budget is declared but not bound: a change to it is unrelated.
+    let budget = flow_hash_with(&FlowDecls {
+        budget_extra: true,
+        ..FlowDecls::default()
+    });
+    assert_eq!(budget, base);
 }

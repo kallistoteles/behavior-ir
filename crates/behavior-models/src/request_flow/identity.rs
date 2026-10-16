@@ -17,7 +17,7 @@ use behavior_engine::semantic::types::hash_display;
 use serde_json::{Map, Value, json};
 
 use crate::error::ModelError;
-use crate::identity::{canonical_document, identity_error, model_hash, params};
+use crate::identity::{canonical_document, entity_ref, identity_error, model_hash, typed_params};
 use crate::request_flow::resolve::{ResolvedRequestFlow, STATUS};
 use crate::source_map::{LoweringReceipt, RelativeSources, display_json};
 use crate::{
@@ -57,14 +57,18 @@ pub fn canonical_document_rf(
         let state: Vec<Value> = c
             .state
             .iter()
-            .map(|(n, e)| json!({"name": n, "entity": e}))
-            .collect();
+            .map(|(n, e)| {
+                let mut r = entity_ref(module, f.flow_id.as_str(), &format!("state `{n}`"), e)?;
+                r["name"] = json!(n);
+                Ok(r)
+            })
+            .collect::<Result<_, ModelError>>()?;
         creations.push(json!({
             "id": c.creation_id.as_str(),
             "to": c.to_state,
-            "inputs": params(&c.inputs)?,
+            "inputs": typed_params(&c.inputs, module, f.flow_id.as_str())?,
             "state": state,
-            "context": params(&c.context)?,
+            "context": typed_params(&c.context, module, f.flow_id.as_str())?,
             "initializer": initializer,
             "guards": action.preconditions().iter().map(|p| hash_display(p.expr().hash())).collect::<Vec<_>>(),
             "effects": action.effects().iter().map(|e| hash_display(e.hash())).collect::<Vec<_>>(),
@@ -75,14 +79,14 @@ pub fn canonical_document_rf(
     let machine_doc = canonical_document(&f.machine, module)?;
     let machine_hash = model_hash(&machine_doc)?;
     Ok(json!({
-        "format": "behavior.model.request_flow.v1",
+        "format": "behavior.model.request_flow.v2",
         "model_kind": "request_flow",
         "model_semantic_version": REQUEST_FLOW_SEMANTIC_VERSION,
         "flow_id": f.flow_id.as_str(),
-        "actor": {"entity": f.actor},
+        "actor": entity_ref(module, f.flow_id.as_str(), "actor", &f.actor)?,
         "status_enum": {"name": f.status_enum, "enum_hash": enum_hash},
         "assignee": f.assignee,
-        "payload": params(&f.payload)?,
+        "payload": typed_params(&f.payload, module, f.flow_id.as_str())?,
         "creations": creations,
         "state_machine": {"model_hash": machine_hash, "document": machine_doc},
     }))

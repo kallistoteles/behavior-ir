@@ -9,10 +9,13 @@
 //! from the admitted generated action at the positions the lowering layout fixes. Display
 //! metadata, source locations, the lowerer version and generated names are never part of it.
 
+use std::collections::{BTreeMap, BTreeSet};
+
 use behavior_engine::canonical::tagged_hash;
 use behavior_engine::semantic::Module;
 use behavior_engine::semantic::types::hash_display;
-use serde_json::{Value, json};
+use behavior_engine::wire::WType;
+use serde_json::{Map, Value, json};
 
 use crate::composition::Composed;
 use crate::error::ModelError;
@@ -26,16 +29,80 @@ pub(crate) fn identity_error(message: String) -> ModelError {
     admission_failed_message("MODEL_IDENTITY_FAILED", message)
 }
 
-pub(crate) fn params(
-    m: &std::collections::BTreeMap<String, behavior_engine::wire::WType>,
+/// The named types `ty` mentions, as `(declaration kind, name)` (contract
+/// `declaration-references.md` §2): `Enum`; `Nominal` and `Exact(Some)`; `Id`, `Ref` and
+/// `Entity`; also inside `Option`. Built-in types mention none.
+pub(crate) fn named_types<'t>(ty: &'t WType, out: &mut BTreeSet<(&'static str, &'t str)>) {
+    match ty {
+        WType::Enum(n) => {
+            out.insert(("enum", n));
+        }
+        WType::Nominal(n) | WType::Exact(Some(n)) => {
+            out.insert(("nominal", n));
+        }
+        WType::Id(n) | WType::Ref(n) | WType::Entity(n) => {
+            out.insert(("entity", n));
+        }
+        WType::Option(inner) => named_types(inner, out),
+        WType::Bool | WType::Int | WType::Decimal | WType::String | WType::Exact(None) => {}
+    }
+}
+
+/// The Core declaration identity of `(kind, name)` in the admitted module, or a blocking
+/// identity error naming the model, the referring item and the type (§3).
+fn declaration(
+    module: &Module,
+    kind: &str,
+    name: &str,
+    model: &str,
+    item: &str,
+) -> Result<String, ModelError> {
+    module
+        .name_table()
+        .iter()
+        .find(|((k, n), _)| k.as_str() == kind && n == name)
+        .map(|(_, h)| hash_display(h))
+        .ok_or_else(|| {
+            identity_error(format!(
+                "model `{model}`: {item} refers to {kind} `{name}`, which is not declared"
+            ))
+        })
+}
+
+/// `[{name, type, types}]` in name order: each parameter or payload field with its wire type and
+/// the Core declaration identity of every named type it mentions (`{name: hash}`, §2).
+pub(crate) fn typed_params(
+    m: &BTreeMap<String, WType>,
+    module: &Module,
+    model: &str,
 ) -> Result<Value, ModelError> {
     m.iter()
         .map(|(name, ty)| {
+            let mut named = BTreeSet::new();
+            named_types(ty, &mut named);
+            let mut types = Map::new();
+            for (kind, type_name) in named {
+                let item = format!("`{name}`");
+                let hash = declaration(module, kind, type_name, model, &item)?;
+                types.insert(type_name.to_string(), json!(hash));
+            }
             let ty = serde_json::to_value(ty).map_err(|e| identity_error(e.to_string()))?;
-            Ok(json!({"name": name, "type": ty}))
+            Ok(json!({"name": name, "type": ty, "types": types}))
         })
         .collect::<Result<Vec<_>, _>>()
         .map(Value::Array)
+}
+
+/// `{entity, entity_hash}`: an entity referenced by name and Core declaration identity, never
+/// copied (§2). `item` names the reference (`subject`, `actor`, a state binding).
+pub(crate) fn entity_ref(
+    module: &Module,
+    model: &str,
+    item: &str,
+    entity: &str,
+) -> Result<Value, ModelError> {
+    let hash = declaration(module, "entity", entity, model, item)?;
+    Ok(json!({"entity": entity, "entity_hash": hash}))
 }
 
 /// The canonical document of a resolved, lowered and admitted state machine.
@@ -80,8 +147,8 @@ pub fn canonical_document(m: &ResolvedStateMachine, module: &Module) -> Result<V
             "id": t.transition_id.as_str(),
             "from": t.from_states,
             "to": t.to_state,
-            "inputs": params(&t.inputs)?,
-            "context": params(&t.context)?,
+            "inputs": typed_params(&t.inputs, module, m.model_id.as_str())?,
+            "context": typed_params(&t.context, module, m.model_id.as_str())?,
             "guards": guards,
             "effects": effects,
             "postconditions": post,
@@ -89,11 +156,11 @@ pub fn canonical_document(m: &ResolvedStateMachine, module: &Module) -> Result<V
         }));
     }
     Ok(json!({
-        "format": "behavior.model.state_machine.v1",
+        "format": "behavior.model.state_machine.v2",
         "model_kind": "state_machine",
         "model_semantic_version": STATE_MACHINE_SEMANTIC_VERSION,
         "model_id": m.model_id.as_str(),
-        "subject": {"entity": m.subject},
+        "subject": entity_ref(module, m.model_id.as_str(), "subject", &m.subject)?,
         "field": {"name": m.field, "enum": m.enum_type, "enum_hash": enum_hash},
         "subject_param": m.subject_param,
         "entry_states": m.entry_states,
@@ -127,4 +194,149 @@ pub(crate) fn outputs(
     }
     diags.sort();
     Ok((receipts, diags))
+}
+
+#[cfg(test)]
+mod tests {
+    #![allow(clippy::unwrap_used, clippy::expect_used)] // tests (constitution: Technology Constraints)
+
+    use std::collections::{BTreeMap, BTreeSet};
+
+    use behavior_engine::builder::Builder;
+    use behavior_engine::wire::{Loc, WField, WType};
+    use serde_json::json;
+
+    use super::*;
+
+    fn loc() -> Loc {
+        Loc {
+            file: "t.model".into(),
+            line: 1,
+        }
+    }
+
+    /// `Mode { A, B }`, `Amount` (an `Int` nominal), `Customer { name }`.
+    fn module() -> Module {
+        let mut b = Builder::new();
+        b.declare_enum("Mode", vec!["A".into(), "B".into()], loc())
+            .unwrap();
+        b.declare_nominal("Amount", WType::Int, vec![], None, loc())
+            .unwrap();
+        b.declare_entity(
+            "Customer",
+            vec![WField {
+                name: "name".into(),
+                ty: WType::String,
+                loc: loc(),
+            }],
+            loc(),
+        )
+        .unwrap();
+        b.finish(None).unwrap()
+    }
+
+    fn opt(t: WType) -> WType {
+        WType::Option(Box::new(t))
+    }
+
+    #[test]
+    fn named_types_reaches_every_named_type_and_skips_built_ins() {
+        let cases = [
+            (WType::Enum("Mode".into()), Some(("enum", "Mode"))),
+            (WType::Nominal("Amount".into()), Some(("nominal", "Amount"))),
+            (
+                WType::Exact(Some("Amount".into())),
+                Some(("nominal", "Amount")),
+            ),
+            (WType::Id("Customer".into()), Some(("entity", "Customer"))),
+            (WType::Ref("Customer".into()), Some(("entity", "Customer"))),
+            (
+                WType::Entity("Customer".into()),
+                Some(("entity", "Customer")),
+            ),
+            (opt(opt(WType::Enum("Mode".into()))), Some(("enum", "Mode"))),
+            (WType::Bool, None),
+            (WType::Int, None),
+            (WType::Decimal, None),
+            (WType::String, None),
+            (WType::Exact(None), None),
+            (opt(WType::String), None),
+        ];
+        for (ty, expected) in cases {
+            let mut out = BTreeSet::new();
+            named_types(&ty, &mut out);
+            assert_eq!(out.into_iter().next(), expected, "{ty:?}");
+        }
+    }
+
+    #[test]
+    fn typed_params_are_sorted_with_declaration_identities() {
+        let m = module();
+        let table = |kind: &str, name: &str| {
+            m.name_table()
+                .iter()
+                .find(|((k, n), _)| k.as_str() == kind && n == name)
+                .map(|(_, h)| hash_display(h))
+                .unwrap()
+        };
+        let params: BTreeMap<String, WType> = [
+            ("zeta".to_string(), WType::String),
+            ("mode".to_string(), opt(WType::Enum("Mode".into()))),
+            ("amount".to_string(), WType::Exact(Some("Amount".into()))),
+            ("who".to_string(), WType::Id("Customer".into())),
+        ]
+        .into_iter()
+        .collect();
+        let doc = typed_params(&params, &m, "p").unwrap();
+        let names: Vec<&str> = doc
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|p| p["name"].as_str().unwrap())
+            .collect();
+        assert_eq!(names, ["amount", "mode", "who", "zeta"]);
+        assert_eq!(
+            doc[0]["types"],
+            json!({"Amount": table("nominal", "Amount")})
+        );
+        assert_eq!(doc[1]["types"], json!({"Mode": table("enum", "Mode")}));
+        assert_eq!(
+            doc[2]["types"],
+            json!({"Customer": table("entity", "Customer")})
+        );
+        assert_eq!(doc[3]["types"], json!({}));
+        assert_eq!(doc[3]["type"], serde_json::to_value(WType::String).unwrap());
+    }
+
+    #[test]
+    fn an_entity_reference_carries_the_store_declaration_hash() {
+        let m = module();
+        let r = entity_ref(&m, "p", "subject", "Customer").unwrap();
+        let hash = behavior_engine::schema::declarations(&m)
+            .remove("Customer")
+            .unwrap();
+        assert_eq!(r, json!({"entity": "Customer", "entity_hash": hash}));
+    }
+
+    #[test]
+    fn an_unresolved_reference_names_the_model_item_and_type() {
+        let m = module();
+        // Missing, and declared only under another kind.
+        for (ty, missing) in [
+            (WType::Enum("Nope".into()), "Nope"),
+            (WType::Id("Mode".into()), "Mode"),
+            (WType::Enum("Customer".into()), "Customer"),
+        ] {
+            let params: BTreeMap<String, WType> = [("arg".to_string(), ty)].into_iter().collect();
+            let e = typed_params(&params, &m, "my_model").unwrap_err();
+            // The identity failure is reported inside the admission-failure error.
+            let text = e.to_json().to_string();
+            for part in ["MODEL_IDENTITY_FAILED", "my_model", "arg", missing] {
+                assert!(text.contains(part), "{part} not in {text}");
+            }
+        }
+        let e = entity_ref(&m, "my_model", "actor", "Mode").unwrap_err();
+        let text = e.to_json().to_string();
+        assert!(text.contains("my_model") && text.contains("actor") && text.contains("Mode"));
+    }
 }

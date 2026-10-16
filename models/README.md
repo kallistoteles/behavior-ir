@@ -314,3 +314,47 @@ ensures(order.status == OrderStatus.SUBMITTED)
 ```
 
 The two modules have the same Behavior IR and the same BehaviorHash.
+
+## Purchase approval conformance (feature 506)
+
+[`examples/purchase_approval/`](examples/purchase_approval/) composes all three model kinds into
+one workflow: a RequestFlow `purchase_request` (with its embedded StateMachine), a standalone
+StateMachine `budget`, and an Approval over the flow's request entity whose eligibility is a
+query over `User`. It runs the whole lifecycle on the pinned Core Release:
+author → lower → admit → evaluate → commit → replay → verify.
+
+```sh
+python -m models.examples.purchase_approval.run   # the lifecycle, step by step, exit 0 if it matches
+scripts/conformance.sh                            # the suite; writes target/conformance/506-report.json
+BEHAVIOR_FULL_PROPERTIES=1 scripts/conformance.sh # full mode: the integration gate CI runs
+scripts/conformance.sh complete                   # full conformance: every check must pass
+```
+
+Static verification of the reference module (C19) is currently **blocked** by
+behavior-ir-core#35. Core's verifier cannot discharge Approval's inductive preservation
+argument, so the uniqueness postcondition is inconclusive. The report records the exact solver
+result. The integration gate passes with that recorded blocker, but full conformance does not
+until the issue is resolved.
+
+Every expected outcome is stated by hand in `expected.json`
+(specs/506-e2e-conformance/contracts/reference-workflow.md), never copied from a run. Each
+check reports one status:
+- passed or failed;
+- inconclusive, unverifiable, unsupported or blocked, each with its owning layer.
+
+Only `passed` counts as passed.
+
+**What the suite demonstrates**:
+- construction, admission and identity;
+- decisions and refusals at their boundaries;
+- the Store's commit contract under contention, stale observations and re-creation;
+- data replay, behavior replay, integrity negative controls and commit-history consistency;
+- static verification of the reference module;
+- authoring agreement between the Python binding and the Rust model authority;
+- execution agreement between the Python engine interface and the released Core CLI.
+
+**What it does not demonstrate**:
+- Core's own correctness, because both execution paths run the same engine;
+- properties outside the verifier's modeled fragment and assumptions;
+- backends other than the in-memory one and the Python reference backend;
+- command execution.

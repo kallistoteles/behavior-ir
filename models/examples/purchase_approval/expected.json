@@ -1,0 +1,47 @@
+{
+  "_source": "specs/506-e2e-conformance/contracts/reference-workflow.md §1–§3, stated by hand; never copied from a run",
+  "steps": {
+    "1": {"result": "ALLOW", "position": 1, "status": {"r1": "Draft"}},
+    "2": {"result": "ALLOW", "position": 2, "status": {"r1": "Submitted"}},
+    "3": {"result": "ALLOW", "position": 3, "status": {"r1": "InReview"}},
+    "4": {"result": "ALLOW", "position": 4, "outcome": {"r1": "PENDING"}, "status": {"r1": "InReview"}},
+    "5": {"result": "DENY", "position": 4},
+    "6": {"result": "DENY", "position": 4},
+    "7": {"result": "ALLOW", "position": 5, "outcome": {"r1": "APPROVED"}, "status": {"r1": "InReview"}},
+    "8": {"conflict": "STATE_CONFLICT", "position": 5},
+    "9": {"result": "DENY", "position": 5},
+    "10": {"result": "ALLOW", "position": 6, "status": {"r1": "Approved"},
+           "commands": [{"command": "RequestApproved", "request": "r1", "by": "alice"}]},
+    "11a": {"result": "ALLOW", "position": 7, "status": {"r2": "Draft"}},
+    "11b": {"result": "ALLOW", "position": 8, "status": {"r2": "Submitted"}},
+    "11c": {"result": "ALLOW", "position": 9, "status": {"r2": "InReview"}},
+    "12": {"result": "ALLOW", "position": 9},
+    "13": {"result": "ALLOW", "position": 10},
+    "14": {"conflict": "STATE_CONFLICT", "position": 10},
+    "15": {"result": "DENY", "position": 10},
+    "16": {"result": "ALLOW", "position": 11, "outcome": {"r2": "REJECTED"}, "status": {"r2": "InReview"}},
+    "17": {"result": "DENY", "position": 11},
+    "18": {"result": "DENY", "position": 11},
+    "19": {"result": "ALLOW", "position": 12, "status": {"r2": "Rejected"}, "commands": []},
+    "20": {"result": "ALLOW", "position": 13}
+  },
+  "final": {
+    "position": 13,
+    "status": {"r1": "Approved", "r2": "Rejected"},
+    "decisions": [["r1", "bob", "APPROVE"], ["r1", "carol", "APPROVE"], ["r2", "carol", "REJECT"]],
+    "roles": {"alice": "Requester", "bob": "Approver", "carol": "Approver", "dave": "Requester"},
+    "budget": {"b1": "Closed"},
+    "commands": [{"command": "RequestApproved", "request": "r1", "by": "alice"}]
+  },
+  "scenarios": {
+    "C09": {"result": "INVALID_INPUT", "reason": "INVALID_STATE_SNAPSHOT"},
+    "C09.input": {"result": "INVALID_INPUT", "reason": "MISSING_ARGUMENT"},
+    "C10": {"first": "committed", "second": "STATE_CONFLICT", "reevaluated": "DENY", "history_delta": 1},
+    "C11": {"commit": "STATE_CONFLICT", "reevaluated": "DENY"},
+    "C12": {"result": "DENY", "phase": "postcondition"},
+    "C17": {"same_genesis": "same store", "other_genesis": "refused"},
+    "C18": {"changed": ["purchase_request", "purchase_request_approval"], "unchanged": ["budget"]},
+    "VO-001": {"error": "GENESIS_INVALID"},
+    "VO-005": {"error": "UNAUTHORIZED_DECISION_WRITE"}
+  }
+}

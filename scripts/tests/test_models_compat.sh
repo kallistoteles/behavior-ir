@@ -117,6 +117,95 @@ expect FAIL "approval lowering changed without a version bump" "$(repo apdrift "
 expect FAIL "approval case recorded without its co-supplied versions" "$(repo apkey "$base")" \
   "$(manifest "$(tuple 1 1.0 "$A1")" "$(ap_tuple 0 "$P1")")" "$(ap_computed 1 "$P1")"
 
+# Feature 505: explicit supersession (contract compat-supersession.md §6).
+smkey() { # smkey <semantic> <lowerer>: the full key of a StateMachine tuple of Core 1.0
+  printf '{"core_release":{"commit":"c1.0","version":"1.0"},"lowerer_version":%s,"model_kind":"state_machine","model_semantic_version":%s}' \
+    "$2" "$1"
+}
+smt() { # smt <semantic> <lowerer> <cases json> [<supersedes json array>]
+  local sup=""
+  if [ -n "${4:-}" ]; then sup=",\"supersedes\":$4"; fi
+  printf '{"core_release":{"commit":"c1.0","version":"1.0"},"lowerer_version":%s,"model_kind":"state_machine","model_semantic_version":%s%s,"cases":%s}' \
+    "$2" "$1" "$sup" "$3"
+}
+smc() { # smc <semantic> <lowerer> <cases json>: computed StateMachine cases
+  printf '{"tuple":{"core_release":{"commit":"c1.0","version":"1.0"},"lowerer_version":%s,"model_kind":"state_machine","model_semantic_version":%s},"cases":%s}\n' \
+    "$2" "$1" "$3"
+}
+v1="$(manifest "$(smt 1 1 "$A1")")"
+expect PASS "superseded by a higher semantic version" "$(repo sup "$v1")" \
+  "$(manifest "$(smt 2 1 "$A2" "[$(smkey 1 1)]")")" "$(smc 2 1 "$A2")"
+expect FAIL "removed without supersedes" "$(repo supnone "$v1")" \
+  "$(manifest "$(smt 2 1 "$A2")")" "$(smc 2 1 "$A2")"
+v1ab="$(manifest "$(smt 1 1 "$AB")")"
+expect FAIL "supersession that loses a case" "$(repo suplost "$v1ab")" \
+  "$(manifest "$(smt 2 1 "$A2" "[$(smkey 1 1)]")")" "$(smc 2 1 "$A2")"
+rfsup="{\"core_release\":{\"commit\":\"c1.0\",\"version\":\"1.0\"},\"embedded\":[{\"kind\":\"state_machine\",\"lowerer_version\":1,\"model_semantic_version\":2}],\"lowerer_version\":1,\"model_kind\":\"request_flow\",\"model_semantic_version\":2"
+expect FAIL "superseded by another kind" "$(repo supkind "$v1")" \
+  "$(manifest "$rfsup,\"supersedes\":[$(smkey 1 1)],\"cases\":$A2}")" \
+  "{\"tuple\":$rfsup},\"cases\":$A2}"
+v12="$(manifest "$(smt 1 2 "$A1")")"
+expect FAIL "mixed version vector" "$(repo supmixed "$v12")" \
+  "$(manifest "$(smt 2 1 "$A2" "[$(smkey 1 2)]")")" "$(smc 2 1 "$A2")"
+expect FAIL "supersedes names a tuple still present (equal vector)" "$(repo supsame "$v1")" \
+  "$(manifest "$(smt 1 1 "$A1" "[$(smkey 1 1)]")")" "$(smc 1 1 "$A1")"
+expect FAIL "supersedes names a tuple that was never established" "$(repo supnever "$v1")" \
+  "$(manifest "$(smt 2 1 "$A2" "[$(smkey 0 1),$(smkey 1 1)]")")" "$(smc 2 1 "$A2")"
+co2=',"co_supplied":[{"kind":"request_flow","lowerer_version":1,"model_semantic_version":2},{"kind":"state_machine","lowerer_version":1,"model_semantic_version":2}]'
+apkey1="$ap_t$co}"
+expect PASS "approval superseded by higher co-supplied versions" "$(repo supap "$apbase")" \
+  "$(manifest "$ap_t$co2,\"supersedes\":[$apkey1],\"cases\":$P2}")" \
+  "{\"tuple\":$ap_t$co2},\"cases\":$P2}"
+# After the merge, `main` holds the replacement with its accepted `supersedes` history.
+v2main="$(manifest "$(smt 2 1 "$A2" "[$(smkey 1 1)]")")"
+expect PASS "accepted supersession history after the merge" "$(repo suphist "$v2main")" \
+  "$v2main" "$(smc 2 1 "$A2")"
+expect FAIL "accepted supersession history edited" "$(repo suphistedit "$v2main")" \
+  "$(manifest "$(smt 2 1 "$A2")")" "$(smc 2 1 "$A2")"
+# An unbuilt tuple cannot take over cases: here it would hide that the built v3 lost case b.
+expect FAIL "superseded by a tuple that is not built" "$(repo supunbuilt "$v1ab")" \
+  "$(manifest "$(smt 2 1 "$AB" "[$(smkey 1 1)]")" "$(smt 3 1 "$A2")")" "$(smc 3 1 "$A2")"
+
+# --write --supersede records the replacement with `supersedes` and removes the old tuple.
+wr="$(repo supwrite "$v1")"
+printf '%s' "$(smc 2 1 "$A2")" >"$tmp/computed.json"
+if python3 "$here/check-models-compat.py" --root "$wr" --computed "$tmp/computed.json" \
+    --write --supersede >/dev/null 2>"$tmp/err" \
+  && python3 "$here/check-models-compat.py" --root "$wr" --computed "$tmp/computed.json" \
+    >/dev/null 2>>"$tmp/err" \
+  && python3 - "$wr/models/fixtures/compat.json" <<'PY' 2>>"$tmp/err"
+import json, sys
+tuples = json.load(open(sys.argv[1]))["tuples"]
+assert [t["model_semantic_version"] for t in tuples] == [2], tuples
+assert tuples[0]["supersedes"][0]["model_semantic_version"] == 1, tuples
+PY
+then :; else
+  echo "test_models_compat: --write --supersede: $(cat "$tmp/err")" >&2
+  failures=$((failures + 1))
+fi
+
+# Two version bumps on one branch before the merge (v1 -> v2 -> v3): the writer keeps the
+# established predecessor v1, drops the branch-local v2, and the gate passes.
+wr2="$(repo supwrite2 "$v1")"
+printf '%s' "$(smc 2 1 "$A2")" >"$tmp/computed2.json"
+printf '%s' "$(smc 3 1 "$A1")" >"$tmp/computed3.json"
+if python3 "$here/check-models-compat.py" --root "$wr2" --computed "$tmp/computed2.json" \
+    --write --supersede >/dev/null 2>"$tmp/err" \
+  && python3 "$here/check-models-compat.py" --root "$wr2" --computed "$tmp/computed3.json" \
+    --write --supersede >/dev/null 2>>"$tmp/err" \
+  && python3 "$here/check-models-compat.py" --root "$wr2" --computed "$tmp/computed3.json" \
+    >/dev/null 2>>"$tmp/err" \
+  && python3 - "$wr2/models/fixtures/compat.json" <<'PY' 2>>"$tmp/err"
+import json, sys
+tuples = json.load(open(sys.argv[1]))["tuples"]
+assert [t["model_semantic_version"] for t in tuples] == [3], tuples
+assert [s["model_semantic_version"] for s in tuples[0]["supersedes"]] == [1], tuples
+PY
+then :; else
+  echo "test_models_compat: two bumps before the merge: $(cat "$tmp/err")" >&2
+  failures=$((failures + 1))
+fi
+
 # No merge base: the gate fails, it never passes silently.
 nobase="$tmp/nobase"
 mkdir -p "$nobase/models/fixtures"

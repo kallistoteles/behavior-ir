@@ -315,7 +315,7 @@ def test_receipts_are_typed_views_of_the_authoritys_receipt() -> None:
     [r] = M.model_receipts
     assert isinstance(r, LoweringReceipt)
     assert r.model_kind == "state_machine"
-    assert (r.model_semantic_version, r.lowerer_version) == (1, 1)
+    assert (r.model_semantic_version, r.lowerer_version) == (2, 1)
     assert r.behavior_hash == M.behavior_version
     assert r.model_hash.startswith("sha256:")
     assert LoweringReceipt.from_dict(r.to_dict()) == r

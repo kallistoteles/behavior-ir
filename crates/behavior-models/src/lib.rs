@@ -40,14 +40,16 @@ pub use state_machine::input::{
 };
 
 /// The StateMachine model semantic version: changes when the meaning or admitted structure of
-/// the model language changes (lowering contract §7).
-pub const STATE_MACHINE_SEMANTIC_VERSION: u32 = 1;
+/// the model language changes (lowering contract §7). Version 2 (feature 505): the canonical
+/// document references every declaration it names by its Core identity.
+pub const STATE_MACHINE_SEMANTIC_VERSION: u32 = 2;
 /// The StateMachine lowerer version: changes when the same model contract intentionally lowers
 /// to different Core IR (lowering contract §7).
 pub const STATE_MACHINE_LOWERER_VERSION: u32 = 1;
 
-/// The RequestFlow model semantic version (feature 502, data model §9).
-pub const REQUEST_FLOW_SEMANTIC_VERSION: u32 = 1;
+/// The RequestFlow model semantic version (feature 502, data model §9). Version 2 (feature
+/// 505): the canonical document references every declaration it names by its Core identity.
+pub const REQUEST_FLOW_SEMANTIC_VERSION: u32 = 2;
 /// The RequestFlow lowerer version (feature 502, data model §9).
 pub const REQUEST_FLOW_LOWERER_VERSION: u32 = 1;
 

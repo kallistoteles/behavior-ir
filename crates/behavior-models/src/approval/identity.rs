@@ -15,17 +15,16 @@
 //! bodies and the generated pre- and postconditions are functions of these facts and are not
 //! hashed separately. One receipt per supplied approval.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 use behavior_engine::semantic::Module;
 use behavior_engine::semantic::types::hash_display;
-use behavior_engine::wire::WType;
 use serde_json::{Map, Value, json};
 
 use crate::approval::decls::DEFINITIONS;
 use crate::approval::resolve::{ACTOR, ResolvedApproval};
 use crate::error::ModelError;
-use crate::identity::{identity_error, model_hash};
+use crate::identity::{entity_ref, identity_error, model_hash, typed_params};
 use crate::source_map::{LoweringReceipt, RelativeSources, display_json};
 use crate::{APPROVAL_LOWERER_VERSION, APPROVAL_SEMANTIC_VERSION, CORE_RELEASE};
 
@@ -37,57 +36,6 @@ const FIRST_GUARD: usize = 4;
 /// Postcondition positions.
 const UNIQUENESS: usize = 0;
 const THRESHOLD_CONSISTENCY: usize = 1;
-
-/// `{entity, entity_hash}`: a type referenced by name and Core declaration hash, never copied.
-fn entity_ref(module: &Module, entity: &str) -> Result<Value, ModelError> {
-    let hash = behavior_engine::schema::declarations(module)
-        .remove(entity)
-        .ok_or_else(|| identity_error(format!("entity `{entity}` not in module")))?;
-    Ok(json!({"entity": entity, "entity_hash": hash}))
-}
-
-/// The named types `ty` mentions, as `(declaration kind, name)`.
-fn named_types<'t>(ty: &'t WType, out: &mut BTreeSet<(&'static str, &'t str)>) {
-    match ty {
-        WType::Enum(n) => {
-            out.insert(("enum", n));
-        }
-        WType::Nominal(n) | WType::Exact(Some(n)) => {
-            out.insert(("nominal", n));
-        }
-        WType::Id(n) | WType::Ref(n) | WType::Entity(n) => {
-            out.insert(("entity", n));
-        }
-        WType::Option(inner) => named_types(inner, out),
-        WType::Bool | WType::Int | WType::Decimal | WType::String | WType::Exact(None) => {}
-    }
-}
-
-/// `[{name, type, types}]` in name order: each parameter or payload field with its wire type and
-/// the Core declaration hash of every named type it mentions (`{name: hash}`).
-fn typed(m: &BTreeMap<String, WType>, module: &Module) -> Result<Value, ModelError> {
-    let table = module.name_table();
-    m.iter()
-        .map(|(name, ty)| {
-            let mut named = BTreeSet::new();
-            named_types(ty, &mut named);
-            let mut types = Map::new();
-            for (kind, type_name) in named {
-                let hash = table
-                    .iter()
-                    .find(|((k, n), _)| k.as_str() == kind && n == type_name)
-                    .map(|(_, h)| hash_display(h))
-                    .ok_or_else(|| {
-                        identity_error(format!("{kind} `{type_name}` of `{name}` not in module"))
-                    })?;
-                types.insert(type_name.to_string(), json!(hash));
-            }
-            let ty = serde_json::to_value(ty).map_err(|e| identity_error(e.to_string()))?;
-            Ok(json!({"name": name, "type": ty, "types": types}))
-        })
-        .collect::<Result<Vec<_>, _>>()
-        .map(Value::Array)
-}
 
 /// The canonical document of a resolved, lowered and admitted approval.
 pub fn canonical_document_ap(a: &ResolvedApproval, module: &Module) -> Result<Value, ModelError> {
@@ -124,8 +72,8 @@ pub fn canonical_document_ap(a: &ResolvedApproval, module: &Module) -> Result<Va
             .collect();
         capabilities.push(json!({
             "id": c.capability_id.as_str(),
-            "inputs": typed(&c.inputs, module)?,
-            "context": typed(&c.context, module)?,
+            "inputs": typed_params(&c.inputs, module, a.approval_id.as_str())?,
+            "context": typed_params(&c.context, module, a.approval_id.as_str())?,
             "actor": actor,
             "open": hash_display(pre[OPEN].expr().hash()),
             "eligible": hash_display(pre[ELIGIBLE].expr().hash()),
@@ -139,11 +87,11 @@ pub fn canonical_document_ap(a: &ResolvedApproval, module: &Module) -> Result<Va
         "model_kind": "approval",
         "model_semantic_version": APPROVAL_SEMANTIC_VERSION,
         "approval_id": a.approval_id.as_str(),
-        "subject": entity_ref(module, &a.subject)?,
-        "actor": entity_ref(module, &a.actor)?,
+        "subject": entity_ref(module, a.approval_id.as_str(), "subject", &a.subject)?,
+        "actor": entity_ref(module, a.approval_id.as_str(), "actor", &a.actor)?,
         "approve_threshold": a.approve_threshold,
         "reject_threshold": a.reject_threshold,
-        "payload": typed(&a.payload, module)?,
+        "payload": typed_params(&a.payload, module, a.approval_id.as_str())?,
         "capabilities": capabilities,
     }))
 }
@@ -155,7 +103,7 @@ fn generated(a: &ResolvedApproval, module: &Module) -> Result<Value, ModelError>
         .get(&a.enum_name)
         .map(|e| hash_display(&e.hash))
         .ok_or_else(|| identity_error(format!("enum `{}` not in module", a.enum_name)))?;
-    let entity = entity_ref(module, &a.entity)?;
+    let entity = entity_ref(module, a.approval_id.as_str(), "decision entity", &a.entity)?;
     let mut derived = Map::new();
     for local in DEFINITIONS {
         let name = a.definition_name(local);

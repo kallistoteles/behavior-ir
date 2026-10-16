@@ -127,3 +127,57 @@ def test_altered_query_evidence_is_refused() -> None:
     with pytest.raises(bh.BehaviorError):
         store.commit(module, bundle)
     assert store.current_history() == head
+
+
+# --- invariants, constraints and hand-written actions under the command profile -------------
+# (found by feature 506): Core checks under this profile that a condition's or effect's bindings
+# belong to the open scope, so the binding must add each item before its scope closes.
+
+from behavior import (  # noqa: E402
+    BehaviorModule, Id, Input, action, command, constraint, entity, field, invariant, read,
+    requires, set_,
+)
+
+
+@entity
+class Account:
+    balance = field(int)
+
+
+@invariant
+def balance_not_negative(account: Account):  # noqa: ANN201
+    return account.balance >= 0
+
+
+@constraint
+def balance_bounded(account: Account):  # noqa: ANN201
+    return account.balance <= 1_000_000
+
+
+@action
+def deposit(account: Account, *, amount: Input[int]):  # noqa: ANN201
+    requires(amount > 0)
+    set_(account.balance, account.balance + amount)
+
+
+@read
+def balance_of(account: Account):  # noqa: ANN201
+    return account.balance
+
+
+@command
+class Audit:
+    account = field(Id[Account])
+
+
+def test_items_with_parameters_build_under_the_command_profile() -> None:
+    """A module with a command (so the command profile), an entity invariant, an entity
+    constraint, a hand-written action with an input and a read with a parameter used to fail
+    with SCOPE_MISMATCH."""
+    m = BehaviorModule(entities=[Account], invariants=[balance_not_negative],
+                       constraints=[balance_bounded], actions=[deposit], reads=[balance_of],
+                       commands=[Audit])
+    wire = json.loads(m.to_wire_json())
+    assert {i["name"] for i in wire["invariants"]} == {"balance_not_negative"}
+    assert {a["name"] for a in wire["actions"]} == {"deposit"}
+    assert {r["name"] for r in wire["reads"]} == {"balance_of"}

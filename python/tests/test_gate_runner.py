@@ -34,7 +34,8 @@ if name == "python" and args[:2] == ["-m", "pytest"]:
         sys.exit(subprocess.run([sys.executable, *args]).returncode)
 '''
     for name in ("check-core-pin.sh", "check-public-surface.sh", "fetch-core.sh",
-                 "determinism-check.sh", "check-terms.sh", "check-workflows.sh"):
+                 "conformance.sh", "determinism-check.sh", "check-terms.sh",
+                 "check-workflows.sh"):
         path = scripts / name
         path.write_text(wrapper)
         path.chmod(0o755)
@@ -67,7 +68,9 @@ def test_gate_order_is_deterministic(tmp_path: Path) -> None:
         "check-core-pin.sh", "check-public-surface.sh", "fetch-core.sh",
         "cargo fmt --all --check", "cargo clippy -q --workspace --all-targets -- -D warnings",
         "cargo test -q -p behavior-models",
-        "maturin develop -q", "python -m pytest -q python/tests models", "mypy",
+        "maturin develop -q",
+        "python -m pytest -q python/tests models --ignore=models/examples/purchase_approval",
+        "conformance.sh", "mypy",
         "python3 scripts/check-models-compat.py",
         "determinism-check.sh", "python3 scripts/check-ownership.py", "check-terms.sh",
         "check-workflows.sh", "test_stub.sh",

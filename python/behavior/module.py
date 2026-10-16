@@ -292,9 +292,13 @@ class BehaviorModule:
         token = CURRENT.set(Frame("invariant"))
         try:
             body = lift(fn.call_symbolic(params))
-        finally:
+        except BaseException:
             CURRENT.reset(token)
             session.builder.pop_scope()
+            raise
+        CURRENT.reset(token)
+        # The condition is added while its scope is still open: under the command profile, Core
+        # checks that the body's bindings belong to the current scope.
         try:
             if not params:
                 # A module invariant (feature 007): no parameter, a closed state expression.
@@ -306,6 +310,8 @@ class BehaviorModule:
             add(fn.name, p.type.display(), p.name, body.node, *fn.loc)
         except _engine.EngineError as e:
             raise engine_error(e, body.loc) from None
+        finally:
+            session.builder.pop_scope()
 
     @staticmethod
     def _trace_action(session: CompileSession, fn: ActionFn) -> None:
@@ -315,13 +321,17 @@ class BehaviorModule:
         token = CURRENT.set(frame)
         try:
             result = fn.call_symbolic(params)
-        finally:
+        except BaseException:
             CURRENT.reset(token)
             session.builder.pop_scope()
+            raise
+        CURRENT.reset(token)
         if result is not None:
+            session.builder.pop_scope()
             raise BehaviorDefinitionError(
                 f"action `{fn.name}` must not return a value; use requires/set_/ensures", *fn.loc
             )
+        # Added while its scope is still open (see `_trace_invariant`).
         try:
             session.builder.add_action(
                 fn.name,
@@ -338,6 +348,8 @@ class BehaviorModule:
             )
         except _engine.EngineError as e:
             raise engine_error(e, fn.loc) from None
+        finally:
+            session.builder.pop_scope()
 
     @property
     def engine(self) -> Any:

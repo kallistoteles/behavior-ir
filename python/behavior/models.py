@@ -14,7 +14,6 @@ supplies). The author's Python parameter names never reach the model.
 from __future__ import annotations
 
 import copy
-import os
 from dataclasses import dataclass, fields
 from enum import Enum
 from typing import Any, Callable, Iterable, Mapping
@@ -22,7 +21,7 @@ from typing import Any, Callable, Iterable, Mapping
 from .decl import EntityVar, command_decl, entity_decl
 from .errors import BehaviorDefinitionError
 from .expr import lift, param_ref
-from .location import caller_loc
+from .location import caller_loc, code_loc
 from .statements import CURRENT, Frame
 from .types import to_type
 
@@ -42,7 +41,7 @@ def _fn_loc(fn: Callable[..., Any]) -> tuple[str, int]:
     code = getattr(fn, "__code__", None)
     if code is None:
         return caller_loc()
-    return os.path.abspath(code.co_filename), code.co_firstlineno
+    return code_loc(code)
 
 
 def _params(spec: Mapping[str, Any] | Iterable[tuple[str, Any]] | None) -> list[tuple[str, Any]]:

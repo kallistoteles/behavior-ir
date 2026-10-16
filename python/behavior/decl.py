@@ -8,13 +8,12 @@ derived values reach the engine (research R11).
 from __future__ import annotations
 
 import inspect
-import os
 from dataclasses import dataclass
 from typing import Any, Callable
 
 from .errors import BehaviorDefinitionError, BehaviorTypeError
 from .expr import DerivedCall, Expr, call, field_ref, param_ref
-from .location import caller_loc
+from .location import caller_loc, code_loc
 from .types import BType, EntityT, RoleSpec, to_type
 
 
@@ -111,7 +110,7 @@ class ParamInfo:
 
 
 def _fn_loc(fn: Callable[..., Any]) -> tuple[str, int]:
-    return os.path.abspath(fn.__code__.co_filename), fn.__code__.co_firstlineno
+    return code_loc(fn.__code__)
 
 
 def _resolve_params(fn: Callable[..., Any], kind: str) -> list[ParamInfo]:

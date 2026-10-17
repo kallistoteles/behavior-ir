@@ -9,9 +9,9 @@ release: 0.13.0
 This skill describes **Behavior release 0.13.0**. Use only what is described here or listed in the
 release's public API.
 
-Existing Python authoring and evaluation retain their legacy profile. Admitted current
-documents also support unified invocation, explicit store-v2 genesis and durable command
-history through the public APIs listed in the release README. Trusted proof and authorization
+This release bundles Core 0.15.0 (verifier 0.10.0). Public Models and command declarations
+lower to ordinary Core behavior. Command modules use explicit Store-v2 genesis and durable
+command history; command-free modules retain their established profile. Trusted proof and authorization
 generation use the bundled `behavior governance` commands; a fresh trusted commit receives
 independent host context through `Store.commit_with_context`.
 
@@ -92,6 +92,46 @@ assert replay_behavior(store, [model]).ok
 A denied decision has no bundle: report its `decision.reasons` to the user. There is nothing to
 commit.
 
+### Models and a work lifecycle
+
+StateMachine transitions, RequestFlow creation/status actions and Approval decision actions
+are ordinary Store evaluations and commits. Approval derives outcomes from immutable decisions;
+a host invokes a separately guarded flow transition when appropriate. WorkQueue generates work
+state, validity and ready/expired reads. The host selects work, invokes capabilities and handles
+transport; the Model governs whether each state change is allowed. It provides no scheduling,
+ordering, worker execution or exactly-once physical effects.
+
+The standalone example declares an active-worker eligibility query and a completion binding
+whose document id must match the work payload. It explicitly selects Store v2 with a `none`
+evidence policy for demonstration; choose the deployment's real governance policy separately.
+A claim's worker and time come from the trusted host. Completion uses the current generation:
+
+```python
+# from examples/work_queue_store.py
+commit("claim", bindings={"document_work": "w1"}, input={"expected_generation": 0},
+       context={"worker": "worker-1", "now": 10, "lease_until": 20})
+assert store.load("DocumentWork", "w1")["value"]["attempts"] == 1
+commit("complete", bindings={"document_work": "w1", "doc": "doc-1"}, input={"generation": 1},
+       context={"worker": "worker-1", "now": 11})
+assert store.current().position == 3
+assert store.load("DocumentWork", "w1")["value"]["status"] == "SUCCEEDED"
+assert store.load("Document", "doc-1")["value"]["processed"] is True
+assert len(stream.items) == 1
+assert stream.items[0]["intent"]["payload"] == {"document": "doc-1"}
+assert replay_data(store).ok and replay_behavior(store, [model]).ok
+```
+
+Completion, document mutation and the command intent commit atomically. `commands_since` reads
+committed occurrences; the adapter owns delivery, deduplication and physical effects. Stable
+occurrence identities support deduplication but cannot guarantee exactly-once external execution.
+RequestFlow can emit an intent that an adapter turns into enqueue in a separate commit; that
+asynchronous handoff is not one cross-module transaction.
+
+**Time and genesis.** Supply recorded `now` in the queue's nominal time domain and canonical
+UTC `commit_time` separately. The host owns freshness at commit and monotonic time; a recorded
+live lease is no physical deadline guarantee. Core validates genesis work state but does not
+establish imported provenance: a seeded LEASED item need not have a recorded claim.
+
 ## Reads: asking without changing
 
 A question about the state is a **read**: the model declares it (`@read`, see the authoring
@@ -169,9 +209,24 @@ else:
     raise AssertionError("a stale bundle must not commit")
 ```
 
-Committing an identical transition again, for example a retry after a lost acknowledgement, is
-recognized (`.already` is true) and never applied twice. Other refusals raise `CommitRefused`
-with a `code`.
+An ordinary conflict retry reevaluates against the new state and may now be denied.
+After a lost acknowledgement, recover by resubmitting the **original bundle**: an equivalent
+already committed transition is recognized (`.already` is true), without applying it again.
+Reevaluating instead creates a new candidate and does not answer whether the original committed.
+Other refusals raise `CommitRefused` with a `code`.
+
+```python
+# from examples/conflict.py
+retried = withdraw_("50.00")
+assert retried.decision.result == "DENY"
+assert store.load("Account", "a1")["value"]["balance"] == "40.00"
+
+# Committing the same transition twice (a retry after a lost acknowledgement) is recognized and
+# never applied twice.
+assert store.commit(model, first.bundle).already
+assert store.current().position == 1
+```
+
 
 ## Changing the schema of a living store
 
@@ -193,7 +248,7 @@ history, identities and references carry over, and old states still load exactly
   `TRUSTED_GOVERNANCE_UPGRADE_REQUIRED`; structural `authorize_migration` evidence does not
   upgrade that trust. Adopt validated state into an explicit v2 genesis for new trusted
   history. Trusted migrations follow the
-  [public core migration contract](https://github.com/kallistoteles/behavior-ir-core/blob/v0.13.0/specs/013-durable-command-intents/contracts/governance.md);
+  [public core migration contract](https://github.com/kallistoteles/behavior-ir-core/blob/v0.15.0/specs/013-durable-command-intents/contracts/governance.md);
   the legacy Python `store.migrate` helper supplies no independent v2 authorization context.
 - **Replay**: `replay_behavior(store, models, migrations=[...])` re-runs every migration.
 
@@ -211,6 +266,14 @@ store.commit(current, ev.bundle)
 store.migrate(narrow, commit_time=NOW)
 assert replay_behavior(store, [v1.model, v2.model, v3.model], migrations=[broaden, narrow]).ok
 ```
+
+### WorkQueue migration continuity
+
+Core checks target validity, not the queue's historical safety assumptions. A WorkQueue migration
+must not decrease or reuse attempts, revive terminal work, manufacture a lease or reinterpret
+claim generations/time. Keep a LEASED item's lease or move it to READY with unchanged attempts
+and attempts below the maximum. Preserve terminality. Review these obligations explicitly;
+a successful migration or local SMT proof alone does not discharge them.
 
 ## Custom storage backends
 

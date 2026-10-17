@@ -9,8 +9,10 @@ release: 0.13.0
 This skill describes **Behavior release 0.13.0**. Use only what is described here or listed in the
 release's public API.
 
-The package uses current core verification: verifier 0.9.0, with 0.8.0's corrected read-filter
-and entity-role assumptions and 0.9.0's corrected outcomes for invalid resulting child states. Existing verification helpers return core's findings.
+The package bundles Core 0.15.0 and verifier 0.10.0, including corrected read-filter,
+entity-role and complete resulting-state assumptions. Version 0.10.0 fixes Approval query
+congruence (Core #35): the unchanged reference Approval's local uniqueness postconditions now
+prove, and Feature 506 C19 is no longer blocked. Verification helpers return Core's findings.
 Cryptographically authenticated proof and authorization generation use the bundled
 `behavior governance` commands. Structural v1 authorization retains its historical trust;
 fresh required-governance v1 writes require explicit adoption into store-v2 history.
@@ -53,6 +55,42 @@ outcome = {c["action"]["name"]: c["outcome"] for c in attestation.checks}
 
 For the warning kinds, the outcome `counterexample` means a witness exists, so there is **no**
 warning. To see what fired, read the findings, not the checks.
+
+### Evidence classes and assumptions
+
+A verified selected profile proves only its selected obligations. Separate these kinds of
+evidence when reporting a Model's guarantees:
+
+| Evidence | What it establishes | Limits and assumptions |
+|---|---|---|
+| Local SMT proof | A selected Core obligation over states/inputs/context in the verifier's encoding | Exact module, profile, verifier and solver; inspect actual per-check outcomes |
+| Global structural argument | Induction from valid base state, local preservation and complete effect ownership | Ownership over the final module; genesis and migrations must preserve the argument |
+| Tests / negative controls | Recorded scenarios, replay and representative violations behave as asserted | Finite cases, not universal proof |
+| Host obligations | Trusted identity/time, backend atomicity, valid imported state and migration continuity | Contracts the host must satisfy; not discharged by a local SMT result |
+
+For example, Approval's global safety needs a valid seed, local decision preservation and no
+unauthorized decision effects. WorkQueue fencing relies on generations never decreasing or
+being reused across migrations and terminal states staying terminal. A lease is evaluated
+against recorded `now`; solver results do not establish clock freshness at commit, physical
+deadlines, scheduling fairness or exactly-once external execution. Target-state validity alone
+does not prove those migration assumptions. All 12 WorkQueue verification obligations can have
+evidence without all being universal SMT proofs.
+
+The small example asserts actual local postcondition outcomes with verifier 0.10.0. It does not
+claim every profile, module or global safety obligation is proven:
+
+```python
+# from examples/approval_verification.py
+review = Approval("review", subject=Document, actor=User, approve_threshold=2, reject_threshold=1)
+review.approve(actor=lambda decision_id, subject, actor: actor, context={"actor": Id[User]})
+review.reject(actor=lambda decision_id, subject, actor: actor, context={"actor": Id[User]})
+model = BehaviorModule(entities=[User, Document], models=[review])
+assert versions()["verifier"] == "0.10.0"
+local = verify(model, Profile(checks=["postcondition"]))
+assert local.checks and all(c["outcome"] == "proven" for c in local.checks), local.checks
+assert {c["action"]["name"] for c in local.checks} == {"review__approve", "review__reject"}
+assert local.verified
+```
 
 ## Reading an attestation
 
@@ -127,8 +165,8 @@ def withdraw_guarded(account: Account, *, amount: Input[Money]):
 ```
 
 2. **Inconclusive.** Keep it as a blocking finding and classify it:
-   - **Known precision debt** (the catalogue below): the property holds, but this release cannot
-     prove it. Report it as blocking and inconclusive, with the catalogue entry that explains it.
+   - **Known precision debt** (the catalogue below): there is an independent argument for the
+     property, but this release cannot prove it. Report it as blocking and inconclusive, with the catalogue entry that explains it.
      Do not claim it is proven, do not weaken or remove the rule, and do not ask for a verifier
      assumption.
    - **Anything else:** look for a guarantee the model relies on but does not state, and state it
@@ -210,8 +248,10 @@ set can exceed the type's range. If that is a confirmed **counterexample**, it i
 - **The sum itself.** Ask the domain owner whether a bound exists. If the only bound is a rule
   per group, it is a semantic gap.
 
-A guarantee that the model **states** belongs in this catalogue. An expectation the model does
-**not** state is a model problem: state it.
+A stated guarantee can still have a real counterexample; classify it from the actual result
+and independent argument. An expectation the model does not state is a model problem: state it.
+The Approval query-congruence limitation fixed in verifier 0.10.0 is not current precision debt;
+the unrelated examples above remain governed by their observed pinned outcomes.
 
 ## Command line
 

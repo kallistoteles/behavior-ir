@@ -100,3 +100,47 @@ def test_a_broken_skill_example_fails_its_step_by_name(repo: Path, dist: Path) -
     assert r.returncode != 0
     assert "FAILED" in r.stderr and "skill examples" in r.stderr, r.stderr
     assert "zz_broken.py" in r.stderr, r.stderr
+
+
+def test_release_notes_retain_identity_and_append_authored_changes(tmp_path: Path) -> None:
+    """Exercise notes generation without building or tagging the actual repository."""
+    import json
+
+    scripts = tmp_path / "scripts"
+    scripts.mkdir()
+    shutil.copy2(ROOT / "scripts/release.sh", scripts / "release.sh")
+    (tmp_path / "Cargo.toml").write_text('[workspace.package]\nversion = "0.13.0"\n')
+    (tmp_path / ".gitignore").write_text("dist/\n")
+    authored = "## Changes since 0.12.0\n\nAuthored Models and migration guidance.\n"
+    notes = tmp_path / "release/notes/0.13.0.md"
+    notes.parent.mkdir(parents=True)
+    notes.write_text(authored)
+    manifest = {
+        "release": "0.13.0", "commit": "fixture-release-commit",
+        "core": {"version": "0.15.0", "tag": "v0.15.0",
+                 "commit": "6b93898a9375113f7a8946f23ab5535319b6f5d6",
+                 "repository": "https://github.com/kallistoteles/behavior-ir-core"},
+        "versions": {"engine": "0.15.0", "verifier": "0.10.0", "wire_ir": ["0.4", "0.8"]},
+    }
+    (tmp_path / "fixture-manifest.json").write_text(json.dumps(manifest))
+    stubs = {
+        "check-tag.sh": "exit 0\n",
+        "release-check.sh": "exit 0\n",
+        "release-build.sh": 'mkdir -p "$2"\ncp fixture-manifest.json "$2/release-manifest.json"\n',
+    }
+    for name, body in stubs.items():
+        script = scripts / name
+        script.write_text("#!/usr/bin/env bash\nset -eu\n" + body)
+        script.chmod(0o755)
+    _git(tmp_path, "init", "-q")
+    _git(tmp_path, "add", "-A")
+    identity = ("-c", "user.name=test", "-c", "user.email=test@example.invalid")
+    _git(tmp_path, *identity, "commit", "-qm", "notes fixture")
+    _git(tmp_path, *identity, "tag", "-a", "v0.13.0", "-m", "disposable fixture")
+    result = _run(tmp_path, "scripts/release.sh", "0.13.0")
+    assert result.returncode == 0, result.stderr
+    generated = (tmp_path / "dist/v0.13.0/NOTES.md").read_text()
+    assert generated.startswith("Behavior 0.13.0 (commit fixture-release-commit).\n")
+    assert "**Behavior Core 0.15.0** (v0.15.0, commit " + manifest["core"]["commit"] in generated
+    assert "engine 0.15.0, verifier 0.10.0, wire IR 0.4, 0.8." in generated
+    assert generated.endswith("\n" + authored)

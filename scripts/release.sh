@@ -34,6 +34,7 @@ scripts/release-build.sh "$version" "$out"
 scripts/release-check.sh "$out"
 python3 - "$out" <<'PY'
 import json, sys
+from pathlib import Path
 out = sys.argv[1]
 m = json.load(open(f"{out}/release-manifest.json"))
 c, v = m["core"], m["versions"]
@@ -45,6 +46,10 @@ lines = [
     "",
     "Install with `pip install --require-hashes` using the wheel and its SHA256SUMS entry.",
 ]
-open(f"{out}/NOTES.md", "w").write("\n".join(lines) + "\n")
+authored = Path(f"release/notes/{m['release']}.md")
+body = "\n".join(lines) + "\n"
+if authored.is_file():
+    body += "\n" + authored.read_text()
+Path(f"{out}/NOTES.md").write_text(body)
 PY
 echo "release: $out" >&2

@@ -12,7 +12,7 @@ are a view that the build compares with the schema Rust declares, raising on any
 Creation and transition callables are bound *by position* in the order Rust supplies:
 
     creation    request_id, inputs, state bindings, context   (each group sorted by name)
-    transition  request, inputs, context                      (as for StateMachine)
+    transition  request, state bindings, inputs, context       (as for StateMachine)
 """
 
 from __future__ import annotations

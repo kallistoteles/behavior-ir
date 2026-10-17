@@ -49,6 +49,10 @@ pub struct TransitionInput {
     pub inputs: Vec<(String, WType)>,
     /// A mapping `ParameterId → Type` given as a list in any order; never a sequence.
     pub context: Vec<(String, WType)>,
+    /// State bindings `ParameterId → entity name` (feature 507, D1(a)), given as a list in any
+    /// order. Further entities the transition may change atomically with the status; a binding
+    /// never grants authority over an owned field. Empty for language level 2.
+    pub state: Vec<(String, String)>,
     pub display: DisplayMeta,
     pub source: Option<SourceLoc>,
 }
@@ -59,7 +63,8 @@ pub struct TransitionInput {
 pub struct TransitionScope {
     pub model_id: String,
     pub transition_id: String,
-    /// Subject first, then inputs sorted by name, then context sorted by name (data-model §4).
+    /// Subject first, then state bindings, inputs and context, each sorted by name (data-model
+    /// §4; feature 507 for the bindings).
     pub params: Vec<WParam>,
     pub subject_param: String,
     pub owned_field: String,

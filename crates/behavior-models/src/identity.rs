@@ -21,7 +21,7 @@ use crate::composition::Composed;
 use crate::error::ModelError;
 use crate::source_map::{Diagnostic, LoweringReceipt, diagnostics, receipt};
 use crate::state_machine::resolve::ResolvedStateMachine;
-use crate::{STATE_MACHINE_SEMANTIC_VERSION, composition::admission_failed_message};
+use crate::{STATE_MACHINE_BINDINGS_SEMANTIC_VERSION, composition::admission_failed_message};
 
 pub const MODEL_HASH_TAG: &str = "behavior.model.v1";
 
@@ -107,6 +107,7 @@ pub(crate) fn entity_ref(
 
 /// The canonical document of a resolved, lowered and admitted state machine.
 pub fn canonical_document(m: &ResolvedStateMachine, module: &Module) -> Result<Value, ModelError> {
+    let version = m.semantic_version();
     let enum_hash = module
         .enums()
         .get(&m.enum_type)
@@ -143,7 +144,7 @@ pub fn canonical_document(m: &ResolvedStateMachine, module: &Module) -> Result<V
             .iter()
             .map(|c| hash_display(c.hash()))
             .collect();
-        transitions.push(json!({
+        let mut doc = json!({
             "id": t.transition_id.as_str(),
             "from": t.from_states,
             "to": t.to_state,
@@ -153,12 +154,33 @@ pub fn canonical_document(m: &ResolvedStateMachine, module: &Module) -> Result<V
             "effects": effects,
             "postconditions": post,
             "commands": commands,
-        }));
+        });
+        // Language level 3 (feature 507, research R13): every transition lists its bindings by
+        // name and Core declaration identity. Level 2 documents are exactly as established.
+        if version == STATE_MACHINE_BINDINGS_SEMANTIC_VERSION {
+            doc["state"] = t
+                .state
+                .iter()
+                .map(|(n, e)| {
+                    let mut r =
+                        entity_ref(module, m.model_id.as_str(), &format!("state `{n}`"), e)?;
+                    r["name"] = json!(n);
+                    Ok(r)
+                })
+                .collect::<Result<Vec<_>, ModelError>>()?
+                .into();
+        }
+        transitions.push(doc);
     }
+    let format = if version == STATE_MACHINE_BINDINGS_SEMANTIC_VERSION {
+        "behavior.model.state_machine.v3"
+    } else {
+        "behavior.model.state_machine.v2"
+    };
     Ok(json!({
-        "format": "behavior.model.state_machine.v2",
+        "format": format,
         "model_kind": "state_machine",
-        "model_semantic_version": STATE_MACHINE_SEMANTIC_VERSION,
+        "model_semantic_version": version,
         "model_id": m.model_id.as_str(),
         "subject": entity_ref(module, m.model_id.as_str(), "subject", &m.subject)?,
         "field": {"name": m.field, "enum": m.enum_type, "enum_hash": enum_hash},

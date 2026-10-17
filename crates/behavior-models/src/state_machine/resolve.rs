@@ -45,6 +45,8 @@ pub struct ResolvedTransition {
     pub inputs: BTreeMap<String, WType>,
     /// `ParameterId → Type`
     pub context: BTreeMap<String, WType>,
+    /// State bindings `ParameterId → entity` (feature 507, D1(a)); empty at language level 2.
+    pub state: BTreeMap<String, String>,
     /// `encode(model_id, transition_id)`
     pub action_name: String,
     pub display: DisplayMeta,
@@ -55,6 +57,17 @@ impl ResolvedStateMachine {
     /// `model_id/transition/transition_id`
     pub fn transition_ref(&self, t: &SemanticId) -> String {
         format!("{}/transition/{t}", self.model_id)
+    }
+
+    /// The language level this machine needs (feature 507, research R13): 3 when any transition
+    /// binds further entities, otherwise the established level 2, whose canonical document and
+    /// mappings are unchanged.
+    pub fn semantic_version(&self) -> u32 {
+        if self.transitions.values().any(|t| !t.state.is_empty()) {
+            crate::STATE_MACHINE_BINDINGS_SEMANTIC_VERSION
+        } else {
+            crate::STATE_MACHINE_SEMANTIC_VERSION
+        }
     }
 }
 
@@ -201,8 +214,28 @@ pub fn resolve(
             }
             m
         };
+        let bindings: Vec<(String, WType)> = t
+            .state
+            .iter()
+            .map(|(n, e)| (n.clone(), WType::Entity(e.clone())))
+            .collect();
+        let state: BTreeMap<String, String> = mapping(&bindings, &mut errors)
+            .into_iter()
+            .filter_map(|(n, ty)| match ty {
+                WType::Entity(e) => Some((n, e)),
+                _ => None,
+            })
+            .collect();
         let inputs = mapping(&t.inputs, &mut errors);
         let context = mapping(&t.context, &mut errors);
+        for entity in state.values() {
+            if !module.entities().contains_key(entity) {
+                errors.push(ModelError::UnknownEntity {
+                    model_ref: t_ref.clone(),
+                    entity: entity.clone(),
+                });
+            }
+        }
 
         if let (Some(m), Some(to_state)) = (&model_id, to.into_iter().next()) {
             transitions.insert(
@@ -214,6 +247,7 @@ pub fn resolve(
                     to_state,
                     inputs,
                     context,
+                    state,
                     display: t.display.clone(),
                     source: t.source.clone(),
                 },

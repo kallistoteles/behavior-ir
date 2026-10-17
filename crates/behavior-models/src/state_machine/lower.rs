@@ -5,7 +5,7 @@
 //!
 //! ```text
 //! action   encode(m, t)
-//! params   (s: state E) ++ inputs sorted by name ++ context sorted by name
+//! params   (s: state E) ++ state bindings ++ inputs ++ context, each sorted by name
 //! pre      [ In(s.f, sorted F_t) ] ++ G_t
 //! effects  [ (s, f, lit(T_f, q_t)) ] ++ E_t
 //! post     [ s.f == lit(T_f, q_t) ] ++ P_t
@@ -49,6 +49,11 @@ pub fn params(m: &ResolvedStateMachine, t: &ResolvedTransition) -> Vec<WParam> {
         role: Some(Role::State),
         ty: WType::Entity(m.subject.clone()),
     }];
+    ps.extend(t.state.iter().map(|(name, entity)| WParam {
+        name: name.clone(),
+        role: Some(Role::State),
+        ty: WType::Entity(entity.clone()),
+    }));
     ps.extend(t.inputs.iter().map(|(name, ty)| WParam {
         name: name.clone(),
         role: Some(Role::Input),

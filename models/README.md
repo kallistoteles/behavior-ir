@@ -117,6 +117,21 @@ recorded with the commit, never an effect.
 `module.model_receipts` are typed `LoweringReceipt`s. Their source locations are relative, so
 the same model gives the same receipt in every checkout.
 
+### Transition state bindings (feature 507)
+
+A transition may bind further entities with `state={"doc": Document}` and change them atomically
+with the status. The bound parameters follow the subject, sorted by name, before the inputs and
+context. **A binding never grants authority**: the machine's own field is written only by the
+generated status effect through the subject, an authored write of it through any parameter of the
+subject's type is `TRANSITION_WRITES_OWNED_FIELD`, and every other model's ownership rules apply
+to bound entities unchanged. Binding resolution, aliasing and concurrency are Core's.
+
+**Language levels (research R13).** A machine without bindings is StateMachine semantic version
+2, with exactly the established canonical document and mappings. A machine whose transitions bind
+is version 3 (`behavior.model.state_machine.v3`, every transition lists `state` with each
+entity's declaration identity). RequestFlow follows the same rule (flow 3 with embedded machine
+3). Both levels have their own compat tuples; nothing is superseded.
+
 ## RequestFlow
 
 A request flow (feature 502) is a persistent request that an actor creates, that carries typed
@@ -299,6 +314,67 @@ implicit role or manager lookup, deadlines, escalation, timers, withdrawal, deci
 abstention, notifications beyond ordinary command intents, external command execution, a second
 event log and a second expression language.
 
+## WorkQueue
+
+A work queue (feature 507) governs persistent, claimable units of work: what exists, when it may
+be claimed, which worker holds it, which attempt that worker may finish, and how it ends. **It
+defines which changes of work state are valid; it never schedules, executes or orders work.**
+
+```text
+WQ = (id, A, T, Π, M, G, K)        A worker (Id only)   T ordered nominal time   M ≥ 1
+WorkQueue → <E>Status enum, E entity (status, payload…, attempts, owner, lease_until, available_at)
+          + invariant ValidWork, derived terminal(w), reads ready(now) and expired(now)
+          + <id>__enqueue (creation) + an embedded StateMachine:
+            claim READY→LEASED · renew LEASED→LEASED · complete LEASED→SUCCEEDED
+            retry LEASED→READY · fail LEASED→FAILED · recover LEASED→READY (expired, attempts < M)
+            exhaust LEASED→FAILED (expired, attempts = M) · cancel READY|LEASED→CANCELLED
+```
+
+- **Fencing.** A claim increments `attempts`, the claim generation. Renew, complete, retry and
+  fail require `owner == worker`, `attempts == generation` and a live lease; their generated
+  postconditions are `attempts == generation` (claim: `attempts == expected_generation + 1`).
+  After a later committed claim an earlier generation never satisfies these again, through
+  ordinary transitions (contracts/safety-arguments.md, SA-FENCE).
+- **Trust boundary.** `worker`, `now`, `lease_until` (claim, renew) and `available_at` (retry,
+  recover) are host context with fixed names; `generation` and `expected_generation` are caller
+  input and only compared. Enqueue, claim (`eligible`), recover, exhaust and cancel need an
+  authored authorization guard; a missing one is `MISSING_AUTHORIZATION`.
+- **Time.** Core reads no clock. A lease is live or expired relative to the recorded `now` of the
+  evaluation; freshness of `now` at commit and clock monotonicity are host assumptions, and no
+  physical deadline enforcement is claimed.
+- **Ownership.** Over every work-entity parameter of every action of the final module: creation
+  only by enqueue; removal by nobody; `attempts` only by claim; `owner`, `lease_until` and
+  `available_at` only by the capabilities the contract lists, through their subject; payload
+  immutable (`UNAUTHORIZED_WORK_*`). A capability cannot bind its own work entity
+  (`WORK_ITEM_BINDING`) or write it in an authored effect (`AUTHORED_WORK_EFFECT`).
+- **Genesis and provenance.** A genesis may hold items that satisfy `ValidWork` (Core checks it,
+  `GENESIS_INVALID` otherwise). Validity is not provenance: an imported LEASED item is trusted
+  state with no recorded claim, and its deadline is not assumed live.
+- **Migrations.** Core enforces only target validity. The host contract: attempts never decrease
+  or are reused; terminal stays terminal; no migration manufactures or reactivates a lease
+  (READY → LEASED is prohibited); a LEASED item keeps its lease or becomes READY with unchanged
+  attempts (then attempts < M); claim generations and time semantics are never reinterpreted.
+  The suite's negative controls show both breaks with real Core migrations.
+- **Not guaranteed.** Single physical execution, exactly-once external effects, that an
+  expired worker stops, fairness or ordering. Composition with RequestFlow is asynchronous: a
+  transition emits a command and an adapter enqueues in a separate commit.
+
+```python
+q = WorkQueue("document_work", worker=Worker, time=Time, max_attempts=3,
+              payload={"document": Id[Document]})
+q.enqueue(authorized=lambda *, actor, **_: is_admin(actor), context={"actor": Id[User]})
+q.claim(eligible=lambda w, *, worker, **_: is_active(worker))
+q.complete(state={"doc": Document}, effects=[lambda w, *, doc, **_: set_(doc.processed, True)])
+q.renew(); q.retry(); q.fail()
+q.recover(authorized=...); q.exhaust(authorized=...); q.cancel(authorized=...)
+```
+
+Callables receive the subject positionally (enqueue has none) and every other parameter by
+keyword, only those they declare. The reference application and its conformance suite are in
+`models/examples/work_queue/` (`python -m models.examples.work_queue.run`;
+`scripts/conformance.sh 507 [quick|full|complete]`, report `target/conformance/507-report.json`
+with an evidence record per verification obligation).
+
 ## Worked example
 
 [`examples/state_machine/machine.py`](examples/state_machine/machine.py) declares the `Order`
@@ -325,9 +401,9 @@ author → lower → admit → evaluate → commit → replay → verify.
 
 ```sh
 python -m models.examples.purchase_approval.run   # the lifecycle, step by step, exit 0 if it matches
-scripts/conformance.sh                            # the suite; writes target/conformance/506-report.json
-BEHAVIOR_FULL_PROPERTIES=1 scripts/conformance.sh # full mode: the integration gate CI runs
-scripts/conformance.sh complete                   # full conformance: every check must pass
+scripts/conformance.sh 506                            # the suite; writes target/conformance/506-report.json
+BEHAVIOR_FULL_PROPERTIES=1 scripts/conformance.sh 506 # full mode: the integration gate CI runs
+scripts/conformance.sh 506 complete                   # full conformance: every check must pass
 ```
 
 Static verification of the reference module (C19) is currently **blocked** by

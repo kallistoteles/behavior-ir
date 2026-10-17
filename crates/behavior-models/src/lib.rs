@@ -19,6 +19,7 @@ pub mod kinds;
 pub mod request_flow;
 pub mod source_map;
 pub mod state_machine;
+pub mod work_queue;
 
 use behavior_engine::builder::Builder;
 use behavior_engine::semantic::Module;
@@ -43,6 +44,10 @@ pub use state_machine::input::{
 /// the model language changes (lowering contract §7). Version 2 (feature 505): the canonical
 /// document references every declaration it names by its Core identity.
 pub const STATE_MACHINE_SEMANTIC_VERSION: u32 = 2;
+/// StateMachine language level 3 (feature 507, research R13): transitions may bind further
+/// entities. A machine is level 3 exactly when one of its transitions has a binding; a machine
+/// without bindings stays level 2 with its established canonical document and mappings.
+pub const STATE_MACHINE_BINDINGS_SEMANTIC_VERSION: u32 = 3;
 /// The StateMachine lowerer version: changes when the same model contract intentionally lowers
 /// to different Core IR (lowering contract §7).
 pub const STATE_MACHINE_LOWERER_VERSION: u32 = 1;
@@ -50,6 +55,9 @@ pub const STATE_MACHINE_LOWERER_VERSION: u32 = 1;
 /// The RequestFlow model semantic version (feature 502, data model §9). Version 2 (feature
 /// 505): the canonical document references every declaration it names by its Core identity.
 pub const REQUEST_FLOW_SEMANTIC_VERSION: u32 = 2;
+/// RequestFlow language level 3 (feature 507, research R13): a flow whose transitions bind
+/// further entities, with an embedded StateMachine at level 3. Otherwise level 2, unchanged.
+pub const REQUEST_FLOW_BINDINGS_SEMANTIC_VERSION: u32 = 3;
 /// The RequestFlow lowerer version (feature 502, data model §9).
 pub const REQUEST_FLOW_LOWERER_VERSION: u32 = 1;
 
@@ -57,6 +65,11 @@ pub const REQUEST_FLOW_LOWERER_VERSION: u32 = 1;
 pub const APPROVAL_SEMANTIC_VERSION: u32 = 1;
 /// The Approval lowerer version (feature 503, data model §10).
 pub const APPROVAL_LOWERER_VERSION: u32 = 1;
+
+/// The WorkQueue model semantic version (feature 507, research R6).
+pub const WORK_QUEUE_SEMANTIC_VERSION: u32 = 1;
+/// The WorkQueue lowerer version (feature 507, research R6).
+pub const WORK_QUEUE_LOWERER_VERSION: u32 = 1;
 
 /// The exact Core Release this crate builds against (`core-release.json`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -1,0 +1,30 @@
+{
+  "_comment": "Hand-stated expectations of feature 507 (spec, Reference history and acceptance scenarios). Never generated from an implementation's output.",
+  "steps": {
+    "0a": {"result": "ALLOW", "position": 1},
+    "0b": {"result": "ALLOW", "position": 2},
+    "1":  {"result": "ALLOW", "position": 3, "item": {"status": "READY", "attempts": 0, "owner": null, "lease_until": null, "available_at": 10}},
+    "3":  {"result": "ALLOW", "position": 4, "item": {"status": "LEASED", "attempts": 1, "owner": "A", "lease_until": 20}},
+    "4":  {"result": "ALLOW", "position": 5, "item": {"status": "READY", "attempts": 1, "owner": null, "lease_until": null, "available_at": 15}},
+    "5":  {"result": "ALLOW", "position": 6, "item": {"status": "LEASED", "attempts": 2, "owner": "B", "lease_until": 25}},
+    "6":  {"result": "ALLOW", "position": 7, "item": {"status": "READY", "attempts": 2, "owner": null, "lease_until": null, "available_at": 30}},
+    "7":  {"result": "ALLOW", "position": 8, "item": {"status": "LEASED", "attempts": 3, "owner": "A", "lease_until": 40}},
+    "8":  {"result": "DENY", "position": 8},
+    "9":  {"result": "ALLOW", "position": 9, "item": {"status": "SUCCEEDED", "attempts": 3, "owner": null, "lease_until": null}}
+  },
+  "reads": {
+    "ready_before_available": {"now": 5, "ids": []},
+    "ready_when_available": {"now": 10, "ids": ["w1"]},
+    "expired_before_recovery": {"now": 30, "ids": ["w1"]}
+  },
+  "final": {
+    "position": 9,
+    "item": {"status": "SUCCEEDED", "attempts": 3, "owner": null, "lease_until": null, "available_at": 30, "document": "d1", "request": "r1"},
+    "documents": {"d1": true, "d2": false},
+    "request_status": "Submitted",
+    "commands": [
+      {"command": "ProcessDocument", "request": "r1", "document": "d1"},
+      {"command": "DocumentProcessed", "document": "d1"}
+    ]
+  }
+}

@@ -237,6 +237,201 @@
   },
   {
    "cases": {
+    "wq_minimal": {
+     "behavior_hash": "sha256:dc5ddacffad6c82d5b1486f62d167a947055a43275a6c1c87e2a94b55b5bdd01",
+     "embedded": {
+      "jobs": "sha256:6263a7421af0beaeda1f3b2fdddbdd4b0d4cf95d2f27df62198dfbbc0ff018e4"
+     },
+     "entities": {
+      "jobs": "Jobs"
+     },
+     "generated": {
+      "jobs": {
+       "derived": {
+        "terminal": "sha256:b3c4e8af4b605b03b2476662769cba933b9a1a6897136df238f0f2fe771512ec"
+       },
+       "entity": {
+        "hash": "sha256:88380ff110e6924d7e3769fceb4a3404202689530ed46b7b3b65fd29bd536319",
+        "name": "Jobs"
+       },
+       "enum": {
+        "hash": "sha256:cc62bfab92fca012812e4ed166727d85e39cfaf0b81e0da4ddcb1dbdf1bba8e1",
+        "name": "JobsStatus"
+       },
+       "invariant": {
+        "hash": "sha256:be084f40652248e609c6955919b488807b3787064fa6f804fbf5cac2cea32595",
+        "name": "jobs__valid_work"
+       },
+       "reads": {
+        "expired": "sha256:ccc7f3fbc8141ce8e0d20d7662eae3c2a248395ea69cc37e11e64205e7ff6feb",
+        "ready": "sha256:a2896930520cc6bc32a01c1ed4acac9a3d80d3b94c0474df3aab5366335a6dd9"
+       }
+      }
+     },
+     "models": {
+      "jobs": "sha256:78bcfa23ac45ea42794b00b7d32a059af510d0b686b2f8afd38de829480fddee"
+     }
+    },
+    "wq_two_queues": {
+     "behavior_hash": "sha256:fc81021a95958a5181eeaefa2f0b485823076fd34e10ca6d4c4e3a0973c3171a",
+     "embedded": {
+      "exports": "sha256:610262e8385af320d7cce9bc6a4469718a88b0ac950835277879106a30db33f1",
+      "jobs": "sha256:6263a7421af0beaeda1f3b2fdddbdd4b0d4cf95d2f27df62198dfbbc0ff018e4"
+     },
+     "entities": {
+      "exports": "Exports",
+      "jobs": "Jobs"
+     },
+     "generated": {
+      "exports": {
+       "derived": {
+        "terminal": "sha256:b86a2a7463dcf6a6d01a5a49f2aea7b8c5b1768a459e2a3fe7196ca6603b7ea6"
+       },
+       "entity": {
+        "hash": "sha256:b3cc1646fb0bc4a30285b038c63074e3b33c875c51fe4b803d37705a6b113f63",
+        "name": "Exports"
+       },
+       "enum": {
+        "hash": "sha256:42a54f4d32e63db738ae453d5d7280be9616dc4aa411c75a1acae36c8e9b5670",
+        "name": "ExportsStatus"
+       },
+       "invariant": {
+        "hash": "sha256:d0fbdd32cc4c53f006c926c1604e1d7885b35d768d23514b84e22c3186c63340",
+        "name": "exports__valid_work"
+       },
+       "reads": {
+        "expired": "sha256:458907a2c21bd1d44138e5798e83de727bb4f022a8a3c3894cbec9d03d021687",
+        "ready": "sha256:5002ff36250f0e40be4baf1da895ebc42d783911de2ac2cf068df4b3b5524df3"
+       }
+      },
+      "jobs": {
+       "derived": {
+        "terminal": "sha256:b3c4e8af4b605b03b2476662769cba933b9a1a6897136df238f0f2fe771512ec"
+       },
+       "entity": {
+        "hash": "sha256:88380ff110e6924d7e3769fceb4a3404202689530ed46b7b3b65fd29bd536319",
+        "name": "Jobs"
+       },
+       "enum": {
+        "hash": "sha256:cc62bfab92fca012812e4ed166727d85e39cfaf0b81e0da4ddcb1dbdf1bba8e1",
+        "name": "JobsStatus"
+       },
+       "invariant": {
+        "hash": "sha256:be084f40652248e609c6955919b488807b3787064fa6f804fbf5cac2cea32595",
+        "name": "jobs__valid_work"
+       },
+       "reads": {
+        "expired": "sha256:ccc7f3fbc8141ce8e0d20d7662eae3c2a248395ea69cc37e11e64205e7ff6feb",
+        "ready": "sha256:a2896930520cc6bc32a01c1ed4acac9a3d80d3b94c0474df3aab5366335a6dd9"
+       }
+      }
+     },
+     "models": {
+      "exports": "sha256:5f5e73308dd8f681b440b9e5f86da57438c01b9a2c4a5d8747d03824c8ef9ef2",
+      "jobs": "sha256:78bcfa23ac45ea42794b00b7d32a059af510d0b686b2f8afd38de829480fddee"
+     }
+    }
+   },
+   "core_release": {
+    "commit": "15094972191aa0ae79705df0397c551a18745399",
+    "version": "0.13.0"
+   },
+   "embedded": [
+    {
+     "kind": "state_machine",
+     "lowerer_version": 1,
+     "model_semantic_version": 2
+    }
+   ],
+   "lowerer_version": 1,
+   "model_kind": "work_queue",
+   "model_semantic_version": 1
+  },
+  {
+   "cases": {
+    "rf_bind_ticket": {
+     "behavior_hash": "sha256:3f49965c4113212074bda920a46163b343d8987af1a4e856df6ab863ad89b972",
+     "embedded": {
+      "ticket": "sha256:6990a686c191c30bd3e40ed578a3cbf1f3f67270b91e98a2bec3e947fad51602"
+     },
+     "entities": {
+      "ticket": "Ticket"
+     },
+     "models": {
+      "ticket": "sha256:efb0ac4e606dc76cdae8acdb1ef3cf98809be517cda6a5f8b8b6544dc30c2f28"
+     }
+    }
+   },
+   "core_release": {
+    "commit": "15094972191aa0ae79705df0397c551a18745399",
+    "version": "0.13.0"
+   },
+   "embedded": [
+    {
+     "kind": "state_machine",
+     "lowerer_version": 1,
+     "model_semantic_version": 3
+    }
+   ],
+   "lowerer_version": 1,
+   "model_kind": "request_flow",
+   "model_semantic_version": 3
+  },
+  {
+   "cases": {
+    "wq_documents": {
+     "behavior_hash": "sha256:60cd00a526d9be148a83f1f0452e095240b224a20339e7b088e4c0cf3d180de8",
+     "embedded": {
+      "documents": "sha256:ca2f5f3234d9172aa8c3c50aaf1b0efd52e37eb5bad12065f89b7d448dd2d42b"
+     },
+     "entities": {
+      "documents": "Documents"
+     },
+     "generated": {
+      "documents": {
+       "derived": {
+        "terminal": "sha256:6f281fb414acb3c1391763a342957f25f459576fcb81265febb337b314f5a6ee"
+       },
+       "entity": {
+        "hash": "sha256:ef5bb838d32228c67147ded2ff63372f41e121dab51b5b5b48e718a4f86955ca",
+        "name": "Documents"
+       },
+       "enum": {
+        "hash": "sha256:78ea1f71ef7b0d86cd926d76a769c5bf8cd6ba5cd1dbb61cc33d76fd487bad73",
+        "name": "DocumentsStatus"
+       },
+       "invariant": {
+        "hash": "sha256:d6ae9b7dae4b6e0eebfe11de732062c87ac3b62a5fcb0c61df3f7a974d915219",
+        "name": "documents__valid_work"
+       },
+       "reads": {
+        "expired": "sha256:72d9425c3ddbea0acd279c15000df5a789809ec1c3f09af2d87786f9b948e0de",
+        "ready": "sha256:f825f0f0812581870e96e4fe69586c78c51e3a5a3b5ce761d3b7b28b873158de"
+       }
+      }
+     },
+     "models": {
+      "documents": "sha256:a2d0fce8271684ea1ec3cd00af3cb5154338a32d1f1637a99dc72d08805332be"
+     }
+    }
+   },
+   "core_release": {
+    "commit": "15094972191aa0ae79705df0397c551a18745399",
+    "version": "0.13.0"
+   },
+   "embedded": [
+    {
+     "kind": "state_machine",
+     "lowerer_version": 1,
+     "model_semantic_version": 3
+    }
+   ],
+   "lowerer_version": 1,
+   "model_kind": "work_queue",
+   "model_semantic_version": 1
+  },
+  {
+   "cases": {
     "ap_document_review": {
      "behavior_hash": "sha256:400dbdc34b7a54c2567556d72e9593fe2a6ae2fe28e6d7dd0f8d3a7ca13db9ef",
      "generated": {
@@ -317,6 +512,23 @@
      "model_semantic_version": 1
     }
    ]
+  },
+  {
+   "cases": {
+    "sm_bind_task_board": {
+     "behavior_hash": "sha256:4e7555ebb2585c7f500ab166253f9ed3d01d92a26d93602f51a42560be95084e",
+     "models": {
+      "task": "sha256:ecc58f76cb5a5dabe5119a10a74a4e51d07394458f5ab29e47ef42fc000cefb9"
+     }
+    }
+   },
+   "core_release": {
+    "commit": "15094972191aa0ae79705df0397c551a18745399",
+    "version": "0.13.0"
+   },
+   "lowerer_version": 1,
+   "model_kind": "state_machine",
+   "model_semantic_version": 3
   }
  ]
 }

@@ -210,6 +210,7 @@
    "StateRef": "class",
    "Store": "class",
    "TraceStep": "class",
+   "WorkQueue": "class",
    "__version__": "value",
    "action": "decorator",
    "admit": "function",

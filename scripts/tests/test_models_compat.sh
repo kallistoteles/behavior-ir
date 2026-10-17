@@ -210,6 +210,23 @@ fi
 nobase="$tmp/nobase"
 mkdir -p "$nobase/models/fixtures"
 git -C "$nobase" init -q -b trunk
+# Feature 507 (research R13): language levels coexist. A new semantic-version tuple of the same
+# kind is added beside the established one; nothing is superseded, and both must reproduce.
+sm_level() { # sm_level <semantic version> <cases json>
+  printf '{"core_release":{"commit":"c1.0","version":"1.0"},"lowerer_version":1,"model_kind":"state_machine","model_semantic_version":%s,"cases":%s}' "$1" "$2"
+}
+levels() { # levels <level-1 cases> <level-3 cases>
+  printf '{"groups":[{"tuple":{"core_release":{"commit":"c1.0","version":"1.0"},"lowerer_version":1,"model_kind":"state_machine","model_semantic_version":1},"cases":%s},{"tuple":{"core_release":{"commit":"c1.0","version":"1.0"},"lowerer_version":1,"model_kind":"state_machine","model_semantic_version":3},"cases":%s}]}\n' "$1" "$2"
+}
+B3='{"b":{"behavior_hash":"sha256:b3","models":{"n":"sha256:n3"}}}'
+B4='{"b":{"behavior_hash":"sha256:b4","models":{"n":"sha256:n4"}}}'
+expect PASS "a new language level beside the established one" "$(repo level "$base")" \
+  "$(manifest "$(sm_level 1 "$A1")" "$(sm_level 3 "$B3")")" "$(levels "$A1" "$B3")"
+expect FAIL "the established level changed beside a new level" "$(repo leveldrift "$base")" \
+  "$(manifest "$(sm_level 1 "$A1")" "$(sm_level 3 "$B3")")" "$(levels "$A2" "$B3")"
+expect FAIL "the new level's case drifted" "$(repo level3drift "$base")" \
+  "$(manifest "$(sm_level 1 "$A1")" "$(sm_level 3 "$B3")")" "$(levels "$A1" "$B4")"
+
 printf '{"commit":"c1.0","version":"1.0"}\n' >"$nobase/core-release.json"
 expect FAIL "no merge base" "$nobase" "$base" "$(computed 1 "$A1")"
 

@@ -21,15 +21,26 @@ use crate::identity::{canonical_document, entity_ref, identity_error, model_hash
 use crate::request_flow::resolve::{ResolvedRequestFlow, STATUS};
 use crate::source_map::{LoweringReceipt, RelativeSources, display_json};
 use crate::{
-    CORE_RELEASE, REQUEST_FLOW_LOWERER_VERSION, REQUEST_FLOW_SEMANTIC_VERSION,
-    STATE_MACHINE_LOWERER_VERSION, STATE_MACHINE_SEMANTIC_VERSION,
+    CORE_RELEASE, REQUEST_FLOW_BINDINGS_SEMANTIC_VERSION, REQUEST_FLOW_LOWERER_VERSION,
+    REQUEST_FLOW_SEMANTIC_VERSION, STATE_MACHINE_LOWERER_VERSION,
 };
+
+/// The flow's language level (feature 507, research R13): 3 when its embedded machine is level
+/// 3 (a transition binds further entities), otherwise the established level 2.
+pub fn flow_version(f: &ResolvedRequestFlow) -> u32 {
+    if f.machine.semantic_version() == crate::STATE_MACHINE_BINDINGS_SEMANTIC_VERSION {
+        REQUEST_FLOW_BINDINGS_SEMANTIC_VERSION
+    } else {
+        REQUEST_FLOW_SEMANTIC_VERSION
+    }
+}
 
 /// The canonical document of a resolved, lowered and admitted flow.
 pub fn canonical_document_rf(
     f: &ResolvedRequestFlow,
     module: &Module,
 ) -> Result<Value, ModelError> {
+    let version = flow_version(f);
     let enum_hash = module
         .enums()
         .get(&f.status_enum)
@@ -79,9 +90,13 @@ pub fn canonical_document_rf(
     let machine_doc = canonical_document(&f.machine, module)?;
     let machine_hash = model_hash(&machine_doc)?;
     Ok(json!({
-        "format": "behavior.model.request_flow.v2",
+        "format": if version == REQUEST_FLOW_BINDINGS_SEMANTIC_VERSION {
+            "behavior.model.request_flow.v3"
+        } else {
+            "behavior.model.request_flow.v2"
+        },
         "model_kind": "request_flow",
-        "model_semantic_version": REQUEST_FLOW_SEMANTIC_VERSION,
+        "model_semantic_version": version,
         "flow_id": f.flow_id.as_str(),
         "actor": entity_ref(module, f.flow_id.as_str(), "actor", &f.actor)?,
         "status_enum": {"name": f.status_enum, "enum_hash": enum_hash},
@@ -180,14 +195,14 @@ pub fn receipt_rf(
         "format": "behavior.model_receipt.v1",
         "model_hash": hash,
         "model_kind": "request_flow",
-        "model_semantic_version": REQUEST_FLOW_SEMANTIC_VERSION,
+        "model_semantic_version": flow_version(f),
         "lowerer_version": REQUEST_FLOW_LOWERER_VERSION,
         "core_release": {"version": CORE_RELEASE.version, "commit": CORE_RELEASE.commit},
         "behavior_hash": module.behavior_version(),
         "embedded": [{
             "kind": "state_machine",
             "id": f.flow_id.as_str(),
-            "model_semantic_version": STATE_MACHINE_SEMANTIC_VERSION,
+            "model_semantic_version": f.machine.semantic_version(),
             "lowerer_version": STATE_MACHINE_LOWERER_VERSION,
             "model_hash": machine_hash,
         }],

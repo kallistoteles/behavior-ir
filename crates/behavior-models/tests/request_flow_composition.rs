@@ -259,3 +259,48 @@ proptest! {
         }
     }
 }
+
+// --- Feature 507 (D1(a), research R13): transition bindings and language levels ------------
+
+#[test]
+fn a_flow_whose_transition_binds_an_entity_is_language_level_3() {
+    let mut input = flow();
+    let cancel = input
+        .transitions
+        .iter_mut()
+        .find(|t| t.transition_id == "cancel")
+        .unwrap();
+    cancel.state = vec![("by".into(), "User".into())];
+    let out = build_with(|_| {}, vec![spec(input, source())]).unwrap_or_else(|e| panic!("{e:#?}"));
+    let r = &out.receipts[0].0;
+    assert_eq!(r["model_semantic_version"], serde_json::json!(3));
+    assert_eq!(
+        r["model"]["format"],
+        serde_json::json!("behavior.model.request_flow.v3")
+    );
+    assert_eq!(
+        r["embedded"][0]["model_semantic_version"],
+        serde_json::json!(3)
+    );
+    let action = out
+        .module
+        .actions()
+        .get("purchase_request__cancel")
+        .unwrap();
+    assert_eq!(action.params()[1].name(), "by");
+}
+
+#[test]
+fn a_flow_without_transition_bindings_stays_language_level_2() {
+    let out = build_reference();
+    let r = &out.receipts[0].0;
+    assert_eq!(r["model_semantic_version"], serde_json::json!(2));
+    assert_eq!(
+        r["model"]["format"],
+        serde_json::json!("behavior.model.request_flow.v2")
+    );
+    assert_eq!(
+        r["embedded"][0]["model_semantic_version"],
+        serde_json::json!(2)
+    );
+}

@@ -6,6 +6,7 @@
 
 pub mod ap;
 pub mod rf;
+pub mod wq;
 
 use std::collections::BTreeMap;
 
@@ -84,6 +85,7 @@ pub fn transition(id: &str, from: &[&str], to: &str) -> TransitionInput {
         to_state: to.into(),
         inputs: vec![],
         context: vec![],
+        state: vec![],
         display: DisplayMeta::default(),
         source: None,
     }

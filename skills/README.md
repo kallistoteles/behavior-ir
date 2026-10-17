@@ -1,13 +1,14 @@
 # Behavior skills
 
 Agent skills for building applications with **Behavior**. Each skill describes exactly one
-Behavior release. The frontmatter field `release` says which one.
+Behavior release. These Skills describe **0.13.0**, bundling Core **0.15.0** and verifier
+**0.10.0**. The frontmatter field `release` says which one.
 
 | Skill | Use it when |
 |---|---|
-| [`behavior-authoring`](behavior-authoring/SKILL.md) | writing or changing a behavior model: entities, types, actions, lifecycle, queries, invariants, exact arithmetic |
-| [`behavior-verification`](behavior-verification/SKILL.md) | running verification and acting on its results |
-| [`behavior-application`](behavior-application/SKILL.md) | building the host application around a model: stores, commits, replay, backends |
+| [`behavior-authoring`](behavior-authoring/SKILL.md) | writing or changing a behavior model: entities, actions, commands, StateMachine, RequestFlow, Approval, WorkQueue and composition |
+| [`behavior-verification`](behavior-verification/SKILL.md) | running verifier 0.10.0; distinguishing local proofs, structural arguments, tests and host assumptions |
+| [`behavior-application`](behavior-application/SKILL.md) | building the host application around a model: stores, atomic commits, replay, trusted context, durable intents and work-state integration |
 
 `evals/` holds the maintainer's acceptance sets for these skills. It is not a skill.
 
@@ -38,6 +39,19 @@ An application uses Behavior **only through the released package**: the names ex
 `behavior` module and the `behavior` command line of its release. It never imports engine
 internals or depends on paths inside the Behavior repository. A local checkout of Behavior is a
 contributor's workflow, never the way an application depends on it.
+
+## Current capabilities and remaining gaps
+
+Use StateMachine for controlled enum transitions, RequestFlow for persistent requests,
+Approval for immutable decisions and derived outcomes, and WorkQueue for claims, lease
+generations and recovery. Compose through generated entity handles; ownership is checked over
+the final module. Public `@command` and `emit` author durable intents. These capabilities are
+supported in 0.13.0 and should not be recorded as missing language constructs.
+
+WorkQueue does not schedule or physically execute work. The host owns time, identity, backend
+atomicity, delivery and migration continuity. Remaining language gaps include grouped standing
+invariants, joins, bulk effects and ordered queries; use the authoring Skill's current gap table.
+Keep historical gap entries and add a resolution line when a later release supports them.
 
 ## The semantic gap rule
 

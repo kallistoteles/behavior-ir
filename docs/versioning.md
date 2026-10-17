@@ -7,9 +7,9 @@ change for different reasons, and every one of them is reported, never implied
 | Kind | Example | What it identifies | Where it lives |
 |---|---|---|---|
 | **Release** | `0.13.0` | this repository's release: the Python package and everything it bundles | `[workspace.package] version` in `Cargo.toml`, the single source |
-| **Core** | `0.13.0` | the exact Core Release the package is built against and bundles (feature 011) | `core-release.json`; `behavior.versions()["core"]` reports the full immutable commit |
+| **Core** | `0.15.0` | the exact Core Release the package is built against and bundles (feature 011) | `core-release.json`; `behavior.versions()["core"]` reports the full immutable commit |
 | **Binding** | `python 0.13.0` | the installable package of the Python binding | the release version in Python's form (PEP 440); the package requires *exactly* the core in `core-release.json` (checked at import) |
-| **Formats and verifier** | accepted wire IR `0.4` … `0.8`, records `0.4` … `0.8`, verifier `0.9.0` | the document formats and the verification encoding | defined by the core: [its versioning](https://github.com/kallistoteles/behavior-ir-core/blob/v0.13.0/docs/versioning.md); reported by `behavior engine-info` |
+| **Formats and verifier** | accepted wire IR `0.4` … `0.8`, records `0.4` … `0.8`, verifier `0.10.0` | the document formats and the verification encoding | defined by the core: [its versioning](https://github.com/kallistoteles/behavior-ir-core/blob/v0.15.0/docs/versioning.md); reported by `behavior engine-info` |
 
 A module document, a record or a store document says which format version it is written in.
 That is what a reader checks, not the release number.
@@ -37,9 +37,15 @@ the new contract. What never changes by accident is determinism, canonical conte
 where semantically required, and evidence integrity; a change of semantic meaning is a
 deliberate design decision, documented with its release.
 
-Release 0.13.0 aligns the package with Core Release 0.13.0 (ecosystem feature 504), which
-includes Core 0.12.1. Its minor bump reflects a new record version, verifier outcomes and two
-contracts consumers must adapt to:
+Release 0.13.0 bundles exact Core Release 0.15.0, commit
+`6b93898a9375113f7a8946f23ab5535319b6f5d6` (adopted by feature 508), and verifier 0.10.0.
+The minor bump from published 0.12.0 follows the existing policy: new decision records,
+changed verifier outcomes and snapshot/backend contracts require consumer adaptation.
+Additive Models and Skills alone would qualify for a patch; they are not the reason for this
+minor bump. StateMachine, RequestFlow, Approval, WorkQueue and composition ship together;
+see the [release notes](../release/notes/0.13.0.md).
+
+Consumer adaptations include:
 
 - **Complete parent snapshots (Core 017).** Fresh action evaluation establishes complete
   resulting-state validity and writes decision record 0.8 (`validation_profile`
@@ -49,21 +55,24 @@ contracts consumers must adapt to:
   bound state. An incomplete or invalid parent snapshot is `INVALID_INPUT` with
   `INVALID_STATE_SNAPSHOT` (an invalid parent is no longer reported as `INVALID_STATE`). Stores
   supply the snapshot themselves. Historical records keep their versions and replay unchanged.
-- **Verifier 0.9.0** corrects outcomes for previously uncovered invalid child states. Fresh
-  authenticated verification needs policies selected for verifier 0.9.0; existing policies and
-  historical authorizations are not upgraded implicitly.
+- **Verifier 0.10.0** includes 0.9.0's corrected invalid-child-state outcomes and fixes Approval
+  query congruence (Core #35). The unchanged reference Approval's local uniqueness
+  postconditions prove; Feature 506 C19 is no longer blocked. Other precision limits remain.
+  Fresh authenticated verification needs policies selected for verifier 0.10.0; existing
+  policies and historical authorizations are not upgraded implicitly.
 - **Store creation (Core 019).** `Backend.create` must recover an equivalent original creation
   as an idempotent no-op and refuse a different one; the backend conformance suite has 45
   cases. Custom backends must implement this.
 - **Command-profile query evidence (Core 023).** Actions that observe a query under the command
   profile now commit; query evidence in bundles is validated strictly.
 - `accepted_wire_ir` reports `0.4` … `0.8`, what fresh admission actually accepts (Core 020);
-  the legacy Python DSL emits `0.4`. Module bytes and semantic identities are unchanged.
+  command-free Python DSL retains its established profile, while public `@command`/`emit`
+  authoring selects the command profile. Existing reference identities remain unchanged.
 
 See the pinned core documentation for
-[invocation](https://github.com/kallistoteles/behavior-ir-core/blob/v0.13.0/docs/invocation.md),
-[persistence](https://github.com/kallistoteles/behavior-ir-core/blob/v0.13.0/docs/persistence.md)
-and [governance](https://github.com/kallistoteles/behavior-ir-core/blob/v0.13.0/docs/governance.md).
+[invocation](https://github.com/kallistoteles/behavior-ir-core/blob/v0.15.0/docs/invocation.md),
+[persistence](https://github.com/kallistoteles/behavior-ir-core/blob/v0.15.0/docs/persistence.md)
+and [governance](https://github.com/kallistoteles/behavior-ir-core/blob/v0.15.0/docs/governance.md).
 
 Release 0.12.0 aligns the package with Core Release 0.12.0 (ecosystem feature 500). Its minor
 bump reflects current document formats, verifier outcomes and governance refusal behavior:
@@ -87,8 +96,8 @@ bump reflects current document formats, verifier outcomes and governance refusal
 Core's historical `wire_ir` version-report array remains 0.1–0.7. The additional
 `accepted_wire_ir` array reports decoder support through 0.8. `records`, `read_records`,
 `command_stream` and `command_occurrence_domain` report the actual current formats/domains.
-The ecosystem public API manifest lists all accepted wire formats, including the explicit
-current profile; it does not imply the legacy Python DSL emits that profile.
+The ecosystem public API manifest lists all accepted wire formats. Command-free Python
+modules retain their established profile; declaring commands selects the current profile.
 
 See the pinned core documentation for
 [invocation](https://github.com/kallistoteles/behavior-ir-core/blob/v0.12.0/docs/invocation.md),

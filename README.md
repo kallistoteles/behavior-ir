@@ -9,11 +9,11 @@ skills, the models area and the installable package. The deterministic semantic 
 [Behavior Core](https://github.com/kallistoteles/behavior-ir-core) (`behavior-ir-core`). Core
 defines meaning; this repository defines ways to author and use it. The package is built
 against exactly one Core Release, named in [`core-release.json`](core-release.json) (core
-v0.13.0), and bundles it, so users install one thing.
+v0.15.0), and bundles it, so users install one thing.
 
 The semantics are specified and documented in the core:
-- [PRINCIPLES.md](https://github.com/kallistoteles/behavior-ir-core/blob/v0.13.0/PRINCIPLES.md): the first principles every feature is checked against;
-- [ARCHITECTURE.md](https://github.com/kallistoteles/behavior-ir-core/blob/v0.13.0/ARCHITECTURE.md): core, bindings and models, and where a new concept
+- [PRINCIPLES.md](https://github.com/kallistoteles/behavior-ir-core/blob/v0.15.0/PRINCIPLES.md): the first principles every feature is checked against;
+- [ARCHITECTURE.md](https://github.com/kallistoteles/behavior-ir-core/blob/v0.15.0/ARCHITECTURE.md): core, bindings and models, and where a new concept
   belongs;
 - `docs/persistence.md`, `docs/verification.md` and the specifications 001–007, 009, 010,
   012 and 013.
@@ -300,16 +300,21 @@ for evaluation errors. See `python -m examples.lab_reads.run`, `PRINCIPLES.md` (
 ## Behavior Models (feature 501)
 
 A Behavior Model is an authoring abstraction that lowers completely to ordinary Behavior IR; the
-core never learns it existed. The first model is `StateMachine`: it governs every change of one
-enum field and lowers each transition to an ordinary action `<machine>__<transition>`. The Rust
-crate `crates/behavior-models` is the single authority for models; Python only records what the
-author wrote. See [`models/README.md`](models/README.md) for the rules, the API and the worked
-example.
+core never learns it existed. The Rust crate `crates/behavior-models` is the single authority for resolution, lowering and ownership;
+Python records the author's declarations. Core remains the sole semantic authority.
 
-`RequestFlow` (feature 502) adds requests on top: a generated request entity, creation actions
-and an embedded `StateMachine` for its status, lowered by the unchanged StateMachine lowerer.
-Hand-written behavior can reference the request entity, because models declare their entities
-before any hand-written item is traced.
+| Model | Use |
+|---|---|
+| `StateMachine` | Govern changes of an entity's enum field; bind extra state for atomic effects |
+| `RequestFlow` | Generate persistent requests and creation actions with StateMachine status transitions |
+| `Approval` | Record immutable decisions about a subject and derive approved/rejected/pending outcomes |
+| `WorkQueue` | Govern claimable work, generation fencing, leases, recovery and terminal transitions |
+
+Compose Models in one `BehaviorModule(models=[...])`. Generated request, decision and work
+entity handles can be referenced by authored behavior; the final ownership pass covers every
+action. Bindings grant no additional authority. WorkQueue manages state transitions; the host
+schedules and executes work. See [`models/README.md`](models/README.md) and the executable
+[consumer Skills](skills/README.md) for patterns and evidence boundaries.
 
 ## Current invocation and durable commands (feature 500)
 
@@ -330,12 +335,13 @@ The invocation document uses typed `{entity, id}` bindings. For untrusted capabi
 pass host context explicitly with `invoke(..., context=...)`; the caller supplies neither
 state nor acting context. Passing raw JSON text preserves duplicate keys for the core's
 checked decoder. Canonical records, refusal order, semantic hashes and replay come from core.
-See the pinned [invocation contract](https://github.com/kallistoteles/behavior-ir-core/blob/v0.13.0/docs/invocation.md).
+See the pinned [invocation contract](https://github.com/kallistoteles/behavior-ir-core/blob/v0.15.0/docs/invocation.md).
 
-The existing Python DSL retains its legacy semantic profile. Current command modules are
-explicitly selected Wire IR 0.8 documents, admitted with `BehaviorModule.from_wire_json`.
-Their decision record 0.7 retains typed command candidates and keeps source diagnostics
-outside canonical identity. A Python command authoring DSL is separate work.
+The public Python DSL supports `@command` payload declarations and `emit(...)` in actions
+and Model capabilities. Passing `commands=[...]` to `BehaviorModule` selects the command
+profile; modules without commands retain their established profile. Current documents can
+also be admitted with `BehaviorModule.from_wire_json`. Fresh decision record 0.8 retains
+typed command candidates; source diagnostics stay outside canonical identity.
 
 For persistence, create a v2 genesis explicitly with `Store.genesis_v2_for(model, seed, policy)`.
 `store.invoke` and `store.invoke_intent` return an invocation record and an optional candidate
@@ -347,7 +353,7 @@ Reads, refusals and uncommitted candidates leave history unchanged.
 upper anchor and a limit on whole history events. Duplicate emissions retain multiplicity;
 each committed occurrence has a stable identity. Command-only commits advance history while
 preserving state content. Adapters consume these occurrences and own dispatch, retries and
-delivery status. See the pinned [command contract](https://github.com/kallistoteles/behavior-ir-core/blob/v0.13.0/docs/commands.md).
+delivery status. See the pinned [command contract](https://github.com/kallistoteles/behavior-ir-core/blob/v0.15.0/docs/commands.md).
 
 Trusted proof generation and authorization are available through the bundled
 `behavior governance verify`, `verify-migration` and `authorize` commands. Python can derive
@@ -357,7 +363,7 @@ supplied host context and the exact execution policy. Historical v1 policies req
 authorization refuse fresh action or migration writes with
 `TRUSTED_GOVERNANCE_UPGRADE_REQUIRED`. Validated state export and an explicit v2 genesis begin
 a new lineage; historical evidence retains its original trust level. See the pinned
-[governance contract](https://github.com/kallistoteles/behavior-ir-core/blob/v0.13.0/docs/governance.md).
+[governance contract](https://github.com/kallistoteles/behavior-ir-core/blob/v0.15.0/docs/governance.md).
 
 ## Using a release (feature 008)
 
@@ -394,9 +400,18 @@ behavior @ file:///path/to/behavior-0.13.0-cp313-abi3-manylinux_2_28_x86_64.whl 
   [`api/public-api.json`](api/public-api.json). The versioning policy is in
   [`docs/versioning.md`](docs/versioning.md).
 
-Maintainers cut releases with `scripts/release.sh X.Y.Z`: build, check, then tag locally.
-`scripts/release-check.sh` installs the wheel into a clean environment outside the repository
-and requires byte-identical results with the in-repo build.
+Behavior 0.13.0 bundles Core 0.15.0 and verifier 0.10.0. See the
+[release notes](release/notes/0.13.0.md) for consumer adaptations and verification improvements.
+
+Maintainers prepare and validate a committed candidate using the existing build and
+`scripts/release-check.sh` (full gates, installed examples and reproducibility), plus complete
+506/507 conformance. After merge and a separate explicit publication request, create the
+annotated `v0.13.0` tag on the approved commit and run `scripts/check-tag.sh` followed by
+`scripts/release.sh 0.13.0`. That script checks/builds and generates notes; it does not create
+tags. Pushing the tag starts the existing publishing workflow. Verify downloaded artifacts
+against checksums, the manifest and a repeat build. See the
+[release run guide](specs/509-ecosystem-release/quickstart.md). Previously published tags and
+artifacts remain immutable.
 
 ## Development
 

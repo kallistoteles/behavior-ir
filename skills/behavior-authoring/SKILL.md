@@ -1,6 +1,6 @@
 ---
 name: behavior-authoring
-description: Model a domain as Behavior with the Python binding (entities, field types, actions, creation and removal, references, queries over sets, entity constraints, module invariants, exact arithmetic, declared reads and projections). Use when writing or changing a behavior model.
+description: Model a domain as Behavior with the Python binding (entities, field types, actions, creation and removal, references, queries over sets, entity constraints, module invariants, exact arithmetic, declared reads, commands, StateMachine, RequestFlow, Approval, WorkQueue and composition). Use when writing or changing a behavior model.
 release: 0.13.0
 ---
 
@@ -10,10 +10,10 @@ This skill describes **Behavior release 0.13.0**. Use only what is described her
 release's public API (`behavior.versions()` reports the installed release). Everything is imported
 from the `behavior` package.
 
-The Python DSL described here retains its legacy semantic profile. Versioned documents from
-other authoring paths can be admitted explicitly through `BehaviorModule.from_wire_json`,
-including current Wire IR 0.8 command modules. A Python command authoring DSL remains separate
-work; importing a current document delegates its admission and meaning to core.
+This release bundles Core 0.15.0. Command-free modules retain their established profile.
+Public `@command` declarations and `emit` author command intents; `commands=[...]` selects the
+command profile. Other versioned documents can be admitted with `BehaviorModule.from_wire_json`.
+Admission, evaluation, hashing and replay always come from Core.
 
 > If the public Behavior API cannot express a requirement, record a semantic gap in
 > `SEMANTIC_GAPS.md` (format: skills/README.md). Do not work around it: no engine internals,
@@ -38,6 +38,98 @@ The Python code never runs at decision time. The engine evaluates the admitted m
   built inside behavior bodies". Keep a plain `Decimal("0")` as a module constant, and wrap it
   inside the body. A plain Python helper function that builds an expression is fine when it is
   called from a body.
+
+### Choosing and composing Models
+
+| Model | Use when | Generated public handles |
+|---|---|---|
+| StateMachine | One existing enum field needs controlled transitions | ordinary named transition actions, lowering receipts |
+| RequestFlow | Actors create persistent requests carrying typed payloads | `request_entity`; status transitions use StateMachine |
+| Approval | Immutable decisions determine an outcome about an existing subject | `decision_entity`, `choice`, `approved`, `rejected`, `pending`, counts |
+| WorkQueue | Work needs claims, lease generations, recovery and terminal transitions | `work_entity`, `status`, `terminal`, ready/expired `read_name` and `action_name` |
+
+These are authoring Models, lowered entirely to ordinary Core entities, actions, derived values,
+invariants and reads. They add no runtime semantics. Requester, assignee and actor ids carry no
+implicit authority: author guards explicitly. Approval does not mutate its subject or advance a
+RequestFlow automatically; a flow transition can guard on an Approval outcome.
+
+Compose through generated handles; declarations are resolved before authored expressions:
+
+```python
+# from examples/models_composition.py
+machine = StateMachine("ticket", subject=Ticket, state_field="status", entry_states={Status.OPEN})
+machine.transition("close", from_={Status.OPEN}, to=Status.DONE)
+flow = RequestFlow("request", actor=User, status=Status, payload={"title": str})
+flow.create("open", to=Status.OPEN, inputs={"title": str}, context={"actor": Id[User]},
+            values=lambda request_id, title, actor: {"requester": actor, "title": title})
+Request = flow.request_entity
+review = Approval("review", subject=Request, actor=User, approve_threshold=1, reject_threshold=1,
+                  open_when=lambda r: r.status == Status.OPEN,
+                  eligible=lambda r, who: who != r.requester)
+review.approve(actor=lambda decision_id, subject, actor: actor, context={"actor": Id[User]})
+review.reject(actor=lambda decision_id, subject, actor: actor, context={"actor": Id[User]})
+Decision = review.decision_entity
+flow.transition("finish", from_={Status.OPEN}, to=Status.DONE,
+                requires=[lambda r: review.approved(r)])
+model = BehaviorModule(entities=[User, Ticket], enums=[Status], models=[machine, flow, review])
+assert admit(model).ok
+assert Request.__name__ == "Request" and Decision.__name__ == "ReviewDecision"
+assert {r.model_kind for r in model.model_receipts} == {"state_machine", "request_flow", "approval"}
+assert all(r.behavior_hash == model.behavior_version for r in model.model_receipts)
+```
+
+The final ownership check covers every action, including actions from other Models. StateMachine
+owns its state field; RequestFlow owns request creation/requester; Approval decisions are
+immutable; WorkQueue owns work creation, lifecycle and control fields and its payload is
+immutable. A state binding grants no authority to write another Model's owned data.
+The executable composition example also attempts an ordinary decision mutation and requires
+`UNAUTHORIZED_DECISION_WRITE`.
+
+**Callable conventions differ.** SM/RF transitions receive subject, state bindings (sorted by
+name), inputs (sorted), then context (sorted), all positionally. RF creation receives request id,
+inputs, state bindings and context. Approval actor/values/requires/emits receive decision id,
+inputs, subject and context; `open_when` receives subject first, `eligible` subject then actor,
+with remaining arguments in the same order and only the leading arguments they declare.
+WorkQueue takes its subject positionally (enqueue has none) and all other parameters by name;
+only declared keywords are passed unless the callable accepts `**kwargs`.
+
+### Authoring work state
+
+The queue below explicitly allows enqueue from the trusted host and requires an active worker
+for claim. Declare all nine capabilities; the example disables recover/exhaust/cancel with
+explicit false `authorized` guards. Completion
+checks the binding matches the payload before changing the document atomically:
+
+```python
+# from examples/work_queue.py
+queue = WorkQueue("document_work", worker=Worker, time=Time, max_attempts=3,
+                  payload={"document": Id[Document]})
+# This example deliberately allows any trusted host to enqueue; authorization is explicit.
+queue.enqueue(authorized=lambda **_: True)
+queue.claim(eligible=lambda w, *, worker: any_(select(Worker), lambda x: (x.id == worker) & x.active))
+queue.renew()
+queue.retry()
+queue.fail()
+# All nine capabilities must be declared; these administrative operations are disabled here.
+queue.recover(authorized=lambda w: False)
+queue.exhaust(authorized=lambda w: False)
+queue.cancel(authorized=lambda w: False)
+queue.complete(state={"doc": Document},
+               requires=[lambda w, *, doc: doc.id == w.document],
+               effects=[lambda w, *, doc: set_(doc.processed, True)])
+Work = queue.work_entity
+model = BehaviorModule(entities=[Worker, Document], models=[queue])
+assert admit(model).ok
+assert Work.__name__ == "DocumentWork"
+assert queue.read_name("ready") == "document_work__ready"
+assert queue.read_name("expired") == "document_work__expired"
+assert queue.action_name("complete") == "document_work__complete"
+assert len(model.model_receipts) == 1 and model.model_receipts[0].model_kind == "work_queue"
+```
+
+The Model generates work validity and ready/expired reads. It provides no scheduler, FIFO,
+fairness or physical execution. Trusted time and migration continuity are host assumptions
+(behavior-application); generated reads do not grant authorization to change work.
 
 ## Entities and field types
 
@@ -128,6 +220,14 @@ def remove_customer(customer: Customer):
     requires(not_(referenced(customer.id)))
     remove(customer)
 ```
+
+### Durable command intents
+
+Declare a typed command payload with `@command`, include it in `BehaviorModule(commands=[...])`
+and use `emit` in an action or a Model's `emits` callable. An action emission records a durable
+intent atomically with commit; it does not call external code. Refusals and uncommitted
+candidates publish no occurrences. The WorkQueue Store example in behavior-application shows
+an emitted command, its committed stream and replay.
 
 ## Entity rules: constraints and invariants
 

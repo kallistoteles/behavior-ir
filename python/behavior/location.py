@@ -4,12 +4,9 @@ A location is either an absolute path to a real file or a marker for code withou
 `<string>` (`exec`), `<stdin>`, or `<module name>` for a class whose module has no file (such as
 `<__main__>` in a notebook or REPL). A marker is never resolved against the working directory (behavior-ir#19).
 
-Known limitation, until behavior-ir-core#31: Core relativizes a module's locations (without an
-explicit `root`) and an ad-hoc read's locations against the common directory of *all* their
-files, markers included. When markers and real files are mixed, the real paths therefore keep
-their checkout-dependent directories. Locations are outside semantics: no module hash changes,
-but such a module's wire JSON, and the `record_id` of such an ad-hoc read, depend on the
-checkout. Passing `root=` to `BehaviorModule` avoids it for modules.
+Core relativizes a module's locations (without an explicit `root`) and an ad-hoc read's
+locations against the common directory of their absolute paths only, keeping markers verbatim
+(Core 0.14.0, feature 027). Locations are outside semantics: no module hash depends on them.
 """
 
 from __future__ import annotations

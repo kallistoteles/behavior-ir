@@ -406,11 +406,11 @@ BEHAVIOR_FULL_PROPERTIES=1 scripts/conformance.sh 506 # full mode: the integrati
 scripts/conformance.sh 506 complete                   # full conformance: every check must pass
 ```
 
-Static verification of the reference module (C19) is currently **blocked** by
-behavior-ir-core#35. Core's verifier cannot discharge Approval's inductive preservation
-argument, so the uniqueness postcondition is inconclusive. The report records the exact solver
-result. The integration gate passes with that recorded blocker, but full conformance does not
-until the issue is resolved.
+Static verification of the reference module (C19) passes since Core 0.15.0 (feature 508):
+verifier 0.10.0 proves both uniqueness postconditions of the **unchanged** Approval module
+(BehaviorHash `sha256:a04ba37…531779`), which verifier 0.9.0 left inconclusive
+(behavior-ir-core#35). The readiness registry is empty, and full conformance is complete. A
+future Core limitation is reported as `blocked` only through an explicit readiness entry.
 
 Every expected outcome is stated by hand in `expected.json`
 (specs/506-e2e-conformance/contracts/reference-workflow.md), never copied from a run. Each

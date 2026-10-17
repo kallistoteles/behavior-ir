@@ -15,4 +15,4 @@ expect_used = "deny"
 # The only core dependency: the public API of the Core Release declared in core-release.json,
 # pinned by its exact commit (feature 011, FR-007, FR-017). scripts/check-core-pin.sh keeps the
 # three in step.
-behavior-engine = { git = "https://github.com/kallistoteles/behavior-ir-core", rev = "15094972191aa0ae79705df0397c551a18745399" }
+behavior-engine = { git = "https://github.com/kallistoteles/behavior-ir-core", rev = "6b93898a9375113f7a8946f23ab5535319b6f5d6" }

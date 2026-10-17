@@ -554,6 +554,12 @@ impl PyAuthorization {
     }
 }
 
+/// A canonicalization failure of a verification or governance artifact (Core 0.14, feature 021):
+/// the artifact has no canonical identity, so it is never returned.
+fn canonical_err(e: behavior_engine::canonical::CanonicalError) -> PyErr {
+    EngineError::new_err(("CANONICALIZATION_FAILED", e.to_string()))
+}
+
 fn governance_err(e: behavior_engine::verify::governance::GovernanceError) -> PyErr {
     EngineError::new_err(("INVALID_GOVERNANCE_INPUT", e.to_string()))
 }
@@ -666,7 +672,7 @@ impl EngineModule {
         )
         .map_err(governance_err)?;
         Ok(PyAuthorization {
-            json: a.to_json_string(),
+            json: a.to_json_string().map_err(canonical_err)?,
             data: a.value,
         })
     }
@@ -702,9 +708,10 @@ impl EngineModule {
             &profile,
             cache.as_deref().map(std::path::Path::new),
             &solver,
-        );
+        )
+        .map_err(canonical_err)?;
         Ok(PyAttestation {
-            json: a.to_json_string(),
+            json: a.to_json_string().map_err(canonical_err)?,
             data: a.value,
         })
     }
@@ -926,7 +933,7 @@ impl EngineMigration {
             &solver,
         );
         Ok(PyAttestation {
-            json: a.to_json_string(),
+            json: a.to_json_string().map_err(canonical_err)?,
             data: a.value,
         })
     }
@@ -959,7 +966,7 @@ impl EngineMigration {
         )
         .map_err(governance_err)?;
         Ok(PyAuthorization {
-            json: a.to_json_string(),
+            json: a.to_json_string().map_err(canonical_err)?,
             data: a.value,
         })
     }

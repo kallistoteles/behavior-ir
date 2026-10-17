@@ -21,7 +21,7 @@ Both are written from data-model §1. Neither reads the other's output.
 
 All of these are Core's or the model authority's canonical hashes. They are compared exactly,
 as canonical JSON. Excluded are:
-- source locations, which are outside semantics and checkout-dependent until core#31;
+- source locations, which are outside semantics and checkout-dependent until core#31 (fixed in Core 0.14.0, adopted by feature 508);
 - display names and descriptions, which are outside semantics.
 
 Nothing semantically meaningful is excluded: every declaration, action, derived item, read and

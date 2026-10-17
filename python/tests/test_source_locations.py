@@ -2,12 +2,10 @@
 at its definition, and code without a file carries a marker, never a path under the working
 directory.
 
-Locations are outside semantics, so no module hash depends on them. Core relativizes a
-module's locations (without an explicit `root`) and an ad-hoc read's locations against the
-common directory of all their files, markers included. When markers and real files are mixed,
-the real paths keep checkout-dependent directories. That limitation belongs to Core
-(behavior-ir-core#31); the tests for it are strict expected failures, so they turn into
-failures to remove once the pinned Core release fixes it.
+Locations are outside semantics, so no module hash depends on them. Since Core 0.14.0
+(feature 027, fixing behavior-ir-core#31), Core relativizes locations against the common
+directory of the absolute paths only and keeps markers verbatim, so modules and ad-hoc reads
+that mix markers and real files are checkout-independent.
 """
 
 from __future__ import annotations
@@ -25,12 +23,6 @@ import pytest
 from behavior import InMemoryBackend, Store
 
 EXAMPLE = Path(__file__).resolve().parents[2] / "models" / "examples" / "state_machine" / "machine.py"
-
-CORE_31 = pytest.mark.xfail(
-    strict=True,
-    reason="behavior-ir-core#31: Core's common directory counts markers next to real files",
-)
-
 
 def files(wire: str) -> set[str]:
     """Every `loc.file` in a module's wire JSON."""
@@ -332,14 +324,12 @@ def test_an_explicit_root_makes_mixed_modules_checkout_independent(tmp_path: Pat
     assert files(wires[0]) == {"example/machine.py", "<machine>"}
 
 
-@CORE_31
 def test_mixed_module_locations_are_checkout_independent(tmp_path: Path) -> None:
     """An `exec`'d machine (`<string>`) next to a real file, without a root."""
     wires = [m.to_wire_json() for m in exec_machines(tmp_path)]
     assert wires[0] == wires[1]
 
 
-@CORE_31
 def test_a_mixed_ad_hoc_read_has_one_record_identity(
         tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """An ad-hoc read run through `exec` (`<string>`) that calls a helper in a real file."""
@@ -368,7 +358,6 @@ def projected():
 """
 
 
-@CORE_31
 def test_a_real_read_projecting_an_exec_query_is_checkout_independent(
         tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """A real-file read whose projected query comes from an `exec`-defined helper."""

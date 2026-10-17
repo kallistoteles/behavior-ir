@@ -39,7 +39,7 @@ integration gate pass, with the blocker recorded, but full conformance stays not
 the blocking issue is resolved or the requirement is formally revised.
 
 A readiness entry with `"run": true` does not stop its checks from running. The check reports
-`blocked` only when its exact result is the documented limitation (C19: the uniqueness
+`blocked` only when its exact result is the documented limitation (until Core 0.15.0, C19: the uniqueness
 postcondition of the two decision actions, inconclusive with `counterexample_not_reproduced`).
 Any other result keeps its own status, so a new finding can never hide behind the blocker.
 

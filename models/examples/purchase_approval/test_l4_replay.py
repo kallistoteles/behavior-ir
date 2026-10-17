@@ -139,18 +139,14 @@ def test_c14_a_tampered_stored_transition_fails_data_replay() -> None:
     assert not replay_data(store).ok
 
 
-#: The documented limitation of behavior-ir-core#35: exactly the uniqueness postcondition of
-#: the two decision actions, inconclusive because its counterexample is not reproduced.
+#: The original, unchanged Approval reference module (feature 506). Core 0.15.0 (verifier 0.10.0,
+#: feature 028, fixing behavior-ir-core#35) proves exactly this module; C19 passes only for it
+#: (feature 508, Q5).
+REFERENCE_MODULE = "sha256:a04ba37ab89e051e448abb760bd754bbb0955125fd22ba8da927b8529a531779"
+#: The uniqueness postcondition of the two decision actions, which verifier 0.9.0 left
+#: inconclusive and verifier 0.10.0 proves.
 _UNIQUENESS = ("count(where(select(PurchaseRequestApprovalDecision), d, d.subject == subject.id "
                "and d.actor == actor)) <= 1")
-
-
-def _is_known_limitation(findings: list[dict[str, Any]]) -> bool:
-    actions = sorted(
-        f["explanation"].split(" in ", 1)[1].split(" is ", 1)[0] for f in findings
-        if _UNIQUENESS in f["explanation"] and "counterexample_not_reproduced" in f["explanation"])
-    return len(actions) == len(findings) and actions == [
-        "purchase_request_approval__approve", "purchase_request_approval__reject"]
 
 
 @pytest.mark.scenario("C19", level=4)
@@ -184,13 +180,21 @@ def test_c19_static_verification_of_the_reference_module() -> None:
             f"solver {attestation.data.get('solver_version')}, rlimit {profile.rlimit}")
     if attestation.verified:
         assert not attestation.findings, attestation.findings
+        # The proof is of the unchanged module, and covers both uniqueness postconditions.
+        assert model.behavior_version == REFERENCE_MODULE, model.behavior_version
+        uniqueness = sorted(
+            (c["action"]["name"], c.get("outcome")) for c in attestation.checks
+            if c.get("kind") == "postcondition" and _UNIQUENESS in str(c.get("subject")))
+        assert uniqueness == [("purchase_request_approval__approve", "proven"),
+                              ("purchase_request_approval__reject", "proven")], uniqueness
         return
     kinds = {f.get("kind") for f in attestation.findings}
     if kinds == {"inconclusive"}:
         # The verifier found no confirmed violation and no proof: neither a pass nor a failure.
+        # A Core limitation is reported as blocked only through an explicit readiness entry.
         cited = "; ".join(f["explanation"] for f in attestation.findings)
         entry = readiness_entry("C19")
-        if entry is not None and _is_known_limitation(attestation.findings):
+        if entry is not None:
             raise Blocked(f"{entry['issue']}: {meta}: {cited}", entry["issue"])
         raise Inconclusive(f"{meta}: {cited}", "core (verifier)")
     raise AssertionError(f"{meta}: {attestation.result}: {attestation.findings}")

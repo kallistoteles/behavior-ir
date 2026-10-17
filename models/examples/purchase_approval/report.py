@@ -17,20 +17,11 @@ DECLARED = (
     "VO-001", "VO-005", "FR-004", "FR-009", "FR-018",
 )
 
-#: Open upstream issues and the scenarios they block (research R10). An empty `affects` is the
-#: analysed result, recorded so that the report shows it. An entry with `"run": true` does not
-#: stop the check from running: the check itself raises `Blocked` with its exact result when the
-#: result is the documented limitation, and any other result keeps its own status.
-READINESS: list[dict[str, Any]] = [
-    {"issue": "behavior-ir-core#35", "affects": ["C19"], "run": True,
-     "reason": "the verifier cannot discharge Approval's inductive preservation argument: the "
-               "uniqueness postcondition of the decision actions is inconclusive "
-               "(counterexample_not_reproduced)"},
-    {"issue": "behavior-ir-core#29", "affects": [],
-     "reason": "506 runs run_conformance, not Core's binding conformance fixtures"},
-    {"issue": "behavior-ir-core#31", "affects": [],
-     "reason": "506 compares identities and records, which carry no source locations"},
-]
+#: Open upstream issues and the scenarios they block (research R10). An entry with `"run": true`
+#: does not stop the check from running: the check raises `Blocked` with its exact result, and
+#: any other result keeps its own status. Empty since Core 0.15.0 (feature 508): #29 and #31 were
+#: fixed in 0.14.0 and #35 (C19) in 0.15.0.
+READINESS: list[dict[str, Any]] = []
 
 configure(report="506-report.json", declared=DECLARED, readiness=READINESS)
 

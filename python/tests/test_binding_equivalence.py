@@ -88,53 +88,26 @@ def test_the_binding_builds_the_canonical_module(domain: str, tmp_path: Path) ->
     assert json.loads(ours.stdout) == json.loads(theirs.stdout)
 
 
-# Rows the core's request fixtures only imply (an incoming reference) that a complete parent
-# snapshot must contain explicitly.
-EXTRA_ROWS: dict[tuple[str, str], list[tuple[str, dict[str, Any]]]] = {
-    ("accounts", "refused"): [("Account", {"id": "a1", "owner": "c1", "balance": "1.00"})],
-}
-
-
-def complete(domain: str, name: str, request: dict[str, Any]) -> dict[str, Any]:
-    """The request with a complete parent snapshot (Core 017): every declared entity type, with
-    the request's own universe rows, its bound state rows and the rows in EXTRA_ROWS. The core's
-    0.13.0 binding fixtures predate the requirement; this is the test's explicit world, not an
-    inference the binding makes."""
-    wire = json.loads((BINDINGS / f"{domain}.json").read_text())
-    action = next(a for a in wire["actions"] if a["name"] == request["action"])
-    members: dict[str, dict[str, Any]] = {e["name"]: {} for e in wire["entities"]}
-    facts = dict(request.get("facts") or {})
-    for section in facts.pop("universe", []):
-        members[section["entity"]].update({m["id"]: m for m in section["members"]})
-    for param in action["params"]:
-        if param.get("role") == "state":
-            row = request["state"][param["name"]]
-            members[param["type"]["name"]][row["id"]] = row
-    for entity, row in EXTRA_ROWS.get((domain, name), []):
-        members[entity][row["id"]] = row
-    facts["universe"] = [{"entity": e, "members": list(rows.values())}
-                         for e, rows in members.items()]
-    return {**request, "facts": facts}
+# Core 0.14.0 (feature 026, fixing behavior-ir-core#29) publishes complete current requests and
+# independently authored complete expectations. The binding evaluates the unchanged request
+# documents directly: no world builder, no snapshot completion.
+CURRENT = BINDINGS / "current"
 
 
 @pytest.mark.parametrize("domain", DOMAINS)
-def test_the_binding_decides_as_the_canonical_module(domain: str, tmp_path: Path) -> None:
-    requests = json.loads((BINDINGS / f"{domain}.request.json").read_text())
-    assert set(requests) == {"allowed", "refused"}
+def test_the_binding_decides_as_the_published_expectations(domain: str) -> None:
     results = set()
-    for name, fixture_request in requests.items():
-        request = complete(domain, name, fixture_request)
-        path = tmp_path / f"{name}.json"
-        path.write_text(json.dumps(request))
-        wire_record = cli("eval", str(BINDINGS / f"{domain}.json"), str(path)).stdout
+    for name in ("allowed", "refused"):
+        request = json.loads((CURRENT / "requests" / f"{domain}.{name}.json").read_text())
+        expected = json.loads((CURRENT / "expectations" / f"{domain}.{name}.json").read_text())
         decision = evaluate(
             model_of(domain), request["action"], state=request["state"],
             input=request.get("input"), context=request.get("context"),
             data_version=request["data_version"], facts=request["facts"],
             git_revision=request.get("git_revision"),
         )
-        assert without_locations(json.loads(decision.record_json)) == without_locations(
-            json.loads(wire_record)), name
+        # Exact recursive equality, as the fixtures require: no field is stripped.
+        assert json.loads(decision.record_json) == expected, (domain, name)
         results.add(decision.result == "ALLOW")
     assert results == {True, False}, "one allowed and one refused decision"
 

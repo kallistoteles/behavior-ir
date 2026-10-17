@@ -261,9 +261,9 @@ def test_cli_evidence_requires_independent_context_and_attachment_preserves_cand
     assert callable(getattr(bh, "with_trusted_evidence", None)), "evidence attachment is native"
     assert callable(getattr(bh.Store, "commit_with_context", None)), "live context is explicit"
     module = receipt_model()
-    # Fresh authenticated verification selects verifier-0.9.0 policies explicitly (Core 0.13.0).
-    policy_path = FIXTURES / "governance-v2/policy-verifier-0.9.json"
-    evidence_policy_path = FIXTURES / "governance-v2/evidence-policy-verifier-0.9.json"
+    # Fresh authenticated verification selects verifier-0.10.0 policies explicitly (Core 0.15.0).
+    policy_path = FIXTURES / "governance-v2/policy-verifier-0.10.json"
+    evidence_policy_path = FIXTURES / "governance-v2/evidence-policy-verifier-0.10.json"
     context_path = FIXTURES / "governance-v2/context.json"
     genesis = bh.Store.genesis_v2_for(module, [], evidence_policy_path.read_text())
     store = bh.Store.create(bh.InMemoryBackend(), module, genesis)

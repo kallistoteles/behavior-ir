@@ -11,7 +11,7 @@ use serde_json::{Map, Value, json};
 
 use crate::state_machine::input::{DisplayMeta, SourceLoc};
 use crate::state_machine::resolve::ResolvedStateMachine;
-use crate::{CORE_RELEASE, STATE_MACHINE_LOWERER_VERSION, STATE_MACHINE_SEMANTIC_VERSION};
+use crate::{CORE_RELEASE, STATE_MACHINE_LOWERER_VERSION};
 
 /// A lowering receipt (`behavior.model_receipt.v1`), as canonical JSON.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -175,7 +175,7 @@ pub(crate) fn receipt(
         "format": "behavior.model_receipt.v1",
         "model_hash": model_hash,
         "model_kind": "state_machine",
-        "model_semantic_version": STATE_MACHINE_SEMANTIC_VERSION,
+        "model_semantic_version": m.semantic_version(),
         "lowerer_version": STATE_MACHINE_LOWERER_VERSION,
         "core_release": {"version": CORE_RELEASE.version, "commit": CORE_RELEASE.commit},
         "behavior_hash": module.behavior_version(),

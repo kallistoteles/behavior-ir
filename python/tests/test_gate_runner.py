@@ -11,7 +11,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def _run(tmp_path: Path, *, fail: str = "", pytest_mode: str = "stub") -> subprocess.CompletedProcess[str]:
+def _run(tmp_path: Path, *, fail: str = "", pytest_mode: str = "stub",
+         full: bool = False) -> subprocess.CompletedProcess[str]:
     scripts = tmp_path / "scripts"
     scripts.mkdir()
     shutil.copy2(ROOT / "scripts/gates.sh", scripts / "gates.sh")
@@ -50,6 +51,7 @@ if name == "python" and args[:2] == ["-m", "pytest"]:
         ["bash", str(scripts / "gates.sh")], cwd=tmp_path, text=True, capture_output=True,
         env={**os.environ, "PATH": f"{tmp_path / 'bin'}:{os.environ['PATH']}",
              "GATE_TRACE": str(tmp_path / "trace"), "FAIL_GATE": fail,
+             "BEHAVIOR_FULL_PROPERTIES": "1" if full else "",
              "PYTEST_MODE": pytest_mode},
     )
 
@@ -69,12 +71,21 @@ def test_gate_order_is_deterministic(tmp_path: Path) -> None:
         "cargo fmt --all --check", "cargo clippy -q --workspace --all-targets -- -D warnings",
         "cargo test -q -p behavior-models",
         "maturin develop -q",
-        "python -m pytest -q python/tests models --ignore=models/examples/purchase_approval",
-        "conformance.sh", "mypy",
+        "python -m pytest -q python/tests models --ignore=models/examples/purchase_approval "
+        "--ignore=models/examples/work_queue",
+        "conformance.sh 506", "conformance.sh 507 quick", "mypy",
         "python3 scripts/check-models-compat.py",
         "determinism-check.sh", "python3 scripts/check-ownership.py", "check-terms.sh",
         "check-workflows.sh", "test_stub.sh",
     ]
+
+
+def test_full_gates_also_enforce_the_quick_runtime_budget(tmp_path: Path) -> None:
+    result = _run(tmp_path, full=True)
+    assert result.returncode == 0, result.stderr
+    trace = (tmp_path / "trace").read_text().splitlines()
+    assert "conformance.sh 507 quick" in trace
+    assert "conformance.sh 507 full" in trace
 
 
 def test_a_failed_gate_names_the_failure_and_stops(tmp_path: Path) -> None:

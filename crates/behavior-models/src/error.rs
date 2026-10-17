@@ -157,6 +157,45 @@ pub enum ModelError {
         entity: String,
         owner: String,
     },
+    // --- WorkQueue (feature 507, research R4, R5) -----------------------------------------------
+    #[error("{model_ref}: max_attempts must be between 1 and i64::MAX - 1, found {value}")]
+    InvalidMaxAttempts { model_ref: String, value: i64 },
+    #[error("{model_ref}: the time type `{time}` must be a nominal declared with `order`")]
+    TimeNotOrdered { model_ref: String, time: String },
+    #[error("{model_ref}: the capability needs an authored authorization guard")]
+    MissingAuthorization { model_ref: String },
+    #[error("{model_ref}: `{name}` is a parameter name the work queue generates")]
+    ReservedParameter { model_ref: String, name: String },
+    #[error("{model_ref}: `{name}` is a field the work queue generates")]
+    PayloadFieldReserved { model_ref: String, name: String },
+    #[error("{model_ref}: the capability `{capability}` is not declared")]
+    MissingCapability {
+        model_ref: String,
+        capability: String,
+    },
+    #[error("{model_ref}: `{name}` binds the queue's own work entity")]
+    WorkItemBinding { model_ref: String, name: String },
+    #[error("{model_ref}: an authored effect writes `{field}` of the work item")]
+    AuthoredWorkEffect { model_ref: String, field: String },
+    #[error("`{action}` creates `{entity}`, which only work queue `{owner}` may create")]
+    UnauthorizedWorkCreation {
+        action: String,
+        entity: String,
+        owner: String,
+    },
+    #[error("`{action}` writes `{entity}.{field}`, which work queue `{owner}` owns")]
+    UnauthorizedWorkWrite {
+        action: String,
+        entity: String,
+        field: String,
+        owner: String,
+    },
+    #[error("`{action}` removes `{entity}`: work items of `{owner}` are never removed")]
+    UnauthorizedWorkRemoval {
+        action: String,
+        entity: String,
+        owner: String,
+    },
 }
 
 impl ModelError {
@@ -200,6 +239,17 @@ impl ModelError {
             ModelError::UnauthorizedDecisionCreation { .. } => "UNAUTHORIZED_DECISION_CREATION",
             ModelError::UnauthorizedDecisionWrite { .. } => "UNAUTHORIZED_DECISION_WRITE",
             ModelError::UnauthorizedDecisionRemoval { .. } => "UNAUTHORIZED_DECISION_REMOVAL",
+            ModelError::InvalidMaxAttempts { .. } => "INVALID_MAX_ATTEMPTS",
+            ModelError::TimeNotOrdered { .. } => "TIME_NOT_ORDERED",
+            ModelError::MissingAuthorization { .. } => "MISSING_AUTHORIZATION",
+            ModelError::ReservedParameter { .. } => "RESERVED_PARAMETER",
+            ModelError::PayloadFieldReserved { .. } => "PAYLOAD_FIELD_RESERVED",
+            ModelError::MissingCapability { .. } => "MISSING_CAPABILITY",
+            ModelError::WorkItemBinding { .. } => "WORK_ITEM_BINDING",
+            ModelError::AuthoredWorkEffect { .. } => "AUTHORED_WORK_EFFECT",
+            ModelError::UnauthorizedWorkCreation { .. } => "UNAUTHORIZED_WORK_CREATION",
+            ModelError::UnauthorizedWorkWrite { .. } => "UNAUTHORIZED_WORK_WRITE",
+            ModelError::UnauthorizedWorkRemoval { .. } => "UNAUTHORIZED_WORK_REMOVAL",
         }
     }
 
@@ -244,6 +294,18 @@ impl ModelError {
             ModelError::UnauthorizedDecisionCreation { .. }
             | ModelError::UnauthorizedDecisionWrite { .. }
             | ModelError::UnauthorizedDecisionRemoval { .. } => Stage::Compose,
+            ModelError::InvalidMaxAttempts { .. }
+            | ModelError::TimeNotOrdered { .. }
+            | ModelError::ReservedParameter { .. }
+            | ModelError::PayloadFieldReserved { .. }
+            | ModelError::MissingCapability { .. }
+            | ModelError::WorkItemBinding { .. } => Stage::Resolve,
+            ModelError::MissingAuthorization { .. } | ModelError::AuthoredWorkEffect { .. } => {
+                Stage::Lower
+            }
+            ModelError::UnauthorizedWorkCreation { .. }
+            | ModelError::UnauthorizedWorkWrite { .. }
+            | ModelError::UnauthorizedWorkRemoval { .. } => Stage::Compose,
         }
     }
 
@@ -368,6 +430,41 @@ impl ModelError {
                 owner,
             } => json!({"action": action, "entity": entity, "owner": owner}),
             ModelError::UnauthorizedDecisionWrite {
+                action,
+                entity,
+                field,
+                owner,
+            } => json!({"action": action, "entity": entity, "field": field, "owner": owner}),
+            ModelError::InvalidMaxAttempts { model_ref, value } => {
+                json!({"model_ref": model_ref, "value": value})
+            }
+            ModelError::TimeNotOrdered { model_ref, time } => {
+                json!({"model_ref": model_ref, "time": time})
+            }
+            ModelError::MissingAuthorization { model_ref } => json!({"model_ref": model_ref}),
+            ModelError::ReservedParameter { model_ref, name }
+            | ModelError::PayloadFieldReserved { model_ref, name }
+            | ModelError::WorkItemBinding { model_ref, name } => {
+                json!({"model_ref": model_ref, "name": name})
+            }
+            ModelError::MissingCapability {
+                model_ref,
+                capability,
+            } => json!({"model_ref": model_ref, "capability": capability}),
+            ModelError::AuthoredWorkEffect { model_ref, field } => {
+                json!({"model_ref": model_ref, "field": field})
+            }
+            ModelError::UnauthorizedWorkCreation {
+                action,
+                entity,
+                owner,
+            }
+            | ModelError::UnauthorizedWorkRemoval {
+                action,
+                entity,
+                owner,
+            } => json!({"action": action, "entity": entity, "owner": owner}),
+            ModelError::UnauthorizedWorkWrite {
                 action,
                 entity,
                 field,

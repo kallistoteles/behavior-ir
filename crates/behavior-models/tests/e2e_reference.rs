@@ -113,6 +113,7 @@ fn transition(
         to_state: to.into(),
         inputs,
         context,
+        state: vec![],
         display: DisplayMeta::default(),
         source: None,
     }

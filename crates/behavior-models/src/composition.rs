@@ -675,8 +675,17 @@ pub(crate) fn final_pass(
                 continue;
             };
             let key = (entity, effect.field().to_string());
+            // The exemption covers exactly the owner's generated action writing through its
+            // subject parameter (feature 507, research R3 requirement 4): a state binding of the
+            // subject type never inherits the machine's authority.
+            let exempt = |owner: &String| {
+                generated_by.get(name.as_str()) == Some(&owner.as_str())
+                    && machines
+                        .get(owner.as_str())
+                        .is_some_and(|m| m.subject_param == effect.param())
+            };
             if let Some(owner) = ownership.get(&key)
-                && generated_by.get(name.as_str()) != Some(&owner.as_str())
+                && !exempt(owner)
             {
                 errors.push(ModelError::UnauthorizedOwnedFieldWrite {
                     action: name.clone(),

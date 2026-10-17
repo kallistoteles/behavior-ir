@@ -261,7 +261,8 @@ class BehaviorModule:
         if errors:
             raise ModelBuildError(list(errors))
         by_id = {
-            getattr(m, "flow_id", None) or getattr(m, "approval_id", None): m for m in models
+            getattr(m, "flow_id", None) or getattr(m, "approval_id", None)
+            or getattr(m, "queue_id", None): m for m in models
         }
         for schema in schemas:
             by_id[schema["model_id"]].bind_schema(schema)

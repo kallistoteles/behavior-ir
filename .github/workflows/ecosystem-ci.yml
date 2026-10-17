@@ -43,8 +43,8 @@ jobs:
       - run: nix develop -c scripts/gates.sh
         env:
           BEHAVIOR_FULL_PROPERTIES: "1"
-      # The feature-506 conformance report (target/conformance/506-report.json), also when a
-      # gate failed: the report says which check and why.
+      # The conformance reports of features 506 and 507 (target/conformance/506-report.json and
+      # 507-report.json), also when a gate failed: the reports say which check and why.
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:

@@ -37,12 +37,22 @@ use crate::request_flow::resolve::{ResolvedRequestFlow, resolve as resolve_flow}
 use crate::state_machine::input::{FragmentSource, ModelSpec};
 use crate::state_machine::lower::lower_transition;
 use crate::state_machine::resolve::resolve as resolve_machine;
+use crate::work_queue::input::WorkQueueSpec;
+use crate::work_queue::lower::{QUEUE_RULE, QueueSource, lower_enqueue};
+use crate::work_queue::resolve::ResolvedWorkQueue;
 
 /// A supplied model of any kind.
 pub enum AnyModel<'a> {
     StateMachine(ModelSpec<'a>),
     RequestFlow(RequestFlowSpec<'a>),
     Approval(ApprovalSpec<'a>),
+    WorkQueue(WorkQueueSpec<'a>),
+}
+
+impl<'a> From<WorkQueueSpec<'a>> for AnyModel<'a> {
+    fn from(m: WorkQueueSpec<'a>) -> Self {
+        AnyModel::WorkQueue(m)
+    }
 }
 
 impl<'a> From<ModelSpec<'a>> for AnyModel<'a> {
@@ -69,6 +79,7 @@ impl AnyModel<'_> {
             AnyModel::StateMachine(m) => &m.input.model_id,
             AnyModel::RequestFlow(f) => &f.input.flow_id,
             AnyModel::Approval(a) => &a.input.approval_id,
+            AnyModel::WorkQueue(q) => &q.input.queue_id,
         }
     }
 
@@ -79,6 +90,7 @@ impl AnyModel<'_> {
             AnyModel::RequestFlow(f) => crate::request_flow::resolve::input_schema(&f.input)
                 .map(|s| vec![Contribution::Entity(s)]),
             AnyModel::Approval(a) => crate::approval::resolve::input_contributions(&a.input),
+            AnyModel::WorkQueue(q) => crate::work_queue::resolve::input_contributions(&q.input),
         }
     }
 
@@ -92,6 +104,7 @@ impl AnyModel<'_> {
             AnyModel::RequestFlow(f) => crate::request_flow::decls::decls(&f.input, module)
                 .map(|s| vec![Contribution::Entity(s)]),
             AnyModel::Approval(a) => crate::approval::resolve::decls(&a.input, module),
+            AnyModel::WorkQueue(q) => crate::work_queue::resolve::decls(&q.input, module),
         }
     }
 
@@ -117,6 +130,7 @@ impl AnyModel<'_> {
     fn definitions(&self) -> Vec<DefinitionSpec> {
         match self {
             AnyModel::Approval(a) => crate::approval::decls::definitions(&a.input),
+            AnyModel::WorkQueue(q) => crate::work_queue::decls::definitions(&q.input),
             AnyModel::StateMachine(_) | AnyModel::RequestFlow(_) => Vec::new(),
         }
     }
@@ -311,6 +325,7 @@ enum Resolved<'a> {
     ),
     Flow(Box<ResolvedRequestFlow>, RequestFlowSpec<'a>),
     Approval(Box<ResolvedApproval>, ApprovalSpec<'a>),
+    Queue(Box<ResolvedWorkQueue>, WorkQueueSpec<'a>),
 }
 
 /// P4: lowers and composes every supplied model (lowering contract §4, extended by feature 502).
@@ -384,6 +399,29 @@ pub fn compose_models(
                         Err(es) => errors.extend(es),
                     }
                 }
+                AnyModel::WorkQueue(spec) => {
+                    // Laws D4 and D4′, as for approvals.
+                    let before = errors.len();
+                    match crate::work_queue::resolve::decls(&spec.input, &base) {
+                        Ok(cs) => errors.extend(
+                            cs.iter()
+                                .filter_map(|c| check_declared_contribution(&base, c)),
+                        ),
+                        Err(es) => errors.extend(es),
+                    }
+                    errors.extend(
+                        crate::work_queue::decls::definitions(&spec.input)
+                            .iter()
+                            .filter_map(|d| check_definition(&base, d)),
+                    );
+                    if errors.len() > before {
+                        continue;
+                    }
+                    match crate::work_queue::resolve::resolve(&spec.input, &base) {
+                        Ok(q) => resolved.push(Resolved::Queue(Box::new(q), spec)),
+                        Err(es) => errors.extend(es),
+                    }
+                }
             }
         }
     }
@@ -392,6 +430,7 @@ pub fn compose_models(
         resolved.iter().filter_map(|r| match r {
             Resolved::Machine(m, _) => Some(&**m),
             Resolved::Flow(f, _) => Some(&f.machine),
+            Resolved::Queue(q, _) => Some(&q.machine),
             Resolved::Approval(..) => None,
         }),
         &mut errors,
@@ -404,6 +443,7 @@ pub fn compose_models(
     let mut composed = Vec::new();
     let mut flows = Vec::new();
     let mut approvals = Vec::new();
+    let mut queues = Vec::new();
     for r in resolved {
         match r {
             Resolved::Machine(machine, mut spec) => {
@@ -448,6 +488,41 @@ pub fn compose_models(
                 }
                 approvals.push(*approval);
             }
+            Resolved::Queue(queue, mut spec) => {
+                if let Err(es) = lower_enqueue(builder, &queue, spec.fragments.as_mut()) {
+                    errors.extend(es);
+                    if builder.finish(None).is_err() {
+                        return Err(sorted_unique(errors));
+                    }
+                }
+                let mut source = QueueSource {
+                    queue: &queue,
+                    inner: spec.fragments.as_mut(),
+                    errors: Vec::new(),
+                };
+                let mut machine_errors = Vec::new();
+                let generated =
+                    lower_machine(builder, &queue.machine, &mut source, &mut machine_errors);
+                // A typed WorkQueue error replaces the fragment error that stopped the machine.
+                errors.extend(machine_errors.into_iter().filter(|e| {
+                    !matches!(e, ModelError::FragmentInvalid { core_code, .. } if core_code == QUEUE_RULE)
+                }));
+                errors.extend(source.errors);
+                if errors.is_empty() {
+                    if let Err(e) = crate::work_queue::decls::add_invariant(builder, &queue) {
+                        errors.push(e);
+                    }
+                    if let Err(e) = crate::work_queue::decls::add_reads(builder, &queue) {
+                        errors.push(e);
+                    }
+                }
+                composed.push(Composed {
+                    machine: queue.machine.clone(),
+                    generated,
+                    supplied: false,
+                });
+                queues.push(*queue);
+            }
         }
     }
     if !errors.is_empty() {
@@ -462,6 +537,7 @@ pub fn compose_models(
     let mut errors = final_pass(&module, &composed, &ownership);
     errors.extend(crate::request_flow::ownership::check(&module, &flows));
     errors.extend(crate::approval::ownership::check(&module, &approvals));
+    errors.extend(crate::work_queue::ownership::check(&module, &queues));
     if !errors.is_empty() {
         return Err(sorted_unique(errors));
     }
@@ -473,6 +549,10 @@ pub fn compose_models(
     for a in &approvals {
         receipts
             .push(crate::approval::identity::receipt_ap(a, &module, root).map_err(|e| vec![e])?);
+    }
+    for q in &queues {
+        receipts
+            .push(crate::work_queue::identity::receipt_wq(q, &module, root).map_err(|e| vec![e])?);
     }
     receipts.sort_by_key(|r| receipt_id(&r.0));
     Ok(BuildOutput {
@@ -488,6 +568,7 @@ fn receipt_id(r: &serde_json::Value) -> String {
         .as_str()
         .or_else(|| m["flow_id"].as_str())
         .or_else(|| m["approval_id"].as_str())
+        .or_else(|| m["queue_id"].as_str())
         .unwrap_or_default()
         .to_string()
 }

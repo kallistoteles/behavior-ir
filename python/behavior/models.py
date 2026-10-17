@@ -160,6 +160,7 @@ class StateMachine:
         to: Any,
         inputs: Mapping[str, Any] | Iterable[tuple[str, Any]] | None = None,
         context: Mapping[str, Any] | Iterable[tuple[str, Any]] | None = None,
+        state: Mapping[str, type] | Iterable[tuple[str, type]] | None = None,
         requires: Iterable[Fragment] = (),
         effects: Iterable[Fragment] = (),
         ensures: Iterable[Fragment] = (),
@@ -169,21 +170,33 @@ class StateMachine:
     ) -> StateMachine:
         """Records a transition. `requires` and `ensures` are callables returning a condition;
         `effects` are callables that call `set_(...)`; `emits` are callables returning
-        `emit(Command, ...)`. Each callable receives the subject, then the inputs, then the
-        context parameters, positionally."""
+        `emit(Command, ...)`. Each callable receives the subject, then the state bindings, the
+        inputs and the context parameters, each group sorted by name, positionally.
+
+        `state` binds further entities (feature 507) that the transition may change atomically
+        with the status. A binding never grants authority over a field another model owns."""
+        loc = caller_loc()
+        bindings = []
+        items = state.items() if isinstance(state, Mapping) else (state or [])
+        for n, cls in items:
+            d = entity_decl(cls)
+            if d is None:
+                raise BehaviorDefinitionError(f"{cls!r} is not an @entity class", *loc)
+            bindings.append((str(n), d))
         self._transitions.append({
             "transition_id": transition_id,
             "from_states": [_case(s) for s in from_],
             "to_state": _case(to),
             "inputs": _params(inputs),
             "context": _params(context),
+            "state": bindings,
             "requires": list(requires),
             "effects": list(effects),
             "ensures": list(ensures),
             "emits": list(emits),
             "display_name": display_name,
             "description": description,
-            "loc": caller_loc(),
+            "loc": loc,
         })
         return self
 
@@ -207,6 +220,7 @@ class StateMachine:
                     "to_state": t["to_state"],
                     "inputs": [(n, ty.engine()) for n, ty in t["inputs"]],
                     "context": [(n, ty.engine()) for n, ty in t["context"]],
+                    "state": [(n, d.name) for n, d in t["state"]],
                     "display_name": t["display_name"],
                     "description": t["description"],
                     "file": t["loc"][0],
@@ -224,8 +238,10 @@ class StateMachine:
     def _trace(self, transition_id: str, params: list[tuple[str, str]]) -> dict[str, Any]:
         """Called by the model authority inside the transition's scope."""
         t = next(t for t in self._transitions if t["transition_id"] == transition_id)
+        bound = dict(t["state"])
         symbols = [
-            EntityVar(name, self._subject, role) if role == "state" else param_ref(name)
+            EntityVar(name, bound.get(name, self._subject), role) if role == "state"
+            else param_ref(name)
             for name, role in params
         ]
 

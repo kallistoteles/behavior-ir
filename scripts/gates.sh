@@ -21,8 +21,14 @@ gate "cargo fmt" cargo fmt --all --check
 gate "clippy" cargo clippy -q --workspace --all-targets -- -D warnings
 gate "cargo test" cargo test -q -p behavior-models
 gate "maturin develop" maturin develop -q
-gate "pytest" python -m pytest -q python/tests models --ignore=models/examples/purchase_approval
-gate "conformance" scripts/conformance.sh
+gate "pytest" python -m pytest -q python/tests models --ignore=models/examples/purchase_approval \
+  --ignore=models/examples/work_queue
+gate "conformance 506" scripts/conformance.sh 506
+# The warm quick-mode runtime budget is mandatory in both development and full CI gates.
+gate "conformance 507 quick" scripts/conformance.sh 507 quick
+if [ "${BEHAVIOR_FULL_PROPERTIES:-}" = 1 ]; then
+  gate "conformance 507 full" scripts/conformance.sh 507 full
+fi
 gate "mypy" mypy
 gate "models compat" python3 scripts/check-models-compat.py
 gate "determinism check" scripts/determinism-check.sh

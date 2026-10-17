@@ -156,7 +156,8 @@ def case_tuple(name: str, receipts: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def model_id(model: dict[str, Any]) -> str:
-    return str(model.get("model_id", model.get("flow_id", model.get("approval_id"))))
+    return str(model.get("model_id", model.get("flow_id", model.get(
+        "approval_id", model.get("queue_id")))))
 
 
 def case_entry(module: Any, receipts: list[dict[str, Any]]) -> dict[str, Any]:
@@ -167,14 +168,17 @@ def case_entry(module: Any, receipts: list[dict[str, Any]]) -> dict[str, Any]:
     flows = [r for r in receipts if "embedded" in r]
     if flows:
         entry["embedded"] = {e["id"]: e["model_hash"] for r in flows for e in r["embedded"]}
+        # The generated entity: a flow's request entity, a work queue's work entity (507).
+        local = {"request_flow": "request_entity", "work_queue": "work_entity"}
         entry["entities"] = {
-            model_id(r["model"]): next(x["core"]["name"] for x in r["source_map"]["entries"]
-                                       if x["model"] == f"{model_id(r['model'])}/request_entity")
+            model_id(r["model"]): next(
+                x["core"]["name"] for x in r["source_map"]["entries"]
+                if x["model"] == f"{model_id(r['model'])}/{local[r['model_kind']]}")
             for r in flows
         }
-    approvals = [r for r in receipts if r["model_kind"] == "approval"]
-    if approvals:
-        entry["generated"] = {model_id(r["model"]): r["generated"] for r in approvals}
+    generating = [r for r in receipts if r["model_kind"] in ("approval", "work_queue")]
+    if generating:
+        entry["generated"] = {model_id(r["model"]): r["generated"] for r in generating}
     return entry
 
 

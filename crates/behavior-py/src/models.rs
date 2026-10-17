@@ -10,6 +10,10 @@
 
 use behavior_engine::builder::{Builder, CommandEmissionSpec, Node};
 use behavior_engine::wire::{Loc, WParam};
+use behavior_models::work_queue::input::{
+    CapabilityFragments, CapabilityInput as QueueCapabilityInput, CapabilityScope, WorkQueueInput,
+    WorkQueueSource, WorkQueueSpec,
+};
 use behavior_models::{
     AnyModel, ApprovalInput, ApprovalSource, ApprovalSpec, BindingError, CapabilityInput,
     CreationFragments, CreationInput, CreationScope, DecisionFragments, DecisionScope, DisplayMeta,
@@ -64,6 +68,7 @@ fn transitions(d: &Bound<'_, PyAny>) -> PyResult<Vec<TransitionInput>> {
                 to_state: item(&t, "to_state")?.extract()?,
                 inputs: params(&t, "inputs")?,
                 context: params(&t, "context")?,
+                state: item(&t, "state")?.extract()?,
                 display: display(&t)?,
                 source: source(&t)?,
             })
@@ -143,6 +148,34 @@ fn approval_input(d: &Bound<'_, PyAny>) -> PyResult<ApprovalInput> {
     })
 }
 
+fn work_queue_input(d: &Bound<'_, PyAny>) -> PyResult<WorkQueueInput> {
+    let capabilities = item(d, "capabilities")?
+        .try_iter()?
+        .map(|c| {
+            let c = c?;
+            Ok(QueueCapabilityInput {
+                capability_id: item(&c, "capability_id")?.extract()?,
+                inputs: params(&c, "inputs")?,
+                context: params(&c, "context")?,
+                state: item(&c, "state")?.extract()?,
+                display: display(&c)?,
+                source: source(&c)?,
+            })
+        })
+        .collect::<PyResult<Vec<_>>>()?;
+    let time: PyRef<PyType_> = item(d, "time")?.extract()?;
+    Ok(WorkQueueInput {
+        queue_id: item(d, "queue_id")?.extract()?,
+        worker_entity: item(d, "worker_entity")?.extract()?,
+        time: time.inner.clone(),
+        payload: params(d, "payload")?,
+        max_attempts: item(d, "max_attempts")?.extract()?,
+        capabilities,
+        display: display(d)?,
+        source: source(d)?,
+    })
+}
+
 /// `(command, when node or None, [(field, node)], file, line)` from the Python tracer.
 type PyEmission<'py> = (
     String,
@@ -161,6 +194,7 @@ struct PyFragments<'py> {
     tracer: Py<PyAny>,
     creation_tracer: Option<Py<PyAny>>,
     decision_tracer: Option<Py<PyAny>>,
+    capability_tracer: Option<Py<PyAny>>,
 }
 
 fn roles(ps: &[WParam]) -> Vec<(String, &'static str)> {
@@ -310,6 +344,32 @@ impl PyFragments<'_> {
         })
     }
 
+    fn call_capability(&self, scope: &CapabilityScope) -> PyResult<CapabilityFragments> {
+        let Some(tracer) = &self.capability_tracer else {
+            return Err(pyo3::exceptions::PyRuntimeError::new_err(
+                "the model has no capability tracer",
+            ));
+        };
+        let out = tracer
+            .bind(self.py)
+            .call1((scope.capability_id.clone(), roles(&scope.params)))?;
+        let auth = item(&out, "authorization")?;
+        let authorization = if auth.is_none() {
+            None
+        } else {
+            let (n, f, l): (Bound<'_, PyAny>, String, u64) = auth.extract()?;
+            Some((node(&n)?, loc(f, l)))
+        };
+        let (guards, effects, postconditions, commands) = fragments(&out)?;
+        Ok(CapabilityFragments {
+            authorization,
+            guards,
+            effects,
+            postconditions,
+            commands,
+        })
+    }
+
     fn binding_error(&self, e: PyErr) -> BindingError {
         let value = e.value(self.py);
         let code = value
@@ -350,6 +410,19 @@ impl RequestFlowSource for PyFragments<'_> {
     }
 }
 
+impl WorkQueueSource for PyFragments<'_> {
+    fn trace_capability(
+        &mut self,
+        builder: &mut Builder,
+        scope: &CapabilityScope,
+    ) -> Result<CapabilityFragments, BindingError> {
+        self.swap(builder);
+        let result = self.call_capability(scope);
+        self.swap(builder);
+        result.map_err(|e| self.binding_error(e))
+    }
+}
+
 impl ApprovalSource for PyFragments<'_> {
     fn trace_decision(
         &mut self,
@@ -383,6 +456,7 @@ fn any_model<'py>(
                 None
             },
             decision_tracer: None,
+            capability_tracer: None,
         })
     };
     Ok(match kind.as_deref() {
@@ -398,6 +472,18 @@ fn any_model<'py>(
                 tracer: item(d, "decision_tracer")?.unbind(),
                 creation_tracer: None,
                 decision_tracer: Some(item(d, "decision_tracer")?.unbind()),
+                capability_tracer: None,
+            }),
+        }),
+        Some("work_queue") => AnyModel::WorkQueue(WorkQueueSpec {
+            input: work_queue_input(d)?,
+            fragments: Box::new(PyFragments {
+                py,
+                builder: builder.clone_ref(py),
+                tracer: item(d, "capability_tracer")?.unbind(),
+                creation_tracer: None,
+                decision_tracer: None,
+                capability_tracer: Some(item(d, "capability_tracer")?.unbind()),
             }),
         }),
         None | Some("state_machine") => AnyModel::StateMachine(ModelSpec {
@@ -439,6 +525,17 @@ pub(crate) fn decision_names(approval_id: &str) -> PyResult<(String, String)> {
         .map(|id| behavior_models::approval::resolve::decision_names(&id))
         .ok_or_else(|| {
             pyo3::exceptions::PyValueError::new_err(format!("`{approval_id}` is not a semantic id"))
+        })
+}
+
+/// `WorkNames(queue_id)` (feature 507, research R6): the Core names `(status enum, work entity)`
+/// of a work queue. Raises `ValueError` for an invalid semantic id.
+#[pyfunction]
+pub(crate) fn work_names(queue_id: &str) -> PyResult<(String, String)> {
+    behavior_models::ids::SemanticId::parse(queue_id)
+        .map(|id| behavior_models::work_queue::resolve::work_names(&id))
+        .ok_or_else(|| {
+            pyo3::exceptions::PyValueError::new_err(format!("`{queue_id}` is not a semantic id"))
         })
 }
 

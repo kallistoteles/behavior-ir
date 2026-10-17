@@ -94,7 +94,9 @@ def _diff(a: Any, b: Any, path: str, out: list[str]) -> None:
     elif isinstance(a, list) and isinstance(b, list) and len(a) == len(b):
         for i, (x, y) in enumerate(zip(a, b)):
             _diff(x, y, f"{path}[{i}]", out)
-    elif a != b:
+    elif type(a) is not type(b) or a != b:
+        # The type first: Python equality treats 0 == False, 1 == True and 1 == 1.0, but a
+        # JSON type change is a semantic change.
         out.append(f"{path}: {canonical(a)[:160]} != {canonical(b)[:160]}")
 
 

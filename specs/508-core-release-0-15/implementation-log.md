@@ -85,3 +85,15 @@ research and evidence texts of 506 are unchanged.
 - Independent runs: `conformance.sh 506 complete` (39 passed, complete) and
   `conformance.sh 507 complete` (61 passed, 12 obligations, complete).
 - Disk after the runs: 1.1 GB free (the build directory is about 4.8 GB).
+
+## Review fixes (PR #26)
+
+- **[P2] JSON types in the semantic comparison.** `--compare` used Python equality for scalars,
+  so a type change (0 → false, 1 → true, 1 → 1.0) compared equal. It now compares the JSON type
+  first. The new `scripts/tests/test_semantic_snapshot.sh` failed first on three such changes
+  and now passes; it also covers list length, a missing key and a string-for-number change.
+  The archived 0.13.0 → 0.15.0 comparison still reports 0 differences under the stricter rule;
+  the reviewer's case (`history_506.states[0].position` 0 → false) reports 1 difference and
+  exit 1.
+- **[P3] Executable script.** `scripts/semantic-snapshot.py` is committed with mode 100755, as
+  documented; the self-test checks it.

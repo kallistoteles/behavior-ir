@@ -20,6 +20,19 @@ use std::collections::{BTreeMap, BTreeSet};
 use behavior_engine::builder::Builder;
 
 use crate::BuildOutput;
+
+/// Preserve all established ownership passes before applying additional restrictions.
+pub fn compose_models_with_safety(
+    builder: &mut Builder,
+    models: Vec<AnyModel<'_>>,
+    root: Option<&str>,
+    policies: &[crate::safety::FieldOwnershipInput],
+) -> Result<crate::SafetyBuildOutput, crate::SafetyBuildError> {
+    let behavior =
+        compose_models(builder, models, root).map_err(crate::SafetyBuildError::Models)?;
+    let analysis = crate::safety::analyze(&behavior.module, policies)?;
+    Ok(crate::SafetyBuildOutput { behavior, analysis })
+}
 use crate::approval::input::ApprovalSpec;
 use crate::approval::lower::lower_decision;
 use crate::approval::resolve::ResolvedApproval;

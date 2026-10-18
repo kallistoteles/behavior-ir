@@ -16,7 +16,11 @@ python-source = "python"
 module-name = "behavior._engine"
 manifest-path = "crates/behavior-py/Cargo.toml"
 # The core's command-line tool, staged by scripts/stage-cli.sh (feature 011, FR-018).
-include = [{ path = "python/behavior/_bin/behavior", format = "wheel" }]
+include = [
+    { path = "python/behavior/_bin/behavior", format = "wheel" },
+    # Safety dependency identity embeds the existing workspace toolchain file.
+    { path = "rust-toolchain.toml", format = "sdist" },
+]
 
 # maturin's generated Rust SBOM records the absolute build directory, so two builds of one commit
 # on different machines would differ (feature 011, SC-011). It stays off until a path-independent

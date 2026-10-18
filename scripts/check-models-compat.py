@@ -54,6 +54,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parent.parent
 MANIFEST = Path("models/fixtures/compat.json")
+SAFETY_MANIFEST = Path("models/fixtures/safety-compat.json")
 FORMAT = "behavior.model_compat.v1"
 
 
@@ -212,13 +213,13 @@ def git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(["git", "-C", str(root), *args], capture_output=True, text=True)
 
 
-def merge_base_manifest(root: Path) -> dict[str, Any] | None:
+def merge_base_manifest(root: Path, manifest_path: Path = MANIFEST) -> dict[str, Any] | None:
     """The manifest at the merge base with `main` (None if it did not exist there). Fails when
     the merge base is unavailable: the gate never passes silently without history."""
     for ref in ("main", "origin/main"):
         base = git(root, "merge-base", "HEAD", ref)
         if base.returncode == 0:
-            shown = git(root, "show", f"{base.stdout.strip()}:{MANIFEST}")
+            shown = git(root, "show", f"{base.stdout.strip()}:{manifest_path}")
             return load(shown.stdout, "merge-base manifest") if shown.returncode == 0 else None
     fail("no merge base with `main` or `origin/main` (a shallow clone? fetch full history)")
     return None
@@ -229,37 +230,56 @@ def pinned_core(root: Path) -> dict[str, str]:
     return {"commit": pin["commit"], "version": pin["version"]}
 
 
-def main() -> None:
-    p = argparse.ArgumentParser()
-    p.add_argument("--root", type=Path, default=ROOT)
-    p.add_argument("--write", action="store_true")
-    p.add_argument("--supersede", action="store_true")
-    p.add_argument("--print", dest="print_", action="store_true")
-    p.add_argument("--computed", type=Path)
-    a = p.parse_args()
-    root: Path = a.root
+def compute_safety(root: Path) -> tuple[dict[str, dict[str, Any]], list[Any]]:
+    """Record Rust-authoritative sidecars; no proof tool runs in compatibility checks."""
+    import importlib
+    sys.path.insert(0, str(root))
+    from models.examples.safety_models.run import CASES
+    groups: dict[str, dict[str, Any]] = {}
+    outputs: list[Any] = []
+    names = {"FieldOwnership": "field_ownership", "LifecycleDependency": "lifecycle_dependency"}
+    for name in sorted(CASES):
+        module = importlib.import_module(f"models.examples.safety_models.{name}").build()
+        analysis = module.safety_analysis.to_dict()
+        records = analysis["policies"]
+        if not records or analysis["issues"]:
+            fail(f"Safety reference {name} is absent or unsupported")
+        versions_ = [{"kind": names[r["document"]["kind"]],
+                      "model_semantic_version": r["document"]["model_semantic_version"],
+                      "lowerer_version": analysis["checker_version"]} for r in records]
+        dominant = "lifecycle_dependency" if any(v["kind"] == "lifecycle_dependency" for v in versions_) else "field_ownership"
+        own = {canonical(v): v for v in versions_ if v["kind"] == dominant}
+        if len(own) != 1:
+            fail(f"Safety reference {name} mixes incompatible versions of {dominant}")
+        own_version = next(iter(own.values()))
+        t = {"model_kind": dominant, "model_semantic_version": own_version["model_semantic_version"],
+             "lowerer_version": own_version["lowerer_version"], "core_release": pinned_core(root)}
+        receipts = [r.to_dict() for r in module.model_receipts]
+        co_supplied = [v for v in versions_ if v["kind"] != dominant]
+        co_supplied += [v for r in receipts for v in versions(r)]
+        co = {canonical(v): v for v in co_supplied}
+        if co:
+            t["co_supplied"] = [co[k] for k in sorted(co)]
+        entry = {"behavior_hash": module.behavior_version, "policy_set_hash": analysis["policy_set_hash"],
+                 "inventory_hash": analysis["inventory"]["inventory_hash"],
+                 "models": sorted(r["model_hash"] for r in records),
+                 "generating_models": sorted(r["model_hash"] for r in receipts)}
+        groups.setdefault(tuple_key(t), {"tuple": t, "cases": {}})["cases"][name] = entry
+        outputs.append({"case": name, "tuple": t, "entry": entry})
+    return groups, outputs
 
-    if a.computed is not None:
-        doc = json.loads(a.computed.read_text())
-        listed = doc["groups"] if "groups" in doc else [doc]
-        groups = {tuple_key(g["tuple"]): {"tuple": g["tuple"], "cases": g["cases"]}
-                  for g in listed}
-        receipts: list[Any] = []
-    else:
-        groups, receipts = compute(root)
-    if a.print_:
-        print(canonical(receipts))
-        return
 
-    path = root / MANIFEST
-    manifest = load(path.read_text() if path.exists() else None, str(MANIFEST))
+def check_groups(root: Path, manifest_path: Path, groups: dict[str, dict[str, Any]],
+                 a: argparse.Namespace) -> None:
+    path = root / manifest_path
+    manifest = load(path.read_text() if path.exists() else None, str(manifest_path))
     by_key = {tuple_key(t): t for t in manifest["tuples"]}
 
     if a.write:
         added: list[dict[str, Any]] = []
         for key, g in sorted(groups.items()):
             if key in by_key:
-                if by_key[key]["cases"] != g["cases"]:
+                if canonical(by_key[key]["cases"]) != canonical(g["cases"]):
                     fail(f"tuple {key} is established with other hashes; bump a version")
                 continue
             new = {**g["tuple"], "cases": g["cases"]}
@@ -271,7 +291,7 @@ def main() -> None:
             # superseded. A branch-local tuple that a new one replaces (a second version bump
             # before the merge) is dropped, and the established predecessors it superseded
             # carry over to the new tuple when the new tuple validly supersedes them too.
-            base_at_merge = merge_base_manifest(root)
+            base_at_merge = merge_base_manifest(root, manifest_path)
             predecessors = {tuple_key(t): t for t in
                             (base_at_merge["tuples"] if base_at_merge is not None else [])}
             for new in added:
@@ -307,13 +327,13 @@ def main() -> None:
         if sorted(recorded["cases"]) != sorted(cases):
             fail(f"tuple {key} does not cover exactly the reference cases {sorted(cases)}")
         for name, got in sorted(cases.items()):
-            if recorded["cases"][name] != got:
+            if canonical(recorded["cases"][name]) != canonical(got):
                 fail(f"case `{name}` lowers differently under an unchanged version tuple: "
                      f"recorded {canonical(recorded['cases'][name])}, now {canonical(got)}")
 
     # 2: established tuples are immutable; one may only be removed with an unpinned Core, or
     # when exactly one current tuple validly supersedes it.
-    base = merge_base_manifest(root)
+    base = merge_base_manifest(root, manifest_path)
     base_tuples = base["tuples"] if base is not None else []
     established = {tuple_key(t) for t in base_tuples}
     # Supersessions accepted at the merge base are history: their predecessors are gone there
@@ -355,6 +375,36 @@ def main() -> None:
                      "model semantic version or lowerer version")
     summary = ", ".join(f"{len(g['cases'])} cases under {k}" for k, g in sorted(groups.items()))
     print(f"check-models-compat: OK ({summary})")
+
+
+def main() -> None:
+    p = argparse.ArgumentParser()
+    p.add_argument("--root", type=Path, default=ROOT)
+    p.add_argument("--write", action="store_true")
+    p.add_argument("--supersede", action="store_true")
+    p.add_argument("--print", dest="print_", action="store_true")
+    p.add_argument("--computed", type=Path)
+    p.add_argument("--safety", action="store_true", help="select the Safety sidecar manifest for writing/printing/isolated controls")
+    a = p.parse_args()
+    root: Path = a.root
+    path = SAFETY_MANIFEST if a.safety else MANIFEST
+    if a.computed is not None:
+        doc = json.loads(a.computed.read_text())
+        listed = doc["groups"] if "groups" in doc else [doc]
+        groups = {tuple_key(g["tuple"]): {"tuple": g["tuple"], "cases": g["cases"]} for g in listed}
+        outputs: list[Any] = []
+    else:
+        groups, outputs = compute_safety(root) if a.safety else compute(root)
+    if a.print_:
+        print(canonical(outputs))
+        return
+    check_groups(root, path, groups, a)
+    # Production gates validate both manifests. Existing --computed controls and
+    # explicit writes retain their selected scope; no legacy fixture is rewritten
+    # by a Safety write. Proof dependency bindings are verified by proof/bundle gates.
+    if not a.safety and a.computed is None and not a.write:
+        safety_groups, _ = compute_safety(root)
+        check_groups(root, SAFETY_MANIFEST, safety_groups, a)
 
 
 if __name__ == "__main__":

@@ -35,7 +35,7 @@ if name == "python" and args[:2] == ["-m", "pytest"]:
         sys.exit(subprocess.run([sys.executable, *args]).returncode)
 '''
     for name in ("check-core-pin.sh", "check-public-surface.sh", "fetch-core.sh",
-                 "conformance.sh", "determinism-check.sh", "check-terms.sh",
+                 "conformance.sh", "check-safety-proofs.sh", "determinism-check.sh", "check-terms.sh",
                  "check-workflows.sh"):
         path = scripts / name
         path.write_text(wrapper)
@@ -71,6 +71,7 @@ def test_gate_order_is_deterministic(tmp_path: Path) -> None:
         "cargo fmt --all --check", "cargo clippy -q --workspace --all-targets -- -D warnings",
         "cargo test -q -p behavior-models",
         "maturin develop -q",
+        "check-safety-proofs.sh",
         "python -m pytest -q python/tests models --ignore=models/examples/purchase_approval "
         "--ignore=models/examples/work_queue",
         "conformance.sh 506", "conformance.sh 507 quick", "mypy",
@@ -118,3 +119,12 @@ def test_broken_lowering_fails_the_shared_gate(tmp_path: Path) -> None:
     assert "broken lowering probe" in result.stdout
     assert "gates: FAILED pytest" in result.stderr
     assert "mypy" not in (tmp_path / "trace").read_text()
+
+
+def test_failed_safety_proofs_stop_the_shared_gate(tmp_path: Path) -> None:
+    result = _run(tmp_path, fail="check-safety-proofs.sh")
+    assert result.returncode != 0
+    assert "gates: FAILED Safety proofs" in result.stderr
+    trace = (tmp_path / "trace").read_text()
+    assert "maturin develop -q" in trace
+    assert "python -m pytest" not in trace and "mypy" not in trace

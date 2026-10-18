@@ -434,3 +434,124 @@ Only `passed` counts as passed.
 - properties outside the verifier's modeled fragment and assumptions;
 - backends other than the in-memory one and the Python reference backend;
 - command execution.
+
+## Safety Models (Feature 510, unreleased)
+
+These APIs are developed on the Behavior 0.13.0 / Core 0.15.0 baseline. They are **not** part
+of the previously published 0.13.0 artifacts. Rust `behavior-models::safety` is authoritative;
+Python records authoring inputs. No new Core primitive or runtime semantics is introduced.
+
+### Structural field permissions
+
+```python
+from behavior import BehaviorModule, FieldOwnership, action, entity, field, set_
+
+@entity
+class Note:
+    text = field(str)
+
+@action
+def clear(note: Note):
+    set_(note.text, "")
+
+model = BehaviorModule(
+    entities=[Note], actions=[clear],
+    safety=[FieldOwnership(id="notes", entity=Note, writers={"text": [clear]})],
+)
+assert model.safety_analysis.status == "Lowered"
+assert not model.safety_analysis.is_certified
+```
+
+`writers` protects the listed fields; an empty list forbids assignments. Omitted fields are
+not protected by that policy. `creators` and `removers` are separate permissions, empty by
+default. Creation authorizes initialization; it must still satisfy all other safety rules.
+Even unreachable or same-value unauthorized assignments fail the build. All state bindings,
+authored actions and Model-generated actions in the final admitted module are inspected.
+`GeneratedAction(model_id="task", local_action_id="finish")` selects a generated action.
+Overlapping policies intersect and do not override existing Model ownership restrictions.
+The [StateMachine reference](examples/safety_models/fo_state_machine.py) demonstrates composition.
+
+### Restricted lifecycle dependencies
+
+`LifecycleDependency(id=..., parent=Parent, child=Child, owner_field="owner",
+parent_state="phase", child_state="phase", prohibited=[...], terminal=[...],
+ownership=["parent_control", "child_control"])` checks existing authored/generated actions.
+The referenced `FieldOwnership` policies must control every relevant field and lifecycle
+operation. `owner` must be a required `Ref[Parent]` and immutable after creation, including
+same-value writes and terminal children.
+
+The original property is **R ∧ P**: every child references an existing parent, and every
+nonterminal child references a parent outside the prohibited states. Terminal children can
+reference an existing prohibited parent; their references still block physical deletion.
+See the executable [parent/child reference](examples/safety_models/ld_parent_child.py).
+
+Supported effects are literal enum status assignments, isolated creation and isolated removal.
+An action has at most one relevant Core operation across the union of all dependency footprints;
+shared operations count once, but every affected dependency must pass. Mixed parent/child roles,
+multiple relevant operations, computed destinations and unrecognized guard forms are Unsupported,
+even if an alternative proof could establish safety. Other effects require mechanically checked
+irrelevance to **every** dependency. Creation includes its initializers as one operation.
+
+Canonical mandatory preconditions are whole roots, separately bound to actual State parameters:
+
+- Parent entering a prohibited state: `not_(any_(select(Child), lambda c:
+  and_(c.owner == p.id, not_(c.phase.in_([terminal_members])))))`, for each dependency.
+- Child creation/reactivation into a nonterminal state: a permitted-parent membership guard;
+  reactivation additionally requires `c.owner == p.id`. Creation initializes owner from `p.id`.
+- Terminal child transitions, parent transitions to permitted states and safe isolated removals
+  need no invented guard; Core still enforces all resulting-state constraints and Ref integrity.
+
+A safety expression merely nested inside an OR is insufficient. Additional required roots can
+restrict an action, never weaken the required safety roots. Equivalent but unrecognized forms
+remain Unsupported in v1. No arbitrary authored action is rewritten.
+
+### Separate proof and state evidence
+
+```python
+from behavior import certify_safety, load_safety_bundle, verify_safety_evidence
+
+assessment = certify_safety(model, output="target/note-proof")
+assert assessment.certificate is not None, assessment.to_dict()
+# Imported bytes are explicitly unverified; fresh checking reconstructs trusted proofs.
+bundle = load_safety_bundle("target/note-proof/bundle.json")
+verified = verify_safety_evidence(model, bundle, output="target/note-rechecked")
+assert verified.certificate is not None
+```
+
+Explicit certification needs the locked Lean 4.30.0 package from `nix develop`. Both the generic
+theorems and concrete instance are kernel checked, theorem types compared, transitive axioms
+audited (only `propext`, `Classical.choice`, `Quot.sound`) and compiled declarations freshly
+rechecked by bundled `leanchecker --fresh`. This is fresh replay through the same Lean kernel,
+not a second independently implemented proof kernel. No proof holes or native-evaluation axioms
+are permitted. Failures, missing tools, resource exhaustion and unsupported obligations never
+produce certificates. Normal lowering and Core Store execution/replay do not need Lean.
+
+Outcomes are **Certified under assumptions**, **Inconclusive**, **Unsupported**, **Failed**.
+Structural analysis alone is **Lowered**, explicitly uncertified. Finite tests and structural
+checks are not universal SMT proofs. Rust extraction, policy/guard correspondence, proof-data
+encoding, Core semantics, backend completeness and proof-tool infrastructure remain explicit
+trusted boundaries. The theorem proves the extracted pattern; this is not end-to-end formal
+verification of the Rust implementation or deployment.
+
+Separate content-addressed Safety evidence binds exact BehaviorHash, complete policy set,
+Model semantic/checker versions, full action inventory, theorem statements/sources, toolchain,
+dependencies and obligation results. Display labels and diagnostics do not change semantic
+identity. Existing Model receipt formats, hashes and `fixtures/compat.json` remain unchanged;
+new policies use `fixtures/safety-compat.json` through the existing compatibility gate.
+
+For LD, `validate_safety_snapshot(store, model, at=store.current_history())` acquires Core's
+public complete export and returns a separate **Valid / Invalid / Unestablished** record.
+It evaluates the original predicates at exactly that full HistoryRef, schema and StateId;
+it neither proves preservation nor authorizes activation. Detached JSON is not Store provenance.
+Genesis, migrations and incoming modules require their own state-validity boundary.
+The [host protocol](examples/safety_models/deployment.py) coordinates **all** writers,
+migrations and activation while checking the exact incoming module/policy tuple and fresh
+history anchor. StateId alone and unlocked check-then-switch are insufficient. Core does not
+provide an approved-BehaviorHash allowlist merely because an authorization names a hash.
+
+**State transparency:** Safety Models introduce no persistent runtime state, event stream,
+relationship registry, replay dependency or hidden execution semantics. Core IR and Store
+history represent all application transitions. Without policies, certificates, Lean or Safety
+Models installed, ordinary Core replay still reconstructs business state. Auditing the historical
+safety argument additionally needs historical policies, proofs and host deployment evidence;
+that is a separate task from reconstructing state.

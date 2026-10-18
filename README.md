@@ -457,3 +457,18 @@ Layout:
 - `python/behavior`: the DSL and binding.
 - `examples/`, `skills/` (consumer skills), `models/` (model rules and a state-machine example).
 - `release/`, `api/public-api.json`, `scripts/`.
+
+## Safety Models (Feature 510, unreleased)
+
+The current development branch adds compile-time `FieldOwnership` and restricted
+`LifecycleDependency` checks on the Behavior 0.13.0 / Core 0.15.0 baseline. The published
+0.13.0 package does not contain these new APIs. See [Safety authoring and boundaries](models/README.md#safety-models-feature-510-unreleased)
+and the [five executable references](models/examples/safety_models/README.md).
+
+Safety policies constrain the final ordinary Core module. They introduce no persistent state,
+extra events, relationship registry or replay dependencies. Explicit build-time certification
+checks generic and concrete Lean proofs, with axiom audits and fresh replay; the result is
+conditional on documented correspondence and host assumptions, not unconditional system safety.
+Core remains the sole runtime authority. Initial-state validation, migrations and host module
+authorization are separate boundaries. The mandatory `Safety proofs` gate uses the existing
+`scripts/gates.sh` process; Lean is never required by Store execution or replay.

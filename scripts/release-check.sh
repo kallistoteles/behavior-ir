@@ -146,6 +146,17 @@ done
 env PATH="$repo_venv/bin:$PATH" "$repo_py" -m pytest -q -p no:cacheprovider "${tests[@]}" ||
   fail "skills, public API or binding equivalence"
 
+# Safety execution remains part of ordinary Core. Explicit proof work is outside
+# the existing steps 3-8 runtime budget and uses the verified locked build tool.
+step "10a safety package"
+cp release/safety_smoke.py "$consumer/safety_smoke.py"
+(cd "$consumer" && env PATH="$clean_path" "$py" safety_smoke.py --ordinary) ||
+  fail "Safety ordinary execution/replay without proof tools on PATH"
+[ -n "${BEHAVIOR_SAFETY_TOOLCHAIN:-}" ] || fail "the locked Nix proof-tool identity is unavailable"
+(cd "$consumer" && env PATH="$clean_path" "$py" safety_smoke.py --certify \
+  --toolchain "$BEHAVIOR_SAFETY_TOOLCHAIN" --output "$consumer/safety-evidence") ||
+  fail "installed Safety certification and bundle re-verification outside the checkout"
+
 step "11 reproducible"
 # Two more builds of this commit give the same bytes (feature 011, SC-011).
 scripts/release-build.sh "$version" "$tmp/again-a" >/dev/null 2>&1 || fail "rebuild"

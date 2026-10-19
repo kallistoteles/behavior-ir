@@ -1,0 +1,15 @@
+{
+  "flake_lock_sha256": "ed16bd3f98b17e19e07d6ecafecdd20897024a170f7f3727ed6565c582a01bbe",
+  "profiles": {
+    "aarch64-linux": {
+      "drvPath": "/nix/store/2sb6axlw5zc7m60nvzcilcvp05qa8b23-lean4-4.30.0.drv",
+      "outPath": "/nix/store/gzdr4fry7v3r7jl60f0902aqcbaiy3q1-lean4-4.30.0",
+      "version": "4.30.0"
+    },
+    "x86_64-linux": {
+      "drvPath": "/nix/store/6wy0z2zc7gl2i6vxzcw59i9pdhk2g6b8-lean4-4.30.0.drv",
+      "outPath": "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0",
+      "version": "4.30.0"
+    }
+  }
+}

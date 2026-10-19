@@ -49,7 +49,7 @@ dependencies = [
 
 [[package]]
 name = "behavior-models"
-version = "0.13.0"
+version = "0.13.1"
 dependencies = [
  "behavior-engine",
  "proptest",
@@ -59,7 +59,7 @@ dependencies = [
 
 [[package]]
 name = "behavior-py"
-version = "0.13.0"
+version = "0.13.1"
 dependencies = [
  "behavior-engine",
  "behavior-models",

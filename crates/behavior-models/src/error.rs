@@ -6,6 +6,9 @@
 
 use serde_json::{Value, json};
 
+/// Safety analysis has its own typed boundary; existing Model errors remain unchanged.
+pub use crate::safety::input::SafetyError;
+
 /// The build stage an error belongs to, in pipeline order.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Stage {

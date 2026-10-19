@@ -161,6 +161,9 @@ class BehaviorModule:
         model.declared_types = {}
         model._module = engine
         model._admission = admission
+        model.model_receipts = []
+        model.model_diagnostics = []
+        model.safety_analysis = None
         return model
 
     def __init__(
@@ -176,6 +179,7 @@ class BehaviorModule:
         reads: Sequence[ReadFn] = (),
         models: Sequence[Any] = (),
         commands: Sequence[type] = (),
+        safety: Sequence[Any] = (),
     ) -> None:
         decls: list[EntityDecl] = []
         for cls in entities:
@@ -248,6 +252,10 @@ class BehaviorModule:
         #: The enum and nominal types this module declares, by name (feature 009).
         self.declared_types: dict[str, BType] = dict(session.types)
         self._module, self._admission = session.builder.finish(root)
+        self.safety_analysis = None
+        if safety:
+            from .safety import _analyze
+            self.safety_analysis = _analyze(self, safety)
 
     @staticmethod
     def _declare_models(session: CompileSession, models: Sequence[Any]) -> None:

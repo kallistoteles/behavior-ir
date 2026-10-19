@@ -373,7 +373,7 @@ pinned by file and hash; no Rust toolchain is needed:
 
 ```text
 # requirements.txt of the application
-behavior @ file:///path/to/behavior-0.13.0-cp313-abi3-manylinux_2_28_x86_64.whl --hash=sha256:<from SHA256SUMS>
+behavior @ file:///path/to/behavior-0.13.1-cp313-abi3-manylinux_2_28_x86_64.whl --hash=sha256:<from SHA256SUMS>
 ```
 
 - **Install.** Run `pip install --require-hashes -r requirements.txt`. The wheel also installs
@@ -400,17 +400,17 @@ behavior @ file:///path/to/behavior-0.13.0-cp313-abi3-manylinux_2_28_x86_64.whl 
   [`api/public-api.json`](api/public-api.json). The versioning policy is in
   [`docs/versioning.md`](docs/versioning.md).
 
-Behavior 0.13.0 bundles Core 0.15.0 and verifier 0.10.0. See the
-[release notes](release/notes/0.13.0.md) for consumer adaptations and verification improvements.
+Behavior 0.13.1 bundles Core 0.15.0 and verifier 0.10.0. See the
+[release notes](release/notes/0.13.1.md) for consumer adaptations and verification improvements.
 
 Maintainers prepare and validate a committed candidate using the existing build and
 `scripts/release-check.sh` (full gates, installed examples and reproducibility), plus complete
 506/507 conformance. After merge and a separate explicit publication request, create the
-annotated `v0.13.0` tag on the approved commit and run `scripts/check-tag.sh` followed by
-`scripts/release.sh 0.13.0`. That script checks/builds and generates notes; it does not create
+annotated `v0.13.1` tag on the approved commit and run `scripts/check-tag.sh` followed by
+`scripts/release.sh 0.13.1`. That script checks/builds and generates notes; it does not create
 tags. Pushing the tag starts the existing publishing workflow. Verify downloaded artifacts
 against checksums, the manifest and a repeat build. See the
-[release run guide](specs/509-ecosystem-release/quickstart.md). Previously published tags and
+[release process](docs/versioning.md#releases). Previously published tags and
 artifacts remain immutable.
 
 ## Development
@@ -457,3 +457,22 @@ Layout:
 - `python/behavior`: the DSL and binding.
 - `examples/`, `skills/` (consumer skills), `models/` (model rules and a state-machine example).
 - `release/`, `api/public-api.json`, `scripts/`.
+
+## Safety Models (Behavior 0.13.1)
+
+Behavior 0.13.1 adds compile-time `FieldOwnership` and restricted `LifecycleDependency`
+checks with Core 0.15.0. Published 0.13.0 artifacts do not contain these APIs.
+See [Safety authoring and boundaries](models/README.md#safety-models-behavior-0131)
+and the [executable references and Core/Safety comparison](models/examples/safety_models/README.md).
+Membership order and repetitions retain their authored Core identities; checker 2 recognizes
+exact supported sets. Parent State binding, owner association and parent guard failures have
+separate diagnostics. Nonterminal child transitions require those checks even when owner is
+unchanged (for example Planned → Created and Terminal → Active).
+
+Safety policies constrain the final ordinary Core module. They introduce no persistent state,
+extra events, relationship registry or replay dependencies. Explicit build-time certification
+checks generic and concrete Lean proofs, with axiom audits and fresh replay; the result is
+conditional on documented correspondence and host assumptions, not unconditional system safety.
+Core remains the sole runtime authority. Initial-state validation, migrations and host module
+authorization are separate boundaries. The mandatory `Safety proofs` gate uses the existing
+`scripts/gates.sh` process; Lean is never required by Store execution or replay.

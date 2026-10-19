@@ -10,6 +10,9 @@
 //! Core never learns that a model existed: `Meaning(M) := Meaning_Core(L(M))`.
 #![forbid(unsafe_code)]
 
+#[cfg(test)]
+extern crate self as behavior_models;
+
 pub mod approval;
 pub mod composition;
 pub mod error;
@@ -17,6 +20,7 @@ pub mod identity;
 pub mod ids;
 pub mod kinds;
 pub mod request_flow;
+pub mod safety;
 pub mod source_map;
 pub mod state_machine;
 pub mod work_queue;
@@ -29,7 +33,7 @@ pub use approval::input::{
 };
 pub use composition::{Contribution, DeclaredEnum, DeclaredSchema, DefinitionSignature};
 pub use error::ModelError;
-pub use kinds::{AnyModel, Staged, compose_models, declare_models};
+pub use kinds::{AnyModel, Staged, compose_models, compose_models_with_safety, declare_models};
 pub use request_flow::input::{
     CreationFragments, CreationInput, CreationScope, RequestFlowInput, RequestFlowSource,
     RequestFlowSpec,
@@ -89,6 +93,21 @@ pub struct BuildOutput {
     pub module: Module,
     pub receipts: Vec<LoweringReceipt>,
     pub diagnostics: Vec<Diagnostic>,
+}
+
+/// Safety sidecar data is separate; established output and receipt schemas are unchanged.
+#[derive(Debug)]
+pub struct SafetyBuildOutput {
+    pub behavior: BuildOutput,
+    pub analysis: safety::UncertifiedSafetyAnalysis,
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum SafetyBuildError {
+    #[error("Model composition failed: {0:?}")]
+    Models(Vec<ModelError>),
+    #[error(transparent)]
+    Safety(#[from] safety::SafetyError),
 }
 
 /// Lowers `models` into `builder` and admits the composed module (lowering contract §4).

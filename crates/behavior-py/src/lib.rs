@@ -26,6 +26,7 @@ use pyo3::types::{PyBool, PyDict, PyFloat, PyInt, PyList, PyString, PyTuple};
 use serde_json::{Map, Value, json};
 
 mod models;
+mod safety;
 
 create_exception!(
     _engine,
@@ -2541,6 +2542,17 @@ fn _engine(m: &Bound<'_, pyo3::types::PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(models::decision_names, m)?)?;
     m.add_function(wrap_pyfunction!(models::work_names, m)?)?;
     m.add_function(wrap_pyfunction!(models::encode_entity_name, m)?)?;
+    m.add_class::<safety::PySafetyAnalysis>()?;
+    m.add_class::<safety::PyStateValidation>()?;
+    m.add_function(wrap_pyfunction!(safety::validate_safety_snapshot, m)?)?;
+    m.add_class::<safety::PySafetyAssessment>()?;
+    m.add_class::<safety::PySafetyCertificate>()?;
+    m.add_class::<safety::PyUnverifiedSafetyBundle>()?;
+    m.add_function(wrap_pyfunction!(safety::analyze_safety, m)?)?;
+    m.add_function(wrap_pyfunction!(safety::certify_safety, m)?)?;
+    m.add_function(wrap_pyfunction!(safety::load_safety_bundle, m)?)?;
+    m.add_function(wrap_pyfunction!(safety::import_safety_bundle, m)?)?;
+    m.add_function(wrap_pyfunction!(safety::verify_safety_evidence, m)?)?;
     m.add_class::<PyNode>()?;
     m.add_class::<PyRecord>()?;
     m.add_class::<PyInvocationRecord>()?;

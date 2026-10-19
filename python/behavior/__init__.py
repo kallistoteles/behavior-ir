@@ -19,6 +19,7 @@ from .expr import and_, exists, none, not_, or_, referenced, rescale, underlying
 from .models import Emission, LoweringReceipt, StateMachine, emit
 from .approval import Approval
 from .work_queue import WorkQueue
+from .safety import SafetyCertificate, SafetyStateValidation, validate_safety_snapshot, FieldOwnership, GeneratedAction, LifecycleDependency, certify_safety, load_safety_bundle, verify_safety_evidence
 from .request_flow import RequestFlow
 from .module import BehaviorModule
 from .query import Projection, Query, all_, any_, count, max_, min_, project, select, sum_, unique
@@ -148,6 +149,8 @@ def replay(model: BehaviorModule, record_json: str) -> ReplayResult:
 
 
 __all__ = [
+    "SafetyCertificate", "SafetyStateValidation", "validate_safety_snapshot",
+    "FieldOwnership", "GeneratedAction", "LifecycleDependency", "certify_safety", "load_safety_bundle", "verify_safety_evidence",
     "Invocation", "InvocationRecord", "invoke", "replay_invocation", "HistoryRef",
     "CommandStreamPage",
     "governance_candidate", "with_trusted_evidence",

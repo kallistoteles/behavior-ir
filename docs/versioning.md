@@ -6,9 +6,9 @@ change for different reasons, and every one of them is reported, never implied
 
 | Kind | Example | What it identifies | Where it lives |
 |---|---|---|---|
-| **Release** | `0.13.0` | this repository's release: the Python package and everything it bundles | `[workspace.package] version` in `Cargo.toml`, the single source |
+| **Release** | `0.13.1` | this repository's release: the Python package and everything it bundles | `[workspace.package] version` in `Cargo.toml`, the single source |
 | **Core** | `0.15.0` | the exact Core Release the package is built against and bundles (feature 011) | `core-release.json`; `behavior.versions()["core"]` reports the full immutable commit |
-| **Binding** | `python 0.13.0` | the installable package of the Python binding | the release version in Python's form (PEP 440); the package requires *exactly* the core in `core-release.json` (checked at import) |
+| **Binding** | `python 0.13.1` | the installable package of the Python binding | the release version in Python's form (PEP 440); the package requires *exactly* the core in `core-release.json` (checked at import) |
 | **Formats and verifier** | accepted wire IR `0.4` … `0.8`, records `0.4` … `0.8`, verifier `0.10.0` | the document formats and the verification encoding | defined by the core: [its versioning](https://github.com/kallistoteles/behavior-ir-core/blob/v0.15.0/docs/versioning.md); reported by `behavior engine-info` |
 
 A module document, a record or a store document says which format version it is written in.
@@ -36,6 +36,15 @@ or helper without a deprecation period, compatibility shim or fallback, and cons
 the new contract. What never changes by accident is determinism, canonical content identity
 where semantically required, and evidence integrity; a change of semantic meaning is a
 deliberate design decision, documented with its release.
+
+Release 0.13.1 is the first published Safety Models API: FieldOwnership v1 and the restricted
+LifecycleDependency v1, with Safety checker/lowerer 2. This is additive relative to published
+0.13.0, which contains no Safety API. Checker-1/2 development outcomes were not published in
+0.13.0; their final recognition/diagnostic corrections do not change a released verifier outcome.
+Core stays at 0.15.0 with verifier 0.10.0, and established Core identities, formats and Model
+receipts remain unchanged. This therefore follows the patch rule above. Safety policy semantics
+remain version 1; checker/source identities distinguish evidence and reject stale bundles.
+See the [0.13.1 notes](../release/notes/0.13.1.md).
 
 Release 0.13.0 bundles exact Core Release 0.15.0, commit
 `6b93898a9375113f7a8946f23ab5535319b6f5d6` (adopted by feature 508), and verifier 0.10.0.

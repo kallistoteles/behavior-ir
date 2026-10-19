@@ -72,6 +72,14 @@ if python3 -c "import behavior._engine" 2>/dev/null; then
   run_twice "examples.orders.run" python3 -m examples.orders.run
   run_twice "examples.lab_reads.run" python3 -m examples.lab_reads.run
   run_twice "models receipts" python3 scripts/check-models-compat.py --print
+  # Lowering/sidecar identity is Rust-authoritative and requires no proof tool.
+  # An equally failing pair must not be mistaken for successful Safety output.
+  if python3 scripts/check-models-compat.py --safety --print >"$tmp/safety-check"; then
+    run_twice "safety sidecars" python3 scripts/check-models-compat.py --safety --print
+  else
+    echo "SAFETY SIDECARS FAILED" >&2
+    fail=1
+  fi
 else
   echo "determinism-check: the Python engine is not built; run maturin develop" >&2
   fail=1

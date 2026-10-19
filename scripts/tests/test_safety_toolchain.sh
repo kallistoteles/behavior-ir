@@ -35,14 +35,14 @@ nix develop "$root" --command env \
     test "$BEHAVIOR_SAFETY_TOOLCHAIN" = "$EXPECTED_TOOLCHAIN"
     test "$BEHAVIOR_SAFETY_TOOLCHAIN_DRV" = "$EXPECTED_DERIVATION"
     test -x "$BEHAVIOR_SAFETY_TOOLCHAIN/bin/leanchecker"
-    "$BEHAVIOR_SAFETY_TOOLCHAIN/bin/lean" --version | rg "version 4[.]30[.]0([ ,)]|$)"
+    "$BEHAVIOR_SAFETY_TOOLCHAIN/bin/lean" --version | grep -E "version 4[.]30[.]0([ ,)]|$)"
   '
 
 for variable in BEHAVIOR_LEAN_BINARY BEHAVIOR_LEANCHECKER_BINARY; do
   if env "$variable=$tmp/fake-bin/lean" nix develop "$root" --command true >"$tmp/override.log" 2>&1; then
     fail "$variable was accepted"
   fi
-  if ! rg -q 'Safety toolchain overrides are unsupported' "$tmp/override.log"; then
+  if ! grep -q 'Safety toolchain overrides are unsupported' "$tmp/override.log"; then
     fail "$variable failed for an unrelated reason"
   fi
 done

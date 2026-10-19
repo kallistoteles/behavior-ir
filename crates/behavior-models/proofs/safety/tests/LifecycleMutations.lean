@@ -52,7 +52,7 @@ example : ¬ safe (apply (.parentState 0 true) active) := by decide
 open Safety
 
 def policy : LifecyclePolicy := ⟨0,1,0,0,1,0,[([10],[50]),([11],[51])],[([12],[52]),([13],[53])],[[50]],[[53]],[0]⟩
-def probe : GuardProbe := ⟨0,0,1,[20],[21],[22],[30]⟩
+def probe : GuardProbe := ⟨0,0,1,[20],[21],[22],[30],[[53]],[[50]]⟩
 def parentWrite : CoreOperation := ⟨⟨0,.assign,0⟩,0,[10],[]⟩
 def childWrite : CoreOperation := ⟨⟨1,.assign,0⟩,1,[12],[]⟩
 def goodAction : CoreAction := ⟨[(0,true),(1,true)],[[20],[21],[22]],[parentWrite],[probe]⟩
@@ -92,5 +92,5 @@ example : True := by
 -- One Middle assignment is a child update under one policy and a parent update
 -- under another. Even independently safe instances remain outside the v1 profile.
 def chainedParent : LifecyclePolicy := {policy with parent := 2,child := 0,referenceParent := 2,childValues := [([10],[50]),([11],[51])],terminal := [[50]]}
-example : checkLifecycle (one goodAction chainedParent) = true := by decide
+example : checkLifecycle (one {goodAction with probes := [{probe with noChildrenMembers := [[50]]}]} chainedParent) = true := by decide
 example : checkLifecycle ⟨[goodAction],[policy,chainedParent]⟩ = false := by decide

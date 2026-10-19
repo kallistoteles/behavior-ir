@@ -42,5 +42,12 @@ r=repo('history',manifest(tuple_(2,a,[1])));run(r,[computed(2,a)],True)
 r=repo('missingcase',manifest(tuple_(1,ab)));write(r/'models/fixtures/safety-compat.json',manifest(tuple_(2,a,[1])));run(r,[computed(2,a)],False)
 r=repo('repeat',manifest(tuple_(1,a)));run(r,[computed(2,a)],True,'--write','--supersede');run(r,[computed(3,a)],True,'--write','--supersede');run(r,[computed(3,a)],True)
 doc=json.loads((r/'models/fixtures/safety-compat.json').read_text());assert doc['tuples'][0]['supersedes']==[key(1)]
+# A new checker/lowerer tuple adds history without changing policy semantic version.
+r=repo('checker_history',manifest(tuple_(1,a)))
+new=computed(1,a);new['tuple']['lowerer_version']=2
+run(r,[new],True,'--write');run(r,[new],True)
+history=json.loads((r/'models/fixtures/safety-compat.json').read_text())['tuples']
+assert sorted(t['lowerer_version'] for t in history)==[1,2]
+assert all(t['model_semantic_version']==1 for t in history)
 print('test_models_safety_compat: OK')
 PY

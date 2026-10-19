@@ -27,6 +27,8 @@ structure GuardProbe where
   permittedParent : List Nat
   ownerEquality : List Nat
   parentId : List Nat
+  noChildrenMembers : List (List Nat)
+  permittedParentMembers : List (List Nat)
   deriving Repr, DecidableEq
 
 structure CoreOperation where
@@ -139,13 +141,34 @@ def validLifecyclePolicy (d : LifecyclePolicy) : Bool :=
   (d.referenceParent == d.parent && !d.controls.isEmpty) &&
   (validCategoryTable d.parentValues d.prohibited && validCategoryTable d.childValues d.terminal)
 
+-- A finite set-agreement check, independent of hash/probe extraction. Repetitions
+-- and order are preserved in the input, but cannot change Boolean membership.
+def sameMembers (ordered required : List (List Nat)) : Bool :=
+  decide (ordered ⊆ required ∧ required ⊆ ordered)
+
+theorem membership_order_equivalent (ordered required : List (List Nat))
+    (checked : sameMembers ordered required = true) :
+    ∀ value, value ∈ ordered ↔ value ∈ required := by
+  have agreement : ordered ⊆ required ∧ required ⊆ ordered := of_decide_eq_true checked
+  exact fun _ => ⟨fun h => agreement.1 h, fun h => agreement.2 h⟩
+
+def MembershipOrderGuarantee : Prop := ∀ ordered required,
+  sameMembers ordered required = true → ∀ value, value ∈ ordered ↔ value ∈ required
+
+def validGuardMembers (ds : List LifecyclePolicy) (probe : GuardProbe) : Bool :=
+  match ds[probe.dependency]? with
+  | none => false
+  | some policy => sameMembers probe.noChildrenMembers policy.terminal &&
+      sameMembers probe.permittedParentMembers policy.prohibited
+
 def checkLifecycle (m : LifecycleData) : Bool :=
   m.dependencies.all validLifecyclePolicy &&
   m.actions.all fun a =>
     ((a.operations.filter fun o => relevant m.dependencies o.operation).length ≤ 1 &&
     (m.dependencies.zipIdx.all fun (d,di) =>
       a.operations.all fun o => (classify a d di o).isSome)) &&
-    a.operations.all (fun o => singleRole m.dependencies o.operation)
+    (a.operations.all (fun o => singleRole m.dependencies o.operation) &&
+      a.probes.all (validGuardMembers m.dependencies))
 
 -- This is the versioned finite premise proposition; its truth is checked by
 -- kernel reduction over the exact module, rather than a Rust acceptance flag.

@@ -266,3 +266,200 @@ fn mixed_roles_across_two_distinct_dependencies_are_also_unsupported() {
             .any(|e| e.code() == "SAFETY_MIXED_LIFECYCLE_ROLES")
     );
 }
+
+fn prerequisite_fixture(mode: &str) -> behavior_engine::semantic::Module {
+    use behavior_engine::{
+        builder::ScopeSite,
+        wire::{Role, WLifecycle, WParam},
+    };
+    let mut b = declarations(WType::Ref("Parent".into()), false);
+    let creating = mode.starts_with("terminal_create");
+    let no_parent = matches!(
+        mode,
+        "binding" | "terminal_assign" | "terminal_create_no_binding"
+    );
+    let mut params = if creating {
+        vec![]
+    } else {
+        vec![state("c", "Child")]
+    };
+    if !no_parent {
+        params.extend([state("p", "Parent"), state("q", "Parent")]);
+    }
+    if creating {
+        params.extend([
+            WParam {
+                name: "new_id".into(),
+                role: Some(Role::Input),
+                ty: WType::Id("Child".into()),
+            },
+            WParam {
+                name: "owner_id".into(),
+                role: Some(Role::Input),
+                ty: WType::Id("Parent".into()),
+            },
+        ]);
+    }
+    b.push_scope(ScopeSite::Action, params.clone(), loc())
+        .unwrap();
+    let mut guards = vec![];
+    if matches!(mode, "guard" | "cross" | "good" | "later") {
+        let owner = b.field("c", "owner", loc()).unwrap();
+        let id = b
+            .field(if mode == "later" { "q" } else { "p" }, "id", loc())
+            .unwrap();
+        guards.push((b.op("eq", vec![owner, id], loc()).unwrap(), loc()));
+    }
+    if matches!(mode, "association" | "cross" | "good" | "later") {
+        let phase = b
+            .field(
+                if matches!(mode, "cross" | "later") {
+                    "q"
+                } else {
+                    "p"
+                },
+                "phase",
+                loc(),
+            )
+            .unwrap();
+        let membership = b
+            .in_(phase, vec![json!("Abandoned"), json!("Gone")], loc())
+            .unwrap();
+        guards.push((b.op("not", vec![membership], loc()).unwrap(), loc()));
+    }
+    let terminal = creating || mode == "terminal_assign";
+    let value = b
+        .lit(
+            WType::Enum("ChildPhase".into()),
+            json!(if terminal { "Terminal" } else { "Active" }),
+            loc(),
+        )
+        .unwrap();
+    let (effects, creates) = if creating {
+        let id = b.param("new_id", loc()).unwrap().into_wire();
+        let owner = if matches!(
+            mode,
+            "terminal_create_no_assoc" | "terminal_create_no_binding"
+        ) {
+            b.param("owner_id", loc()).unwrap()
+        } else {
+            b.field("p", "id", loc()).unwrap()
+        };
+        (
+            vec![],
+            vec![WLifecycle::Create {
+                entity: "Child".into(),
+                id,
+                fields: vec![
+                    ("owner".into(), owner.into_wire()),
+                    ("phase".into(), value.into_wire()),
+                ],
+                loc: loc(),
+            }],
+        )
+    } else {
+        (vec![("c".into(), "phase".into(), value, loc())], vec![])
+    };
+    b.add_action("change", params, guards, effects, creates, vec![], loc())
+        .unwrap();
+    b.pop_scope();
+    b.finish(None).unwrap()
+}
+
+#[test]
+fn prerequisite_diagnostics_are_staged_typed_and_do_not_combine_different_parents() {
+    for (mode, code, entity, field) in [
+        (
+            "binding",
+            "SAFETY_PARENT_BINDING_REQUIRED",
+            "Parent",
+            "phase",
+        ),
+        (
+            "association",
+            "SAFETY_OWNER_ASSOCIATION_REQUIRED",
+            "Child",
+            "owner",
+        ),
+        ("guard", "SAFETY_PARENT_GUARD_REQUIRED", "Parent", "phase"),
+        (
+            "combined",
+            "SAFETY_OWNER_ASSOCIATION_REQUIRED",
+            "Child",
+            "owner",
+        ),
+        ("cross", "SAFETY_PARENT_GUARD_REQUIRED", "Parent", "phase"),
+        (
+            "terminal_create_no_assoc",
+            "SAFETY_OWNER_ASSOCIATION_REQUIRED",
+            "Child",
+            "owner",
+        ),
+        (
+            "terminal_create_no_binding",
+            "SAFETY_PARENT_BINDING_REQUIRED",
+            "Parent",
+            "phase",
+        ),
+    ] {
+        let m = prerequisite_fixture(mode);
+        let a = analyze_with_dependencies(&m, &ownership(&m), &[dependency("Child")]).unwrap();
+        assert_eq!(a.issues().len(), 1, "{mode}: {}", a.to_json());
+        let issue = a.issues()[0].to_json();
+        assert_eq!(issue["code"], code, "{mode}");
+        assert_eq!(issue["action"], "change");
+        assert_eq!(issue["dependency"], a.dependencies()[0].model_hash());
+        assert_eq!(issue["entity"], entity);
+        assert_eq!(issue["field"], field);
+        let repeat = analyze_with_dependencies(&m, &ownership(&m), &[dependency("Child")]).unwrap();
+        assert_eq!(a.to_json(), repeat.to_json());
+        let tools = ProofToolchain::locked().unwrap();
+        let output = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(format!(
+            "../../target/safety-models/release-readiness/diagnostics-{}-{mode}",
+            std::process::id()
+        ));
+        let result = certify(&m, &a, &output, &tools, &ProofLimits::default());
+        assert!(result.certificate().is_none());
+        assert_eq!(result.to_json()["outcome"], "Unsupported");
+        assert_eq!(result.to_json()["diagnostics"], json!([issue]));
+    }
+    for mode in ["later", "good", "terminal_assign", "terminal_create"] {
+        let m = prerequisite_fixture(mode);
+        let a = analyze_with_dependencies(&m, &ownership(&m), &[dependency("Child")]).unwrap();
+        assert!(a.issues().is_empty(), "{mode}: {}", a.to_json());
+    }
+}
+
+#[test]
+fn independent_dependency_diagnostics_are_ordered_by_semantic_action_and_policy() {
+    let m = module(&Options {
+        two_children: true,
+        missing_second_guard: true,
+        computed: true,
+        ..Options::default()
+    });
+    let deps = [dependency("Child"), dependency("OtherChild")];
+    let a = analyze_with_dependencies(&m, &ownership(&m), &deps).unwrap();
+    let keys = a
+        .issues()
+        .iter()
+        .map(|e| {
+            let v = e.to_json();
+            let name = v["action"].as_str().unwrap();
+            assert!(v["dependency"].is_string());
+            (
+                a.inventory().actions()[name].hash.clone(),
+                v["dependency"].as_str().unwrap().to_owned(),
+            )
+        })
+        .collect::<Vec<_>>();
+    assert!(keys.windows(2).all(|pair| pair[0] <= pair[1]));
+    let fixed = module(&Options {
+        two_children: true,
+        missing_second_guard: true,
+        ..Options::default()
+    });
+    let remaining = analyze_with_dependencies(&fixed, &ownership(&fixed), &deps).unwrap();
+    assert_eq!(remaining.issues().len(), 1);
+    assert_eq!(remaining.issues()[0].to_json()["action"], "stop");
+}

@@ -95,6 +95,7 @@ def test_a_failed_gate_names_the_failure_and_stops(tmp_path: Path) -> None:
     assert "gates: FAILED maturin develop" in result.stderr
     trace = (tmp_path / "trace").read_text()
     assert "python -m pytest" not in trace and "mypy" not in trace
+    assert "conformance.sh" not in trace
 
 
 def test_shared_gate_collects_the_actual_model_tests(tmp_path: Path) -> None:
@@ -128,3 +129,4 @@ def test_failed_safety_proofs_stop_the_shared_gate(tmp_path: Path) -> None:
     trace = (tmp_path / "trace").read_text()
     assert "maturin develop -q" in trace
     assert "python -m pytest" not in trace and "mypy" not in trace
+    assert "conformance.sh" not in trace

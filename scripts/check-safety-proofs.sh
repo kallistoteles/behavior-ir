@@ -8,5 +8,6 @@ case "$#" in
   *) echo 'usage: check-safety-proofs.sh [--output PATH]' >&2; exit 2 ;;
 esac
 # The existing reference runner owns reports, early failures, complete cases and
-# trusted Rust certification. Supplied JSON flags are never a certificate input.
+# trusted Rust certification: five required certificates and a complete six-case
+# Core/Safety comparison. Supplied JSON flags are never a certificate input.
 exec python -m models.examples.safety_models.run --gate --certify --output "$output"

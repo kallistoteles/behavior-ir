@@ -1,13 +1,14 @@
 //! Canonical expression probes built and admitted exclusively through public Core APIs.
 //! This adapter neither rewrites the original module nor certifies a dependency.
 use super::SafetyError;
+use super::membership_orders::MembershipOrders;
 use behavior_engine::{
     builder::{Builder, Node, ScopeSite, SemanticProfile},
     semantic::{Module, types::hash_display},
     wire::{DerivedKind, Loc, Role, WField, WLifecycle, WParam, WType},
 };
 use serde_json::json;
-use std::collections::BTreeSet;
+use std::{cell::RefCell, collections::BTreeSet};
 
 fn loc() -> Loc {
     Loc {
@@ -176,11 +177,27 @@ fn reference(ty: WType) -> Result<WType, SafetyError> {
     }
 }
 
+/// Authority is constructed only by exact equality with an admitted required root.
+#[derive(Debug, Clone)]
+pub(crate) struct MatchedMembershipGuard {
+    pub action: String,
+    pub action_hash: String,
+    pub dependency: String,
+    pub root: String,
+    pub parent: String,
+    pub family: &'static str,
+    pub entity: String,
+    pub enumeration: String,
+    pub field: String,
+    pub ordered: Vec<String>,
+    pub required: BTreeSet<String>,
+}
 #[derive(Debug, Clone)]
 pub struct CanonicalProbes {
     original: Module,
     context: DeclarationContext,
     declarations: Module,
+    orders: RefCell<Option<Result<MembershipOrders, SafetyError>>>,
 }
 impl CanonicalProbes {
     pub fn new(module: &Module) -> Result<Self, SafetyError> {
@@ -211,7 +228,101 @@ impl CanonicalProbes {
             original: module.clone(),
             context,
             declarations,
+            orders: RefCell::new(None),
         })
+    }
+    pub(super) fn match_membership(
+        &self,
+        action: &str,
+        dependency: &str,
+        captures: &[(String, String)],
+        expression: &CanonicalExpression,
+    ) -> Result<Option<MatchedMembershipGuard>, SafetyError> {
+        let (parent, entity, field, values, family) = match expression {
+            CanonicalExpression::Membership {
+                binding,
+                field,
+                values,
+                ..
+            } => (
+                binding,
+                captures
+                    .iter()
+                    .find(|(n, _)| n == binding)
+                    .map(|(_, e)| e)
+                    .ok_or_else(|| unsupported("Unknown membership capture"))?,
+                field,
+                values,
+                "permitted_parent",
+            ),
+            CanonicalExpression::NoNonterminalChildren {
+                parent,
+                child,
+                child_state,
+                terminal,
+                ..
+            } => (parent, child, child_state, terminal, "no_children"),
+            _ => return Err(unsupported("Not a membership guard family")),
+        };
+        let required = values.iter().cloned().collect::<BTreeSet<_>>();
+        let candidates = {
+            let mut cache = self.orders.borrow_mut();
+            if cache.is_none() {
+                *cache = Some(MembershipOrders::discover(&self.original));
+            }
+            match cache.as_ref() {
+                Some(Ok(scan)) => {
+                    if required.is_empty() {
+                        vec![vec![]]
+                    } else {
+                        scan.candidates(&required)
+                    }
+                }
+                Some(Err(e)) => return Err(e.clone()),
+                None => return Err(unsupported("Missing discovery state")),
+            }
+        };
+        let mut matched = vec![];
+        for ordered in candidates {
+            let mut cache = self.orders.borrow_mut();
+            match cache.as_mut() {
+                Some(Ok(scan)) => scan.charge_probe()?,
+                Some(Err(e)) => return Err(e.clone()),
+                None => return Err(unsupported("Missing discovery state")),
+            }
+            drop(cache);
+            let mut candidate = expression.clone();
+            match &mut candidate {
+                CanonicalExpression::Membership { values, .. } => *values = ordered.clone(),
+                CanonicalExpression::NoNonterminalChildren { terminal, .. } => {
+                    *terminal = ordered.clone()
+                }
+                _ => return Err(unsupported("Not a membership guard family")),
+            }
+            let root = self.expression_ordered(captures, &candidate)?;
+            if self.mandatory_root(action, &root)? {
+                matched.push(MatchedMembershipGuard {
+                    action: action.into(),
+                    action_hash: hash_display(
+                        self.original
+                            .action(action)
+                            .ok_or_else(|| unsupported("Unknown action"))?
+                            .hash(),
+                    ),
+                    dependency: dependency.into(),
+                    root,
+                    parent: parent.clone(),
+                    family,
+                    entity: entity.clone(),
+                    enumeration: self.enum_field(entity, field)?,
+                    field: field.clone(),
+                    ordered,
+                    required: required.clone(),
+                });
+            }
+        }
+        matched.sort_by(|a, b| a.root.cmp(&b.root));
+        Ok(matched.into_iter().next())
     }
     pub fn declarations(&self) -> &Module {
         &self.declarations
@@ -286,6 +397,7 @@ impl CanonicalProbes {
             Err(unsupported("Lifecycle field is not an enum"))
         }
     }
+    #[allow(clippy::too_many_arguments)] // Public Core builder plus explicit typed guard coordinates.
     fn membership(
         &self,
         b: &mut Builder,
@@ -294,6 +406,7 @@ impl CanonicalProbes {
         field: &str,
         values: &[String],
         negated: bool,
+        ordered: bool,
     ) -> Result<Node, SafetyError> {
         let name = self.enum_field(entity, field)?;
         let enumeration = self
@@ -309,12 +422,16 @@ impl CanonicalProbes {
                 .lit(WType::Bool, json!(negated), loc())
                 .map_err(unsupported);
         }
-        let values = values
-            .iter()
-            .collect::<BTreeSet<_>>()
-            .into_iter()
-            .map(|v| json!(v))
-            .collect();
+        let values = if ordered {
+            values.iter().map(|v| json!(v)).collect()
+        } else {
+            values
+                .iter()
+                .collect::<BTreeSet<_>>()
+                .into_iter()
+                .map(|v| json!(v))
+                .collect()
+        };
         let value = b.field(binding, field, loc()).map_err(unsupported)?;
         let member = b.in_(value, values, loc()).map_err(unsupported)?;
         if negated {
@@ -327,6 +444,23 @@ impl CanonicalProbes {
         &self,
         captures: &[(String, String)],
         expression: &CanonicalExpression,
+    ) -> Result<String, SafetyError> {
+        self.expression_impl(captures, expression, false)
+    }
+    /// Exact authored literal order, including duplicate multiplicity. This scratch
+    /// construction grants no certification authority without mandatory-root equality.
+    pub fn expression_ordered(
+        &self,
+        captures: &[(String, String)],
+        expression: &CanonicalExpression,
+    ) -> Result<String, SafetyError> {
+        self.expression_impl(captures, expression, true)
+    }
+    fn expression_impl(
+        &self,
+        captures: &[(String, String)],
+        expression: &CanonicalExpression,
+        ordered: bool,
     ) -> Result<String, SafetyError> {
         let mut b = self.context.builder()?;
         let params = captures
@@ -364,7 +498,15 @@ impl CanonicalProbes {
                 field,
                 values,
                 negated,
-            } => self.membership(&mut b, capture(binding)?, binding, field, values, *negated)?,
+            } => self.membership(
+                &mut b,
+                capture(binding)?,
+                binding,
+                field,
+                values,
+                *negated,
+                ordered,
+            )?,
             CanonicalExpression::OwnerEquality {
                 child,
                 owner_field,
@@ -392,8 +534,15 @@ impl CanonicalProbes {
                     .map_err(unsupported)?;
                 let id = b.field(parent, "id", loc()).map_err(unsupported)?;
                 let belongs = b.op("eq", vec![owner, id], loc()).map_err(unsupported)?;
-                let nonterminal =
-                    self.membership(&mut b, child, &candidate, child_state, terminal, true)?;
+                let nonterminal = self.membership(
+                    &mut b,
+                    child,
+                    &candidate,
+                    child_state,
+                    terminal,
+                    true,
+                    ordered,
+                )?;
                 let body = b
                     .op("and", vec![belongs, nonterminal], loc())
                     .map_err(unsupported)?;

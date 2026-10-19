@@ -588,3 +588,103 @@ fn explicit_empty_membership_and_capture_names_are_checked() {
         .unwrap();
     assert!(!probes.mandatory_root("activate", &expected).unwrap());
 }
+
+// Release-readiness regression: independently authored vectors retain order/multiplicity.
+#[test]
+fn ordered_membership_probes_preserve_actual_roots_and_duplicate_literals() {
+    use behavior_engine::wire::DerivedKind;
+    let mut records = vec![];
+    for nested in [false, true] {
+        for values in [
+            vec!["Abandoned", "Gone"],
+            vec!["Gone", "Abandoned"],
+            vec!["Gone", "Abandoned", "Gone"],
+        ] {
+            let mut b = Builder::with_semantic_profile(SemanticProfile::CommandIntents);
+            b.declare_enum(
+                "Phase",
+                vec!["Open".into(), "Gone".into(), "Abandoned".into()],
+                loc(),
+            )
+            .unwrap();
+            b.declare_entity(
+                "Parent",
+                vec![field("phase", WType::Enum("Phase".into()))],
+                loc(),
+            )
+            .unwrap();
+            b.declare_entity(
+                "Child",
+                vec![
+                    field("phase", WType::Enum("Phase".into())),
+                    field("owner", WType::Ref("Parent".into())),
+                ],
+                loc(),
+            )
+            .unwrap();
+            let params = vec![WParam {
+                name: "p".into(),
+                ty: WType::Entity("Parent".into()),
+                role: None,
+            }];
+            b.push_scope(ScopeSite::Derived, params.clone(), loc())
+                .unwrap();
+            let body = if nested {
+                let query = b.select("Child", loc()).unwrap();
+                b.push_lambda("authored_child", "Child").unwrap();
+                let owner = b.field("authored_child", "owner", loc()).unwrap();
+                let id = b.field("p", "id", loc()).unwrap();
+                let belongs = b.op("eq", vec![owner, id], loc()).unwrap();
+                let nonterminal = member(&mut b, "authored_child", "phase", &values, true);
+                let predicate = b.op("and", vec![belongs, nonterminal], loc()).unwrap();
+                b.pop_scope();
+                let any = b
+                    .lambda("any", query, "authored_child", predicate, loc())
+                    .unwrap();
+                b.op("not", vec![any], loc()).unwrap()
+            } else {
+                member(&mut b, "p", "phase", &values, true)
+            };
+            b.add_derived("actual", DerivedKind::Derived, params, body, None, loc())
+                .unwrap();
+            b.pop_scope();
+            let m = b.finish(None).unwrap();
+            let expression = if nested {
+                E::NoNonterminalChildren {
+                    parent: "p".into(),
+                    child: "Child".into(),
+                    owner_field: "owner".into(),
+                    child_state: "phase".into(),
+                    terminal: values.iter().map(|v| (*v).into()).collect(),
+                }
+            } else {
+                E::Membership {
+                    binding: "p".into(),
+                    field: "phase".into(),
+                    values: values.iter().map(|v| (*v).into()).collect(),
+                    negated: true,
+                }
+            };
+            let probe = CanonicalProbes::new(&m)
+                .unwrap()
+                .expression_ordered(&[("p".into(), "Parent".into())], &expression)
+                .unwrap();
+            assert_eq!(
+                probe,
+                hash_display(m.derived("actual").unwrap().body().hash()),
+                "nested={nested}, order={values:?}"
+            );
+            records.push(json!({"nested":nested,"ordered":values,"actual_root":probe,"behavior_hash":m.behavior_version()}));
+        }
+    }
+    if let Some(path) = std::env::var_os("BEHAVIOR_SAFETY_RELEASE_PREFLIGHT_REPORT") {
+        std::fs::write(
+            path,
+            behavior_engine::canonical::to_canonical_string(
+                &json!({"cases":records,"passed":true}),
+            )
+            .unwrap(),
+        )
+        .unwrap();
+    }
+}

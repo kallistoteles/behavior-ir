@@ -1,7 +1,7 @@
 //! Restricted lifecycle policies. No state, effects or guards are generated for execution.
 use super::{
     Inventory, LifecycleDependencyInput, SafetyError,
-    guards::{CanonicalExpression, CanonicalProbes},
+    guards::{CanonicalExpression, CanonicalProbes, MatchedMembershipGuard},
     identity::tagged,
     inventory::{ActionData, Operation},
     resolve::ResolvedOwnership,
@@ -217,20 +217,26 @@ fn issue(action: &str, code: &'static str, detail: impl Into<String>) -> SafetyE
     e.action = Some(action.into());
     e
 }
+type Inspection = (
+    BTreeMap<String, ActionProfile>,
+    Vec<SafetyError>,
+    Vec<MatchedMembershipGuard>,
+);
 pub(crate) fn inspect(
     module: &Module,
     inventory: &Inventory,
     deps: &[ResolvedDependency],
-) -> Result<(BTreeMap<String, ActionProfile>, Vec<SafetyError>), SafetyError> {
+) -> Result<Inspection, SafetyError> {
     if deps.is_empty() {
-        return Ok((BTreeMap::new(), vec![]));
+        return Ok((BTreeMap::new(), vec![], vec![]));
     }
     let probes = CanonicalProbes::new(module)?;
     let mut profiles = BTreeMap::new();
     let mut issues = vec![];
+    let mut matches = vec![];
     for (name, a) in inventory.actions() {
         let mut profile = ActionProfile::default();
-        for op in &a.operations {
+        for (occurrence, op) in a.operations.iter().enumerate() {
             let relevant = deps
                 .iter()
                 .filter(|d| {
@@ -242,7 +248,13 @@ pub(crate) fn inspect(
                 profile.relevant_operations += 1;
             }
             if relevant.iter().any(|d| roles(op, d).0) && relevant.iter().any(|d| roles(op, d).1) {
-                issues.push(issue(name,"SAFETY_MIXED_LIFECYCLE_ROLES","One operation affects both parent and child roles across the complete dependency set"));
+                let mut e = issue(
+                    name,
+                    "SAFETY_MIXED_LIFECYCLE_ROLES",
+                    "One operation affects both parent and child roles across the complete dependency set",
+                );
+                e.context.occurrence = occurrence;
+                issues.push(e);
             }
             for d in relevant {
                 profile.dependencies.insert(d.model_hash.clone());
@@ -250,8 +262,25 @@ pub(crate) fn inspect(
                 if p && c {
                     continue;
                 }
-                if let Some(e) = check_operation(&probes, a, op, d)? {
-                    issues.push(e);
+                match check_operation(&probes, a, op, d, &mut matches) {
+                    Ok(Some(mut e)) => {
+                        e.context.occurrence = occurrence;
+                        issues.push(e);
+                    }
+                    Ok(None) => {}
+                    Err(mut e) if e.code() == "SAFETY_GUARD_SCAN_EXHAUSTED" => {
+                        e.action = Some(name.clone());
+                        e.context.dependency = Some(d.model_hash.clone());
+                        e.entity = Some(op.entity().into());
+                        e.field = Some(if roles(op, d).0 {
+                            d.parent_state.clone()
+                        } else {
+                            d.child_state.clone()
+                        });
+                        e.context.occurrence = occurrence;
+                        issues.push(e);
+                    }
+                    Err(e) => return Err(e),
                 }
             }
         }
@@ -264,7 +293,21 @@ pub(crate) fn inspect(
         }
         profiles.insert(name.clone(), profile);
     }
-    Ok((profiles, issues))
+    issues.sort_by(|a, b| {
+        let key = |e: &SafetyError| {
+            (
+                e.action
+                    .as_ref()
+                    .and_then(|n| inventory.actions().get(n))
+                    .map(|a| a.hash.clone())
+                    .unwrap_or_default(),
+                e.context.dependency.clone().unwrap_or_default(),
+                e.context.occurrence,
+            )
+        };
+        key(a).cmp(&key(b))
+    });
+    Ok((profiles, issues, matches))
 }
 
 fn check_operation(
@@ -272,14 +315,27 @@ fn check_operation(
     a: &ActionData,
     op: &Operation,
     d: &ResolvedDependency,
+    matches: &mut Vec<MatchedMembershipGuard>,
 ) -> Result<Option<SafetyError>, SafetyError> {
     let (parent_role, _) = roles(op, d);
+    let diagnostic = |code, detail: &str, entity: &str, field: &str| {
+        let mut e = issue(&a.name, code, format!("{}: {detail}", d.author_id));
+        e.context.dependency = Some(d.model_hash.clone());
+        e.entity = Some(entity.into());
+        e.field = Some(field.into());
+        Some(e)
+    };
     let fail = |detail: &str| {
-        Some(issue(
-            &a.name,
+        diagnostic(
             "SAFETY_UNSUPPORTED_LIFECYCLE",
-            format!("{}: {detail}", d.author_id),
-        ))
+            detail,
+            if parent_role { &d.parent } else { &d.child },
+            if parent_role {
+                &d.parent_state
+            } else {
+                &d.child_state
+            },
+        )
     };
     let (param, value) = match op {
         Operation::Assign { param, value, .. } => (Some(param.as_str()), Some(value.as_str())),
@@ -307,7 +363,19 @@ fn check_operation(
         return Ok(fail("Lifecycle destination is not a supported literal"));
     };
     let caps = captures(a);
-    let root = |expr| -> Result<bool, SafetyError> {
+    let mut root = |expr| -> Result<bool, SafetyError> {
+        if matches!(
+            expr,
+            CanonicalExpression::Membership { .. }
+                | CanonicalExpression::NoNonterminalChildren { .. }
+        ) {
+            let matched = probes.match_membership(&a.name, d.model_hash(), &caps, &expr)?;
+            let found = matched.is_some();
+            if let Some(m) = matched {
+                matches.push(m);
+            }
+            return Ok(found);
+        }
         let hash = probes.expression(&caps, &expr)?;
         probes.mandatory_root(&a.name, &hash)
     };
@@ -326,11 +394,28 @@ fn check_operation(
             return Ok(fail("Missing mandatory no-nonterminal-dependent guard"));
         }
     } else {
-        let mut candidate = false;
+        // A terminal assignment preserves the property without a new parent binding.
+        if matches!(op, Operation::Assign { .. }) && d.terminal.contains(member) {
+            return Ok(None);
+        }
+        // Stages range over ALL State candidates. Never combine association on one
+        // binding with a guard on another, or diagnose before later candidates are checked.
+        let mut candidates = vec![];
         for (p, entity) in &caps {
-            if entity != &d.parent || !probes.is_state_binding(&a.name, p, entity)? {
-                continue;
+            if entity == &d.parent && probes.is_state_binding(&a.name, p, entity)? {
+                candidates.push(p);
             }
+        }
+        if candidates.is_empty() {
+            return Ok(diagnostic(
+                "SAFETY_PARENT_BINDING_REQUIRED",
+                "Bind an existing parent as a State parameter",
+                &d.parent,
+                &d.parent_state,
+            ));
+        }
+        let mut associated = vec![];
+        for p in candidates {
             let relationship = match op {
                 Operation::Create { fields, .. } => {
                     fields.get(&d.owner_field)
@@ -346,20 +431,36 @@ fn check_operation(
                 })?,
                 _ => false,
             };
-            let permitted = d.terminal.contains(member)
-                || root(CanonicalExpression::Membership {
+            if relationship {
+                associated.push(p);
+            }
+        }
+        if associated.is_empty() {
+            return Ok(diagnostic(
+                "SAFETY_OWNER_ASSOCIATION_REQUIRED",
+                "Require the child's owner to match the same bound parent's id (or initialize it directly on creation)",
+                &d.child,
+                &d.owner_field,
+            ));
+        }
+        if !d.terminal.contains(member) {
+            let mut permitted = false;
+            for p in associated {
+                permitted |= root(CanonicalExpression::Membership {
                     binding: p.clone(),
                     field: d.parent_state.clone(),
                     values: d.prohibited.iter().cloned().collect(),
                     negated: true,
                 })?;
-            candidate |= relationship && permitted;
-        }
-        // Terminal assignments don't need a parent guard: immutable Ref and source validity suffice.
-        if !(matches!(op, Operation::Assign { .. }) && d.terminal.contains(member) || candidate) {
-            return Ok(fail(
-                "Missing bound State parent, exact owner association or mandatory permitted-parent guard",
-            ));
+            }
+            if !permitted {
+                return Ok(diagnostic(
+                    "SAFETY_PARENT_GUARD_REQUIRED",
+                    "Require the permitted-parent guard on the associated State parent as a whole mandatory precondition",
+                    &d.parent,
+                    &d.parent_state,
+                ));
+            }
         }
     }
     Ok(None)

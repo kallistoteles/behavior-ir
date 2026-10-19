@@ -50,9 +50,45 @@ static NEXT_RUN: AtomicU64 = AtomicU64::new(0);
 mod test_support;
 
 #[cfg(test)]
+#[path = "../../tests/support/lifecycle.rs"]
+mod lifecycle_test_support;
+
+#[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
     use super::*;
+    #[test]
+    fn matched_membership_witness_is_bound_to_its_exact_order_and_coordinates() {
+        let m = lifecycle_test_support::module(&lifecycle_test_support::Options::default());
+        let a = super::super::analyze_with_dependencies(
+            &m,
+            &lifecycle_test_support::ownership(&m),
+            &[lifecycle_test_support::dependency("Child")],
+        )
+        .unwrap();
+        assert!(proof_input(&m, &a).is_ok());
+        for field in ["order", "enum", "field", "dependency", "parent", "root"] {
+            let mut changed = a.clone();
+            let matched = changed
+                .membership_matches
+                .iter_mut()
+                .find(|m| m.family == "permitted_parent")
+                .unwrap();
+            match field {
+                "order" => matched.ordered.reverse(),
+                "enum" => matched.enumeration = "DifferentEnum".into(),
+                "field" => matched.field = "DifferentField".into(),
+                "dependency" => matched.dependency = "sha256:wrong".into(),
+                "parent" => matched.parent = "not_a_binding".into(),
+                "root" => matched.root = "sha256:wrong".into(),
+                _ => unreachable!(),
+            }
+            assert!(
+                proof_input(&m, &changed).is_err(),
+                "forged {field} witness reached proof input"
+            );
+        }
+    }
     #[test]
     fn omitted_action_or_effect_never_reaches_proof_certification() {
         let module = test_support::fixture();
@@ -357,7 +393,7 @@ fn instance_type(
 }
 fn verification(a: &UncertifiedSafetyAnalysis) -> Result<String, SafetyError> {
     Ok(format!(
-        "import safety.Audit\nimport Concrete\n{}\n#safety_audit Safety.FieldOwnership.sound : Safety.OwnershipGuarantee\n#safety_audit Safety.LifecycleDependency.sound : Safety.LifecycleGuarantee\n#safety_audit Safety.LifecycleDependency.conjunction : Safety.LifecycleConjunctionGuarantee\n#safety_audit Safety.LifecycleDependency.projection_frame : Safety.LifecycleDependency.ProjectionFrameGuarantee\n#safety_audit Safety.checkLifecycle_sound : Safety.LifecycleCheckerGuarantee\n#safety_audit Safety.classify_permitted : Safety.ClassificationGuarantee\n#safety_audit Safety.lifecycle_module_preserves : Safety.LifecycleModuleSoundness\n#safety_audit Safety.checkModule_sound : Safety.CheckedAuthority\n#safety_audit Safety.module_preserves : Safety.ModuleSoundness\n#safety_audit Concrete.checked : Safety.checkModule Concrete.data = true\n#safety_audit Concrete.certified : {}\n",
+        "import safety.Audit\nimport Concrete\n{}\n#safety_audit Safety.FieldOwnership.sound : Safety.OwnershipGuarantee\n#safety_audit Safety.LifecycleDependency.sound : Safety.LifecycleGuarantee\n#safety_audit Safety.LifecycleDependency.conjunction : Safety.LifecycleConjunctionGuarantee\n#safety_audit Safety.LifecycleDependency.projection_frame : Safety.LifecycleDependency.ProjectionFrameGuarantee\n#safety_audit Safety.membership_order_equivalent : Safety.MembershipOrderGuarantee\n#safety_audit Safety.checkLifecycle_sound : Safety.LifecycleCheckerGuarantee\n#safety_audit Safety.classify_permitted : Safety.ClassificationGuarantee\n#safety_audit Safety.lifecycle_module_preserves : Safety.LifecycleModuleSoundness\n#safety_audit Safety.checkModule_sound : Safety.CheckedAuthority\n#safety_audit Safety.module_preserves : Safety.ModuleSoundness\n#safety_audit Concrete.checked : Safety.checkModule Concrete.data = true\n#safety_audit Concrete.certified : {}\n",
         anchors(a, "VerificationAnchors")?,
         instance_type(a, "Concrete.data", "VerificationAnchors")?
     ))
@@ -447,11 +483,21 @@ fn run(
 }
 
 fn outcome_for(error: &SafetyError) -> SafetyOutcome {
-    if error.code().contains("UNSUPPORTED") {
+    if error.code().contains("UNSUPPORTED")
+        || matches!(
+            error.code(),
+            "SAFETY_MIXED_LIFECYCLE_ROLES"
+                | "SAFETY_MULTIPLE_LIFECYCLE_OPERATIONS"
+                | "SAFETY_PARENT_BINDING_REQUIRED"
+                | "SAFETY_OWNER_ASSOCIATION_REQUIRED"
+                | "SAFETY_PARENT_GUARD_REQUIRED"
+        )
+    {
         SafetyOutcome::Unsupported
     } else if [
         "SAFETY_PROOF_IO",
         "SAFETY_PROOF_EXHAUSTED",
+        "SAFETY_GUARD_SCAN_EXHAUSTED",
         "SAFETY_TOOLCHAIN_UNAVAILABLE",
     ]
     .contains(&error.code())
@@ -468,7 +514,7 @@ fn implementation_identity() -> Result<String, SafetyError> {
         &json!({
             "inventory":include_str!("inventory.rs"),"input":include_str!("input.rs"),"resolve":include_str!("resolve.rs"),
             "identity":include_str!("identity.rs"),"lifecycle":include_str!("lifecycle_dependency.rs"),"probes":include_str!("guards.rs"),
-            "lifecycle_encoder":include_str!("proof_data.rs"),"ownership":include_str!("field_ownership.rs"),
+            "membership_orders":include_str!("membership_orders.rs"),"lifecycle_encoder":include_str!("proof_data.rs"),"ownership":include_str!("field_ownership.rs"),
             "encoder_runner":include_str!("certify.rs"),"evidence":include_str!("evidence.rs"),"entrypoints":include_str!("mod.rs")
         }),
     )
@@ -583,10 +629,12 @@ fn certify_checked(
     obligations["inventory_comparison"] = json!("Passed");
     super::field_ownership::check(&a.inventory, &a.policies)?;
     if !a.issues.is_empty() {
-        return Err(SafetyError::new(
-            "SAFETY_UNSUPPORTED_LIFECYCLE",
-            format!("Unresolved lifecycle obligations: {:?}", a.issues),
-        ));
+        return Err(a
+            .issues
+            .iter()
+            .find(|e| e.code() == "SAFETY_GUARD_SCAN_EXHAUSTED")
+            .unwrap_or(&a.issues[0])
+            .clone());
     }
     if a.policies.is_empty() {
         return Err(SafetyError::new(
@@ -655,6 +703,7 @@ fn certify_checked(
         "Safety.LifecycleDependency.sound",
         "Safety.LifecycleDependency.conjunction",
         "Safety.LifecycleDependency.projection_frame",
+        "Safety.membership_order_equivalent",
         "Safety.checkLifecycle_sound",
         "Safety.classify_permitted",
         "Safety.lifecycle_module_preserves",
@@ -815,6 +864,7 @@ fn prepare_bundle(
         "Safety.LifecycleDependency.sound",
         "Safety.LifecycleDependency.conjunction",
         "Safety.LifecycleDependency.projection_frame",
+        "Safety.membership_order_equivalent",
         "Safety.checkLifecycle_sound",
         "Safety.classify_permitted",
         "Safety.lifecycle_module_preserves",

@@ -113,14 +113,16 @@ pub(crate) fn assessment(
         let issues=a.issues.iter().filter(|e|e.action.as_deref()==Some(name.as_str())).map(|e|e.code()).collect::<Vec<_>>();
         json!({"action_hash":action.hash,"operations":action.operations.iter().map(|o|o.to_json()).collect::<Vec<_>>(),
             "ownership":{"class":"Kernel-checked finite premises","result":proved("concrete_proof"),"proof_integrity":if successful{"Complete"}else{"Unestablished"}},
-            "lifecycle":{"class":"Machine-checked theorem instantiated by finite checking","result":if !issues.is_empty(){"Unsupported"}else if a.dependencies.is_empty(){"NotApplicable"}else{obligations["lifecycle_preservation"].as_str().unwrap_or("NotRun")},
+            "lifecycle":{"class":"Machine-checked theorem instantiated by finite checking","result":if issues.contains(&"SAFETY_GUARD_SCAN_EXHAUSTED"){"Inconclusive"}else if !issues.is_empty(){"Unsupported"}else if a.dependencies.is_empty(){"NotApplicable"}else{obligations["lifecycle_preservation"].as_str().unwrap_or("NotRun")},
                 "dependencies":a.dependencies.iter().map(|d|d.model_hash()).collect::<Vec<_>>(),"issues":issues},
             "effect_correspondence":"Assumed; irrelevant projections use the proved frame lemmas"})
     }).collect::<Vec<_>>();
-    let errors = error
-        .into_iter()
-        .chain(dependency_error)
-        .collect::<Vec<_>>();
+    let mut errors = a.issues.clone();
+    for e in error.into_iter().chain(dependency_error) {
+        if !errors.contains(&e) {
+            errors.push(e);
+        }
+    }
     let mut diagnostics = errors.iter().map(|e| e.to_json()).collect::<Vec<_>>();
     let mut record = json!({"format":"behavior.safety_evidence.v1","analysis_version":1,"checker_version":super::SAFETY_CHECKER_VERSION,
         "scope":"OrdinaryTransitions","outcome":outcome.as_str(),"behavior_hash":a.inventory.behavior_hash(),

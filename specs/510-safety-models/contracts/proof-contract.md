@@ -48,7 +48,9 @@ Rust, not a kernel proof of extraction completeness.
 
 ## 3. Supported operation and guard profile
 
-Let `member(x, values)` use a deterministic sorted enum-member list. Empty membership uses an
+Let `member(x, values)` use the configured enum-member set. For checker 2, recognized ordered
+vectors may have any permutation/repetition of exactly that set; the release contract below
+requires explicit witnesses and unchanged actual root identity. Empty membership uses an
 explicit false literal and its negation an explicit true literal; demonstrate admitted hashes
 for these forms in preflight. Do not assume Core accepts or simplifies an empty membership.
 
@@ -85,7 +87,8 @@ State-role checking is separate from expression hash matching. Compare public re
 to a known State assignment target or an admitted scratch State-role anchor. Input/Context
 entities must not supply purported Store lifecycle values. Probe actions/definitions are never
 emitted into the authored module. Do not use private enums, Debug parsing, discriminant constants,
-serialized guard AST inspection or copied Core hash algorithms.
+serialized guard AST classification or copied Core hash algorithms. The release-readiness
+contract permits bounded generic string-array discovery only as non-authoritative probe inputs.
 
 The preflight must demonstrate all supported rows and rejection of changed binding/field/type/
 literal, owner initializer, query source, weakened guard, role and mixed-effect controls.
@@ -165,3 +168,17 @@ these named correspondence premises. Its action proof evaluates all guards in th
 source state. Other effects must satisfy the proved projection frame and cannot introduce
 a second relevant operation. A successful proof does not establish host module authorization,
 genesis validity or migrations.
+
+## 9. Release-readiness guard correspondence
+
+[Release corrections](release-readiness.md) narrow the original serializer restriction solely
+for discovering candidate literal orders. Core-admitted whole-root matching, actual State roles,
+exact binding/effect linkage and kernel-checked concrete premises still establish acceptance.
+Encode ordered members and their required policy set; machine-check Boolean membership
+equivalence under exact set equality, including duplicates. Keep that lemma/check in the audited
+dependency closure. Do not replace the actual root with a sorted hash or weaken a theorem.
+
+The public serializer supplies candidates, not a semantic AST classification. Spurious hints
+cannot certify; incomplete hints may refuse certification. Discovery completeness affects
+availability. Actual expression meaning still depends on the named public Core construction/hash
+correspondence. Resource limits and every non-successful required obligation remain blocking.

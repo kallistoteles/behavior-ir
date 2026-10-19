@@ -32,7 +32,11 @@ done
 # builder's creation input type with `into_wire`, in exactly these three files. Nor does the model crate serialize to text or bytes with serde (`to_string`, `to_vec`, `to_writer`): identity hashes go through
 # Core's canonical hashing. `serde_json::to_value` of a `WType` is allowed, because canonical
 # documents hold parameter types as `"type": <WType>` (data model §7).
-wire="$( (grep -rnE '\bto_wire_json\b|\bserde_json::to_(string|string_pretty|vec|vec_pretty|writer)\b' \
+# Feature 510: this private helper collects untrusted string-array order hints only.
+# The exception does not permit serde serialization, Wire interpretation or private APIs.
+wire="$( (grep -rnE '\bto_wire_json\b' crates/behavior-models/src \
+            | grep -v '^crates/behavior-models/src/safety/membership_orders.rs:';
+          grep -rnE '\bserde_json::to_(string|string_pretty|vec|vec_pretty|writer)\b' \
             crates/behavior-models/src;
           grep -rnE '\binto_wire\b' crates/behavior-models/src \
             | grep -v -e '^crates/behavior-models/src/request_flow/create.rs:' \

@@ -87,3 +87,65 @@ def test_nonliteral_lifecycle_assignment_stays_explicitly_uncertified():
     assert model.safety_analysis.status=="Lowered"
     assert not model.safety_analysis.is_certified
     assert model.safety_analysis.to_dict()["issues"]
+
+
+def diagnostic_model(mode):
+    class Phase(Enum):
+        OPEN="Open"
+        GONE="Gone"
+        TERMINAL="Terminal"
+    @b.entity
+    class Parent:
+        phase=b.field(Phase)
+    @b.entity
+    class Child:
+        phase=b.field(Phase)
+        owner=b.field(b.Ref[Parent])
+    @b.action
+    def child_only(c:Child):
+        b.set_(c.phase,Phase.TERMINAL if mode=="terminal_assign" else Phase.OPEN)
+    @b.action
+    def change(c:Child,p:Parent,q:Parent):
+        if mode in {"guard","cross","good","later"}:
+            b.requires(c.owner==(q.id if mode=="later" else p.id))
+        if mode in {"association","cross","good","later"}:
+            parent=q if mode in {"cross","later"} else p
+            b.requires(b.not_(parent.phase.in_([Phase.GONE])))
+        b.set_(c.phase,Phase.OPEN)
+    @b.action
+    def create_terminal(p:Parent,*,new_id:b.Input[b.Id[Child]],owner_id:b.Input[b.Id[Parent]]):
+        b.create(Child,id=new_id,owner=owner_id if mode=="terminal_create_no_assoc" else p.id,phase=Phase.TERMINAL)
+    selected=(create_terminal if mode.startswith("terminal_create") else child_only if mode in {"binding","terminal_assign"} else change)
+    creating=mode.startswith("terminal_create")
+    policies=[b.FieldOwnership(id="parents",entity=Parent,writers={"phase":[]}),
+        b.FieldOwnership(id="children",entity=Child,writers={"owner":[],"phase":[] if creating else [selected]},creators=[selected] if creating else []),
+        b.LifecycleDependency(id="dependency",parent=Parent,child=Child,owner_field="owner",parent_state="phase",child_state="phase",prohibited=[Phase.GONE],terminal=[Phase.TERMINAL],ownership=["parents","children"])]
+    return b.BehaviorModule(entities=[Parent,Child],enums=[Phase],actions=[selected],safety=policies),selected.name
+
+@pytest.mark.parametrize("mode,code,entity,field",[
+    ("binding","SAFETY_PARENT_BINDING_REQUIRED","Parent","phase"),
+    ("association","SAFETY_OWNER_ASSOCIATION_REQUIRED","Child","owner"),
+    ("combined","SAFETY_OWNER_ASSOCIATION_REQUIRED","Child","owner"),
+    ("guard","SAFETY_PARENT_GUARD_REQUIRED","Parent","phase"),
+    ("cross","SAFETY_PARENT_GUARD_REQUIRED","Parent","phase"),
+    ("terminal_create_no_assoc","SAFETY_OWNER_ASSOCIATION_REQUIRED","Child","owner"),
+])
+def test_parent_prerequisite_codes_are_structured_and_repeatable(mode,code,entity,field):
+    model,name=diagnostic_model(mode)
+    analysis=model.safety_analysis.to_dict()
+    assert len(analysis["issues"])==1
+    issue=analysis["issues"][0]
+    assert issue["code"]==code
+    assert issue["action"]==name
+    assert issue["entity"]==entity and issue["field"]==field
+    assert issue["dependency"]==analysis["dependencies"][0]["model_hash"]
+    assert diagnostic_model(mode)[0].safety_analysis.to_dict()["issues"]==analysis["issues"]
+
+@pytest.mark.parametrize("mode",["later","good","terminal_assign","terminal_create"])
+def test_corrected_parent_prerequisites_and_terminal_exemptions(mode):
+    assert diagnostic_model(mode)[0].safety_analysis.to_dict()["issues"]==[]
+
+
+def test_repairing_one_prerequisite_reveals_only_the_next_established_cause():
+    for mode,expected in [("binding",["SAFETY_PARENT_BINDING_REQUIRED"]),("combined",["SAFETY_OWNER_ASSOCIATION_REQUIRED"]),("guard",["SAFETY_PARENT_GUARD_REQUIRED"]),("good",[])]:
+        assert [i["code"] for i in diagnostic_model(mode)[0].safety_analysis.to_dict()["issues"]]==expected

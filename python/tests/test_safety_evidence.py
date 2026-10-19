@@ -80,3 +80,20 @@ def test_shared_lifecycle_bundle_reconstructs_the_complete_policy_set(tmp_path):
     altered=imported.to_dict();altered["policies"].pop()
     rejected=b.verify_safety_evidence(model,altered,output=tmp_path/"missing-policy")
     assert rejected.certificate is None
+
+@pytest.mark.parametrize("mode,code",[
+    ("binding","SAFETY_PARENT_BINDING_REQUIRED"),
+    ("association","SAFETY_OWNER_ASSOCIATION_REQUIRED"),
+    ("combined","SAFETY_OWNER_ASSOCIATION_REQUIRED"),
+    ("guard","SAFETY_PARENT_GUARD_REQUIRED"),
+    ("cross","SAFETY_PARENT_GUARD_REQUIRED"),
+])
+def test_assessment_preserves_original_typed_parent_issues(tmp_path,mode,code):
+    from .test_safety_lifecycle import diagnostic_model
+    model,_=diagnostic_model(mode)
+    original=model.safety_analysis.to_dict()["issues"]
+    result=b.certify_safety(model,output=tmp_path)
+    assert result.certificate is None and result.outcome=="Unsupported"
+    assert result.to_dict()["diagnostics"]==original
+    assert original[0]["code"]==code
+    assert result.to_dict()["diagnostic_codes"]==[code]

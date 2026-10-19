@@ -4,6 +4,9 @@
 Read-only repository/source investigation and confirmed decisions Q1–Q17. No tools installed,
 proofs compiled, probes executed or runtime tests run during planning.
 
+**2026-10-18 extension**: The release-readiness decisions in §10 supersede the earlier
+sorted-only recognition/blanket serializer restriction. Other proof and runtime boundaries remain.
+
 ## 1. Composition and authority
 
 **Decision**: Keep Safety policies separate from generating Models. Add a Rust safety-aware
@@ -242,3 +245,108 @@ are mandatory implementation gates, not established results: FO frame/correspond
 canonical-probe/State-role feasibility; practical concrete kernel reduction/replay; exhaustive
 Core correspondence; snapshot predicate/provenance controls; unchanged existing compatibility.
 Failure blocks affected work and cannot be repaired by broadening the trusted claim silently.
+
+## 10. Release-readiness research (2026-10-18)
+
+### R1 — Membership identity and public recognition
+
+**Decision**: Preserve authored literal sequences and use generic string-array discovery from
+Core's public serialization only as candidate generation. Rebuild the complete typed guard via
+Core and compare it to an actual mandatory root. Both Rust analysis and Lean encoding consume
+the same validated selection; choose the lowest matching root hash deterministically.
+
+**Rationale**: The facade does not name ExprKind/Value variants, and public `children()` omits
+membership payload. Core preserves membership order/duplicates in admission and hashing,
+but evaluates membership with `contains`. Sorting only the expected probe explains the reported
+recognition failure by source inspection; no reproduction has been executed during planning.
+
+The helper walks JSON arrays generically. It does not examine `op`, `args`, `param`, type,
+field, query or location keys to determine meaning. A candidate has only strings and an exact
+distinct-member set match. Wrong-enum or unrelated arrays can generate probes, but cannot make
+a typed full-root hash match the actual action incorrectly. Preserve repetitions for that match.
+Missing hints affect availability; no hint has certificate authority.
+
+**Alternatives considered**: private semantic variants/Debug parsing, a Wire-expression semantic
+checker, Core hash copying, a Core/pin change, factorial permutation generation and a two-member
+special case. None is needed. The old blanket serializer ban is replaced by a single helper
+exception in `scripts/check-public-surface.sh`, with explicit rejection controls for all other
+Model serialization and private imports. Semantic Wire analysis remains forbidden; the helper's
+data-only traversal is reviewed and tested separately from its gated serializer call site.
+
+**Source evidence** (exact pinned Core `6b93898`): engine `src/lib.rs:101–113` exposes Module and
+serialization; core `semantic/expr.rs:212–249` omits In values from children; `serialize.rs:168–172`
+preserves vectors; `admit/typecheck.rs:548–566` retains order/duplicates; `admit/hash.rs:242–247`
+hashes length/order; `eval.rs:1529–1531` uses membership containment; `semantic/types.rs:605–614`
+rejects empty membership. Local `safety/guards.rs:312–319` sorts/deduplicates, while
+`safety/proof_data.rs:152–218` independently creates sorted probes.
+
+### R2 — Bounds and mathematical correspondence
+
+**Decision**: Scan only existing bounded input arrays, cache per module/set, and cap bytes,
+nodes, depth, vectors, vector length and total Core-probe construction as specified in plan.md.
+Resource refusal is Inconclusive; unsupported guard syntax remains Unsupported. Never return
+a complete successful result after truncating discovery.
+
+**Rationale**: Work is proportional to bounded input/candidates and Core probe cost, not n!.
+An ordered-vector witness with exact set agreement supports a small machine-checked membership
+equivalence lemma and concrete premise checks. Core remains responsible for actual expression
+typing/hashing/evaluation; Rust-to-Core correspondence remains named and trusted.
+
+**Alternatives considered**: unlimited scanning, silently dropping candidates, accepting a
+normalized hash, or replacing missing Lean premises with an SMT result. All violate the contract.
+Preflight must demonstrate the design; source inspection is not a passed feasibility test.
+
+### R3 — Diagnostic precedence and outcome preservation
+
+**Decision**: Evaluate all suitable State-parent candidates, then all correctly associated
+candidates, then the permitted-parent guard on each associated candidate. Report one earliest
+established failure per action/dependency/operation: binding, association or guard. A successful
+later candidate wins; information from different parents cannot be combined.
+
+**Rationale**: Current `lifecycle_dependency.rs:329–362` combines these failures. SafetyError
+(`input.rs:179–204`) lacks dependency identity; certification wraps issues in Debug text
+(`certify.rs:585–589`). Add structured context and expose the original issues. New codes must
+map explicitly to Unsupported because `certify.rs:449–464` currently relies on a substring.
+Terminal child assignment has no new parent prerequisite; terminal creation still needs the
+bound parent/owner initialization but not a permitted-status guard.
+
+**Alternatives considered**: first-parent selection, reporting every downstream cause blindly,
+or classifying new codes as Failed by default. These are misleading or reject valid candidates.
+
+### R4 — Independent verification comparison
+
+**Decision**: Extend the existing reference runner with six guard variants, using public
+`verify(..., Profile(...))` and explicit Safety certification independently. Include a real
+query-sensitive local postcondition and assert a nonempty selected Core check inventory.
+Record exact profile/property/check outcomes; do not predeclare solver results.
+
+**Rationale**: `python/behavior/verify.py:18–61` exposes canonical attestations and individual
+checks. A verified empty profile would provide no useful comparison. The original LD inductive
+property remains separate from a local postcondition, regardless of either tool's outcome.
+
+**Alternatives considered**: requiring both mechanisms to prove the same global property,
+promoting any local proven result to certification, or treating a genuine Core Inconclusive
+result as an invalid Safety proof. These conflate distinct obligations.
+
+### R5 — Versioning and release reuse
+
+**Decision**: Safety checker/lowerer 2; FO/LD policy semantics 1; Core/verifier unchanged.
+Keep v1 artifact schemas if their meaning remains compatible; new diagnostic context is additive.
+Add version-2 sidecar tuples without editing existing tuples or legacy Model fixtures.
+Plan package 0.13.1 as the first release containing the additive Safety API.
+
+**Rationale**: GitHub release metadata queried on 2026-10-18 lists v0.13.0 (published
+2026-10-17) as latest; the published tag's `api/public-api.json` has none of FieldOwnership,
+LifecycleDependency or certify_safety. Under
+`docs/versioning.md:17–29`, no published verification outcome/API changes here. Correcting
+unpublished Safety checking does require its own checker identity bump, but not a Core verifier
+bump. Recheck release availability before finalization; never reuse an existing version/tag.
+
+`scripts/release-check.sh:33–36` already runs gates with full properties and release controls;
+`:151–165` checks installed certification/reverification and repeated artifacts. Use that path
+without `--skip-gates` for the corrected candidate. The old implementation's runs are historical
+evidence. Publishing remains a separate authorized step after merge; no new release mechanism.
+
+**Alternatives considered**: reusing 0.13.0, changing Core, relabeling old evidence, or creating
+another release process. If Safety APIs are published before this work lands, reassess package
+versioning under the changed-public-outcomes policy rather than silently use this rationale.

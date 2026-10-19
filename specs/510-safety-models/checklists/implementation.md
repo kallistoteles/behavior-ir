@@ -129,3 +129,64 @@ All old API names/kinds/formats are retained, with nine additive exports. Core r
 verifier 0.10.0; established Model fixture/receipt builders and unrelated Spec Kit/Skills work
 are unchanged. The remaining boundaries above are explicit assumptions/unsupported v1 scope,
 not failed proof obligations. No mandatory check remains failed or unrun.
+
+## Release-readiness extension acceptance (2026-10-18)
+
+**Status: T086–T113 implemented and locally validated for candidate 0.13.1.** The preceding
+matrix/counts record the original T001–T085 scope. The evidence below establishes US5–US7 /
+FR-039–FR-046 / SC-010–SC-014; earlier runs do not discharge these corrections. The original
+[proof-gate summary](../../../target/safety-models/release-readiness/historical-proof-gate-summary.json)
+is archived separately because the shared proof-gate output path has now been regenerated.
+
+| Requirement / story | Current implementation and actual acceptance evidence |
+| --- | --- |
+| US5; FR-039; SC-010 | Bounded order hints plus whole typed mandatory-root reconstruction; [82 current exact-module certificates](../../../target/safety-models/release-readiness/membership-current.json) cover both families, all 2/3/4-member permutations, duplicates and 8/16/32-member representatives; malformed contexts do not certify |
+| FR-040; SC-014 | [Public-Core preflight](../../../target/safety-models/release-readiness/preflight.json), scoped serializer exception and rejection controls; cumulative byte/node/depth/vector/probe budgets fail closed; no factorial recognition or Core rewriting |
+| FR-041 | Selected actual-root/ordered-vector witnesses flow into strengthened concrete Lean premises; twelve audited roots per certificate, only permitted logical axioms, fresh kernel replay; reordered/forged/missing proof data controls fail |
+| US6; FR-042; SC-011 | [Diagnostics](../../../target/safety-models/release-readiness/diagnostics.json): distinct parent binding, owner association and parent guard codes, complete candidate staging and stable context/order; terminal assignment/creation and resource outcomes remain distinct |
+| US7; FR-043; SC-012 | Public authoring docs and tested unchanged-owner Planned → Created / Terminal → Active examples explain required State parent, exact association and mandatory permitted-parent root |
+| FR-044 | [Current six-case comparison](../../../target/safety-models/release-readiness/comparison-current.json) records nonempty query-sensitive local checks, exact action/subject/module identities and independent Safety results; unexpected/missing rows fail the mandatory gate |
+| FR-045 | Existing ownership/inventory/snapshot/replay controls plus new adversarial cases passed; [actual-Core finite enumeration](../../../target/safety-models/release-readiness/exhaustive-acceptance.json) has 38,006 attempts, 30,218 commits and zero unsafe results within its explicit bounds |
+| FR-046; SC-013 | [Full release-check exit 0](../../../target/safety-models/release-readiness/release.json), all 19 required gates, [complete 506/507](../../../target/safety-models/release-readiness/conformance-complete.json), clean installed-package proof resources/certification/reverification and matching repeated wheel builds |
+
+### Fresh evidence index and counts
+
+- [Baseline](../../../target/safety-models/release-readiness/baseline.json) and [exact trial-source journal](../../../target/safety-models/release-readiness/release-source.json).
+- [Membership milestone](../../../target/safety-models/release-readiness/membership.json), [current full-run instances](../../../target/safety-models/release-readiness/membership-current.json), [current identical repeats](../../../target/safety-models/release-readiness/membership-repetition-current.json), [diagnostic milestone](../../../target/safety-models/release-readiness/diagnostics.json) and [authoring/contract milestone](../../../target/safety-models/release-readiness/contract.json).
+- [Full gates](../../../target/safety-models/release-readiness/gates-current.json): **320 Rust tests; 662 Python/model tests; no Python/model skips**. Full properties and opt-in release controls ran.
+- [Current mandatory proof gate](../../../target/safety-models/release-readiness/mandatory-proof-gate-current.json): **five conditional reference certificates and all six comparison rows**, complete action inventories, twelve audited roots and fresh replay.
+- [Complete conformance](../../../target/safety-models/release-readiness/conformance-complete.json): **506: 39 checks; 507: 61 checks and 12 obligations**, all passed. [Quick runtime](../../../target/safety-models/release-readiness/507-quick-budget.json): **32.56s / unchanged 35s**; quick coverage remains explicitly incomplete.
+- [Installed package](../../../target/safety-models/release-readiness/safety-package-current.json): Core-only execution/replay, opaque certificate and independently reverified bundle; **23 Skill examples and 49 API/drift/equivalence checks** passed through release-check.
+- [Unpublished trial artifacts/checksums](../../../target/safety-models/release-readiness/artifacts/SHA256SUMS): two additional builds produce identical wheel bytes. [Final review](../../../target/safety-models/release-readiness/review.json) records **32 protected files, 31 non-Safety Rust sources and 25 Python production/binding files unchanged**, all old compatibility tuples/receipt builders preserved and **22 pinned receipts unchanged**.
+
+### Evidence classes and remaining nonblocking limits
+
+Generic and concrete Lean proofs, transitive permitted-axiom/type audits and fresh replay are
+machine-checked evidence. Whole-module extraction/probe/encoding checks are implemented in Rust
+and remain a trusted correspondence boundary. Exhaustive small-state tests and conformance are
+finite implementation evidence. WorkQueue's twelve passed obligations retain 5 contract, 7 SMT,
+5 structural and 13 test dependencies, with named assumptions for nine obligations; they are not
+twelve universal SMT proofs.
+
+Genesis validity, migration safety, complete/provenanced snapshots and host authorization of the
+exact module/complete policy set from a fresh enforced activation anchor remain separate obligations.
+The canonical v1 language, immutable required Ref, mixed-operation exclusions and restricted
+VM/Resource fixture remain explicit. No persistent Safety state, event stream or replay dependency
+was introduced. No production-domain ownership model or inferred I-5b/I-6 mapping is prescribed.
+
+The local Core verifier still reports Inconclusive for the permuted and equivalent-outside-profile
+query fixtures. The supported permutation independently certifies under Safety's assumptions;
+the excluded equivalent form remains Unsupported. No Inconclusive result is relabeled as proven.
+
+Fresh proof checking is costly (the Core enumeration took 4,858.61s; the membership group
+1,884.78s). All mandatory checks remain intact. Build/temp/cache work uses the data volume;
+generated caches were removed or losslessly archived with byte verification. Root capacity still
+needs observation; no uncommitted user work was removed. The failed formatting/disk attempts and
+the pre-pytest release-test version correction remain explicit in the run/source journals.
+
+Behavior **0.13.1**, Core **0.15.0**, verifier **0.10.0**, Lean **4.30.0**, checker/lowerer **2**
+and policy semantics **1** agree. Consumer Skills changed only required version metadata.
+All 113 tasks are discharged by the original and extension evidence; no mandatory check remains
+failed or unrun. These ignored local artifacts are reproducible through [quickstart §7](../quickstart.md#7-release-readiness-validation).
+The candidate remains uncommitted/unpublished; release publication must rebuild the approved
+merged source through the existing separate explicit process. Existing published records are immutable.

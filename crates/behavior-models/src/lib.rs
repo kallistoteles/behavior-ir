@@ -10,6 +10,9 @@
 //! Core never learns that a model existed: `Meaning(M) := Meaning_Core(L(M))`.
 #![forbid(unsafe_code)]
 
+#[cfg(test)]
+extern crate self as behavior_models;
+
 pub mod approval;
 pub mod composition;
 pub mod error;

@@ -70,6 +70,8 @@ assumptions are external boundaries; missing module proof obligations are not op
 A reproducible bundle contains admitted module transport, canonical policies/inventory,
 fixed-schema proof input, pinned proof source manifest and assessment. Public Core serialization
 may transport the module for re-admission; it must not become the expression-analysis interface.
+Checker 2 additionally permits the release contract's non-authoritative literal-order discovery;
+only Core-admitted exact-root probes and checked concrete premises can justify acceptance.
 
 ## 4. Evidence verification
 

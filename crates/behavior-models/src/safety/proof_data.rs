@@ -17,6 +17,7 @@ pub(super) fn lifecycle(
         return Ok("{}".into());
     }
     let probes = CanonicalProbes::new(module)?;
+    validate_membership_matches(module, a, &probes)?;
     let entities = a
         .inventory
         .entities()
@@ -155,25 +156,51 @@ pub(super) fn lifecycle(
                 if entity != &d.parent || !probes.is_state_binding(name, p, entity)? {
                     continue;
                 }
-                let no_children = probes.expression(
-                    &captures,
-                    &CanonicalExpression::NoNonterminalChildren {
-                        parent: p.clone(),
-                        child: d.child.clone(),
-                        owner_field: d.owner_field.clone(),
-                        child_state: d.child_state.clone(),
-                        terminal: d.terminal.iter().cloned().collect(),
-                    },
-                )?;
-                let permitted = probes.expression(
-                    &captures,
-                    &CanonicalExpression::Membership {
-                        binding: p.clone(),
-                        field: d.parent_state.clone(),
-                        values: d.prohibited.iter().cloned().collect(),
-                        negated: true,
-                    },
-                )?;
+                // Only private exact-root matches from final-module analysis are authoritative.
+                let matched = |family: &str,
+                               required: &std::collections::BTreeSet<String>|
+                 -> Result<(String, String), SafetyError> {
+                    let found = a
+                        .membership_matches
+                        .iter()
+                        .filter(|m| {
+                            m.action == *name
+                                && m.dependency == d.model_hash()
+                                && m.parent == *p
+                                && m.family == family
+                        })
+                        .min_by(|x, y| x.root.cmp(&y.root));
+                    if let Some(m) = found {
+                        let expected_entity = if family == "no_children" {
+                            &d.child
+                        } else {
+                            &d.parent
+                        };
+                        let expected_field = if family == "no_children" {
+                            &d.child_state
+                        } else {
+                            &d.parent_state
+                        };
+                        if m.action_hash != action.hash
+                            || &m.required != required
+                            || &m.entity != expected_entity
+                            || &m.field != expected_field
+                            || m.enumeration.is_empty()
+                            || !action.preconditions.contains(&m.root)
+                        {
+                            return Err(SafetyError::new(
+                                "SAFETY_ENCODING_FAILED",
+                                "Membership witness does not bind the exact action/dependency/field/root",
+                            ));
+                        }
+                        Ok((bytes(&m.root), list(m.ordered.iter().map(|v| bytes(v)))))
+                    } else {
+                        // Empty hash is a nonmatching sentinel, never an admitted root.
+                        Ok(("[]".into(), list(required.iter().map(|v| bytes(v)))))
+                    }
+                };
+                let (no_children, no_children_members) = matched("no_children", &d.terminal)?;
+                let (permitted, permitted_members) = matched("permitted_parent", &d.prohibited)?;
                 let parent_id = probes.expression(
                     &captures,
                     &CanonicalExpression::BoundId { binding: p.clone() },
@@ -181,11 +208,13 @@ pub(super) fn lifecycle(
                 // A creation has no existing child binding. Empty ownerEquality
                 // is an unused sentinel, never an admitted expression hash/root.
                 guards.push(format!(
-                    "⟨{di},{},0,{}, {},[],{}⟩",
+                    "⟨{di},{},0,{}, {},[],{},{},{}⟩",
                     get(&params, p)?,
-                    bytes(&no_children),
-                    bytes(&permitted),
-                    bytes(&parent_id)
+                    no_children,
+                    permitted,
+                    bytes(&parent_id),
+                    no_children_members,
+                    permitted_members
                 ));
                 for (c, child) in &captures {
                     if child != &d.child || !probes.is_state_binding(name, c, child)? {
@@ -200,13 +229,15 @@ pub(super) fn lifecycle(
                         },
                     )?;
                     guards.push(format!(
-                        "⟨{di},{},{},{},{},{},{}⟩",
+                        "⟨{di},{},{},{},{},{},{},{},{}⟩",
                         get(&params, p)?,
                         get(&params, c)?,
-                        bytes(&no_children),
-                        bytes(&permitted),
+                        no_children,
+                        permitted,
                         bytes(&owner),
-                        bytes(&parent_id)
+                        bytes(&parent_id),
+                        no_children_members,
+                        permitted_members
                     ));
                 }
             }
@@ -224,4 +255,85 @@ pub(super) fn lifecycle(
         list(actions),
         list(deps)
     ))
+}
+
+/// Recheck the opaque Rust witness at the encoding boundary. The set agreement is
+/// also checked by Lean; exact order/root/captures remain public-Core correspondence.
+fn validate_membership_matches(
+    module: &Module,
+    a: &UncertifiedSafetyAnalysis,
+    probes: &CanonicalProbes,
+) -> Result<(), SafetyError> {
+    let invalid = || {
+        SafetyError::new(
+            "SAFETY_ENCODING_FAILED",
+            "Membership witness no longer matches the exact admitted action, dependency and ordered root",
+        )
+    };
+    for m in &a.membership_matches {
+        let d = a
+            .dependencies
+            .iter()
+            .find(|d| d.model_hash() == m.dependency)
+            .ok_or_else(invalid)?;
+        let action = a.inventory.actions().get(&m.action).ok_or_else(invalid)?;
+        let captures = action
+            .params
+            .iter()
+            .filter_map(|p| match &p.ty {
+                WType::Entity(e) => Some((p.name.clone(), e.clone())),
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+        let (entity, field, required, expression) = match m.family {
+            "no_children" => (
+                &d.child,
+                &d.child_state,
+                &d.terminal,
+                CanonicalExpression::NoNonterminalChildren {
+                    parent: m.parent.clone(),
+                    child: d.child.clone(),
+                    owner_field: d.owner_field.clone(),
+                    child_state: d.child_state.clone(),
+                    terminal: m.ordered.clone(),
+                },
+            ),
+            "permitted_parent" => (
+                &d.parent,
+                &d.parent_state,
+                &d.prohibited,
+                CanonicalExpression::Membership {
+                    binding: m.parent.clone(),
+                    field: d.parent_state.clone(),
+                    values: m.ordered.clone(),
+                    negated: true,
+                },
+            ),
+            _ => return Err(invalid()),
+        };
+        let Some(WType::Enum(enumeration)) = module
+            .entity(entity)
+            .and_then(|e| e.field_type(field))
+            .map(|t| t.to_wire_type())
+        else {
+            return Err(invalid());
+        };
+        if m.action_hash != action.hash
+            || &m.entity != entity
+            || &m.field != field
+            || m.enumeration != enumeration
+            || &m.required != required
+            || m.ordered
+                .iter()
+                .cloned()
+                .collect::<std::collections::BTreeSet<_>>()
+                != *required
+            || !probes.is_state_binding(&m.action, &m.parent, &d.parent)?
+            || !probes.mandatory_root(&m.action, &m.root)?
+            || probes.expression_ordered(&captures, &expression)? != m.root
+        {
+            return Err(invalid());
+        }
+    }
+    Ok(())
 }

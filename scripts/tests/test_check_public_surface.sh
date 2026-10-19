@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Tests of the wire guard in scripts/check-public-surface.sh (feature 502, T001, research R4):
 # `into_wire` is allowed only in crates/behavior-models/src/request_flow/create.rs and (feature
-# 503, T001, research R8) crates/behavior-models/src/approval/lower.rs, and `to_wire_json` and
-# serde serialization nowhere in crates/behavior-models/src.
+# 503, T001, research R8) crates/behavior-models/src/approval/lower.rs.
+# Feature 510 allows public serialization only in the private literal-order hint
+# helper; serde serialization and private Core imports remain forbidden there.
 set -euo pipefail
 here="$(cd "$(dirname "$0")/../.." && pwd)"
 tmp="$(mktemp -d)"
@@ -41,4 +42,20 @@ expect "into_wire in approval/resolve.rs" approval/probe_resolve.rs 'fn f(n: Nod
 expect "to_wire_json" probe_json.rs 'fn f(m: &Module) -> String { m.to_wire_json() }' FAIL
 expect "serde_json::to_string" probe_serde.rs 'fn f(v: &Value) -> String { serde_json::to_string(v).unwrap() }' FAIL
 expect "serde_json::to_vec" probe_vec.rs 'fn f(v: &Value) -> Vec<u8> { serde_json::to_vec(v).unwrap() }' FAIL
+# The sole public serializer exception discovers untrusted string-array hints.
+helper="$src/safety/membership_orders.rs"
+if [ -f "$helper" ]; then cp "$helper" "$tmp/membership_orders.orig"; fi
+printf '%s\n' 'fn probe(m: &Module) { behavior_engine::serialize::to_wire_json(m); }' >>"$helper"
+run || { echo "FAIL named discovery helper rejected: $(cat "$tmp/out")"; exit 1; }
+if [ -f "$tmp/membership_orders.orig" ]; then cp "$tmp/membership_orders.orig" "$helper"; else rm "$helper"; fi
+expect "serializer next to helper" safety/probe_orders.rs 'fn f(m: &Module) { behavior_engine::serialize::to_wire_json(m); }' FAIL
+expect "private import in helper neighbor" safety/probe_private.rs 'use behavior_core::semantic::ExprKind;' FAIL
+# The exception never permits serde serialization or private Core imports in the helper.
+cp "$helper" "$tmp/helper.saved" 2>/dev/null || touch "$tmp/helper.saved"
+printf '%s\n' 'fn f(v: &Value) { serde_json::to_string(v); }' >>"$helper"
+if run; then echo "FAIL helper serde serialization accepted"; exit 1; fi
+cp "$tmp/helper.saved" "$helper"
+printf '%s\n' 'use behavior_core::semantic::ExprKind;' >>"$helper"
+if run; then echo "FAIL helper private import accepted"; exit 1; fi
+cp "$tmp/helper.saved" "$helper"
 echo "test_check_public_surface: OK"

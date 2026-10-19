@@ -1,7 +1,11 @@
 # Contract: Authoring and Explicit Certification
 
-This is the planned public contract, not an assertion that these APIs already exist.
+This records the original public authoring contract and its planned release corrections.
 All policy meaning, normalization, resolution and checking resides in Rust.
+
+**Release correction**: The original APIs are implemented. Checker-2 guard recognition,
+diagnostics and comparison behavior are planned in [release-readiness.md](release-readiness.md).
+That contract supersedes sorted-only membership recognition; other operation limits remain.
 
 ## 1. Authoring inputs
 

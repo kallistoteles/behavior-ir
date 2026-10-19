@@ -435,9 +435,9 @@ Only `passed` counts as passed.
 - backends other than the in-memory one and the Python reference backend;
 - command execution.
 
-## Safety Models (Feature 510, unreleased)
+## Safety Models (Behavior 0.13.1)
 
-These APIs are developed on the Behavior 0.13.0 / Core 0.15.0 baseline. They are **not** part
+These APIs first ship in Behavior 0.13.1 with exact Core 0.15.0. They are **not** part
 of the previously published 0.13.0 artifacts. Rust `behavior-models::safety` is authoritative;
 Python records authoring inputs. No new Core primitive or runtime semantics is introduced.
 
@@ -555,3 +555,59 @@ history represent all application transitions. Without policies, certificates, L
 Models installed, ordinary Core replay still reconstructs business state. Auditing the historical
 safety argument additionally needs historical policies, proofs and host deployment evidence;
 that is a separate task from reconstructing state.
+
+
+### Lifecycle guard authoring contract (checker 2)
+
+| Operation | Required v1 condition |
+| --- | --- |
+| Create parent | Authorized isolated creation; Core freshness and integrity |
+| Create nonterminal child | Parent State binding, owner initialized from `p.id`, permitted-parent guard |
+| Create terminal child | Parent State binding and exact owner initialization; parent may be prohibited |
+| Assign child to nonterminal | Mandatory `c.owner == p.id` and permitted-parent guard on that same State parent |
+| Assign child to terminal | No new parent binding/guard; immutable Ref and valid source state suffice |
+| Assign parent to prohibited | Mandatory no-nonterminal-child guard for every affected dependency |
+| Assign parent to permitted | No new dependent-child guard |
+| Remove child | Authorized removal and all Core integrity conditions |
+| Remove parent | Authorized removal; Core rejects surviving references, including terminal children |
+| Assign owner after creation | Forbidden, including same-value writes and terminal children |
+
+The nonterminal rule applies with unchanged ownership, including **Planned → Created** and
+**Terminal → Active**. This is the conservative v1 authoring pattern; source-state restrictions
+are not used to waive its required parent checks. Executable versions are
+[`child_transition_examples()`](examples/safety_models/guard_contract.py).
+
+Use separate `requires` calls for the owner association, permitted-parent membership and any
+additional authored condition. Each safety requirement is a complete mandatory root, not merely
+an expression nested under another Boolean operator. Parent values supplied as Context/Input
+entities cannot replace a Store-backed State parameter. Association on one parent and a guard
+on another do not combine into a valid witness.
+
+Supported literal membership preserves the exact typed set, field, entity binding, polarity
+and query structure. Member order and repeated literals do not affect certification eligibility.
+Their order/multiplicity still contribute to the authored Core expression and BehaviorHash;
+Safety never rewrites them. Missing/extra members or equivalent forms outside this profile
+remain Unsupported. Empty selected sets retain the documented explicit Boolean convention;
+Core rejects authored empty `in_` lists.
+
+| Diagnostic | Earliest established failed stage |
+| --- | --- |
+| `SAFETY_PARENT_BINDING_REQUIRED` | No suitable parent State binding |
+| `SAFETY_OWNER_ASSOCIATION_REQUIRED` | State candidates exist; none has the required association |
+| `SAFETY_PARENT_GUARD_REQUIRED` | Associated candidates exist; none also has the mandatory guard |
+| `SAFETY_GUARD_SCAN_EXHAUSTED` | Recognition budget exhausted; Inconclusive |
+
+The first three are Unsupported, not an established runtime counterexample. All candidates
+are checked before choosing a stage; a later valid parent succeeds. Issues identify the action,
+dependency ModelHash and relevant entity/field. Ordering is action hash, dependency hash and
+operation occurrence. Analysis and assessment preserve the same structured issues.
+
+Recognition budgets are cumulative per analysis: 16 MiB serialized hints, 1,000,000 visited
+JSON nodes, depth 128, 4,096 distinct vectors, 4,096 values per vector and 4,096 membership probe
+constructions. Exhaustion refuses certification without truncating to success. Core first
+allocates its serialization String; the byte cap is not a universal process-allocation bound.
+
+The [six-case comparison](examples/safety_models/README.md#core-verifier-and-safety-certifier)
+records actual local SMT outcomes separately from conditional Safety preservation certificates.
+Use the canonical form when seeking both kinds of evidence. Neither substitutes for valid
+genesis, migration checks or host enforcement of the approved module/policy segment.

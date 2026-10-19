@@ -6,6 +6,10 @@
 
 **Status**: Draft
 
+**Updated**: 2026-10-18 — bounded release-readiness extension, summarized in
+[release-readiness.md](release-readiness.md). FR-039–FR-046, SC-010–SC-014 and US5–US7
+are new work awaiting planning; previous implementation/convergence results cover the earlier scope.
+
 **Input**: User description: "Feature 510 — Safety Models. Introduce FieldOwnership and
 LifecycleDependency as reusable, deterministic Model-layer restrictions over existing domain
 entities. Establish machine-checked generic safety theorems and check the exact compiled
@@ -200,6 +204,57 @@ identify the exact boundary and required control in every case.
    **Then** its incoming property is validated at the exact enforced Store history boundary;
    an intervening commit invalidating that anchor prevents activation.
 
+### User Story 5 - Use supported membership guards in either order (Priority: P1)
+
+As a domain author, I can reorder the literal members of a supported enum membership guard
+without losing certification of an otherwise supported module.
+
+**Why this priority**: Incidental member order must not prevent correct release usage.
+**Independent Test**: A minimal reproduction of the reported DeclarativeHost C2 case accepts
+the same typed membership set in different orders and rejects incorrect safety premises.
+
+**Acceptance Scenarios**:
+
+1. **Given** an otherwise certifiable module, **When** only a supported membership list is
+   permuted, **Then** every variant certifies against its own exact admitted module and evidence.
+2. **Given** a guard with missing/extra members, wrong type, field, binding, polarity or
+   insufficient Boolean placement, **When** checked, **Then** it cannot satisfy the required
+   canonical guard; unrelated successful verification does not grant certification.
+
+### User Story 6 - Identify the failed lifecycle prerequisite (Priority: P1)
+
+As a domain author, I can distinguish a missing parent binding, an incorrect owner association
+and a missing permitted-parent guard, and correct the reported cause.
+
+**Why this priority**: A combined message hides the authoring change needed for certification.
+**Independent Test**: Each cause has an isolated example with a distinct stable diagnostic.
+
+**Acceptance Scenarios**:
+
+1. **Given** any one of the three defects, **When** checked, **Then** its diagnostic identifies
+   the cause, action and dependency; fixing it removes that diagnostic.
+2. **Given** multiple defects or parent bindings, **When** checked repeatedly, **Then** the
+   results follow documented deterministic precedence or report independently established
+   failures, retain unrelated defects, and do not assert unevaluated downstream causes.
+
+### User Story 7 - Understand and validate the release contract (Priority: P1)
+
+As a maintainer, I can follow the lifecycle authoring contract and distinguish transition
+certification, ordinary verification and deployment obligations before releasing the package.
+
+**Why this priority**: Supported operations and the evidence needed to release must be explicit.
+**Independent Test**: Public examples explain the supported operations and separate verification
+outcomes; the corrected candidate passes the established release process.
+
+**Acceptance Scenarios**:
+
+1. **Given** a transition whose result is a nonterminal child, **When** the author follows the
+   documented contract, **Then** the required bound parent, owner association and permitted-parent
+   guard are explicit, including when ownership is unchanged.
+2. **Given** the corrected candidate, **When** release readiness is assessed, **Then** current
+   proof, regression, compatibility and package evidence is recorded through existing checks;
+   earlier successful runs alone cannot establish readiness of changed code.
+
 ### Edge Cases
 
 - Core rejects two State bindings resolving to the same typed identity. Exercise that refusal;
@@ -234,6 +289,10 @@ identify the exact boundary and required control in every case.
 - A target-valid migration or an authorization for one BehaviorHash is insufficient evidence
   that all commits use only certified modules or preserve the Model-layer relation. A state
   validated before an intervening commit is not an activation anchor for a new deployment segment.
+- Reordering a membership list may change admitted expression or module identities. Equal
+  certification eligibility does not require equal Core hashes or interchangeable evidence.
+- Duplicate membership literals follow pinned Core semantics; they must not accidentally alter
+  the required typed set. Empty sets and otherwise unsupported expressions retain explicit limits.
 
 ## Requirements *(mandatory)*
 
@@ -317,6 +376,7 @@ retained certificates and historical policy identities, the former does not.
   lifecycle values and canonical guards present as actual mandatory preconditions with matching
   captures, bindings and effects; finding a guard hash somewhere in an expression is insufficient.
   Additional authored conditions may strengthen but never weaken the required guard.
+  Literal-member ordering alone is not an unsupported expression form; FR-039–FR-041 apply.
 - **FR-018**: Publish the restricted v1 pattern: immutable required Ref ownership; literal enum
   lifecycle values; at most one actual relevant operation per action across all dependency
   footprints. Creation counts once including initialization; distinct assignments count separately.
@@ -436,6 +496,56 @@ retained certificates and historical policy identities, the former does not.
   uncertified. Certification requires Lean, fresh replay and every required obligation. Store
   execution and existing Models without Safety policies MUST NOT acquire a Lean dependency.
 
+#### Release-readiness extension
+
+This extension addresses the reported integration findings within the existing v1 pattern.
+It adds no new safety property or general expression-equivalence framework.
+
+- **FR-039**: Recognize the exact typed membership set of an otherwise supported enum safety
+  guard independently of literal order, including membership inside the existing canonical
+  dependency query. Missing/extra members, wrong types, fields, bindings, polarity or insufficient
+  Boolean placement MUST NOT falsely satisfy the required guard. Define duplicate-literal
+  treatment from actual pinned Core semantics.
+- **FR-040**: Preserve each authored module's Core expressions, expression hashes, BehaviorHash,
+  runtime behavior and existing receipts. Bind concrete proof evidence to its exact admitted
+  action and guard identities; an order-independent interpretation must have justified semantic
+  correspondence. Do not require different authored permutations to have equal Core hashes.
+- **FR-041**: Recognition MUST be deterministic and bounded, use only the pinned public Core
+  interface, and avoid unbounded factorial enumeration as its general strategy. If that interface
+  cannot support sound recognition, report the exact missing capability and block affected
+  release readiness; do not change the Core pin, use private APIs or weaken certification.
+- **FR-042**: Provide distinct stable diagnostic codes for missing suitable parent State
+  binding, missing/incorrect child-owner association and missing mandatory permitted-parent
+  guard. Identify action, dependency and relevant entity/field where available. Document
+  deterministic precedence or independently established failures; retain existing outcome classes
+  and do not assert a downstream failure whose prerequisites could not be evaluated.
+- **FR-043**: Document every v1 lifecycle operation's guard obligations, with executable examples
+  of transitions to nonterminal states such as Planned → Created and Terminal → Active.
+  Explicitly require the correct parent State binding, owner association and canonical
+  permitted-parent guard even when ownership is unchanged. Cover terminal transitions, parent
+  prohibition, creation/removal, immutable ownership and the existing genesis/migration/host
+  assumptions. Keep the VM fixture distinct from DeclarativeHost's application schema.
+- **FR-044**: Record ordinary Core verification and Safety certification independently for
+  six representative guard cases: supported canonical form, membership permutation, equivalent
+  unsupported form, missing guard, wrong binding and insufficient Boolean placement. Recommend
+  a form usable by both where demonstrated, otherwise explain the difference. Neither mechanism's
+  success substitutes for the other's obligations; inconclusive ordinary verification alone
+  does not invalidate a successfully discharged Safety certificate.
+- **FR-045**: Reproduce the reported C2 issue with a minimal local fixture and targeted controls,
+  independent of DeclarativeHost internals. Cover all permutations of two-, three- and four-member
+  reference sets, deterministic permutation/property controls for larger sets, duplicates and
+  the negative cases in FR-039. Exercise each diagnostic cause and combined/wrong-binding cases,
+  including correction of one cause while another remains. Retain existing ownership, lifecycle,
+  proof-premise, state-validation, state-transparency and reproducibility controls; follow test-first
+  development. This specification records the report, not a claim that reproduction has run.
+- **FR-046**: Validate the corrected candidate through existing full proof/integrity checks,
+  `scripts/gates.sh`, complete 506/507 conformance and `scripts/release-check.sh` with required
+  gates, installed-package certification and artifact reproducibility. Preserve theorems,
+  obligations, runtime budgets, published fixtures and receipt formats. Apply existing versioning
+  rules to checker/evidence changes, select the package version by policy, and update authoring,
+  diagnostic, quickstart and release documentation. Reuse the established release process;
+  publication requires a separate explicit step after merge and successful release checks.
+
 ### Formal Scope and Guarantee
 
 State-safety claims use induction over the complete covered ordinary transition relation T.
@@ -552,6 +662,20 @@ requirements for this feature.
   only Core modules and Store history, without reading Safety declarations, certificates or
   proof tools. State reconstruction and BehaviorHash-bound behavior replay remain deterministic;
   absence of safety evidence affects retrospective safety claims only.
+- **SC-010**: All required membership permutations have the same certification eligibility;
+  every deliberately insufficient guard control fails to obtain certification. Each accepted
+  variant has evidence for its own exact module.
+- **SC-011**: All three diagnostic causes are distinguishable in isolated controls; combined
+  cases have repeatable results, and fixing one defect removes its diagnostic without hiding others.
+- **SC-012**: Every supported lifecycle operation has documented obligations and a corresponding
+  example or existing reference control; all six verification-comparison cases have separately
+  recorded outcomes. Unchanged-owner nonterminal transitions are explicitly covered.
+- **SC-013**: The corrected candidate passes every existing mandatory proof, regression,
+  compatibility, conformance and full release check. Its package installs cleanly and its
+  artifacts and canonical safety evidence reproduce under the established process.
+- **SC-014**: Adding or omitting Safety policies for the same ordinary behavior preserves Core
+  IR, BehaviorHash, existing receipts, transition results, stored state and replay. No proof
+  assumption or failed obligation is promoted to an unconditional safety claim.
 
 ## Assumptions
 
@@ -581,3 +705,10 @@ requirements for this feature.
 - Established Model/Core semantics, compatibility fixtures, published tags, records and
   attestations remain immutable. Only new Safety Model identities and justified authoring or
   analysis capabilities belong to Feature 510.
+- Release readiness continues on the existing 510 branch. The only newly supported guard
+  variation is literal membership ordering within the existing pattern; arbitrary equivalent
+  expressions, owner transfer, optional ownership, new Safety Models and new governance remain
+  outside scope. Core 0.15.0 and the established proof-integrity contract remain fixed.
+- Integration findings are supplied reports to reproduce during implementation. This specification
+  authorizes preparation and validation, not publishing a tag/distribution or claiming the
+  existing completion matrix already discharges FR-039–FR-046.

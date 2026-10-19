@@ -6,6 +6,7 @@ import importlib
 import json
 import os
 import subprocess
+import behavior as core_api
 from pathlib import Path
 from typing import Sequence
 
@@ -36,7 +37,7 @@ CASES = ("fo_field", "fo_state_machine", "ld_parent_child", "ld_shared_parent", 
 REQUIRED_ROOTS = (
     "Safety.FieldOwnership.sound", "Safety.LifecycleDependency.sound",
     "Safety.LifecycleDependency.conjunction", "Safety.LifecycleDependency.projection_frame",
-    "Safety.checkLifecycle_sound", "Safety.classify_permitted", "Safety.lifecycle_module_preserves",
+    "Safety.membership_order_equivalent", "Safety.checkLifecycle_sound", "Safety.classify_permitted", "Safety.lifecycle_module_preserves",
     "Safety.checkModule_sound", "Safety.module_preserves", "Concrete.checked", "Concrete.certified")
 REQUIRED_OBLIGATIONS = ("inventory_comparison", "generic_proof", "concrete_proof",
                         "theorem_types", "axiom_audit", "fresh_replay")
@@ -75,19 +76,108 @@ def rust_preflight(output):
                        stderr=subprocess.STDOUT, check=True)
 
 
+def new_guard_contract_report():
+    from .guard_contract import VARIANTS
+    return {"format":"behavior.safety_guard_contract.v1","cases":{name:{"status":"NotRun"} for name in VARIANTS},
+            "complete":False,"passed":False,"errors":[],"versions":core_api.versions(),
+            "claim":"Local Core checks and conditional inductive Safety preservation are separate evidence."}
+
+
+def required_guard_row(name,row):
+    from .guard_contract import VARIANTS
+    if name not in VARIANTS or row.get("status")!="Complete":return False
+    try:
+        bh=row["behavior_hash"];core=row["core"];safety=row["safety"]
+        att=core["attestation"];checks=core["checks"]
+        if not isinstance(bh,str) or not bh.startswith("sha256:"):return False
+        if json.loads(core["canonical_attestation"])!=att or att["behavior_version"]!=bh:return False
+        if core["attestation_hash"]!=att["hash"] or core["result"]!=att["result"]:return False
+        if att["verifier_version"]!="0.10.0" or not isinstance(checks,list) or not checks or checks!=att["checks"]:return False
+        if core["profile"]["checks"]!=["postcondition"]:return False
+        if any(att["profile"].get(k)!=v for k,v in core["profile"].items()):return False
+        if not row["postcondition_hashes"]:return False
+        if len(checks)!=len(row["postcondition_hashes"]):return False
+        if any(c.get("kind")!="postcondition" or not c.get("subject") or c["subject"].get("hash") not in row["postcondition_hashes"]
+               or c["action"]["hash"]!=row["action_hash"] or not isinstance(c.get("outcome"),str) for c in checks):return False
+        expected=name in {"canonical","permuted"}
+        if safety["certificate_present"] is not expected:return False
+        doc=safety["assessment"]
+        if doc["behavior_hash"]!=bh or safety["outcome"]!=doc["outcome"] or safety["evidence_hash"]!=doc["evidence_hash"]:return False
+        if safety["diagnostics"]!=doc.get("diagnostics",[]):return False
+        return (required_assessment(doc) and doc["obligations"].get("lifecycle_preservation")=="Passed") if expected else doc["outcome"]=="Unsupported"
+    except (KeyError,TypeError,ValueError):return False
+
+
+def required_guard_contract(report):
+    from .guard_contract import VARIANTS
+    cases=report.get("cases",{})
+    return (report.get("complete") is True and not report.get("errors")
+            and report.get("versions",{}).get("engine")=="0.15.0" and set(cases)==set(VARIANTS)
+            and all(required_guard_row(name,row) for name,row in cases.items()))
+
+
+def guard_contract(output,*,certify):
+    from .guard_contract import VARIANTS,LOCAL_PROPERTY,build
+    report=new_guard_contract_report()
+    def save():
+        (output/"guard-contract.json").write_text(json.dumps(report,sort_keys=True,indent=2)+"\n")
+    save()
+    try:
+        if not certify:raise ValueError("--guard-contract requires --certify")
+        if any(os.environ.get(k) for k in ("BEHAVIOR_LEAN_BINARY","BEHAVIOR_LEANCHECKER_BINARY","BEHAVIOR_CLI_BINARY")):
+            raise ValueError("Pinned comparison rejects executable overrides")
+        for name in VARIANTS:
+            row=report["cases"][name]
+            try:
+                model=build(name);plain=build(name,safety=False)
+                assert model.to_wire_json()==plain.to_wire_json() and model.model_receipts==plain.model_receipts
+                inventory=model.safety_analysis.to_dict()["inventory"]["actions"]
+                assert len(inventory)==1 and inventory[0]["postconditions"]
+                row.update({"behavior_hash":model.behavior_version,"local_property":LOCAL_PROPERTY,
+                            "action_hash":inventory[0]["hash"],"postcondition_hashes":inventory[0]["postconditions"]})
+                profile=core_api.Profile(checks=["postcondition"])
+                att=core_api.verify(model,profile)
+                row["core"]={"profile":{"checks":profile.checks,"rlimit":profile.rlimit,"wall_clock_guard_ms":profile.wall_clock_guard_ms},
+                    "attestation":att.data,"canonical_attestation":att.json,"attestation_hash":att.hash,"result":att.result,"checks":att.checks}
+                assessment=certify_safety(model,output=output/name)
+                doc=assessment.to_dict()
+                row["safety"]={"outcome":assessment.outcome,"certificate_present":assessment.certificate is not None,
+                               "diagnostics":doc.get("diagnostics",[]),"evidence_hash":doc.get("evidence_hash"),"assessment":doc}
+                row["status"]="Complete"
+                row["passed"]=required_guard_row(name,row)
+            except Exception as error:
+                row["status"]="Failed";row["error"]=str(error);report["errors"].append(f"{name}: {error}")
+                save();break
+            save()
+        report["complete"]=all(row["status"]=="Complete" for row in report["cases"].values())
+        report["passed"]=required_guard_contract(report)
+    except Exception as error:
+        report["errors"].append(str(error))
+    save()
+    return report
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--case", choices=(*CASES, "all"), default="all")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--certify", action="store_true")
+    parser.add_argument("--guard-contract",action="store_true",help="Compare six Core/Safety guard outcomes (requires --certify)")
     parser.add_argument("--gate", action="store_true", help="Mandatory complete proof suite, including Rust preflight")
     args = parser.parse_args(argv)
     args.output.mkdir(parents=True, exist_ok=True)
+    if args.guard_contract and not args.gate:
+        comparison=guard_contract(args.output,certify=args.certify)
+        return 0 if comparison["passed"] else 1
     selected = CASES if args.gate or args.case == "all" else (args.case,)
     report = {"format": "behavior.safety_reference_run.v1",
               "cases": {name: {"status": "NotRun", "certified": False} for name in selected},
               "errors": [], "passed": False, "rust_preflight": "NotRequested",
               "claim": "Ordinary-transition guarantees under assumptions; snapshot validity and host authorization are separate"}
+
+    if args.gate:
+        report["guard_contract"]=new_guard_contract_report()
+        (args.output/"guard-contract.json").write_text(json.dumps(report["guard_contract"],sort_keys=True,indent=2)+"\n")
 
     def save():
         (args.output / "summary.json").write_text(json.dumps(report, sort_keys=True, indent=2) + "\n")
@@ -142,7 +232,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         save()
         print(f"{name}: {row['status']}", flush=True)
     if args.gate:
-        passed = required_report(report) and report["rust_preflight"] == "Passed"
+        report["guard_contract"]=guard_contract(args.output,certify=args.certify)
+        passed = required_report(report) and report["rust_preflight"] == "Passed" and required_guard_contract(report["guard_contract"])
     else:
         passed = all(row["certified"] if args.certify else row["status"] == "Lowered" for row in report["cases"].values())
     report["passed"] = passed

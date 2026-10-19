@@ -1,5 +1,8 @@
 # Data Model: Safety Models
 
+**Release extension (2026-10-18):** §8 adds data-only order witnesses and structured diagnostics.
+The current planned checker/lowerer version is 2; policy semantics and runtime state are unchanged.
+
 All semantic normalization and validation is Rust-authoritative. Names below describe planned
 types/contracts, not a new Core schema. Core entity values, execution and hashing remain Core's.
 
@@ -181,3 +184,28 @@ Changing module/policies requires incoming-property validation at an enforced bo
 atomic or equivalent protocol prevents commits between validation and activation from invalidating
 the anchor. StateId equality alone does not prove exact history continuity. Migration is a
 separate boundary; a new valid anchor makes no claim about preceding history.
+
+## 8. Release-readiness additions
+
+| Internal data | Contents and validation |
+| --- | --- |
+| MembershipOrderCandidates | Ordered string vectors discovered generically from Core-owned transport; exact distinct-member set, retained order/repetitions, deterministic vector deduplication, bounded total work. No expression interpretation or authority. |
+| MatchedMembershipGuard | Actual action/root hash, dependency identity, guard family, enum/field/binding coordinates, ordered vector and required policy set. Construct only after full Core probe admission and actual mandatory-root equality. |
+| Concrete membership witness | Raw ordered member bytes and the corresponding policy set in finite proof input; kernel-checked membership equivalence/set agreement alongside existing root/role/operation premises. |
+| Lifecycle diagnostic | Stable code, action, optional dependency ModelHash, entity, field and detail. One earliest established failure per operation/dependency, sorted deterministically. No new certificate or runtime-state authority. |
+| Guard comparison row | Variant, exact BehaviorHash, intended local Core property/profile, canonical attestation and individual outcomes, Safety outcome/certificate presence/diagnostics/evidence identity. |
+
+The exact inventory remains complete. Candidate arrays are not an admitted AST, and a matched
+guard cannot be deserialized or asserted by a caller flag. Discovery/match caches are ephemeral
+build data; no Store/replay format or deployment-segment field changes.
+
+For each child operation, retain candidate sets C (suitable State parents), A (correctly
+associated members of C), and G (members of A with the mandatory permitted-parent root).
+An empty C reports binding; otherwise empty A reports association; otherwise empty G reports
+guard, when that operation requires it. Terminal child updates need none of these new checks;
+terminal creation requires C/A but not G. A successful candidate is not lost because an earlier
+candidate failed. Parent-prohibition guards continue to be checked independently per dependency.
+
+Diagnostics/resource envelopes may add optional context; semantic evidence keeps actual root
+and proof-input identities. Checker version 2 distinguishes changed accepted inputs. Existing
+statement/property meaning, policy semantic version 1 and v1 receipt formats are retained.

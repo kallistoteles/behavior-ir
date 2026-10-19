@@ -99,3 +99,9 @@ fn untrusted_strings_are_literal_data_or_rejected_before_proof_generation() {
     assert!(!input.contains(payload));
     assert!(!input.contains("axiom injected"));
 }
+
+#[test]
+fn release_recognition_uses_new_checker_identity_without_changing_policy_semantics() {
+    assert_eq!(behavior_models::safety::SAFETY_CHECKER_VERSION, 2);
+    assert_eq!(behavior_models::safety::FIELD_OWNERSHIP_SEMANTIC_VERSION, 1);
+}

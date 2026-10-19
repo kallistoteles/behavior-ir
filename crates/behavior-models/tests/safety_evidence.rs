@@ -20,7 +20,7 @@ fn lowered_analysis_is_complete_data_and_never_a_certificate() {
     assert_eq!(data["status"], "Lowered");
     assert_eq!(data["is_certified"], false);
     assert_eq!(data["analysis_version"], 1);
-    assert_eq!(data["checker_version"], 1);
+    assert_eq!(data["checker_version"], 2);
     assert_eq!(data["policies"].as_array().unwrap().len(), 1);
     assert_eq!(
         data["inventory"]["behavior_hash"],
@@ -56,7 +56,7 @@ fn proof_and_exhaustion_assessments_have_scope_identities_classes_and_external_b
         assert_eq!(report["outcome"], expected, "{report}");
         assert_eq!(report["format"], "behavior.safety_evidence.v1");
         assert_eq!(report["scope"], "OrdinaryTransitions");
-        assert_eq!(report["checker_version"], 1);
+        assert_eq!(report["checker_version"], 2);
         assert_eq!(report["core_release"]["version"], "0.15.0");
         assert_eq!(report["initial_validity"], "Unestablished");
         assert_eq!(report["behavior_hash"], a.inventory().behavior_hash());
@@ -177,5 +177,47 @@ fn failed_and_unsupported_assessments_keep_the_same_normative_contract() {
         }
         assert_eq!(report["initial_validity"], "Unestablished");
         assert_eq!(report["obligations"]["generic_proof"], "NotRun");
+    }
+}
+
+#[test]
+fn imported_checker_one_evidence_cannot_authorize_current_checker() {
+    let m = support::fixture();
+    let a = analysis(&m);
+    let tools = ProofToolchain::locked().unwrap();
+    let output = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(format!(
+        "../../target/safety-models/release-readiness/stale-{}",
+        std::process::id()
+    ));
+    let result = certify(&m, &a, &output, &tools, &ProofLimits::default());
+    assert!(result.certificate().is_some(), "{}", result.to_json());
+    let data = behavior_models::safety::certify::bundle(
+        &behavior_engine::serialize::to_wire_json(&m),
+        &a,
+        &result,
+    )
+    .unwrap()
+    .to_json();
+    for field in [
+        "checker_version",
+        "implementation_sources",
+        "concrete_source",
+    ] {
+        let mut changed = data.clone();
+        if field == "checker_version" {
+            changed["evidence"][field] = json!(1);
+        } else {
+            changed["evidence"]["proof"][field] = json!("sha256:stale");
+        }
+        let bundle = UnverifiedSafetyBundle::from_json(&changed).unwrap();
+        let result = behavior_models::safety::certify::verify_safety_evidence(
+            &m,
+            &a,
+            &bundle,
+            &output.join(field),
+            &tools,
+            &ProofLimits::default(),
+        );
+        assert!(result.certificate().is_none(), "stale {field} accepted");
     }
 }

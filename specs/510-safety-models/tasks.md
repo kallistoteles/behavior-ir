@@ -389,3 +389,205 @@ limits and name every remaining trusted assumption. Implementation work begins o
 
 There are **19 [P] tasks** in six eligible batches. All tasks start unchecked; their presence
 does not assert implementation, proof success, runtime validation or passing gates.
+
+## Release-Readiness Extension — Execution Scope
+
+**Generated**: 2026-10-18. **Input**: US5–US7, FR-039–FR-046, SC-010–SC-014;
+[current plan](plan.md#current-plan--release-readiness-2026-10-18),
+[research §10](research.md#10-release-readiness-research-2026-10-18), [data model §8](data-model.md#8-release-readiness-additions),
+[release contract](contracts/release-readiness.md) and [quickstart §7](quickstart.md#7-release-readiness-validation).
+
+The 85 preceding tasks/markers and their summaries are preserved as the original implementation
+record. The additional scope is T086–T113 below; its markers and acceptance matrix now record
+actual completion. Previous completion/convergence does not discharge it. No existing phase is
+restarted. Tests are explicitly required by FR-045, FR-046
+and Constitution III. Write/review controls and observe their intended failure before each fix;
+record red/green commands, exit codes and actual results under `target/safety-models/release-readiness/`.
+Missing tools, compile mistakes in a negative control and blanket refusal are not intended red
+results or positive proof evidence. Generating this extension executes no tests.
+
+Retain the exact Core 0.15.0 pin, verifier 0.10.0, Lean 4.30.0 and existing runtime budgets.
+The public serializer exception is limited to untrusted string-array candidate discovery in
+one private helper; actual mandatory-root equality and concrete proofs remain mandatory.
+No Core modification, expression-equivalence framework, runtime state, authoring capability,
+production-application dependency, tag creation/push or publication is authorized here.
+Preserve unrelated Spec Kit/Skills work and uncommitted user data.
+
+## Phase 8: Release Setup — Preserve the Implemented Baseline
+
+**Goal**: Establish the exact candidate and protected inputs without repeating project setup.
+
+- [X] T086 Record current source/pin/tool identities, checker version, release metadata, existing compatibility/receipt bytes, unrelated user changes and available build space in `target/safety-models/release-readiness/baseline.json`; retain an authentic current checker-1 bundle from `target/safety-models/proof-gate/` for stale-evidence controls, or produce that baseline with the unchanged implementation if unavailable; use task-owned build/temp storage and remove no unrelated data.
+
+## Phase 9: Release Foundation — Public-Core Feasibility Stop Gate
+
+**Goal**: Demonstrate bounded candidate discovery and exact-root construction before dependent
+recognition changes. This phase supplies the shared boundary, not a replacement Core parser.
+
+- [X] T087 Write/review and observe failing public-facade preflight controls in `crates/behavior-models/tests/safety_correspondence.rs` and scoped exception controls in `scripts/tests/test_check_public_surface.sh`: reconstruct both direct and nested-query roots in the actual member order, retain duplicates, reject wrong type/binding/placement and hint-only acceptance, refuse each exhausted discovery budget, and keep serialization outside the named helper and private Core imports rejected; require valid positive controls.
+- [X] T088 Implement private `crates/behavior-models/src/safety/membership_orders.rs`, register it in `crates/behavior-models/src/safety/mod.rs`, add only the scratch ordered-probe support needed in `guards.rs`, and scope the named exception in `scripts/check-public-surface.sh`; enforce “exact distinct-member set, retained order/repetitions, deterministic vector deduplication, bounded total work” without interpreting expression keys, with cumulative limits of 16 MiB output, 1,000,000 JSON nodes, depth 128, 4,096 distinct vectors, 4,096 values/vector and 4,096 probe constructions/analysis; check bytes before decoding and counters before further work, report `SAFETY_GUARD_SCAN_EXHAUSTED` on exhaustion, never truncate to success, and make T087 pass without integrating production certification yet.
+- [X] T089 Execute the public-Core preflight from `crates/behavior-models/tests/safety_correspondence.rs` and `scripts/tests/test_check_public_surface.sh`, record actual commands, roots, counts/resource observations and source/gate boundaries in `target/safety-models/release-readiness/preflight.json`, and stop dependent work if any supported row fails; justify any measured default-budget tuning without changing proof limits or runtime budgets, using no private variants, Wire semantic classification, copied hashing, factorial search or changed pin.
+
+**PUBLIC-CORE STOP GATE**: T089 must pass before T090–T113 production work. Source inspection
+alone is not a passed preflight. Discovery influences availability; a hint cannot grant authority.
+
+## Phase 10: US5 — Certify Supported Membership Orders (P1, Release MVP)
+
+**Goal**: Correct the reported C2 recognition defect in both existing guard families and retain
+exact admitted identities and the complete mathematical certification boundary.
+
+**Independent test**: All 32 distinct permutations of two-, three- and four-member sets in each
+family certify against their own exact modules; duplicate/larger-set controls and adversarial
+guards preserve the required set/placement/bindings. Missing premises never produce a certificate.
+
+### Tests first
+
+- [X] T090 [P] [US5] Write/review and observe the reported C2 failure in new `crates/behavior-models/tests/safety_membership.rs`, with minimal public-Core fixtures local to that test: exhaust the 32 permutations per direct-parent and nested-child-query guard family, include repeated literals and seeded permutations of 8/16/32 members, reject missing/extra members, wrong enum/field/binding/polarity and weakened Boolean placement, and compare actual authored hashes, runtime membership results and safety-free IR/receipts independently; do not depend on DeclarativeHost internals.
+- [X] T091 [P] [US5] Write/review and observe failing concrete-membership, identity and proof-integrity controls in `crates/behavior-models/tests/safety_lifecycle_proofs.rs`, `crates/behavior-models/tests/safety_reproducibility.rs`, `crates/behavior-models/tests/safety_evidence.rs` and `crates/behavior-models/proofs/safety/tests/CategoryMembership.lean`: alter ordered-member/set witnesses, roots, captures or dependency linkage, remove essential premises, and attempt stale checker/source evidence; require positive theorem/instance controls, unchanged existing theorem conclusions and no certificate from omitted/corrupt hints or forged match data.
+- [X] T092 [P] [US5] Write/review and observe failing public SDK controls in new `python/tests/test_safety_membership.py` for reversed/duplicate direct and query guards, wrong-context refusal, exact BehaviorHash/evidence binding, Inconclusive resource refusal and ordinary no-Lean lowering/replay; assert thin Rust delegation and no Python guard normalization or module rewriting.
+
+### Implementation and evidence
+
+- [X] T093 [US5] Integrate candidate matching in `crates/behavior-models/src/safety/guards.rs` and `crates/behavior-models/src/safety/lifecycle_dependency.rs`: construct typed `MatchedMembershipGuard` data only after full Core probe admission and actual mandatory-root equality, retain “Actual action/root hash, dependency identity, guard family, enum/field/binding coordinates, ordered vector and required policy set.”, choose the lowest matching root hash deterministically, preserve empty-set literal conventions and duplicate multiplicity, and share authoritative matched results with the concrete encoder; keep full action/effect coverage and reject unsupported forms without rewriting Core.
+- [X] T094 [US5] Encode “Raw ordered member bytes and the corresponding policy set in finite proof input; kernel-checked membership equivalence/set agreement alongside existing root/role/operation premises.” in `crates/behavior-models/src/safety/proof_data.rs` and `crates/behavior-models/proofs/safety/LifecycleCheck.lean` / `crates/behavior-models/proofs/safety/Check.lean`; update `crates/behavior-models/src/safety/certify.rs`, `crates/behavior-models/src/safety/evidence.rs`, `crates/behavior-models/proofs/safety/Audit.lean` and required-root manifests so analysis and concrete checking use actual matched roots, bind the helper in implementation-source identity, and classify scan exhaustion as Inconclusive through analysis/proof preparation before the US5 milestone; retain every generic/concrete type, axiom and fresh-replay obligation with no caller-deserializable match authority.
+- [X] T095 [US5] After T091's version/stale-data controls are red, bump `SAFETY_CHECKER_VERSION` to 2 in `crates/behavior-models/src/safety/mod.rs`, extend lowerer-version/history controls in `scripts/tests/test_models_safety_compat.sh`, and add only new checker-2 tuples to `models/fixtures/safety-compat.json` through `scripts/check-models-compat.py --safety --write`; preserve policy semantic version 1, the meaning/format of existing evidence and receipts, every old tuple and `models/fixtures/compat.json`, and make stale checker/source bundles noncertifying rather than reusing their success flags.
+- [X] T096 [US5] Run T090–T095's positive/negative public and Rust controls plus the existing generic/concrete proof-integrity suites, certify all required small permutations and full representatives at sizes 8/16/32, repeat canonical evidence for identical inputs and mutate every new witness binding; record exact case/seed/count bounds, positive certificates, negative outcomes, audit/fresh-replay results and unchanged authored IR/receipts in `target/safety-models/release-readiness/membership.json`, making T090–T092 pass with zero deliberately insufficient certified cases.
+
+**MVP STOP GATE**: US5 is independently usable only after T096 passes, including concrete
+proofs and the new checker identity. It is not completion of release readiness or permission
+to publish. Do not defer a missing proof to later documentation or label it an assumption.
+
+## Phase 11: US6 — Report the Actual Failed Lifecycle Prerequisite (P1)
+
+**Goal**: Make the three parent prerequisites individually actionable without changing the
+accepted lifecycle pattern or concealing resource/structural failures.
+
+**Independent test**: Each isolated cause yields its exact stable code and dependency/action
+context; combined and multiple-parent cases follow precedence, fixing one defect leaves other
+defects visible, and resource exhaustion remains Inconclusive without certification.
+
+### Tests first
+
+- [X] T097 [P] [US6] Write/review and observe failing Rust diagnostic/assessment controls in `crates/behavior-models/tests/safety_lifecycle.rs` and `crates/behavior-models/tests/safety_evidence.rs` for the three exact release-contract codes, action/dependency/entity/field context, combined-failure precedence, a later valid parent candidate, association on one parent plus guard on another, correction of one cause while another remains, terminal-assignment exemption, terminal-creation association, and Unsupported versus Inconclusive versus structural/identity failure outcomes.
+- [X] T098 [P] [US6] Write/review and observe failing Python controls in `python/tests/test_safety_lifecycle.py` and `python/tests/test_safety_evidence.py` for deterministic structured issues in both Lowered analysis and failed certification assessments, exact codes/context and correction behavior; reject tests that merely match the old combined Debug/message text or treat a new code as a certificate.
+
+### Implementation and evidence
+
+- [X] T099 [US6] Add optional dependency ModelHash context to `crates/behavior-models/src/safety/input.rs` and implement staged all-parent checking in `crates/behavior-models/src/safety/lifecycle_dependency.rs`: C is every suitable State parent, A every correctly associated member of C, G every member of A with the required mandatory guard; emit the earliest established empty-stage diagnostic per action/dependency/operation, require association and guard on the same candidate, sort by action/dependency identity and operation occurrence, retain existing terminal-update/creation distinctions, and populate “Stable code, action, optional dependency ModelHash, entity, field and detail.” without adding runtime data.
+- [X] T100 [US6] Replace substring-dependent classification for the three prerequisite codes with explicit Unsupported handling in `crates/behavior-models/src/safety/certify.rs`, preserve `SAFETY_GUARD_SCAN_EXHAUSTED` as Inconclusive through analysis/proof preparation, and expose original typed issues in `crates/behavior-models/src/safety/evidence.rs` assessment diagnostics with thin forwarding through `crates/behavior-py/src/safety.rs` / `python/behavior/_engine.pyi` only as needed; preserve canonical/diagnostic separation, ownership build errors, existing Failed semantics and the no-certificate rule.
+- [X] T101 [US6] Make T097–T098 pass and record exact isolated, combined, wrong-binding, later-valid-candidate and correction outcomes from the Rust/Python suites in `target/safety-models/release-readiness/diagnostics.json`; compare complete serialized issue order across repeats and confirm all three new codes remain Unsupported while resource exhaustion remains Inconclusive, with no downstream cause asserted when its prerequisites were not evaluable.
+
+## Phase 12: US7 — Explain and Demonstrate the Release Contract (P1)
+
+**Goal**: Give authors the complete lifecycle obligations and an independently recorded Core/
+Safety comparison, then prepare consistent candidate metadata using the existing release path.
+
+**Independent test**: The six-case matrix has two actual conditional certificates and four
+actual Unsupported refusals, separately records nonempty query-sensitive Core checks, and fails
+closed on omitted rows/tools/proofs. Documentation covers every v1 operation, including unchanged-
+owner nonterminal transitions. Final US7 acceptance additionally requires Phase 13's full release run.
+
+### Tests first
+
+- [X] T102 [P] [US7] Write/review and observe failing public matrix/authoring controls in new `python/tests/test_safety_guard_contract.py` for `--guard-contract --certify`, all six variant identities, exact modules/profiles/check subjects/attestations and Safety evidence, a nonempty query-sensitive Core postcondition inventory, actual supported/excluded results and Planned → Created / Terminal → Active examples; ensure a genuine Core Inconclusive result is preserved independently and no live DeclarativeHost application or assumed SMT outcome is required.
+- [X] T103 [P] [US7] Write/review and observe failing mandatory-report/runner controls in `scripts/tests/test_safety_proofs.sh` and `python/tests/test_gate_runner.py` for omitted matrix rows, empty Core checks, absent tools, early comparison failure, an unexpected negative-case certificate and supported-case proof failure; require nonzero gate status plus explicit failure/unrun reporting while retaining the existing five required certificates, ordinary lowering behavior and named gate ordering.
+
+### Fixture, reporting and documentation
+
+- [X] T104 [US7] Add `models/examples/safety_models/guard_contract.py` using existing public APIs for one minimal parent-prohibition/query fixture and six variants (canonical, permuted, equivalent unsupported, absent guard, wrong parent, insufficient OR), with a relevant local postcondition and child-side unchanged-owner examples; preserve the original five reference builders and the restricted VM contract, and make the fixture controls in T102 pass without introducing generated lifecycle capabilities or another semantic checker.
+- [X] T105 [US7] Extend `models/examples/safety_models/run.py` with explicit `--guard-contract --certify --output PATH`, require certification for that mode, call public Core verification and Rust Safety certification independently, and write complete `guard-contract.json` rows containing “Variant, exact BehaviorHash, intended local Core property/profile, canonical attestation and individual outcomes, Safety outcome/certificate presence/diagnostics/evidence identity.”; record actual solver outcomes without promoting Inconclusive or substituting local proofs for LD induction, and make errors/missing checks/rows nonzero with unrun rows preserved.
+- [X] T106 [US7] Integrate the six-case comparison into the existing mandatory path in `scripts/check-safety-proofs.sh` and `models/examples/safety_models/run.py`, extend aggregate expectations in `scripts/tests/test_safety_proofs.sh` / `python/tests/test_gate_runner.py`, and make T103 pass; require the original five certificates plus a complete valid comparison, distinguish expected Unsupported negative controls from failed supported obligations, and keep the work outside the 507 quick timer without another gate/release process.
+- [X] T107 [P] [US7] Update `README.md`, `models/README.md` and `models/examples/safety_models/README.md` with executable public references, all v1 lifecycle-operation obligations, both nonterminal example transitions even with unchanged ownership, parent State/owner association/canonical whole-root structure, duplicate/order behavior, diagnostic codes/precedence and the independently observed verification matrix; retain genesis/migration/extraction/host assumptions, state transparency, VM-fixture scope and unmapped I-5b/I-6, and recommend a shared authoring form only if actually demonstrated.
+- [X] T108 [P] [US7] Recheck published versions and the planned 0.13.1 policy rationale, then align `Cargo.toml`, workspace package entries in `Cargo.lock`, `api/public-api.json`, `docs/versioning.md`, new `release/notes/0.13.1.md` and the version declarations in `skills/behavior-authoring/SKILL.md`, `skills/behavior-verification/SKILL.md` and `skills/behavior-application/SKILL.md` where existing checks require it; preserve the Core pin, lock dependency graph, established API/format entries and published notes, keep Skills edits to required metadata accuracy, and reassess rather than reuse an already published version or silently pick another contract.
+- [X] T109 [US7] Execute the new public mode, mandatory proof/report controls and essential documentation examples from T102–T108, record all six independent result pairs and observed recommended-form limitations in `target/safety-models/release-readiness/contract.json`, and verify candidate metadata consistency with existing API/Skill checks; leave the original reference identities and previous evidence untouched and report current obligations honestly before full release validation.
+
+## Phase 13: Corrected-Candidate Acceptance and Handoff
+
+**Goal**: Establish readiness of this exact corrected candidate through all existing required
+checks, preserving evidence classes and user work. This phase prepares a release; it publishes none.
+
+- [X] T110 Run `nix develop -c scripts/release-check.sh` with full required gates on the corrected candidate, capturing command/source/checker/tool identities, exit status, raw logs and installed-package/artifact checks in `target/safety-models/release-readiness/release.json`; require full properties and opt-in release controls, current Rust/Python tests, generic/concrete proofs and audits/fresh replay, the new six-case gate, packaged proof resources, clean consumer installation, Core-only replay and reproducibility; diagnose failures without weakening gates/budgets/pins or substituting a prior `--skip-gates` result.
+- [X] T111 Execute `scripts/conformance.sh 506 complete` and `scripts/conformance.sh 507 complete` in the pinned Nix environment and record fresh reports under `target/safety-models/release-readiness/`; verify all required cases/obligations, the full release run's unchanged quick budget, canonical evidence repetition, stale-checker rejection and final public package/API expectations, making no universal proof claim from finite conformance results.
+- [X] T112 Review the candidate and new evidence against `target/safety-models/release-readiness/baseline.json`, `core-release.json`, both compatibility manifests and established reference/receipt builders; record baseline protection, exact module/policy/proof bindings, observed remaining nonblocking limitations, disk/build environment and independently classified Core/Safety results in `target/safety-models/release-readiness/review.json`, preserving all unrelated Spec Kit/Skills work and user ignore rules with no tag, publication or hidden approval mechanism.
+- [X] T113 After T110–T112 succeed, append the US5–US7 / FR-039–FR-046 / SC-010–SC-014 acceptance evidence to `specs/510-safety-models/checklists/implementation.md` and update `specs/510-safety-models/quickstart.md` §7 plus `specs/510-safety-models/release-readiness.md` to actual commands/results, linking all fresh milestones and retaining historical scope labels; distinguish valid proofs, concrete checks, tests and host/correspondence assumptions, mark only discharged tasks complete, and hand off separate post-merge publication through the existing process.
+
+## Release Dependencies and Execution Order
+
+```text
+T001–T085 original implementation (preserved)
+  → T086 baseline
+  → T087 red preflight controls → T088 helper → T089 PUBLIC-CORE STOP GATE
+  → US5: T090/T091/T092 red → T093 matching → T094 concrete proof → T095 versions → T096 MVP gate
+  → US6: T097/T098 red → T099 diagnostics → T100 assessment mapping → T101 story gate
+  → US7: T102/T103 red → T104 fixture → T105 report → T106 mandatory integration
+           → T107/T108 documentation + metadata → T109 contract gate
+  → T110 full release check → T111 complete conformance → T112 review → T113 acceptance
+```
+
+All three extension stories are P1. Their independent checks use the already implemented
+FO/LD authority; US7 needs both corrected recognition and diagnostics. US6 edits shared files
+after the US5 milestone, so serialize its integration. A test-first batch is complete only
+when its relevant intended failures have been observed; task numbering never waives that gate.
+
+| Dependency | Reason |
+| --- | --- |
+| T088 after T087 | The scoped public-surface exception and bounded helper need rejection controls first. |
+| T090–T096 after T089 | No production guard integration before actual public-Core feasibility. |
+| T093/T094 after T090–T092 | Actual-root/witness and thin-binding controls precede fixes. |
+| T095 before T096 | Changed certification inputs must use checker 2 before the MVP certifies. |
+| T099/T100 after T097/T098 | Diagnostic shape, precedence and outcome classes must fail correctly first. |
+| T104–T106 after T102/T103 | Public comparison and mandatory-gate behavior require observed red controls. |
+| T107/T108 after T106 | Document demonstrated behavior and finalize versions before release checks. |
+| T110 after T109 | Validate the complete corrected candidate, including public metadata/docs. |
+| T113 after T110–T112 | Previous successful runs and unresolved mandatory failures cannot establish current completion. |
+
+### Release parallel opportunities
+
+| Story | Eligible batch | Prerequisite / disjoint files |
+| --- | --- | --- |
+| US5 | T090, T091, T092 | T089 passed; separate Rust membership, proof/evidence and Python test files. |
+| US6 | T097, T098 | T096 passed; Rust diagnostic tests and Python contract tests are separate. |
+| US7 | T102, T103 | T101 passed; public comparison tests and shell/gate aggregation tests are separate. |
+| US7 | T107, T108 | T106 passed; public authoring docs and package/version/Skill metadata use different files. |
+
+**Examples**: US5 can write membership controls alongside the proof-mutation and Python controls;
+US6 can write Rust precedence controls alongside Python serialized-diagnostic controls; US7 can
+write matrix acceptance controls alongside gate failure controls. In each batch, finish reviewing
+and observing relevant failures before changing production code. Shared `guards.rs`,
+`lifecycle_dependency.rs`, `certify.rs`, `evidence.rs`, proof data and runner integration remain
+serialized. These are work-splitting opportunities, not authorization to spawn agents.
+
+## Release Coverage and Implementation Strategy
+
+| Intent | Tasks |
+| --- | --- |
+| US5/AC1–AC2; FR-039–FR-041; SC-010, SC-014 | T087–T096, T110–T112 |
+| US6/AC1–AC2; FR-042; SC-011 | T097–T101, T110 |
+| US7/AC1; FR-043; SC-012 | T102, T104, T107, T109 |
+| FR-044 six independent mechanisms/cases | T102–T106, T109–T110 |
+| FR-045 targeted, permutation and negative evidence | T087, T090–T092, T096–T098, T101–T103, T109–T111 |
+| US7/AC2; FR-046; SC-013 | T095, T106, T108–T113 |
+| Original proof, inventory, state/deployment and state-transparency contracts | T091, T094, T096, T100, T110–T113 |
+
+**MVP**: Finish T086–T096 and stop to assess US5 independently, including real concrete
+certificates and negative controls. Then deliver US6 and US7, and finish exact-candidate release
+acceptance. No new functionality, proof caching, external application review or performance
+project is added to make these checks green. Unsupported domain arrangements remain explicit.
+
+### Release task summary
+
+| Phase / story | New tasks | Count |
+| --- | --- | --- |
+| Setup | T086 | 1 |
+| Public-Core foundation | T087–T089 | 3 |
+| US5 — Membership orders | T090–T096 | 7 |
+| US6 — Diagnostics | T097–T101 | 5 |
+| US7 — Authoring/comparison/candidate | T102–T109 | 8 |
+| Final acceptance | T110–T113 | 4 |
+| **Release-readiness extension** | **T086–T113** | **28** |
+| **Whole task file** | **T001–T113** | **113** |
+
+The extension has **9 [P] tasks** in four eligible batches. At generation, all 28 new tasks
+were unchecked and claimed no implementation or proof success. Execution evidence is now
+recorded in [the acceptance matrix](checklists/implementation.md#release-readiness-extension-acceptance-2026-10-18)
+and the task markers above; publication remains a separate explicit post-merge action.

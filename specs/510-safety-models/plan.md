@@ -4,6 +4,115 @@
 
 **Input**: Feature 510 and confirmed grilling decisions Q1–Q17.
 
+## Current Plan — Release Readiness (2026-10-18)
+
+**Scope**: US5–US7, FR-039–FR-046, SC-010–SC-014. The implementation below already exists;
+its original design remains recorded after this section. Extend it rather than repeat T001–T085.
+The next tasks pass must preserve those tasks and append new work starting at T086.
+
+### Technical decisions
+
+- Keep Rust 1.98.1, Python 3.13, Lean 4.30.0, Core 0.15.0 and verifier 0.10.0. Add no dependency,
+  crate, authoring capability or runtime state. Existing proof/Store boundaries remain in force.
+- Add a small private `safety/membership_orders.rs` helper. It uses Core's public serializer to
+  discover ordered string-array candidates, without interpreting serialized expression operators,
+  types, bindings or Boolean structure. Only a reconstructed, Core-admitted **whole mandatory
+  root** with the right typed declarations/captures can establish a guard match.
+- Preserve candidate order and repetitions; compare its distinct members with the configured
+  set. Core membership ignores duplicates at evaluation but hashes their order and multiplicity.
+  Keep the existing explicit true/false convention for empty policy sets.
+- Share validated match results between `lifecycle_dependency.rs` and `proof_data.rs`.
+  Record actual authored roots and ordered member witnesses; Lean checks exact set agreement
+  and the existing placement/binding/effect premises. Preserve the FO/LD theorem meanings.
+- Split diagnostics using all parent candidates: binding → owner association → parent guard.
+  Association and guard must hold for the same candidate. Preserve terminal-update exemptions
+  and the distinct terminal-creation binding/association requirements.
+- Bump Safety checker/lowerer version to **2**; keep policy semantic versions **1**, Core verifier
+  **0.10.0**, statement meaning and existing receipt formats. Source/input identities change and
+  stale evidence remains unusable. Add new sidecar tuples; preserve existing mappings.
+- Target package **0.13.1**: published 0.13.0 contains no Safety API; this release first adds it.
+  Corrections change no previously published Safety outcomes. Record this rationale in versioning
+  docs/release notes; recheck published versions before implementation finalization/publication.
+
+**Revised architecture decision**: The earlier blanket serializer prohibition is narrowed only
+for non-authoritative order discovery in this helper. Public surface enforcement gets one named
+exception plus rejection controls; all other Model wire-analysis restrictions remain enforced.
+No serialized expression can justify acceptance by itself. The exact-root check and concrete
+proof remain mandatory. This is a design revision, not permission for a Model-side Core parser.
+
+### Constitution Check — Before Research and After Design
+
+| Constraint | Before | After design |
+| --- | --- | --- |
+| I deterministic decisions | PASS | Fixed traversal, sorted candidate/root selection, no AI path |
+| II typed boundaries | PASS | Strict data-only candidates; Core admission establishes types/meaning |
+| III test first | PASS | Reproduce C2 and isolated diagnostic failures before fixes |
+| IV reproducibility | PASS | Actual identities preserved; diagnostics/budgets separate from semantics |
+| V auditability | PASS | Exact roots/member witnesses, structured dependency diagnostics, separate outcomes |
+| VI simplicity | PASS | One helper and existing authority, proof runner, examples and release process |
+| Public Core / authority | PASS with preflight | Named serializer exception discovers candidates only; no private imports or semantic parser |
+| Proof integrity / compatibility | PASS | Existing obligations retained; checker version 2, immutable old mappings |
+| State transparency | PASS | No Store/replay changes or runtime proof dependency |
+
+PASS describes the design, not executed validation. No constitution exception is proposed.
+The helper's discovery affects availability; trusted Core probe/hash correspondence still
+justifies the recognized expression. It does not establish end-to-end compiler verification.
+
+### Implementation Stages
+
+1. **Reproduce and prove feasibility (FR-039–FR-041).** Add minimal C2 and direct/query membership
+   controls to `tests/safety_membership.rs` and `tests/safety_correspondence.rs`. Observe the
+   ordering failure, then demonstrate candidate discovery plus whole-root reconstruction,
+   duplicate handling, wrong-context rejection and resource refusal through public Core only.
+   No dependent recognition implementation proceeds if this preflight fails.
+2. **Integrate recognition and concrete premises (FR-040, FR-045).** Add the helper; adapt
+   `guards.rs`, `lifecycle_dependency.rs`, `proof_data.rs`, implementation-source identity in
+   `certify.rs`, and the finite checker in `LifecycleCheck.lean`/`Check.lean` as needed. Add a
+   small membership-equivalence lemma to the audited proof closure; retain every existing
+   theorem conclusion and integrity requirement. Missing/corrupt hints cannot authorize a root.
+3. **Fix diagnostics (FR-042).** Add optional structured dependency identity to `SafetyError`;
+   preserve action/entity/field context and deterministic precedence. Explicitly map the three
+   new codes to Unsupported. Expose the underlying issues in analysis and assessment diagnostics;
+   do not require authors to parse Debug text. Resource limits remain Inconclusive.
+4. **Document and compare (FR-043–FR-044).** Add a minimal local fixture in
+   `models/examples/safety_models/guard_contract.py` and extend the existing `run.py` with an
+   explicit `--guard-contract --certify` mode. Record six independent Core/Safety result pairs;
+   include this mode in the mandatory proof gate. Update public docs and lifecycle examples.
+5. **Version and validate (FR-046).** Update checker identity/sidecar mappings and package
+   metadata to the selected version. Run the full existing release check with its required
+   gates, complete 506/507 and installed proof resources. Record new acceptance evidence under
+   `target/safety-models/release-readiness/`. No tag creation/push or publication during implementation.
+
+### Validation and Resource Contract
+
+- Exhaust all 32 permutations for distinct two-, three- and four-member sets in each existing
+  membership guard family (direct parent guard and nested child-query guard). Require useful
+  positive certification, exact authored-root binding and all adversarial controls. Use seeded
+  permutation/property checks for sets of 8, 16 and 32 members; include full certification
+  representatives at each larger size. Retain existing five references and all old regressions.
+- Scan existing input vectors; never generate permutations in production recognition. Cache
+  discovery per admitted module and required set. Bound total work, not only each loop.
+  Initial internal budgets: 16 MiB serialized output, 1,000,000 visited JSON nodes, depth 128,
+  4,096 distinct candidate vectors, 4,096 values per vector and 4,096 probe constructions per
+  analysis. Byte cap is checked before JSON decoding; Core serializer allocation itself remains
+  part of the trusted bounded-process/build environment. Check counters before further work.
+  Exceeding a budget produces explicit Inconclusive diagnostics and blocks certification;
+  never truncate and certify a partial scan. These are conservative implementation defaults,
+  not a new runtime/performance promise; measure them in preflight and document any tuning.
+- For duplicate literals, require exact set equality while reconstructing their actual sequence.
+  Extra unrelated arrays cannot broaden acceptance; omitted hints may cause refusal only.
+- Keep all existing proof limits and the 507 quick budget. Run the new formal/matrix work outside
+  that timer. No proof caching, new solver framework or performance project is required.
+
+### Artifacts and Handoff
+
+Research decisions are appended to [research.md](research.md); data additions to
+[data-model.md](data-model.md). The [release contract](contracts/release-readiness.md) defines
+diagnostics, recognition, comparison results and acceptance, and [quickstart.md](quickstart.md)
+contains the future validation sequence. Original design sections follow as historical context;
+the dated release decisions above supersede their sorted-only recognition/blanket serializer
+restriction and initial checker version. Planning ran no probes, tests, proofs or release builds.
+
 ## Summary
 
 Add FieldOwnership v1 and LifecycleDependency v1 to the existing Rust Model authority.
@@ -102,7 +211,8 @@ specs/510-safety-models/
     └── evidence-and-deployment.md
 ```
 
-`tasks.md` belongs to the subsequent speckit-tasks step, not this command.
+`tasks.md` contains the original implemented work. Its release extension belongs to the
+subsequent speckit-tasks step, not this command.
 
 ### Source Code (planned)
 
@@ -133,7 +243,7 @@ flake.nix                              # existing locked Lean package; no lock u
 exact proof sources for installed certification. Python and the example runner delegate to it.
 Small neighboring files may be combined without changing these contracts or adding a crate.
 
-## Implementation Stages and Stop Gates
+## Original Implementation Stages and Stop Gates
 
 ### A. FieldOwnership first
 

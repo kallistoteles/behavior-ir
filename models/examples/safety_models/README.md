@@ -1,6 +1,6 @@
 # Safety Model reference cases
 
-Feature 510 is unreleased, developed against Behavior 0.13.0 and exact Core 0.15.0.
+Behavior 0.13.1 introduces these APIs on exact Core 0.15.0 (verifier 0.10.0).
 All examples use the public Python API and lower to ordinary Core IR.
 
 | Case | Acceptance contract |
@@ -15,7 +15,7 @@ All examples use the public Python API and lower to ordinary Core IR.
 nix develop -c maturin develop
 # Lowering and ordinary Core execution require no proof tools:
 nix develop -c python -m models.examples.safety_models.run --output target/safety-models/examples-lowered
-# Explicit proof checking, all five cases and Rust correspondence preflight:
+# Explicit proof checking: five cases, Rust preflight and six-case comparison:
 nix develop -c scripts/check-safety-proofs.sh
 ```
 
@@ -89,3 +89,49 @@ it never prevents deterministic Core reconstruction.
 
 Proof checking is intentionally a separate, comparatively expensive build step. It stays outside
 the existing WorkQueue quick-mode runtime budget and outside Store execution/replay.
+
+
+## Core verifier and Safety certifier
+
+Run the comparison through the existing reference runner:
+
+```bash
+nix develop -c python -m models.examples.safety_models.run \
+  --guard-contract --certify --output target/safety-models/guard-contract
+```
+
+It writes `guard-contract.json` with all six exact BehaviorHashes, a nonempty query-sensitive
+postcondition profile, canonical Core attestations/check subjects, actual solver outcomes and
+separate Safety assessments/evidence identities. The mandatory proof gate requires this complete
+comparison alongside the original five certificates. Early failures retain explicit unrun rows.
+Ordinary lowering mode remains available without proof tools.
+
+With pinned Core 0.15.0 / verifier 0.10.0 and profile `postcondition`, the reference has these
+observed local results:
+
+| Guard variant | Core local postcondition | Safety v1 |
+| --- | --- | --- |
+| Canonical whole root | proven | Certified under assumptions |
+| Same set, reversed members | inconclusive (`counterexample_not_reproduced`) | Certified under assumptions |
+| Equivalent `all_` form outside profile | inconclusive (`counterexample_not_reproduced`) | Unsupported |
+| Guard absent | counterexample | Unsupported |
+| Guard on another parent | counterexample | Unsupported |
+| Required expression under insufficient OR | counterexample | Unsupported |
+
+The Core check asks whether the declared source conditions establish a particular local
+postcondition. Safety checks the restricted generic inductive pattern and complete transition
+inventory under named assumptions. A Core counterexample is to that local check; the runner
+also records its evaluation trace, including postcondition refusal. INCONCLUSIVE remains
+unproved. Equivalent membership order can therefore certify even while this Core query profile
+is inconclusive. The canonical form above is the demonstrated recommendation for both tools.
+
+For every lifecycle operation, diagnostic stage and raw member-order rule, use the
+[authoring contract](../../README.md#lifecycle-guard-authoring-contract-checker-2). In particular,
+**Planned → Created** and **Terminal → Active** both require owner association and the permitted
+parent guard when their destination is nonterminal, even though owner is unchanged. The executable
+`child_transition_examples()` in [guard_contract.py](guard_contract.py) builds guarded and
+unguarded versions and reports the exact analysis issues.
+
+Repetitions are truth-preserving under Core membership but retain their authored hashes.
+Certification checks exact typed sets and whole roots; it does not accept arbitrary equivalent
+expressions or strengthen the mathematical claims beyond the documented trust boundaries.

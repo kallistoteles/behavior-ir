@@ -182,6 +182,14 @@ pub struct SafetyError {
     pub(crate) action: Option<String>,
     pub(crate) entity: Option<String>,
     pub(crate) field: Option<String>,
+    pub(crate) context: Box<DiagnosticContext>,
+}
+
+/// Additional build diagnostics stay off the hot Result path's inline error size.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct DiagnosticContext {
+    pub dependency: Option<String>,
+    pub occurrence: usize,
 }
 
 impl SafetyError {
@@ -192,6 +200,10 @@ impl SafetyError {
             action: None,
             entity: None,
             field: None,
+            context: Box::new(DiagnosticContext {
+                dependency: None,
+                occurrence: usize::MAX,
+            }),
         }
     }
 
@@ -201,7 +213,7 @@ impl SafetyError {
 
     pub fn to_json(&self) -> Value {
         json!({"code": self.code, "detail": self.detail, "action": self.action,
-            "entity": self.entity, "field": self.field})
+            "entity": self.entity, "field": self.field, "dependency": self.context.dependency})
     }
 }
 
@@ -214,6 +226,7 @@ pub struct UncertifiedSafetyAnalysis {
     pub(crate) dependencies: Vec<super::lifecycle_dependency::ResolvedDependency>,
     pub(crate) issues: Vec<SafetyError>,
     pub(crate) lifecycle_actions: BTreeMap<String, super::lifecycle_dependency::ActionProfile>,
+    pub(crate) membership_matches: Vec<super::guards::MatchedMembershipGuard>,
 }
 
 impl UncertifiedSafetyAnalysis {
@@ -227,6 +240,7 @@ impl UncertifiedSafetyAnalysis {
             dependencies: vec![],
             issues: vec![],
             lifecycle_actions: BTreeMap::new(),
+            membership_matches: vec![],
         })
     }
     pub fn inventory(&self) -> &Inventory {

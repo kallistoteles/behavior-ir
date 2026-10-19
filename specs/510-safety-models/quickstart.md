@@ -2,6 +2,10 @@
 
 **Status**: Implemented and validated. All required gates, package checks and public API controls passed; results are recorded in the implementation matrix and `target/safety-models/final/`. No command publishes or tags a release.
 
+**Scope update (2026-10-18)**: Sections 1–6 retain the original T001–T085 implementation
+history. Section 7 records the corrected candidate's completed T086–T113 acceptance through
+a fresh full release check and complete conformance; earlier runs do not discharge that scope.
+
 See [authoring](contracts/authoring-and-certification.md),
 [proof contract](contracts/proof-contract.md) and
 [evidence/deployment](contracts/evidence-and-deployment.md) for the normative behavior.
@@ -190,3 +194,79 @@ checks and matching reproducible wheel bytes. The recorded full gate was reused,
 or replaced. The final public API rerun is recorded separately in `package-api-controls.json`.
 
 The final public API rerun passed all 11 tests (`package-api-controls.json` and its JUnit XML).
+
+## 7. Release-readiness validation
+
+The [release contract](contracts/release-readiness.md) is implemented and validated for Behavior
+0.13.1 / Core 0.15.0 / verifier 0.10.0, Safety checker/lowerer 2 and policy semantics 1.
+The actual intended failures, corrections and independent milestones are recorded under
+`target/safety-models/release-readiness/`. These are local build outputs, not published attestations.
+
+Focused entrypoints reproduce checks contained in the completed full run:
+
+```bash
+nix develop -c cargo test -p behavior-models --test safety_membership
+nix develop -c cargo test -p behavior-models --test safety_correspondence --test safety_lifecycle --test safety_lifecycle_proofs
+nix develop -c python -m pytest python/tests/test_safety_membership.py python/tests/test_safety_lifecycle.py python/tests/test_safety_evidence.py python/tests/test_safety_guard_contract.py python/tests/test_safety_transparency.py
+nix develop -c python -m models.examples.safety_models.run --guard-contract --certify --output target/safety-models/release-readiness/comparison
+nix develop -c scripts/check-safety-proofs.sh --output target/safety-models/release-readiness/proofs
+```
+
+Observed: 82 exact-module instances certify across both guard families (64 small permutations,
+12 duplicate cases and 6 larger representatives). Every instance has twelve audited roots and
+passed generic/concrete proofs, allowed-axiom/type audits and fresh kernel replay. Authored Core
+IR and hashes are preserved. Missing/extra members, wrong types/bindings/polarity and insufficient
+Boolean contexts do not certify. The three parent-diagnostic causes are distinct; scan exhaustion
+is Inconclusive. No successful structural recognition bypasses Lean.
+
+The mandatory proof gate passed five reference certificates and all six comparison rows.
+The canonical local Core postcondition is proven; the permuted and equivalent-outside-profile
+local checks are Inconclusive (`counterexample_not_reproduced`). Safety independently certifies
+the supported canonical/permuted forms and refuses all four excluded forms. Missing/wrong-parent/
+insufficient-OR guards have local counterexamples. These outcomes establish separate claims.
+
+The full release check below actually ran, followed by both complete conformance commands.
+Equivalent commands use the same task directories and host settings; compile profiles, proof
+limits, required gates and the reviewed quick budget are unchanged. The build target was placed
+on the data volume to manage disk capacity safely.
+
+```bash
+safety_release_dir="$PWD/target/safety-models/release-readiness"
+mkdir -p "$safety_release_dir"/{tmp,cache,zig-cache}
+ulimit -c 0
+nix develop -c env TMPDIR="$safety_release_dir/tmp" \
+  XDG_CACHE_HOME="$safety_release_dir/cache" ZIG_GLOBAL_CACHE_DIR="$safety_release_dir/zig-cache" \
+  CARGO_BUILD_JOBS=4 scripts/release-check.sh
+nix develop -c env TMPDIR="$safety_release_dir/tmp" \
+  XDG_CACHE_HOME="$safety_release_dir/cache" CARGO_BUILD_JOBS=4 scripts/conformance.sh 506 complete
+nix develop -c env TMPDIR="$safety_release_dir/tmp" \
+  XDG_CACHE_HOME="$safety_release_dir/cache" CARGO_BUILD_JOBS=4 scripts/conformance.sh 507 complete
+```
+
+| Completed check | Actual result / evidence |
+| --- | --- |
+| Full required release process | [Exit 0](../../target/safety-models/release-readiness/release.json); all 19 gates, full properties and opt-in release tests, no `--skip-gates` |
+| Rust / Python-model suites | 320 Rust tests; 662 Python/model tests with no skips |
+| Complete conformance | [506: 39 checks; 507: 61 checks and 12 obligations](../../target/safety-models/release-readiness/conformance-complete.json); all passed |
+| Warm 507 quick budget | [32.56s / 35s](../../target/safety-models/release-readiness/507-quick-budget.json); quick's excluded coverage remains explicitly incomplete |
+| Actual Core correspondence | [3,924 constructed / 1,904 safety-valid states, 38,006 attempts, 30,218 commits, zero unsafe](../../target/safety-models/release-readiness/exhaustive-acceptance.json), within the recorded finite bounds |
+| Order recognition / repeat controls | [82 current certificates](../../target/safety-models/release-readiness/membership-current.json) and [byte-identical repeated assessments](../../target/safety-models/release-readiness/membership-repetition-current.json); stale checker-1 evidence refused |
+| Independent verification | [Six actual Core/Safety rows](../../target/safety-models/release-readiness/comparison-current.json), with exact module/check/subject identities |
+| Clean installed package | [Core-only replay, certification and independent bundle re-verification](../../target/safety-models/release-readiness/safety-package-current.json); all 23 Skill examples and 49 API/drift/equivalence checks passed |
+| Reproducibility | Two additional builds have matching [SHA256SUMS](../../target/safety-models/release-readiness/artifacts/SHA256SUMS) |
+| Baseline / remaining limits | [Final review](../../target/safety-models/release-readiness/review.json): protected user files, old fixtures, dependency graph and existing receipts preserved |
+
+All twelve WorkQueue obligations are supported by their recorded evidence. The complete report
+retains 5 contract, 7 SMT, 5 structural and 13 test dependencies,
+with named assumptions for nine obligations. Safety's generic and concrete Lean proofs likewise
+retain the trusted Rust extraction/probe/encoding boundary and separate genesis, migration,
+snapshot-provenance and approved-module/fresh-activation host obligations.
+
+The narrow v1 syntax/operation pattern and expensive fresh checks remain nonblocking limits.
+Root-disk capacity still needs observation; task caches were removed or losslessly archived
+without deleting user work. The source journal retains the earlier formatting/disk failures
+and the release-test metadata correction made before pytest; none is presented as a passing run.
+
+Candidate metadata agrees on 0.13.1 and the exact Core pin. The trial artifact records the
+base commit plus uncommitted source hashes; publication must rebuild the approved merged source.
+Tagging and publication remain separate explicit post-merge actions through the existing process.

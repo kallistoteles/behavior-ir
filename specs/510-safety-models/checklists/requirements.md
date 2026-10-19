@@ -35,7 +35,7 @@ satisfied; it does not mean implementation or proof obligations have been comple
 ## Notes
 
 Reviewed against the user's complete Feature 510 proposal, confirmed grilling decisions
-Q1–Q17 and the active spec template. Updated 2026-10-17 before implementation planning.
+Q1–Q17 and the active spec template. Updated 2026-10-18 for the bounded release-readiness extension.
 All 16 criteria pass; there are no blocking specification clarification markers.
 
 - The user explicitly requires the existing Rust Model authority, Python authoring boundary,
@@ -46,11 +46,11 @@ All 16 criteria pass; there are no blocking specification clarification markers.
   Technical vocabulary and mathematics are the supplied domain
   language for authors, reviewers and maintainers; no proof-assistant expertise is assumed in
   the user stories.
-- SC-001–SC-008 measure proof completeness, action/operation coverage, accepted/refused cases,
+- SC-001–SC-014 measure proof completeness, action/operation coverage, accepted/refused cases,
   evidence reproducibility and regression outcomes. Proof-tool constraints now explicitly record
   the user's Lean/axiom/fresh-replay decisions rather than an agent-selected specification detail.
 - Stories cover ownership, lifecycle preservation, evidence review and deployment boundaries.
-  FR-001–FR-037 and the edge cases cover all FO-001–FO-007 / LD-001–LD-008 requirements,
+  FR-001–FR-046 and the edge cases cover all FO-001–FO-007 / LD-001–LD-008 requirements,
   both theorems, complete resulting-state analysis and the first-milestone phase gate.
 - The theorem is required to cover arbitrary finite states. Bounded exhaustive tests provide
   independent correspondence evidence; they are not described as the generic proof. The
@@ -71,3 +71,15 @@ All 16 criteria pass; there are no blocking specification clarification markers.
   enforced history boundary; a stale snapshot or StateId-only comparison does not establish it.
 - Specification quality only: these marks assert no implementation, successful proof/test,
   new Core primitive or changed compatibility fixture.
+- The release-readiness extension has eight new requirements, three stories with six acceptance
+  scenarios and five success criteria. It adds membership-order recognition, specific diagnostics
+  and explicit authoring/verification guidance; the existing proof and release requirements are
+  referenced rather than replaced. `release-readiness.md` summarizes this scope; `spec.md` remains
+  authoritative for downstream planning and tasks.
+- Guard requirements describe observable acceptance and preserved identities. They prescribe no
+  recognition algorithm or extra expression framework. Boundedness, public Core-only access and
+  the existing proof toolchain are user-mandated constraints. The larger-set test bounds and
+  duplicate semantics investigation belong to planning within the fixed Core contract.
+- All 16 quality criteria were reviewed and remain satisfied. No clarification marker remains.
+  Previous implementation/convergence results do not discharge the new requirements. No tests,
+  implementation changes, commits, publication or completion claims are part of this spec update.

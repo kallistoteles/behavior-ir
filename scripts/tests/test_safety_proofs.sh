@@ -45,6 +45,14 @@ with tempfile.TemporaryDirectory() as td, patch.object(run,"rust_preflight"), pa
     assert run.main(["--gate","--certify","--output",td])!=0
     doc=json.loads((Path(td)/"summary.json").read_text())
     assert all(r["status"]=="Inconclusive" for r in doc["cases"].values())
+# The explicit comparison mode must preserve all six unrun rows on early failure.
+for failure in [FileNotFoundError("missing solver"), RuntimeError("early comparison failure")]:
+    with tempfile.TemporaryDirectory() as td, patch("behavior.verify",side_effect=failure):
+        assert run.main(["--guard-contract","--certify","--output",td])!=0
+        doc=json.loads((Path(td)/"guard-contract.json").read_text())
+        assert len(doc["cases"])==6 and doc["passed"] is False
+        assert doc["errors"]
+        assert sum(r["status"]=="NotRun" for r in doc["cases"].values())>=5
 print("test_safety_proofs: OK (failure aggregation only; real proofs are mandatory separately)")
 PY
 

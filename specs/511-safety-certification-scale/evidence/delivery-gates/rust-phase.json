@@ -1,0 +1,8 @@
+{
+  "phase": "Rust tests in full gate run 03",
+  "passed_tests": 328,
+  "completed_test_binaries": 48,
+  "profile": "test opt-level=1; debug=0; incremental=0; RUST_TEST_THREADS=1; intentional internal concurrency tests unchanged",
+  "log": "target/safety-models/scale-511/preflight-full-gates-03.log",
+  "full_gate_status": "Preflight03 later failed8 Python fixture/version checks; retained Rust phase passed. Corrected focused46 passed; new complete default release check underway."
+}

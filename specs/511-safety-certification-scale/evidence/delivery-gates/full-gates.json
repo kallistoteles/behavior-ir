@@ -1,0 +1,47 @@
+{
+  "status": "Passed",
+  "invocation": "scripts/release-check.sh dist-final-01 invokes BEHAVIOR_RELEASE_TESTS=1 BEHAVIOR_FULL_PROPERTIES=1 scripts/gates.sh",
+  "log": "full-gates.txt",
+  "log_sha256": "32960b560135885915c110e2bbb0200c6e3a918997ecb7fcd91336f67bd05f02",
+  "isolation": "Authorized feature snapshot in /tmp/behavior-511-delivery-tqmy2d06/source; unrelated original user Spec Kit/docs files excluded without changing them.",
+  "rust": {
+    "passed": 328,
+    "binaries": 48
+  },
+  "python": {
+    "passed": 719,
+    "skipped": 0
+  },
+  "conformance_506": {
+    "passed": 39,
+    "failed": 0,
+    "blocked": 0,
+    "inconclusive": 0,
+    "unsupported": 0
+  },
+  "conformance_507_quick": {
+    "passed": 56,
+    "skipped": 5,
+    "wall_seconds": 26.36,
+    "mandatory_budget_seconds": 35,
+    "complete": false
+  },
+  "conformance_507_full": {
+    "passed": 61,
+    "failed": 0,
+    "blocked": 0,
+    "inconclusive": 0,
+    "unsupported": 0,
+    "obligations_passed": 12,
+    "smt_evidence_count": 7,
+    "contract_evidence_count": 5,
+    "structural_evidence_count": 5,
+    "test_evidence_count": 13,
+    "obligations_with_named_assumptions": 9
+  },
+  "established_model_receipts": 22,
+  "normal_model_manifest": "Unchanged",
+  "core_pin": "Unchanged0.15.0",
+  "all_other_gates": "Passed; see complete log",
+  "remaining": "Installed release checks/rebuild and explicit complete modes still underway or pending; frozen capacity evaluation not begun."
+}

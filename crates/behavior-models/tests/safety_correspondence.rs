@@ -688,3 +688,40 @@ fn ordered_membership_probes_preserve_actual_roots_and_duplicate_literals() {
         .unwrap();
     }
 }
+
+#[test]
+fn independent_proposals_are_data_and_have_strict_complete_tree_transport() {
+    use behavior_models::safety::evidence::UnverifiedSafetyBundle;
+    // Parsing grants no certificate; correspondence/proof checking is separate.
+    let base = json!({"format":"behavior.safety_bundle.v2","module":"{}","inventory":{},"policies":[],
+        "evidence":{"format":"behavior.safety_evidence.v2","obligations":{},"proof":{},"behavior_hash":"x","policy_set_hash":"p","evidence_hash":"e"},
+        "witness":{"format":"behavior.safety_merge_trace.v1","nodes":[{"kind":"leaf"},{"kind":"leaf"},{"kind":"branch","left":0,"right":1,"choices":[false,true]}],"root":2}});
+    assert!(
+        !UnverifiedSafetyBundle::from_json(&base)
+            .unwrap()
+            .is_verified()
+    );
+    for mutation in [
+        "extra_code",
+        "boolean_index",
+        "forward_edge",
+        "orphan",
+        "shared_node",
+        "nonboolean_choice",
+    ] {
+        let mut value = base.clone();
+        match mutation {
+            "extra_code" => value["witness"]["lean_source"] = json!("untrusted"),
+            "boolean_index" => value["witness"]["root"] = json!(false),
+            "forward_edge" => value["witness"]["nodes"][2]["left"] = json!(2),
+            "orphan" => value["witness"]["root"] = json!(1),
+            "shared_node" => value["witness"]["nodes"][2]["right"] = json!(0),
+            "nonboolean_choice" => value["witness"]["nodes"][2]["choices"][0] = json!(0),
+            _ => unreachable!(),
+        }
+        assert!(
+            UnverifiedSafetyBundle::from_json(&value).is_err(),
+            "{mutation}"
+        );
+    }
+}

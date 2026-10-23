@@ -1,0 +1,84 @@
+{
+  "checker_version": 2,
+  "format": "behavior.safety_remediation.build.v1",
+  "implementation_modified": false,
+  "kind": "immutable published baseline",
+  "note": "Instrumentation source edits in the checkout do not affect this installed released wheel.",
+  "policy_semantics": 1,
+  "source_commit": "21ba441299998ca0c6baf53a5178d1b591216b1f",
+  "toolchain": {
+    "flake_lock_sha256": "ed16bd3f98b17e19e07d6ecafecdd20897024a170f7f3727ed6565c582a01bbe",
+    "profiles": {
+      "aarch64-linux": {
+        "drvPath": "/nix/store/2sb6axlw5zc7m60nvzcilcvp05qa8b23-lean4-4.30.0.drv",
+        "outPath": "/nix/store/gzdr4fry7v3r7jl60f0902aqcbaiy3q1-lean4-4.30.0",
+        "version": "4.30.0"
+      },
+      "x86_64-linux": {
+        "drvPath": "/nix/store/6wy0z2zc7gl2i6vxzcw59i9pdhk2g6b8-lean4-4.30.0.drv",
+        "outPath": "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0",
+        "version": "4.30.0"
+      }
+    }
+  },
+  "versions": {
+    "accepted_wire_ir": [
+      "0.4",
+      "0.5",
+      "0.6",
+      "0.7",
+      "0.8"
+    ],
+    "binding": {
+      "python": "0.13.1"
+    },
+    "command_occurrence_domain": "behavior.command_occurrence.v1",
+    "command_stream": "behavior.command_stream_request.v1",
+    "core": {
+      "commit": "6b93898a9375113f7a8946f23ab5535319b6f5d6",
+      "version": "0.15.0"
+    },
+    "engine": "0.15.0",
+    "read_records": [
+      "behavior.read_record.v1",
+      "behavior.read_record.v2"
+    ],
+    "records": [
+      "0.4",
+      "0.5",
+      "0.6",
+      "0.7",
+      "0.8"
+    ],
+    "store_documents": [
+      "behavior.entity_content.v1",
+      "behavior.entity_version.v1",
+      "behavior.state.v1",
+      "behavior.evidence_policy.v1",
+      "behavior.store_genesis.v1",
+      "behavior.commit_bundle.v1",
+      "behavior.transition_record.v1",
+      "behavior.replay_report.v1",
+      "behavior.migration_bundle.v1",
+      "behavior.store_genesis.v2",
+      "behavior.commit_bundle.v2",
+      "behavior.migration_bundle.v2",
+      "behavior.transition_record.v2"
+    ],
+    "verifier": "0.10.0",
+    "wire_ir": [
+      "0.1",
+      "0.2",
+      "0.3",
+      "0.4",
+      "0.5",
+      "0.6",
+      "0.7"
+    ]
+  },
+  "wheel": {
+    "installed_distribution": "{\"archive_info\": {\"hash\": \"sha256=1e3bd82a54863cc4fa6d035e34891012c14b024bfbbd5cea3ea251e43dbf9a0d\", \"hashes\": {\"sha256\": \"1e3bd82a54863cc4fa6d035e34891012c14b024bfbbd5cea3ea251e43dbf9a0d\"}}, \"url\": \"file:///tmp/behavior-0131-verify.yY3Na5/published/behavior-0.13.1-cp313-abi3-manylinux_2_28_x86_64.whl\"}",
+    "path": "/tmp/behavior-0131-verify.yY3Na5/published/behavior-0.13.1-cp313-abi3-manylinux_2_28_x86_64.whl",
+    "sha256": "1e3bd82a54863cc4fa6d035e34891012c14b024bfbbd5cea3ea251e43dbf9a0d"
+  }
+}

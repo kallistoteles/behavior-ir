@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "tasks_complete": 72,
+  "requirements_mapped": {
+    "FR": 30,
+    "SC": 11
+  },
+  "capacity_pairs": 60,
+  "actual_tool_stages": 1440,
+  "source_hashes_match": true,
+  "declared_evaluation_tooling_match": true,
+  "exact_wheel_match": "810566f34559851fb6e725179a7cb066e64fae3a3a25d3eb85e524855de3902b",
+  "frozen_profile_unchanged": true,
+  "full_gates_passed": true,
+  "default_full_release_check_passed": true,
+  "explicit_complete_conformance": {
+    "506": 39,
+    "507": 61
+  },
+  "installed_reference_certificates": 5,
+  "core_safety_matrix_cases": 6,
+  "installed_python_regression": 86,
+  "proof_and_transport_controls": "All required groups passed; invalid diagnostic parser01quarantined, fresh02passed",
+  "mandatory_performance_budgets": "All roles below300seconds; no changes",
+  "state_transparency": "Preserved; ordinary Core execution/replay require no Safety/Lean artifacts",
+  "trusted_boundary": "Rust/Core extraction, probe/encoding correspondence and pinned build/kernel/backend remain explicit; no end-to-end formal verification claim",
+  "platform": "x86_64-linux exercised; ARMNotRun explicit",
+  "historical_artifacts_and_user_work": "Unchanged; see final-immutability.json",
+  "post_implement_hooks": "No .specify/extensions.yml, no registered hooks",
+  "commit_tag_publication": "Not performed; candidate is exact reviewed staged precommit snapshot"
+}

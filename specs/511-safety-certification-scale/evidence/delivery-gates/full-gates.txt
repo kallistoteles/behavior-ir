@@ -1,0 +1,381 @@
+check-core-pin: OK (v0.15.0 6b93898a9375113f7a8946f23ab5535319b6f5d6)
+release-check: step 1 gates
+gates: core pin
+check-core-pin: OK (v0.15.0 6b93898a9375113f7a8946f23ab5535319b6f5d6)
+gates: public surface
+check-public-surface: OK (behavior-engine only; no core file copied)
+gates: fetch core
+fetch-core: core v0.15.0 installed (fixtures in .core/0.15.0, CLI in python/behavior/_bin)
+gates: cargo fmt
+gates: clippy
+gates: cargo test
+
+running 31 tests
+...............................
+test result: ok. 31 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 181.45s
+
+
+running 8 tests
+........
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 16.00s
+
+
+running 2 tests
+..
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 30.91s
+
+
+running 12 tests
+............
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.90s
+
+
+running 8 tests
+........
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+
+
+running 17 tests
+.................
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+
+running 8 tests
+........
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+
+running 6 tests
+......
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+
+running 11 tests
+...........
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+
+
+running 1 test
+.
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+
+running 4 tests
+....
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+
+running 1 test
+.
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 11 tests
+...........
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+
+running 9 tests
+.........
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.43s
+
+
+running 5 tests
+.....
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 11.14s
+
+
+running 15 tests
+...............
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+
+running 10 tests
+..........
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+
+running 7 tests
+.......
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.49s
+
+
+running 8 tests
+........
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+
+running 9 tests
+.........
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.53s
+
+
+running 7 tests
+.......
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+
+running 8 tests
+........
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+
+running 8 tests
+........
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+
+running 11 tests
+...........
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+
+running 3 tests
+...
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+
+running 10 tests
+..........
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+
+running 5 tests
+.....
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+
+
+running 6 tests
+......
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 133.90s
+
+
+running 1 test
+.
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 848.36s
+
+
+running 3 tests
+...
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+
+running 4 tests
+....
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+
+
+running 4 tests
+....
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+
+running 10 tests
+..........
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.82s
+
+
+running 1 test
+.
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 77.44s
+
+
+running 6 tests
+......
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1052.35s
+
+
+running 7 tests
+.......
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+
+running 7 tests
+.../tmp/behavior-511-delivery-tqmy2d06/source/crates/behavior-models/../../target/safety-models/fo/safety-proof-control-2146192/proof-2146192-0/OwnershipMutations.lean:51:8: warning: declaration uses `sorry`
+/tmp/behavior-511-delivery-tqmy2d06/source/crates/behavior-models/../../target/safety-models/fo/safety-proof-control-2146192/proof-2146192-0/OwnershipMutations.lean:52:31: warning: `Lean.trustCompiler` has been deprecated: in-kernel native reduction is deprecated; assert native evaluations with axioms instead
+.AuthorityMutation.lean:35:60: error: Tactic `decide` proved that the proposition
+  Safety.checkAuthority data = true
+is false
+IdentityMutation.lean:39:792: error: Application type mismatch: The argument
+  rfl
+has type
+  ?m.1222 = ?m.1222
+but is expected to have type
+  data.behaviorHash =
+    let y :=
+      let y :=
+        let y :=
+          let y := [56, 98, 52, 50, 51];
+          98 :: 102 :: 97 :: 50 :: y;
+        let y := 98 :: 100 :: 51 :: 55 :: 54 :: y;
+        100 :: 55 :: 50 :: 100 :: y;
+      let y :=
+        let y := 48 :: 48 :: 56 :: 102 :: 98 :: y;
+        99 :: 51 :: 101 :: 100 :: y;
+      let y := 56 :: 50 :: 101 :: 56 :: 97 :: y;
+      48 :: 49 :: 101 :: 53 :: y;
+    let y :=
+      let y :=
+        let y := 51 :: 55 :: 97 :: 102 :: 51 :: y;
+        49 :: 50 :: 98 :: 98 :: y;
+      let y := 102 :: 51 :: 55 :: 54 :: 98 :: y;
+      57 :: 48 :: 49 :: 98 :: y;
+    let y :=
+      let y := 99 :: 101 :: 49 :: 55 :: 97 :: y;
+      99 :: 55 :: 51 :: 56 :: y;
+    let y := 53 :: 54 :: 58 :: 48 :: y;
+    115 :: 104 :: 97 :: 50 :: y
+in the application
+  And.intro rfl
+...
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 72.01s
+
+
+running 4 tests
+....
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 135.15s
+
+
+running 5 tests
+.....
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+
+
+running 3 tests
+...
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.19s
+
+
+running 7 tests
+.......
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+
+running 4 tests
+....
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+
+
+running 1 test
+.
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 14.57s
+
+
+running 5 tests
+.....
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+
+running 6 tests
+......
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+
+
+running 1 test
+.
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+
+running 8 tests
+........
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+gates: maturin develop
+📦 Including license file `LICENSE`
+🍹 Building a mixed python/rust project
+🐍 Found CPython 3.13 at /tmp/behavior-511-delivery-tqmy2d06/source/.venv/bin/python
+🔗 Found pyo3 bindings with abi3-py3.13 support
+📦 Built wheel for abi3 Python ≥ 3.13 to /data/core028/behavior-510-build-02dspqju/target/safety-models/release-readiness/tmp/.tmpPQYi0T/behavior-0.14.0-cp313-abi3-linux_x86_64.whl
+✏️ Setting installed package as editable
+🛠 Installed behavior-0.14.0
+gates: Safety proofs
+fo_field: Certified under assumptions
+fo_state_machine: Certified under assumptions
+ld_parent_child: Certified under assumptions
+ld_shared_parent: Certified under assumptions
+ld_vm_resource: Certified under assumptions
+gates: pytest
+........................................................................ [ 10%]
+........................................................................ [ 20%]
+........................................................................ [ 30%]
+........................................................................ [ 40%]
+........................................................................ [ 50%]
+........................................................................ [ 60%]
+........................................................................ [ 70%]
+........................................................................ [ 80%]
+........................................................................ [ 90%]
+.......................................................................  [100%]
+719 passed in 1448.03s (0:24:08)
+gates: conformance 506
+.......................................                                  [100%]
+39 passed in 37.66s
+conformance full: blocked 0, failed 0, inconclusive 0, passed 39, unsupported 0, unverifiable 0
+full conformance: complete
+gates: conformance 507 quick
+......ssss......s............................................            [100%]
+56 passed, 5 skipped in 25.26s
+conformance quick: blocked 0, failed 0, inconclusive 0, passed 56, unsupported 5, unverifiable 0
+obligations: passed 5, unsupported 7
+evidence: contract 5, smt 7, structural 5, test 13; assumptions named by 9 of 12 obligations
+full conformance: NOT complete
+conformance 507 quick runtime: 26.36s / 35s
+gates: conformance 507 full
+.............................................................            [100%]
+61 passed in 111.00s (0:01:50)
+conformance full: blocked 0, failed 0, inconclusive 0, passed 61, unsupported 0, unverifiable 0
+obligations: passed 12
+evidence: contract 5, smt 7, structural 5, test 13; assumptions named by 9 of 12 obligations
+full conformance: complete
+gates: mypy
+Success: no issues found in 24 source files
+gates: models compat
+check-models-compat: OK (1 cases under {"co_supplied":[{"kind":"request_flow","lowerer_version":1,"model_semantic_version":2},{"kind":"state_machine","lowerer_version":1,"model_semantic_version":2}],"core_release":{"commit":"6b93898a9375113f7a8946f23ab5535319b6f5d6","version":"0.15.0"},"lowerer_version":1,"model_kind":"approval","model_semantic_version":1}, 1 cases under {"co_supplied":[{"kind":"state_machine","lowerer_version":1,"model_semantic_version":2}],"core_release":{"commit":"6b93898a9375113f7a8946f23ab5535319b6f5d6","version":"0.15.0"},"lowerer_version":1,"model_kind":"approval","model_semantic_version":1}, 3 cases under {"core_release":{"commit":"6b93898a9375113f7a8946f23ab5535319b6f5d6","version":"0.15.0"},"embedded":[{"kind":"state_machine","lowerer_version":1,"model_semantic_version":2}],"lowerer_version":1,"model_kind":"request_flow","model_semantic_version":2}, 2 cases under {"core_release":{"commit":"6b93898a9375113f7a8946f23ab5535319b6f5d6","version":"0.15.0"},"embedded":[{"kind":"state_machine","lowerer_version":1,"model_semantic_version":2}],"lowerer_version":1,"model_kind":"work_queue","model_semantic_version":1}, 1 cases under {"core_release":{"commit":"6b93898a9375113f7a8946f23ab5535319b6f5d6","version":"0.15.0"},"embedded":[{"kind":"state_machine","lowerer_version":1,"model_semantic_version":3}],"lowerer_version":1,"model_kind":"request_flow","model_semantic_version":3}, 1 cases under {"core_release":{"commit":"6b93898a9375113f7a8946f23ab5535319b6f5d6","version":"0.15.0"},"embedded":[{"kind":"state_machine","lowerer_version":1,"model_semantic_version":3}],"lowerer_version":1,"model_kind":"work_queue","model_semantic_version":1}, 1 cases under {"core_release":{"commit":"6b93898a9375113f7a8946f23ab5535319b6f5d6","version":"0.15.0"},"lowerer_version":1,"model_kind":"approval","model_semantic_version":1}, 4 cases under {"core_release":{"commit":"6b93898a9375113f7a8946f23ab5535319b6f5d6","version":"0.15.0"},"lowerer_version":1,"model_kind":"state_machine","model_semantic_version":2}, 1 cases under {"core_release":{"commit":"6b93898a9375113f7a8946f23ab5535319b6f5d6","version":"0.15.0"},"lowerer_version":1,"model_kind":"state_machine","model_semantic_version":3})
+check-models-compat: OK (3 cases under {"co_supplied":[{"kind":"field_ownership","lowerer_version":3,"model_semantic_version":1}],"core_release":{"commit":"6b93898a9375113f7a8946f23ab5535319b6f5d6","version":"0.15.0"},"lowerer_version":3,"model_kind":"lifecycle_dependency","model_semantic_version":1}, 1 cases under {"co_supplied":[{"kind":"state_machine","lowerer_version":1,"model_semantic_version":2}],"core_release":{"commit":"6b93898a9375113f7a8946f23ab5535319b6f5d6","version":"0.15.0"},"lowerer_version":3,"model_kind":"field_ownership","model_semantic_version":1}, 1 cases under {"core_release":{"commit":"6b93898a9375113f7a8946f23ab5535319b6f5d6","version":"0.15.0"},"lowerer_version":3,"model_kind":"field_ownership","model_semantic_version":1})
+gates: determinism check
+determinism-check: OK
+gates: ownership
+check-ownership: note: 120 files placed by rule 1 also match rule 3 (another owner); the first rule decides
+check-ownership: note: 28 files placed by rule 13 also match rule 14 (another owner); the first rule decides
+check-ownership: OK both 74, core 0, ecosystem 609
+gates: terms
+check-terms: OK
+gates: workflows
+check-workflows: OK
+gates: script tests
+test_check_core_pin: OK
+test_check_public_surface: OK
+test_check_tag: OK
+test_check_terms: OK
+test_check_workflows: OK
+test_conformance_506_bytes: OK
+test_conformance_report: OK
+test_fetch_core: OK
+test_models_compat: OK
+test_models_safety_compat: OK
+test_pinned_identity_baseline: OK (22 baseline receipts unchanged, 0 new)
+safety smoke: OK
+{"behavior_hash":"sha256:d52b8efe792b2f2dbf39356bfa1af4358c2f16c7e8e2222493a3c6166644fb5c","certified":false,"core_only_replay":"Passed","ordinary_execution":"Passed"}
+safety smoke: certification failed: ('SAFETY_TOOLCHAIN_MISMATCH', 'SAFETY_TOOLCHAIN_MISMATCH: Expected the locked immutable Nix output')
+test_safety_package: OK
+fo_field: Inconclusive
+fo_state_machine: Inconclusive
+ld_parent_child: Inconclusive
+ld_shared_parent: Inconclusive
+ld_vm_resource: Inconclusive
+test_safety_proofs: OK (failure aggregation only; real proofs are mandatory separately)
+test_safety_proofs: real command failure controls OK
+test_safety_scale: collection and failure propagation OK; not proof evidence
+warning: Git tree '/tmp/behavior-511-delivery-tqmy2d06/source' is dirty
+warning: Git tree '/tmp/behavior-511-delivery-tqmy2d06/source' is dirty
+warning: Git tree '/tmp/behavior-511-delivery-tqmy2d06/source' is dirty
+warning: Git tree '/tmp/behavior-511-delivery-tqmy2d06/source' is dirty
+warning: Git tree '/tmp/behavior-511-delivery-tqmy2d06/source' is dirty
+Lean (version 4.30.0, commit v4.30.0, Release)
+test_safety_toolchain: OK
+test_semantic_snapshot: OK
+gates: OK

@@ -42,3 +42,54 @@ fn operation_occurrences_are_not_boolean_numbers() {
     support::rehash(&mut data);
     assert!(Inventory::from_json(&data).is_err());
 }
+
+#[test]
+fn scalable_encoding_preserves_full_keys_and_exact_payload_at_large_sizes() {
+    use behavior_models::safety::{FieldOwnershipInput, analyze, certify::proof_input};
+    let mut builder = support::declarations();
+    let names = (0..512).map(|i| format!("edit_{i}")).collect::<Vec<_>>();
+    for name in &names {
+        use behavior_engine::{builder::ScopeSite, wire::WType};
+        let params = vec![support::state("aliased")];
+        builder
+            .push_scope(ScopeSite::Action, params.clone(), support::loc())
+            .unwrap();
+        let value = builder
+            .lit(WType::String, json!(name), support::loc())
+            .unwrap();
+        builder
+            .add_action(
+                name,
+                params,
+                vec![],
+                vec![("aliased".into(), "note".into(), value, support::loc())],
+                vec![],
+                vec![],
+                support::loc(),
+            )
+            .unwrap();
+        builder.pop_scope();
+    }
+    let module = builder.finish(None).unwrap();
+    let policy = FieldOwnershipInput::from_json(
+        &json!({"id":"all","entity":"Item","writers":{"note":names}}),
+    )
+    .unwrap();
+    let analysis = analyze(&module, &[policy]).unwrap();
+    let source = proof_input(&module, &analysis).unwrap();
+    assert!(source.contains("noncomputable def data : Safety.ModuleData"));
+    assert!(source.contains("Safety.Candidate.compactPayload"));
+    assert!(!source.contains("def inventory0 : List Nat"));
+    assert!(source.contains("Safety.Candidate.checked_from_parts"));
+    assert!(source.contains("Safety.Candidate.traceChecked_sound"));
+    for (index, action) in analysis.inventory().actions().values().enumerate() {
+        let bytes = action
+            .hash
+            .bytes()
+            .map(|v| format!("(nat_lit {v})"))
+            .collect::<Vec<_>>()
+            .join(",");
+        assert!(source.contains(&format!("def actionHash{index} : List Nat := [{bytes}]")));
+    }
+    assert_eq!(analysis.inventory().actions().len(), 512);
+}

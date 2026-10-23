@@ -20,7 +20,7 @@ fn lowered_analysis_is_complete_data_and_never_a_certificate() {
     assert_eq!(data["status"], "Lowered");
     assert_eq!(data["is_certified"], false);
     assert_eq!(data["analysis_version"], 1);
-    assert_eq!(data["checker_version"], 2);
+    assert_eq!(data["checker_version"], 3);
     assert_eq!(data["policies"].as_array().unwrap().len(), 1);
     assert_eq!(
         data["inventory"]["behavior_hash"],
@@ -54,9 +54,9 @@ fn proof_and_exhaustion_assessments_have_scope_identities_classes_and_external_b
         let result = certify(&m, &a, &root.join(name), &tools, &limits);
         let report = result.to_json();
         assert_eq!(report["outcome"], expected, "{report}");
-        assert_eq!(report["format"], "behavior.safety_evidence.v1");
+        assert_eq!(report["format"], "behavior.safety_evidence.v2");
         assert_eq!(report["scope"], "OrdinaryTransitions");
-        assert_eq!(report["checker_version"], 2);
+        assert_eq!(report["checker_version"], 3);
         assert_eq!(report["core_release"]["version"], "0.15.0");
         assert_eq!(report["initial_validity"], "Unestablished");
         assert_eq!(report["behavior_hash"], a.inventory().behavior_hash());
@@ -100,7 +100,7 @@ fn proof_and_exhaustion_assessments_have_scope_identities_classes_and_external_b
             payload.as_object_mut().unwrap().remove("evidence_hash");
             payload.as_object_mut().unwrap().remove("diagnostics");
             assert_eq!(
-                behavior_engine::canonical::tagged_hash("behavior.safety_evidence.v1", &payload)
+                behavior_engine::canonical::tagged_hash("behavior.safety_evidence.v2", &payload)
                     .unwrap(),
                 report["evidence_hash"].as_str().unwrap()
             );
@@ -220,4 +220,14 @@ fn imported_checker_one_evidence_cannot_authorize_current_checker() {
         );
         assert!(result.certificate().is_none(), "stale {field} accepted");
     }
+}
+
+#[test]
+fn historical_contract_is_rejected_as_incompatible_without_reinterpretation() {
+    let historical = json!({"format":"behavior.safety_bundle.v1","module":"{}","inventory":{},"policies":[],
+        "evidence":{"format":"behavior.safety_evidence.v1","obligations":{},"proof":{},"behavior_hash":"x","policy_set_hash":"p","evidence_hash":"e","outcome":"Certified under assumptions"}});
+    let unchanged = historical.clone();
+    let error = UnverifiedSafetyBundle::from_json(&historical).unwrap_err();
+    assert_eq!(error.code(), "SAFETY_INVALID_BUNDLE");
+    assert_eq!(historical, unchanged);
 }

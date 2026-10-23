@@ -1,3 +1,4 @@
+prelude
 import safety.LifecycleCheck
 
 namespace Safety

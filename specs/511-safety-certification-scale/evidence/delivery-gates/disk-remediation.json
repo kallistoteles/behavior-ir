@@ -1,0 +1,13 @@
+{
+  "first_failure": "No space left on /data during Clippy; no semantic failure established",
+  "removed_manifest": "/tmp/behavior-511-delivery-tqmy2d06/removed-build-artifacts.json",
+  "reclaimed_gib": 4.24,
+  "selection": "Only rebuildable artifacts containing the unique validation source path",
+  "protected": "No source, user work, established fixtures or published artifacts removed",
+  "retry": "Private target on root filesystem; dev/test debug=0, incremental=0, build jobs=2, Rust test threads=1; proof limits unchanged",
+  "filesystems": {
+    "source_and_private_build": "/dev/vda2 mounted /, 40 GiB total",
+    "original_shared_target_and_benchmarks": "/dev/vdb mounted /data, 20 GiB total"
+  },
+  "benchmark_workspace": "Still on original /data filesystem; private compilation moved to root filesystem. Frozen benchmark conditions and limits unchanged."
+}

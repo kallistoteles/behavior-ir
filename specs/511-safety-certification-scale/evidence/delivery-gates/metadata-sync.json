@@ -1,0 +1,13 @@
+{
+  "release": "0.14.0",
+  "core": "0.15.0",
+  "verifier": "0.10.0",
+  "checker": 3,
+  "statement": 2,
+  "evidence": "v2",
+  "bundle": "v2",
+  "focused_tests": 46,
+  "skills": "All three consumer Skill release declarations and relevant contract guidance updated; original structure and executable snippets retained.",
+  "readme": "Current candidate/install instructions identify 0.14.0; historical introduction in 0.13.1 remains explicit.",
+  "semantic_scope": "No Core/runtime/ownership-language change"
+}

@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "case_count": 5,
+  "guard_matrix_cases": 6,
+  "package": "/tmp/behavior-511-delivery-tqmy2d06/installed-regression-venv/lib/python3.13/site-packages/behavior",
+  "artifact_sha256": "810566f34559851fb6e725179a7cb066e64fae3a3a25d3eb85e524855de3902b",
+  "compiled_source_proof_identities_match_frozen_candidate": true,
+  "summary_sha256": "8581575c6712190e67c6a7fb8897c2a1ef112ceaaf3ebb403b07f58186779b39",
+  "scope": "InstalledpublicAPI withsameexactofficialwheel; core/Rust/preflight plus exactreferencehashes/policies/proofs andstate/replay/snapshotboundaries. Not a performance rerun."
+}

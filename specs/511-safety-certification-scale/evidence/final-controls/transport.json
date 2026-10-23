@@ -1,0 +1,152 @@
+{
+  "scope": "Tampered public bundle rejection, not a kernel axiom mutation test",
+  "candidate_manifest_sha256": "c6e392791cfcfe3b41e4fbfe34a59b5271ef3dbac7759b78f7152922a61d6ba8",
+  "positive_case": "A512-1",
+  "raw_controls_sha256": "bf849ac2095b326de0eed7acc43d32c02557812426b63cc28cbf3374346a6cdb",
+  "results": [
+    {
+      "case": "module_identity",
+      "certificate_present": false,
+      "outcome": "Failed",
+      "diagnostic_codes": [
+        "SAFETY_INVALID_BUNDLE"
+      ],
+      "obligations": {
+        "axiom_audit": "NotRun",
+        "concrete_proof": "NotRun",
+        "fresh_replay": "NotRun",
+        "generic_proof": "NotRun",
+        "inventory_comparison": "NotRun",
+        "theorem_types": "NotRun"
+      }
+    },
+    {
+      "case": "missing_action",
+      "certificate_present": false,
+      "outcome": "Failed",
+      "diagnostic_codes": [
+        "SAFETY_INVALID_DATA"
+      ],
+      "obligations": {
+        "axiom_audit": "NotRun",
+        "concrete_proof": "NotRun",
+        "fresh_replay": "NotRun",
+        "generic_proof": "NotRun",
+        "inventory_comparison": "NotRun",
+        "theorem_types": "NotRun"
+      }
+    },
+    {
+      "case": "duplicate_action",
+      "certificate_present": false,
+      "outcome": "Failed",
+      "diagnostic_codes": [
+        "SAFETY_INVALID_DATA"
+      ],
+      "obligations": {
+        "axiom_audit": "NotRun",
+        "concrete_proof": "NotRun",
+        "fresh_replay": "NotRun",
+        "generic_proof": "NotRun",
+        "inventory_comparison": "NotRun",
+        "theorem_types": "NotRun"
+      }
+    },
+    {
+      "case": "missing_operation",
+      "certificate_present": false,
+      "outcome": "Failed",
+      "diagnostic_codes": [
+        "SAFETY_INVALID_DATA"
+      ],
+      "obligations": {
+        "axiom_audit": "NotRun",
+        "concrete_proof": "NotRun",
+        "fresh_replay": "NotRun",
+        "generic_proof": "NotRun",
+        "inventory_comparison": "NotRun",
+        "theorem_types": "NotRun"
+      }
+    },
+    {
+      "case": "extra_operation",
+      "certificate_present": false,
+      "outcome": "Failed",
+      "diagnostic_codes": [
+        "SAFETY_INVALID_DATA"
+      ],
+      "obligations": {
+        "axiom_audit": "NotRun",
+        "concrete_proof": "NotRun",
+        "fresh_replay": "NotRun",
+        "generic_proof": "NotRun",
+        "inventory_comparison": "NotRun",
+        "theorem_types": "NotRun"
+      }
+    },
+    {
+      "case": "missing_policy",
+      "certificate_present": false,
+      "outcome": "Failed",
+      "diagnostic_codes": [
+        "SAFETY_INVALID_BUNDLE"
+      ],
+      "obligations": {
+        "axiom_audit": "NotRun",
+        "concrete_proof": "NotRun",
+        "fresh_replay": "NotRun",
+        "generic_proof": "NotRun",
+        "inventory_comparison": "NotRun",
+        "theorem_types": "NotRun"
+      }
+    },
+    {
+      "case": "forged_proof_integrity",
+      "certificate_present": false,
+      "outcome": "Failed",
+      "diagnostic_codes": [
+        "SAFETY_INVALID_BUNDLE"
+      ],
+      "obligations": {
+        "axiom_audit": "NotRun",
+        "concrete_proof": "NotRun",
+        "fresh_replay": "NotRun",
+        "generic_proof": "NotRun",
+        "inventory_comparison": "NotRun",
+        "theorem_types": "NotRun"
+      }
+    },
+    {
+      "case": "missing_audit",
+      "certificate_present": false,
+      "outcome": "Failed",
+      "diagnostic_codes": [
+        "SAFETY_INVALID_BUNDLE"
+      ],
+      "obligations": {
+        "axiom_audit": "NotRun",
+        "concrete_proof": "NotRun",
+        "fresh_replay": "NotRun",
+        "generic_proof": "NotRun",
+        "inventory_comparison": "NotRun",
+        "theorem_types": "NotRun"
+      }
+    },
+    {
+      "case": "wrong_witness_binding",
+      "certificate_present": false,
+      "outcome": "Failed",
+      "diagnostic_codes": [
+        "SAFETY_INVALID_BUNDLE"
+      ],
+      "obligations": {
+        "axiom_audit": "NotRun",
+        "concrete_proof": "NotRun",
+        "fresh_replay": "NotRun",
+        "generic_proof": "NotRun",
+        "inventory_comparison": "NotRun",
+        "theorem_types": "NotRun"
+      }
+    }
+  ]
+}

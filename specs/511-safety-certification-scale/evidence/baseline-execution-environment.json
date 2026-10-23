@@ -1,0 +1,84 @@
+{
+  "affinity": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "cgroup_levels": {
+    "/sys/fs/cgroup": {
+      "cpu.max": {
+        "unavailable": "No such file or directory"
+      },
+      "cpuset.cpus.effective": "0-7",
+      "memory.high": {
+        "unavailable": "No such file or directory"
+      },
+      "memory.max": {
+        "unavailable": "No such file or directory"
+      },
+      "pids.max": {
+        "unavailable": "No such file or directory"
+      }
+    },
+    "/sys/fs/cgroup/user.slice": {
+      "cpu.max": "max 100000",
+      "cpuset.cpus.effective": {
+        "unavailable": "No such file or directory"
+      },
+      "memory.high": "max",
+      "memory.max": "max",
+      "pids.max": "max"
+    },
+    "/sys/fs/cgroup/user.slice/user-1000.slice": {
+      "cpu.max": "max 100000",
+      "cpuset.cpus.effective": {
+        "unavailable": "No such file or directory"
+      },
+      "memory.high": "max",
+      "memory.max": "max",
+      "pids.max": "max"
+    },
+    "/sys/fs/cgroup/user.slice/user-1000.slice/session-7.scope": {
+      "cpu.max": "max 100000",
+      "cpuset.cpus.effective": {
+        "unavailable": "No such file or directory"
+      },
+      "memory.high": "max",
+      "memory.max": "max",
+      "pids.max": "max"
+    }
+  },
+  "dependency_cache": "Installed pinned Lean standard compiled dependencies; each request compiles all Safety sources; no prior request result reuse",
+  "driver_sources": {
+    "specs/511-safety-certification-scale/experiments/certification_probe.py": "86634bb56fe9ba23c00e28bf0045681b9f00442948b6a60db13bd0b12eaaded3",
+    "specs/511-safety-certification-scale/experiments/cold_runner.py": "bc45f29dab907fb40341042fc2a6dce11fa4ff3486681c4acf724300eecdd5f6",
+    "specs/511-safety-certification-scale/experiments/cold_worker.py": "2781562cf6adf3dd843f26a45b773b7545633e73bf0c9d095518acc43af6dc95",
+    "specs/511-safety-certification-scale/experiments/workloads.py": "1724343433c1bdda42fc269c04f9e220070f48e6dd70fef54cecb8b5005b2a5b"
+  },
+  "limits": {
+    "RLIMIT_AS": [
+      -1,
+      -1
+    ],
+    "RLIMIT_CPU": [
+      -1,
+      -1
+    ],
+    "RLIMIT_NOFILE": [
+      524288,
+      524288
+    ],
+    "RLIMIT_NPROC": [
+      95729,
+      95729
+    ]
+  },
+  "os_cache": "Uncontrolled; no OS-cold claim",
+  "platform": "Linux-6.18.38-x86_64-with-glibc2.42",
+  "status": "Baseline observation, not a frozen final capacity profile"
+}

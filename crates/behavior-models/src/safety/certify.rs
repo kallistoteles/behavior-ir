@@ -5,6 +5,7 @@ use super::{
     evidence::{SafetyAssessment, SafetyOutcome},
     identity::tagged,
     inventory::Operation,
+    merge_witness::MergeWitness,
 };
 use behavior_engine::semantic::Module;
 use serde_json::{Value, json};
@@ -18,7 +19,7 @@ use std::{
 };
 
 const TOOLCHAIN: &str = include_str!("../../proofs/toolchain.json");
-const SOURCES: [(&str, &str); 8] = [
+const SOURCES: [(&str, &str); 9] = [
     ("Data", include_str!("../../proofs/safety/Data.lean")),
     (
         "FieldOwnership",
@@ -40,6 +41,7 @@ const SOURCES: [(&str, &str); 8] = [
         "LifecycleSequence",
         include_str!("../../proofs/safety/LifecycleSequence.lean"),
     ),
+    ("Finite", include_str!("../../proofs/safety/Finite.lean")),
     ("Check", include_str!("../../proofs/safety/Check.lean")),
     ("Audit", include_str!("../../proofs/safety/Audit.lean")),
 ];
@@ -120,6 +122,10 @@ mod tests {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "../../tests/support/stage_resources.rs"]
+mod stage_resource_tests;
 
 #[derive(Debug, Clone)]
 pub struct ProofToolchain {
@@ -256,7 +262,12 @@ pub(super) fn bytes(s: &str) -> String {
     list(s.bytes().map(|b| b.to_string()))
 }
 
-fn concrete(module: &Module, a: &UncertifiedSafetyAnalysis) -> Result<String, SafetyError> {
+fn concrete(
+    module: &Module,
+    a: &UncertifiedSafetyAnalysis,
+    witness: &MergeWitness,
+) -> Result<String, SafetyError> {
+    witness.check_bounds(a.inventory.actions().len())?;
     let inventory = &a.inventory;
     let entities = inventory
         .entities()
@@ -333,15 +344,26 @@ fn concrete(module: &Module, a: &UncertifiedSafetyAnalysis) -> Result<String, Sa
             action_ids(&p.removers)?
         ));
     }
+    let hashes = inventory
+        .actions()
+        .values()
+        .enumerate()
+        .map(|(i, act)| {
+            format!(
+                "noncomputable def actionHash{i} : List Nat := {}\n",
+                list(act.hash.bytes().map(|b| format!("(nat_lit {b})")))
+            )
+        })
+        .collect::<String>();
     Ok(format!(
-        "import safety.Check\n{}\nnamespace Concrete\ndef data : Safety.ModuleData := {{\nbehaviorHash := {}\ninventoryHash := {}\npolicySetHash := {}\ninventoryPayload := {}\npolicyPayload := {}\nactionHashes := {}\nentityFields := {}\nactions := {}\npolicies := {}\nlifecycle := {}\n}}\ntheorem checked : Safety.checkModule data = true := by decide\ntheorem certified : {} := ⟨rfl,rfl,rfl,rfl,rfl,Safety.module_preserves data checked,Safety.lifecycle_module_preserves data checked⟩\nend Concrete\n",
+        "prelude\nimport safety.Check\n{}\nnamespace Concrete\n{}{}noncomputable def data : Safety.ModuleData := {{\nbehaviorHash := {}\ninventoryHash := {}\npolicySetHash := {}\ninventoryPayload := ConcreteAnchors.inventory\npolicyPayload := ConcreteAnchors.policies\nactionHashes := {}\nentityFields := {}\nactions := {}\npolicies := {}\nlifecycle := {}\n}}\ntheorem unique : data.actionHashes.Pairwise (· ≠ ·) := Safety.Candidate.traceChecked_sound _ proposed (by decide)\ntheorem bounds : Safety.Candidate.bounds data = true := by decide\ntheorem authority : Safety.checkAuthority data = true := by decide\ntheorem link : Safety.checkLifecycleLink data = true := by decide\ntheorem lifecycle : Safety.checkLifecycle data.lifecycle = true := by decide\ntheorem checked : Safety.checkModule data = true := Safety.Candidate.checked_from_parts data unique bounds authority link lifecycle\ntheorem certified : {} := ⟨rfl,rfl,rfl,rfl,rfl,Safety.module_preserves data checked,Safety.lifecycle_module_preserves data checked⟩\nend Concrete\n",
         anchors(a, "ConcreteAnchors")?,
+        hashes,
+        witness.lean(),
         bytes(inventory.behavior_hash()),
         bytes(inventory.hash()),
         bytes(&a.policy_set_hash),
-        "ConcreteAnchors.inventory",
-        "ConcreteAnchors.policies",
-        list(inventory.actions().values().map(|act| bytes(&act.hash))),
+        list((0..inventory.actions().len()).map(|i| format!("actionHash{i}"))),
         list(
             inventory
                 .entities()
@@ -361,19 +383,8 @@ fn anchors(a: &UncertifiedSafetyAnalysis, namespace: &str) -> Result<String, Saf
         ("inventory", canonical(&a.inventory.to_json())?),
         ("policies", canonical(&json!(a.policy_documents()))?),
     ] {
-        let mut names = Vec::new();
-        for (index, chunk) in payload.as_bytes().chunks(64).enumerate() {
-            let local = format!("{name}{index}");
-            out.push_str(&format!(
-                "def {local} : List Nat := {}\n",
-                list(chunk.iter().map(u8::to_string))
-            ));
-            names.push(local);
-        }
-        out.push_str(&format!(
-            "def {name} : List (List Nat) := {}\n",
-            list(names)
-        ));
+        let literal = canonical(&json!(payload))?;
+        out.push_str(&format!("noncomputable def {name} : List (List Nat) := Safety.Candidate.compactPayload {literal}\n"));
     }
     out.push_str(&format!("end {namespace}\n"));
     Ok(out)
@@ -393,10 +404,38 @@ fn instance_type(
 }
 fn verification(a: &UncertifiedSafetyAnalysis) -> Result<String, SafetyError> {
     Ok(format!(
-        "import safety.Audit\nimport Concrete\n{}\n#safety_audit Safety.FieldOwnership.sound : Safety.OwnershipGuarantee\n#safety_audit Safety.LifecycleDependency.sound : Safety.LifecycleGuarantee\n#safety_audit Safety.LifecycleDependency.conjunction : Safety.LifecycleConjunctionGuarantee\n#safety_audit Safety.LifecycleDependency.projection_frame : Safety.LifecycleDependency.ProjectionFrameGuarantee\n#safety_audit Safety.membership_order_equivalent : Safety.MembershipOrderGuarantee\n#safety_audit Safety.checkLifecycle_sound : Safety.LifecycleCheckerGuarantee\n#safety_audit Safety.classify_permitted : Safety.ClassificationGuarantee\n#safety_audit Safety.lifecycle_module_preserves : Safety.LifecycleModuleSoundness\n#safety_audit Safety.checkModule_sound : Safety.CheckedAuthority\n#safety_audit Safety.module_preserves : Safety.ModuleSoundness\n#safety_audit Concrete.checked : Safety.checkModule Concrete.data = true\n#safety_audit Concrete.certified : {}\n",
+        "prelude\nimport safety.Audit\nimport Concrete\n{}\n#safety_audit Safety.FieldOwnership.sound : Safety.OwnershipGuarantee\n#safety_audit Safety.LifecycleDependency.sound : Safety.LifecycleGuarantee\n#safety_audit Safety.LifecycleDependency.conjunction : Safety.LifecycleConjunctionGuarantee\n#safety_audit Safety.LifecycleDependency.projection_frame : Safety.LifecycleDependency.ProjectionFrameGuarantee\n#safety_audit Safety.membership_order_equivalent : Safety.MembershipOrderGuarantee\n#safety_audit Safety.checkLifecycle_sound : Safety.LifecycleCheckerGuarantee\n#safety_audit Safety.classify_permitted : Safety.ClassificationGuarantee\n#safety_audit Safety.lifecycle_module_preserves : Safety.LifecycleModuleSoundness\n#safety_audit Safety.checkModule_sound : Safety.CheckedAuthority\n#safety_audit Safety.module_preserves : Safety.ModuleSoundness\n#safety_audit Concrete.checked : Safety.checkModule Concrete.data = true\n#safety_audit Concrete.certified : {}\n#safety_audit Safety.Candidate.traceChecked_sound : ∀ (xs : List (List Nat)) (trace : Safety.Candidate.MergeTrace), Safety.Candidate.traceChecked xs trace = true → xs.Pairwise (· ≠ ·)\n#safety_audit Safety.Candidate.compactPayload_flatten : ∀ s : String, (Safety.Candidate.compactPayload s).flatten = Safety.Candidate.literalBytes s\n#safety_audit Safety.Candidate.literalBytes_injective : ∀ {{a b : String}}, Safety.Candidate.literalBytes a = Safety.Candidate.literalBytes b → a = b\n#safety_audit Safety.Candidate.checked_from_parts : ∀ m : Safety.ModuleData, m.actionHashes.Pairwise (· ≠ ·) → Safety.Candidate.bounds m = true → Safety.checkAuthority m = true → Safety.checkLifecycleLink m = true → Safety.checkLifecycle m.lifecycle = true → Safety.checkModule m = true\n",
         anchors(a, "VerificationAnchors")?,
         instance_type(a, "Concrete.data", "VerificationAnchors")?
     ))
+}
+
+fn persist_stage_resources(
+    output: (&Path, &str),
+    limits: &ProofLimits,
+    args: &[String],
+    start: Instant,
+    peaks: (u64, u64),
+    outcome: (&str, Option<i32>),
+) -> Result<(), SafetyError> {
+    let flag = |prefix: &str| {
+        args.iter().find_map(|arg| {
+            arg.strip_prefix(prefix)
+                .and_then(|value| value.parse::<u64>().ok())
+        })
+    };
+    fs::write(output.0.join(format!("{}.resources.json", output.1)), json!({
+        "status":outcome.0,"exit_code":outcome.1,"elapsed_ms":start.elapsed().as_millis(),
+        "peak_sampled_resident_kb":peaks.0,"peak_sampled_virtual_kb":peaks.1,
+        "limits":{"heartbeats":flag("-DmaxHeartbeats="),"heap_mb":flag("-M"),
+            "recursion_depth":flag("-DmaxRecDepth="),
+            "address_space_mb":limits.address_space_mb,"wall_seconds":limits.wall_seconds},
+        "actual_heartbeats":Value::Null,"actual_recursion_depth":Value::Null,
+        "measurement_limits":["VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+            "Heartbeat and recursion consumption are not exposed by the pinned tools",
+            "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+            "Wall and address-space limits are per launched process, not whole-chain budgets"]
+    }).to_string()).map_err(io_error)
 }
 
 fn run(
@@ -449,18 +488,36 @@ fn run(
             }
         }
         if let Some(status) = child.try_wait().map_err(io_error)? {
-            fs::write(work.join(format!("{label}.resources.json")),json!({"elapsed_ms":start.elapsed().as_millis(),
-                "peak_sampled_resident_kb":resident_kb,"peak_sampled_virtual_kb":virtual_kb,"exit_code":status.code(),
-                "limits":{"heartbeats":limits.max_heartbeats,"heap_mb":limits.memory_mb,
-                "address_space_mb":limits.address_space_mb,"wall_seconds":limits.wall_seconds}}).to_string()).map_err(io_error)?;
+            let text = if status.success() {
+                String::new()
+            } else {
+                fs::read_to_string(work.join(format!("{label}.log"))).unwrap_or_default()
+            };
+            let exhausted = !status.success()
+                && (text.contains("heartbeats")
+                    || text.contains("recursion depth")
+                    || text.contains("memory")
+                    || status.code().is_none());
+            persist_stage_resources(
+                (work, label),
+                limits,
+                args,
+                start,
+                (resident_kb, virtual_kb),
+                (
+                    if status.success() {
+                        "Passed"
+                    } else if exhausted {
+                        "Exhausted"
+                    } else {
+                        "Failed"
+                    },
+                    status.code(),
+                ),
+            )?;
             if status.success() {
                 return Ok(());
             }
-            let text = fs::read_to_string(work.join(format!("{label}.log"))).unwrap_or_default();
-            let exhausted = text.contains("heartbeats")
-                || text.contains("recursion depth")
-                || text.contains("memory")
-                || status.code().is_none();
             return Err(SafetyError::new(
                 if exhausted {
                     "SAFETY_PROOF_EXHAUSTED"
@@ -472,7 +529,15 @@ fn run(
         }
         if start.elapsed() >= Duration::from_secs(limits.wall_seconds) {
             let _ = child.kill();
-            let _ = child.wait();
+            let status = child.wait().map_err(io_error)?;
+            persist_stage_resources(
+                (work, label),
+                limits,
+                args,
+                start,
+                (resident_kb, virtual_kb),
+                ("Exhausted", status.code()),
+            )?;
             return Err(SafetyError::new(
                 "SAFETY_PROOF_EXHAUSTED",
                 format!("{label}: wall-time limit"),
@@ -515,7 +580,7 @@ fn implementation_identity() -> Result<String, SafetyError> {
             "inventory":include_str!("inventory.rs"),"input":include_str!("input.rs"),"resolve":include_str!("resolve.rs"),
             "identity":include_str!("identity.rs"),"lifecycle":include_str!("lifecycle_dependency.rs"),"probes":include_str!("guards.rs"),
             "membership_orders":include_str!("membership_orders.rs"),"lifecycle_encoder":include_str!("proof_data.rs"),"ownership":include_str!("field_ownership.rs"),
-            "encoder_runner":include_str!("certify.rs"),"evidence":include_str!("evidence.rs"),"entrypoints":include_str!("mod.rs")
+            "encoder_runner":include_str!("certify.rs"),"merge_witness":include_str!("merge_witness.rs"),"evidence":include_str!("evidence.rs"),"entrypoints":include_str!("mod.rs")
         }),
     )
 }
@@ -524,6 +589,14 @@ fn proof_identity(
     module: &Module,
     a: &UncertifiedSafetyAnalysis,
     tools: &ProofToolchain,
+) -> Result<Value, SafetyError> {
+    proof_identity_with_witness(module, a, tools, &MergeWitness::produce(&a.inventory))
+}
+fn proof_identity_with_witness(
+    module: &Module,
+    a: &UncertifiedSafetyAnalysis,
+    tools: &ProofToolchain,
+    witness: &MergeWitness,
 ) -> Result<Value, SafetyError> {
     let sources = SOURCES
         .iter()
@@ -534,20 +607,24 @@ fn proof_identity(
             ))
         })
         .collect::<Result<BTreeMap<_, _>, SafetyError>>()?;
-    let input = proof_input(module, a).ok();
+    let input = a
+        .inventory
+        .verify_module(module)
+        .and_then(|_| concrete(module, a, witness))
+        .ok();
     let verifier = verification(a)?;
     Ok(
-        json!({"statement_version":1,"checker_version":super::SAFETY_CHECKER_VERSION,"sources":sources,
+        json!({"statement_version":2,"checker_version":super::SAFETY_CHECKER_VERSION,"sources":sources,
         "concrete_source":input.map(|source|tagged("behavior.safety_proof_source.v1",&json!(source))).transpose()?,
         "audit_source":tagged("behavior.safety_proof_source.v1",&json!(verifier))?,"toolchain":tools.identity,"audit":[],
-        "implementation_sources":implementation_identity()?}),
+        "implementation_sources":implementation_identity()?,"witness":witness.to_json()}),
     )
 }
 
 /// Fixed generated input for inspection. This is data/source, not proof authority.
 pub fn proof_input(module: &Module, a: &UncertifiedSafetyAnalysis) -> Result<String, SafetyError> {
     a.inventory.verify_module(module)?;
-    concrete(module, a)
+    concrete(module, a, &MergeWitness::produce(&a.inventory))
 }
 
 pub(crate) fn persist(output: &Path, result: &SafetyAssessment) -> Result<(), SafetyError> {
@@ -573,12 +650,29 @@ pub fn certify(
     tools: &ProofToolchain,
     limits: &ProofLimits,
 ) -> SafetyAssessment {
+    certify_with_witness(
+        module,
+        analysis,
+        &MergeWitness::produce(&analysis.inventory),
+        output,
+        tools,
+        limits,
+    )
+}
+fn certify_with_witness(
+    module: &Module,
+    analysis: &UncertifiedSafetyAnalysis,
+    witness: &MergeWitness,
+    output: &Path,
+    tools: &ProofToolchain,
+    limits: &ProofLimits,
+) -> SafetyAssessment {
     let mut obligations = json!({"inventory_comparison":"NotRun","generic_proof":"NotRun","concrete_proof":"NotRun","theorem_types":"NotRun","axiom_audit":"NotRun","fresh_replay":"NotRun"});
     if !analysis.dependencies.is_empty() {
         obligations["lifecycle_preservation"] = json!("NotRun");
     }
-    let metadata = proof_identity(module, analysis, tools);
-    let mut proof=metadata.as_ref().cloned().unwrap_or_else(|_|json!({"statement_version":1,"checker_version":super::SAFETY_CHECKER_VERSION,"audit":[]}));
+    let metadata = proof_identity_with_witness(module, analysis, tools, witness);
+    let mut proof=metadata.as_ref().cloned().unwrap_or_else(|_|json!({"statement_version":2,"checker_version":super::SAFETY_CHECKER_VERSION,"audit":[]}));
     let checked = metadata.and_then(|_| {
         certify_checked(
             module,
@@ -624,6 +718,7 @@ fn certify_checked(
     obligations: &mut Value,
     proof: &mut Value,
 ) -> Result<(), SafetyError> {
+    let witness = MergeWitness::from_json(&proof["witness"])?;
     limits.validate()?;
     a.inventory.verify_module(module)?;
     obligations["inventory_comparison"] = json!("Passed");
@@ -654,7 +749,7 @@ fn certify_checked(
     ));
     fs::create_dir(&work).map_err(io_error)?;
     fs::create_dir(work.join("safety")).map_err(io_error)?;
-    let concrete = concrete(module, a)?;
+    let concrete = concrete(module, a, &witness)?;
     if proof["concrete_source"] != tagged("behavior.safety_proof_source.v1", &json!(concrete))? {
         return Err(SafetyError::new(
             "SAFETY_ENCODING_FAILED",
@@ -711,6 +806,10 @@ fn certify_checked(
         "Safety.module_preserves",
         "Concrete.checked",
         "Concrete.certified",
+        "Safety.Candidate.traceChecked_sound",
+        "Safety.Candidate.compactPayload_flatten",
+        "Safety.Candidate.literalBytes_injective",
+        "Safety.Candidate.checked_from_parts",
     ];
     if audit.len() != expected.len()
         || audit.iter().zip(expected).any(|(r, name)| {
@@ -772,8 +871,8 @@ pub fn bundle(
         ));
     }
     super::evidence::UnverifiedSafetyBundle::from_json(
-        &json!({"format":"behavior.safety_bundle.v1","module":module_transport,
-        "inventory":a.inventory.to_json(),"policies":a.policy_records(),"evidence":result.record}),
+        &json!({"format":"behavior.safety_bundle.v2","module":module_transport,
+        "inventory":a.inventory.to_json(),"policies":a.policy_records(),"evidence":result.record,"witness":result.record["proof"]["witness"]}),
     )
 }
 
@@ -782,7 +881,7 @@ fn prepare_bundle(
     a: &UncertifiedSafetyAnalysis,
     bundle: &super::evidence::UnverifiedSafetyBundle,
     tools: &ProofToolchain,
-) -> Result<UncertifiedSafetyAnalysis, SafetyError> {
+) -> Result<(UncertifiedSafetyAnalysis, MergeWitness), SafetyError> {
     let invalid = |detail: &str| SafetyError::new("SAFETY_INVALID_BUNDLE", detail);
     a.inventory.verify_module(module)?;
     let data = &bundle.document;
@@ -838,10 +937,12 @@ fn prepare_bundle(
         .as_object_mut()
         .ok_or_else(|| invalid("Expected semantic evidence object"))?
         .remove("evidence_hash");
-    if hash != Some(json!(tagged("behavior.safety_evidence.v1", &payload)?)) {
+    if hash != Some(json!(tagged("behavior.safety_evidence.v2", &payload)?)) {
         return Err(invalid("Evidence content identity differs"));
     }
-    let mut expected = proof_identity(&transported, &fresh, tools)?;
+    let witness = MergeWitness::from_json(&data["witness"])?;
+    witness.check_bounds(fresh.inventory.actions().len())?;
+    let mut expected = proof_identity_with_witness(&transported, &fresh, tools, &witness)?;
     let mut supplied = report["proof"].clone();
     let audit = supplied
         .as_object_mut()
@@ -872,6 +973,10 @@ fn prepare_bundle(
         "Safety.module_preserves",
         "Concrete.checked",
         "Concrete.certified",
+        "Safety.Candidate.traceChecked_sound",
+        "Safety.Candidate.compactPayload_flatten",
+        "Safety.Candidate.literalBytes_injective",
+        "Safety.Candidate.checked_from_parts",
     ];
     let rows = audit
         .as_array()
@@ -892,7 +997,7 @@ fn prepare_bundle(
     {
         return Err(invalid("Forged or incomplete theorem type/axiom result"));
     }
-    Ok(fresh)
+    Ok((fresh, witness))
 }
 
 /// Verify data by regenerating trusted wrappers and rerunning every proof check.
@@ -916,8 +1021,8 @@ pub fn verify_safety_evidence(
         )
     };
     let mut result = match prepare_bundle(module, expected, bundle, tools) {
-        Ok(fresh) => {
-            let actual = certify(module, &fresh, output, tools, limits);
+        Ok((fresh, witness)) => {
+            let actual = certify_with_witness(module, &fresh, &witness, output, tools, limits);
             if actual.certificate.is_some() && actual.record != bundle.document["evidence"] {
                 rejected(SafetyError::new(
                     "SAFETY_INVALID_BUNDLE",
@@ -951,3 +1056,7 @@ pub fn write_bundle(
     let data = bundle(module_transport, analysis, result)?;
     fs::write(output.join("bundle.json"), canonical(&data.to_json())?).map_err(io_error)
 }
+
+#[cfg(test)]
+#[path = "../../tests/support/independent_witness.rs"]
+mod independent_witness_tests;

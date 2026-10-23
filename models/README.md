@@ -557,7 +557,7 @@ safety argument additionally needs historical policies, proofs and host deployme
 that is a separate task from reconstructing state.
 
 
-### Lifecycle guard authoring contract (checker 2)
+### Lifecycle guard authoring contract (checker 3)
 
 | Operation | Required v1 condition |
 | --- | --- |

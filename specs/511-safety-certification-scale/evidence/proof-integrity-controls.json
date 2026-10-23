@@ -1,0 +1,107 @@
+{
+  "format": "behavior.safety_investigation.proof_controls.v1",
+  "original_source_sha256": "66c876a81c79fcb02eef1c066b3d870c4580e8382adb889e7a346294c77130d1",
+  "results": [
+    {
+      "authority": "NegativeDiagnosticOnly",
+      "case": "unauthorized_writer",
+      "rejected_at": "Concrete",
+      "source_sha256": "a0932ca8e2ae2927356bdc336263c211664ce17c4cf6f23312c5d23b0b59a77a",
+      "stages": [
+        {
+          "command": [
+            "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+            "-DmaxHeartbeats=200000",
+            "-M4096",
+            "-j1",
+            "-DmaxRecDepth=4096",
+            "-o",
+            "Concrete.olean",
+            "Concrete.lean"
+          ],
+          "exit_code": 1,
+          "log": "Concrete.lean:41:55: error: Tactic `decide` proved that the proposition\n  Safety.checkModule data = true\nis false\n",
+          "stage": "Concrete",
+          "wall_seconds": 2.5560978070134297
+        }
+      ]
+    },
+    {
+      "authority": "NegativeDiagnosticOnly",
+      "case": "proof_hole",
+      "rejected_at": "Verify",
+      "source_sha256": "b2766138441c4115fa840d2a76c2b37130eb4d3277ccc27c56d68d069a3027f5",
+      "stages": [
+        {
+          "command": [
+            "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+            "-DmaxHeartbeats=200000",
+            "-M4096",
+            "-j1",
+            "-DmaxRecDepth=4096",
+            "-o",
+            "Concrete.olean",
+            "Concrete.lean"
+          ],
+          "exit_code": 0,
+          "log": "Concrete.lean:41:8: warning: declaration uses `sorry`\n",
+          "stage": "Concrete",
+          "wall_seconds": 2.6511996390181594
+        },
+        {
+          "command": [
+            "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+            "-DmaxHeartbeats=200000",
+            "-M4096",
+            "-j1",
+            "-DmaxRecDepth=4096",
+            "Verify.lean"
+          ],
+          "exit_code": 1,
+          "log": "Verify.lean:39:0: error: Safety theorem Concrete.checked uses forbidden axioms: [propext, sorryAx]\nVerify.lean:40:0: error: Safety theorem Concrete.certified uses forbidden axioms: [propext, sorryAx, Classical.choice, Quot.sound]\n",
+          "stage": "Verify",
+          "wall_seconds": 11.392903607978951
+        }
+      ]
+    },
+    {
+      "authority": "NegativeDiagnosticOnly",
+      "case": "weakened_statement",
+      "rejected_at": "Verify",
+      "source_sha256": "2c1e4c44d9be1a9679d02439bab89b08411e0f995a03c64cddae8f5d548265f7",
+      "stages": [
+        {
+          "command": [
+            "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+            "-DmaxHeartbeats=200000",
+            "-M4096",
+            "-j1",
+            "-DmaxRecDepth=4096",
+            "-o",
+            "Concrete.olean",
+            "Concrete.lean"
+          ],
+          "exit_code": 0,
+          "log": "",
+          "stage": "Concrete",
+          "wall_seconds": 2.41374672902748
+        },
+        {
+          "command": [
+            "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+            "-DmaxHeartbeats=200000",
+            "-M4096",
+            "-j1",
+            "-DmaxRecDepth=4096",
+            "Verify.lean"
+          ],
+          "exit_code": 1,
+          "log": "Verify.lean:40:0: error: Safety theorem Concrete.certified has the wrong proposition\n",
+          "stage": "Verify",
+          "wall_seconds": 3.351955402002204
+        }
+      ]
+    }
+  ],
+  "toolchain": "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0"
+}

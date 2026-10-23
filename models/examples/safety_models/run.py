@@ -38,7 +38,9 @@ REQUIRED_ROOTS = (
     "Safety.FieldOwnership.sound", "Safety.LifecycleDependency.sound",
     "Safety.LifecycleDependency.conjunction", "Safety.LifecycleDependency.projection_frame",
     "Safety.membership_order_equivalent", "Safety.checkLifecycle_sound", "Safety.classify_permitted", "Safety.lifecycle_module_preserves",
-    "Safety.checkModule_sound", "Safety.module_preserves", "Concrete.checked", "Concrete.certified")
+    "Safety.checkModule_sound", "Safety.module_preserves", "Concrete.checked", "Concrete.certified",
+    "Safety.Candidate.traceChecked_sound", "Safety.Candidate.compactPayload_flatten",
+    "Safety.Candidate.literalBytes_injective", "Safety.Candidate.checked_from_parts")
 REQUIRED_OBLIGATIONS = ("inventory_comparison", "generic_proof", "concrete_proof",
                         "theorem_types", "axiom_audit", "fresh_replay")
 

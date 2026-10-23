@@ -1,0 +1,26 @@
+{
+  "controls": [
+    {
+      "log": "target/safety-models/scale-511-runner-red.log",
+      "result": "Expected failure: missing implementation",
+      "sha256": "c8866c8b27e3ad29a9cd7ea1eda3cc2e2d1b4a9af672a0a27eb4bcb0b94d0f19"
+    },
+    {
+      "log": "target/safety-models/scale-511-runner-green.log",
+      "result": "6 passed",
+      "sha256": "c6d88cabd45bb56945545a34b3ad0da1cbc47318e073e6e98e913c682037a2b9"
+    },
+    {
+      "log": "target/safety-models/scale-511-workloads-red.log",
+      "result": "Expected failure: missing implementation",
+      "sha256": "4d600ad214e19ce15aa0996296d020867328dc7b305a7820977d839fc96b18fd"
+    },
+    {
+      "log": "target/safety-models/scale-511-workloads-controls.log",
+      "result": "18 passed",
+      "sha256": "28b91443b7c601243e8dd3cf8a65d4e98ac6bda5efdbbb8ba2a2db748e124d28"
+    }
+  ],
+  "discarded_harness_error": "An intermediate workload collection failed on pytest reserved name request; corrected before successful 18-test execution. It is not a semantic negative control.",
+  "scope": "Fast tests only, no mathematical certification."
+}

@@ -1,3 +1,4 @@
+prelude
 import safety.FieldOwnership
 
 /-! Statement contract v1. These maps are a proof-only projection of ordinary

@@ -1,0 +1,14 @@
+{
+  "status": "Passed",
+  "exit_code": 0,
+  "command": "scripts/release-check.sh /tmp/behavior-511-delivery-tqmy2d06/dist-final-01",
+  "log": "release-check.txt",
+  "log_sha256": "799ccb4aab0b269f3fa498904cdfc737b4ba7425dcb1d7cfc955e17b5571b123",
+  "wheel_sha256": "810566f34559851fb6e725179a7cb066e64fae3a3a25d3eb85e524855de3902b",
+  "steps": "All existing steps1-11, no --skip-gates. Full properties and slow release tests enabled.",
+  "installed_drift_equivalence_tests": 49,
+  "installed_safety": "Ordinary Core execution/replay without Lean on PATH, plus explicit full certification and separate installed consumer checking; producer directory search denied during consumer execution.",
+  "reproducibility": "Two temporary reproducible builds matched each other. Separate explicit comparison to the evaluated dist is running before candidate freeze.",
+  "publication": "No real repository tag or publication; scratch test repos have isolated fixture tags only.",
+  "remaining": "Explicit complete-mode conformance, candidate freeze/capacity and exact final source/artifact binding pending."
+}

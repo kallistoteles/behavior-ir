@@ -1,0 +1,7 @@
+{
+  "status": "Invalid diagnostic-driver attempt, not accepted evidence or a candidate failure",
+  "raw_directory": "/data/core028/behavior-510-build-02dspqju/target/safety-models/scale-511/final-extracted-controls-01",
+  "raw_record_sha256": "5feaa29108e3e18ded638829eef7ae38da203ae2bdf451edb55f9794876ecaff",
+  "reason": "Pinned Lean reports Tactic `decide` with capitalT/backticks; driver expected lower-case and singlequotes. All positive/refutation proofs, axiom audit and fresh replay passed; its negative-message parser rejected the expected missingGuard rejection.",
+  "correction": "Only temporary diagnostic parser changed; fresh02all7controls passed. Evaluated candidate/proofs/harness/profile remain unchanged."
+}

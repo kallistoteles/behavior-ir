@@ -66,3 +66,28 @@ run_cmd do
       return false
     catch _ => return true
   unless rejected do throwError "accepted weakened statement"
+
+-- Checker 3: producer data is not a completeness or uniqueness assumption.
+open Safety.Candidate
+example : traceChecked [[2],[1]] (.branch .leaf .leaf [false,true]) = true := by decide
+example : traceChecked [[1],[1]] (.branch .leaf .leaf [true,false]) = false := by decide
+example : traceChecked [[1],[2]] .leaf = false := by decide
+example : traceChecked [[1],[2]] (.branch .leaf .leaf [true,false,true]) = false := by decide
+example : traceChecked [[1]] (.branch .leaf .leaf [true,false]) = false := by decide
+example (keys : List (List Nat)) (trace : MergeTrace) (h : traceChecked keys trace = true) :
+    keys.Pairwise (· ≠ ·) := traceChecked_sound keys trace h
+example : literalBytes "å" = [195,165] := by decide
+example : (compactPayload "exact").flatten = literalBytes "exact" := compactPayload_flatten _
+example (a b : String) (h : literalBytes a = literalBytes b) : a = b := literalBytes_injective h
+-- Kernel-valid weakening is not a proof of checker soundness.
+run_cmd do
+  let rejected ← Lean.Elab.Command.liftTermElabM do
+    try
+      discard <| Safety.auditExpected ``weakened (← Lean.Elab.Term.elabTerm (← `(∀ (xs : List (List Nat)) (t : Safety.Candidate.MergeTrace), Safety.Candidate.traceChecked xs t = true → xs.Pairwise (· ≠ ·))) none)
+      return false
+    catch _ => return true
+  unless rejected do throwError "accepted weakened trace soundness"
+#safety_audit Safety.Candidate.traceChecked_sound : ∀ (xs : List (List Nat)) (t : Safety.Candidate.MergeTrace), Safety.Candidate.traceChecked xs t = true → xs.Pairwise (· ≠ ·)
+#safety_audit Safety.Candidate.literalBytes_injective : ∀ {a b : String}, Safety.Candidate.literalBytes a = Safety.Candidate.literalBytes b → a = b
+#safety_audit Safety.Candidate.compactPayload_flatten : ∀ s, (Safety.Candidate.compactPayload s).flatten = Safety.Candidate.literalBytes s
+#safety_audit Safety.Candidate.checked_from_parts : ∀ (m : Safety.ModuleData), m.actionHashes.Pairwise (· ≠ ·) → Safety.Candidate.bounds m = true → Safety.checkAuthority m = true → Safety.checkLifecycleLink m = true → Safety.checkLifecycle m.lifecycle = true → Safety.checkModule m = true

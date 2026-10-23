@@ -1,0 +1,39 @@
+{
+  "passed": true,
+  "scope": "Fixed positive/counterexample and fail_if_success premise controls; test execution, not certificate authority",
+  "candidate_manifest_sha256": "c6e392791cfcfe3b41e4fbfe34a59b5271ef3dbac7759b78f7152922a61d6ba8",
+  "results": [
+    {
+      "fixture": "crates/behavior-models/proofs/safety/tests/OwnershipMutations.lean",
+      "source_sha256": "4002d84904eb9b3eebc0b4f37022d46f4a814840fec2c0886f657adce89a403f",
+      "exit_code": 0,
+      "wall_seconds": 2.672681183088571,
+      "command": [
+        "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+        "-DmaxHeartbeats=200000",
+        "-M4096",
+        "-j1",
+        "-DmaxRecDepth=4096",
+        "-o",
+        "OwnershipMutations.olean",
+        "OwnershipMutations.lean"
+      ]
+    },
+    {
+      "fixture": "crates/behavior-models/proofs/safety/tests/LifecycleMutations.lean",
+      "source_sha256": "62e5a3837fe86a203608fc981696bfe53b01518c4afcdcb999e82c05a7b388ba",
+      "exit_code": 0,
+      "wall_seconds": 3.727190744015388,
+      "command": [
+        "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+        "-DmaxHeartbeats=200000",
+        "-M4096",
+        "-j1",
+        "-DmaxRecDepth=4096",
+        "-o",
+        "LifecycleMutations.olean",
+        "LifecycleMutations.lean"
+      ]
+    }
+  ]
+}

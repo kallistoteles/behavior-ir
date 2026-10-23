@@ -1,0 +1,425 @@
+{
+  "additional_variants": [
+    "specs/511-safety-certification-scale/evidence/candidate-runs/slim-a512.json",
+    "specs/511-safety-certification-scale/evidence/candidate-runs/slim-noncomp-a512.json",
+    "specs/511-safety-certification-scale/evidence/candidate-runs/compact-raw-a512.json",
+    "specs/511-safety-certification-scale/evidence/candidate-runs/noncomp-raw-a512.json"
+  ],
+  "complete_a256_fresh": {
+    "exact_wall_seconds": "not instrumented; no precise duration claimed",
+    "exit_code": 0,
+    "log": "target/safety-models/scale-511/compact-a256-data/complete-fresh.log",
+    "wall_bound_seconds": 180
+  },
+  "complete_a512_prototype": {
+    "audited_roots": [
+      {
+        "axioms": [
+          "Classical.choice",
+          "Quot.sound",
+          "propext"
+        ],
+        "declaration": "Safety.FieldOwnership.sound",
+        "expected_type_checked": true
+      },
+      {
+        "axioms": [
+          "propext"
+        ],
+        "declaration": "Safety.LifecycleDependency.sound",
+        "expected_type_checked": true
+      },
+      {
+        "axioms": [
+          "propext"
+        ],
+        "declaration": "Safety.LifecycleDependency.conjunction",
+        "expected_type_checked": true
+      },
+      {
+        "axioms": [
+          "Classical.choice",
+          "Quot.sound",
+          "propext"
+        ],
+        "declaration": "Safety.LifecycleDependency.projection_frame",
+        "expected_type_checked": true
+      },
+      {
+        "axioms": [
+          "propext"
+        ],
+        "declaration": "Safety.membership_order_equivalent",
+        "expected_type_checked": true
+      },
+      {
+        "axioms": [
+          "Quot.sound",
+          "propext"
+        ],
+        "declaration": "Safety.checkLifecycle_sound",
+        "expected_type_checked": true
+      },
+      {
+        "axioms": [
+          "Quot.sound",
+          "propext"
+        ],
+        "declaration": "Safety.classify_permitted",
+        "expected_type_checked": true
+      },
+      {
+        "axioms": [
+          "Classical.choice",
+          "Quot.sound",
+          "propext"
+        ],
+        "declaration": "Safety.lifecycle_module_preserves",
+        "expected_type_checked": true
+      },
+      {
+        "axioms": [
+          "Quot.sound",
+          "propext"
+        ],
+        "declaration": "Safety.checkModule_sound",
+        "expected_type_checked": true
+      },
+      {
+        "axioms": [
+          "Classical.choice",
+          "Quot.sound",
+          "propext"
+        ],
+        "declaration": "Safety.module_preserves",
+        "expected_type_checked": true
+      },
+      {
+        "axioms": [
+          "Classical.choice",
+          "Quot.sound",
+          "propext"
+        ],
+        "declaration": "CompleteProbe.checked",
+        "expected_type_checked": true
+      },
+      {
+        "axioms": [
+          "Classical.choice",
+          "Quot.sound",
+          "propext"
+        ],
+        "declaration": "CompleteProbe.certified",
+        "expected_type_checked": true
+      },
+      {
+        "axioms": [
+          "Classical.choice",
+          "Quot.sound",
+          "propext"
+        ],
+        "declaration": "Safety.Candidate.traceChecked_sound",
+        "expected_type_checked": true
+      },
+      {
+        "axioms": [
+          "propext"
+        ],
+        "declaration": "Safety.Candidate.compactPayload_flatten",
+        "expected_type_checked": true
+      },
+      {
+        "axioms": [
+          "propext"
+        ],
+        "declaration": "Safety.Candidate.literalBytes_injective",
+        "expected_type_checked": true
+      },
+      {
+        "axioms": [
+          "propext"
+        ],
+        "declaration": "Safety.Candidate.checked_from_parts",
+        "expected_type_checked": true
+      }
+    ],
+    "authority": "DiagnosticOnly",
+    "case": "A512 exact full mathematical instance",
+    "complete_chain_cold_measurement": false,
+    "raw": "target/safety-models/scale-511/compact-a512-data/instance-observation.json",
+    "raw_sha256": "55cbf841d4ae005f1942f7abd557669f41e9a88bf873d7e6382e7b4dc4687bc5",
+    "reused_generic_imports": true,
+    "stages": [
+      {
+        "child_cpu_seconds": 46.970164999999994,
+        "command": [
+          "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+          "-DmaxHeartbeats=200000",
+          "-DmaxRecDepth=4096",
+          "-M4096",
+          "-j1",
+          "-o",
+          "Concrete.olean",
+          "Concrete.lean"
+        ],
+        "cumulative_waited_child_maxrss_kib": 1436588,
+        "exit_code": 0,
+        "log": "",
+        "source_sha256": "b62197bc733deb88d7ef952e142221ce747d25c19bded6d39a1792b211929a62",
+        "stage": "Concrete",
+        "status": "Passed",
+        "wall_seconds": 47.60736975702457
+      },
+      {
+        "child_cpu_seconds": 8.144316000000002,
+        "command": [
+          "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+          "-DmaxHeartbeats=200000",
+          "-DmaxRecDepth=4096",
+          "-M4096",
+          "-j1",
+          "-o",
+          "MergeProbe.olean",
+          "MergeProbe.lean"
+        ],
+        "cumulative_waited_child_maxrss_kib": 1436588,
+        "exit_code": 0,
+        "log": "",
+        "source_sha256": "30423d6a35baa8e81c54d5a84d4b4dfc4e18a8b4737ad4127f897bb25341d989",
+        "stage": "MergeProbe",
+        "status": "Passed",
+        "wall_seconds": 8.299734232015908
+      },
+      {
+        "child_cpu_seconds": 59.65316,
+        "command": [
+          "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+          "-DmaxHeartbeats=200000",
+          "-DmaxRecDepth=4096",
+          "-M4096",
+          "-j1",
+          "-o",
+          "CompleteProbe.olean",
+          "CompleteProbe.lean"
+        ],
+        "cumulative_waited_child_maxrss_kib": 2220712,
+        "exit_code": 0,
+        "log": "",
+        "source_sha256": "f18658babdfa6e19e88122dc8f73d0829dcad399ca99048d611e0c551e8a0b23",
+        "stage": "CompleteProbe",
+        "status": "Passed",
+        "wall_seconds": 60.56910693994723
+      },
+      {
+        "child_cpu_seconds": 1.9380709999999954,
+        "command": [
+          "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+          "-DmaxHeartbeats=200000",
+          "-DmaxRecDepth=4096",
+          "-M4096",
+          "-j1",
+          "CompleteAudit.lean"
+        ],
+        "cumulative_waited_child_maxrss_kib": 2220712,
+        "exit_code": 0,
+        "log": "",
+        "source_sha256": "2eeaf2789bed1aff78234bbedd91a4a6bdd4224dca4f2ff3fe821e1f6844b53c",
+        "stage": "CompleteAudit",
+        "status": "Passed",
+        "wall_seconds": 2.25241009099409
+      },
+      {
+        "child_cpu_seconds": 138.21461799999997,
+        "command": [
+          "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/leanchecker",
+          "--fresh",
+          "CompleteProbe"
+        ],
+        "cumulative_waited_child_maxrss_kib": 2234652,
+        "exit_code": 0,
+        "log": "",
+        "source_sha256": null,
+        "stage": "Fresh",
+        "status": "Passed",
+        "wall_seconds": 140.25000788702164
+      }
+    ],
+    "status": "Passed",
+    "wall_seconds": 258.99179923406336
+  },
+  "components": [
+    {
+      "path": "target/safety-models/scale-511/candidate-lemmas/generic.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "tail": ""
+    },
+    {
+      "path": "target/safety-models/scale-511/candidate-lemmas/controls.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "tail": ""
+    },
+    {
+      "path": "target/safety-models/scale-511/candidate-lemmas/audit.jsonl",
+      "sha256": "366b61ba71b0a33891a58fc81beb263883c0e0821da39632e7c868c9d0241eb9",
+      "tail": "{\"axioms\":[\"Classical.choice\",\"Quot.sound\",\"propext\"],\"declaration\":\"Safety.Candidate.uniqueChecked_sound\",\"expected_type_checked\":true}\n{\"axioms\":[\"Quot.sound\",\"propext\"],\"declaration\":\"Safety.Candidate.indexed_permission_sound\",\"expected_type_checked\":true}\n"
+    },
+    {
+      "path": "target/safety-models/scale-511/candidate-lemmas/fresh.log",
+      "sha256": "ff52793c1359da73e2f47adc053207d541537af68801bd372345a867a5c7651a",
+      "tail": "uncaught exception: process 'lean' exited with code 255\nstderr:\ncould not execute external process 'lean'\n\n"
+    },
+    {
+      "path": "target/safety-models/scale-511/candidate-lemmas/fresh-pinned-path.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "tail": ""
+    },
+    {
+      "path": "target/safety-models/scale-511/candidate-compact/generic.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "tail": ""
+    },
+    {
+      "path": "target/safety-models/scale-511/candidate-compact/controls.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "tail": ""
+    },
+    {
+      "path": "target/safety-models/scale-511/candidate-witness/generic.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "tail": ""
+    },
+    {
+      "path": "target/safety-models/scale-511/candidate-witness/controls.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "tail": ""
+    },
+    {
+      "path": "target/safety-models/scale-511/candidate-merge/generic.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "tail": ""
+    },
+    {
+      "path": "target/safety-models/scale-511/candidate-merge/controls.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "tail": ""
+    }
+  ],
+  "concrete_comparisons": [
+    {
+      "authority": "DiagnosticOnly",
+      "child_cpu_seconds": 51.790531,
+      "child_maxrss_kib": 605256,
+      "command": [
+        "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+        "-DmaxHeartbeats=200000",
+        "-DmaxRecDepth=4096",
+        "-M4096",
+        "-j1",
+        "-o",
+        "UniqueProbe.olean",
+        "UniqueProbe.lean"
+      ],
+      "exit_code": 1,
+      "failure_class": "ResourceExhaustion",
+      "limits": {
+        "address_space_bytes": 8589934592,
+        "depth": 4096,
+        "heartbeats_per_command": 200000,
+        "wall_seconds": 180
+      },
+      "log": "UniqueProbe.lean:6:2: error: `simp` failed: maximum number of steps exceeded\n",
+      "logical_safety_conclusion": null,
+      "raw": "target/safety-models/scale-511/compact-a256-data/unique-observation.json",
+      "raw_sha256": "dec0be0f3178d246444ab5f110a162505b4c49216d3fb4d5e53c35c3efe232dd",
+      "reused_imports": true,
+      "source_sha256": "bf222f63b4f901d9f74defbbc05c3198e75285402b9af1d60bf7b4b1422225ff",
+      "status": "Failed",
+      "variant": "verified direct sort uniqueness, exact A256 full keys",
+      "wall_seconds": 52.51404790696688
+    },
+    {
+      "authority": "DiagnosticOnly",
+      "child_cpu_seconds": 46.423147,
+      "child_maxrss_kib": 969292,
+      "command": [
+        "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+        "-DmaxHeartbeats=200000",
+        "-DmaxRecDepth=4096",
+        "-M4096",
+        "-j1",
+        "-o",
+        "WitnessProbe.olean",
+        "WitnessProbe.lean"
+      ],
+      "exit_code": 1,
+      "failure_class": "ResourceExhaustion",
+      "log": "WitnessProbe.lean:8:88: error: (deterministic) timeout at `whnf`, maximum number of heartbeats (200000) has been reached\n\nNote: Use `set_option maxHeartbeats <num>` to set the limit.\n\nHint: Additional diagnostic information may be available using the `set_option diagnostics true` command.\n",
+      "logical_safety_conclusion": null,
+      "raw": "target/safety-models/scale-511/compact-a256-data/witness-observation.json",
+      "raw_sha256": "c0b140c0f9ab67ee0b9a39f06cabac5d297e74873fcbf4d289c02134bcddaeaa",
+      "reused_imports": true,
+      "source_sha256": "6c0227ee9a9cfc737b3bc9438b38fbe9ca753cf4d742e5818236f56a1ed069eb",
+      "status": "Failed",
+      "variant": "untrusted ordering/inverse-index data, exact A256 full keys",
+      "wall_seconds": 47.09988558397163
+    },
+    {
+      "authority": "DiagnosticOnly",
+      "child_cpu_seconds": 3.935962,
+      "child_maxrss_kib": 615520,
+      "command": [
+        "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+        "-DmaxHeartbeats=200000",
+        "-DmaxRecDepth=4096",
+        "-M4096",
+        "-j1",
+        "-o",
+        "MergeProbe.olean",
+        "MergeProbe.lean"
+      ],
+      "exit_code": 0,
+      "log": "",
+      "raw": "target/safety-models/scale-511/compact-a256-data/merge-observation.json",
+      "raw_sha256": "babac337d093311144ca4fe953e9bd5c0cc06309f7bf0946429d4399b85dd6ea",
+      "reused_imports": true,
+      "source_sha256": "c97c305b4622667ed6455ddc1bf41ad22d55fa15cec70584b16a3fb6e100c22f",
+      "status": "Passed",
+      "variant": "untrusted merge trace, exact A256 full keys",
+      "wall_seconds": 4.032423406955786
+    },
+    {
+      "authority": "DiagnosticOnly",
+      "child_cpu_seconds": 15.340242,
+      "child_maxrss_kib": 925432,
+      "command": [
+        "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+        "-DmaxHeartbeats=200000",
+        "-DmaxRecDepth=4096",
+        "-M4096",
+        "-j1",
+        "-o",
+        "CompleteProbe.olean",
+        "CompleteProbe.lean"
+      ],
+      "exit_code": 0,
+      "log": "",
+      "raw": "target/safety-models/scale-511/compact-a256-data/complete-observation.json",
+      "raw_sha256": "1b350e61f90713becda683daeb93ae6cb3f1a42984c4a9f1b17f15073bd9dd77",
+      "reused_imports": true,
+      "source_sha256": "85a0ed5d9d8d9f1ba11dcd94504b764e324e6624ce808fc8852b35cc4aa31bbd",
+      "status": "Passed",
+      "variant": "complete A256 mathematical instance using compact exact payload and merge trace",
+      "wall_seconds": 15.580801092088223
+    }
+  ],
+  "controls": "evidence/candidate-runs/prototype-controls.json",
+  "source_notes": [
+    "Direct sorting has a generic correctness theorem but its concrete A256 simplification exhausted steps.",
+    "Inverse-array witness is generically sound but concrete A256 reduction exhausted heartbeats.",
+    "Compact UTF-8 payload has checked flatten preservation and injectivity plus Unicode/quoting controls; no complete chain established.",
+    "Initial fresh-check invocation lacked pinned bin on PATH; discarded as invocation failure. Corrected pinned-PATH fresh check passed for CandidateControls.",
+    "Generic compilation failures during proof development are not accepted proofs or mathematical counterexamples.",
+    "Merge-trace uniqueness passed on the exact complete A256 keys; complete A256/A512 mathematical instances passed type/axiom audit and fresh replay. Generic imports reused, so these are not complete cold library certificates."
+  ],
+  "status": "G1 candidate selected after complete mathematical prototypes and adversarial controls; production and cold-chain evaluation remain pending"
+}

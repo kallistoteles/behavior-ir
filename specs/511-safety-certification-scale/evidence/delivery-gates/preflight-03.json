@@ -1,0 +1,24 @@
+{
+  "status": "Failed; retained, not final gate evidence",
+  "log": "target/safety-models/scale-511/preflight-full-gates-03.log",
+  "rust": {
+    "passed": 328,
+    "binaries": 48
+  },
+  "python": {
+    "passed": 706,
+    "failed": 8,
+    "skipped": 5
+  },
+  "failures": {
+    "gate_runner": 3,
+    "skill_release_frontmatter": 3,
+    "binding_release_expectations": 2
+  },
+  "remediation": "Gate fixtures include fast scale tests and exclude real corpus; consumer Skills/current release examples and binding test expectations now identify 0.14.0. No semantic change or test removal.",
+  "focused_rerun": {
+    "passed": 46,
+    "log": "target/safety-models/scale-511/metadata-fixtures-green.log"
+  },
+  "final_full_gate": "Still required"
+}

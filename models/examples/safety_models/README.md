@@ -135,3 +135,62 @@ unguarded versions and reports the exact analysis issues.
 Repetitions are truth-preserving under Core membership but retain their authored hashes.
 Certification checks exact typed sets and whole roots; it does not accept arbitrary equivalent
 expressions or strengthen the mathematical claims beyond the documented trust boundaries.
+
+## Checker 3 / Behavior 0.14.0
+
+Safety policy semantics remain v1; Core stays at 0.15.0. Certification uses statement contract 2
+and separate evidence/bundle v2. The new checker accepts v2 only. Preserve historical v1 evidence
+and its original pinned checking environment; reproducibility alone does not establish the
+soundness of an older implementation. There is no automatic legacy-tool execution or reinterpretation.
+
+The producer supplies untrusted finite merge choices. The checker independently derives the entire
+exact action/operation inventory and complete expected Safety policy set from admitted public Core.
+Lean checks the trace against those full keys, establishes original uniqueness and the unchanged
+ownership/lifecycle premises, checks all sixteen intended theorem types and allowed transitive
+axioms, and performs fresh kernel replay. No producer success flag, compiled proof or executable
+source supplied in evidence is trusted. Different valid traces may identify distinct evidence for
+the same safety claim. Invalid witness rejection is not a counterexample to module safety.
+
+Compact exact UTF-8 proof data and proof-only definitions change representation and compilation cost,
+not Core IR, application state, ordinary Model receipts or replay. Core/Rust extraction, canonical
+probe interpretation, encoding and build/toolchain correspondence remain explicit trusted boundaries.
+Initial validity, migrations and exact approved-module/activation enforcement remain separate host
+obligations. Lean is not required for ordinary Store execution or replay.
+
+Whole-chain cold measurements and capacity acceptance are tracked under
+[`specs/511-safety-certification-scale`](../../../specs/511-safety-certification-scale/).
+A256/A512 are mandatory minimum references, not maximum supported sizes. Resource exhaustion is
+Inconclusive and cannot issue a certificate; a completed proof exceeding a performance budget stays
+mathematically distinct from the failed usability requirement. Never treat INCONCLUSIVE as proven.
+
+### Measured cold certification cost
+
+The 0.14.0 candidate passed the frozen x86_64-linux profile: twenty cases, three separate
+certification/checking pairs each, with all required audits and fresh kernel replay. On the
+recorded eight-vCPU Xeon X5670 KVM environment:
+
+| Case | Certification median | Independent checking median |
+| --- | ---: | ---: |
+| A1 (one action, FO) | 67.14 s | 67.45 s |
+| A256 | 101.71 s | 103.10 s |
+| A512 | 188.52 s | 186.32 s |
+| M4 (four dependencies, generated actions and FO) | 84.30 s | 85.40 s |
+
+Every measured role finished within 300 s; maxima were 195.66 s and 188.61 s respectively.
+Cold means installed pinned dependencies, fresh workspace and no reuse of previous request
+results. Installation/download costs are separate; OS page cache is uncontrolled. These are
+finite descriptive observations on this platform, not universal latency promises or an action
+limit of 512. Authority-list work remains quadratic and resource exhaustion may still occur.
+ARM performance has not been measured. See the complete
+[measurements and exact artifact identity](../../../specs/511-safety-certification-scale/scalability-results.md).
+
+| Diagnostic | Interpretation |
+| --- | --- |
+| `SAFETY_INVALID_BUNDLE` | Incompatible, edited or incomplete transport/identity claims. No automatic historical-tool execution. |
+| `SAFETY_INVALID_WITNESS` | Invalid typed tree, index/topology/choice data or request-derived transport bound. This does not establish module unsafety. |
+| `SAFETY_PROOF_EXHAUSTED` | A required checking stage exhausted resources; the result is Inconclusive and no certificate is issued. |
+| `SAFETY_PROOF_REJECTED` | A required concrete premise, intended type or axiom check did not pass. Inspect the rejected obligation; this alone is not a universal counterexample to the application. |
+
+A certificate is not Store governance authorization. The host must enforce the certified exact
+BehaviorHash and complete policy set, validate the incoming state and prevent intervening commits
+at activation. Migrations and later module/policy switches require their own valid boundary anchors.

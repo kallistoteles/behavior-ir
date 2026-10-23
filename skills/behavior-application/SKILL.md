@@ -1,12 +1,12 @@
 ---
 name: behavior-application
-description: Build the host application around a Behavior model (stores, evaluate and commit, reads and read intents for agents, conflicts, replay, custom storage backends, supplying facts), keeping every business rule in behavior. Use when writing services, handlers, jobs or storage code that use a behavior model.
-release: 0.13.1
+description: Build the host application around a Behavior model (certified deployment segments, stores, evaluate and commit, reads and read intents for agents, conflicts, replay, custom storage backends, supplying facts), keeping every business rule in behavior. Use when writing services, handlers, jobs or storage code that use a behavior model.
+release: 0.14.0
 ---
 
 # Building an application on Behavior
 
-This skill describes **Behavior release 0.13.1**. Use only what is described here or listed in the
+This skill describes **Behavior release 0.14.0**. Use only what is described here or listed in the
 release's public API.
 
 This release bundles Core 0.15.0 (verifier 0.10.0). Public Models and command declarations
@@ -376,6 +376,20 @@ of this automatically, so prefer a store for anything that changes state.
 | an action without effects, and a placeholder entity, just to answer a question | a declared read (`store.read`), with no binding beyond what the question is about |
 | handing an agent a read record, or letting it send an expression | `store.read_intent`, forwarding only `response` |
 | importing the package's private modules (any name starting with `_`) or anything from the Behavior repository | only `from behavior import …` of the pinned release |
+
+## Deploying Safety-certified behavior
+
+Safety evidence is a build artifact, independent of Store state and deterministic replay.
+Release 0.14.0 uses checker 3 and v2 evidence/bundles. Independently check supplied evidence
+against the exact module and the complete expected Safety policy set before relying on it.
+Core execution and replay require neither Lean nor certificates.
+
+Transition preservation, snapshot validity and commit authorization are separate claims.
+Start each certified deployment segment from a validated exact-history state under the incoming
+BehaviorHash and complete policy set. Enforce the activation boundary atomically or with an
+exact-head check so no intervening commit invalidates the anchor. Migrations need separate
+validation or preservation evidence. See `models/examples/safety_models/README.md` for the
+supported contracts and remaining host responsibilities.
 
 ## Where does it belong?
 

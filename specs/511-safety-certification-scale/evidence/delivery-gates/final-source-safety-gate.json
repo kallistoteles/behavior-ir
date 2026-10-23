@@ -1,0 +1,118 @@
+{
+  "status": "Source Safety gate Passed; final installed-wheel reference check remains required",
+  "summary_sha256": "8581575c6712190e67c6a7fb8897c2a1ef112ceaaf3ebb403b07f58186779b39",
+  "raw_summary": "/tmp/behavior-511-delivery-tqmy2d06/cargo-target/safety-models/proof-gate/summary.json",
+  "references": [
+    {
+      "case": "fo_field",
+      "behavior_hash": "sha256:1d0a2bbbc66d1f05d68a4a004e6a18f60c6b3f2ec4dffbaa688bd7165f3dac79",
+      "policy_set_hash": "sha256:fd25e48cb70f0043d6ca7399e031cfac0e8e42e21afa462c5340aa6b620172e7",
+      "outcome": "Certified under assumptions",
+      "evidence_hash": "sha256:91af50c17ad55c37324fc5ff016a16e5106f96ae59971cec729b030b54e5e297",
+      "audited_roots": 16,
+      "proof_sources": {
+        "Audit": "sha256:12a18a5bbb36731690dcec06c8498f0177d17f4680d47a534615ca2f4c5507f7",
+        "Check": "sha256:1693bda67e4015edf4310169c1f797a54edbeb2930bffacce9ed0f924c9b1040",
+        "Data": "sha256:3bb755e874dfae701d06f85c278efe078087df73f94322c52855390308863290",
+        "FieldOwnership": "sha256:146b1f1c7f65a8175668ec881e94476b9a3b8ae691fa3cebdb5232d33e757dbc",
+        "Finite": "sha256:1e07025d7544876cef1e5e60e1034928b9a6d32baae48f419f483ccea0628d62",
+        "LifecycleCheck": "sha256:726df35c5bf5cae60710f5aab66baa31fba2678075601b3483e3f5978e55ace9",
+        "LifecycleData": "sha256:bb88841f1f028122d684aabf9136e5170215348aae458827b3e88436e54a92e8",
+        "LifecycleDependency": "sha256:cc1c9f3144264fc216ccf03dad3632eb173c07719e8f44f2206ee974ffbfa1ed",
+        "LifecycleSequence": "sha256:79aac40034e88c8481adf1dd6b3f9e5c5bb7951ee5255eeaf21653b88628491e"
+      },
+      "implementation_identity": "sha256:3f34199c5fa8ace62f0cdb6b9fd91c120d68fb91bc972d4de6f6be85717d40f5"
+    },
+    {
+      "case": "fo_state_machine",
+      "behavior_hash": "sha256:3b9196c9afc84ee6a347e8f7f38b3cece6fb8e8081060f6557be27abb0b8e608",
+      "policy_set_hash": "sha256:2e327cb9358727b87d8497d500ed03573d5f2c31d4aeb25d9a2d16f9018e3e03",
+      "outcome": "Certified under assumptions",
+      "evidence_hash": "sha256:c820910bb6048ac46623a7647ca7483e88c9e32c2d4d960327894e78168ef2b4",
+      "audited_roots": 16,
+      "proof_sources": {
+        "Audit": "sha256:12a18a5bbb36731690dcec06c8498f0177d17f4680d47a534615ca2f4c5507f7",
+        "Check": "sha256:1693bda67e4015edf4310169c1f797a54edbeb2930bffacce9ed0f924c9b1040",
+        "Data": "sha256:3bb755e874dfae701d06f85c278efe078087df73f94322c52855390308863290",
+        "FieldOwnership": "sha256:146b1f1c7f65a8175668ec881e94476b9a3b8ae691fa3cebdb5232d33e757dbc",
+        "Finite": "sha256:1e07025d7544876cef1e5e60e1034928b9a6d32baae48f419f483ccea0628d62",
+        "LifecycleCheck": "sha256:726df35c5bf5cae60710f5aab66baa31fba2678075601b3483e3f5978e55ace9",
+        "LifecycleData": "sha256:bb88841f1f028122d684aabf9136e5170215348aae458827b3e88436e54a92e8",
+        "LifecycleDependency": "sha256:cc1c9f3144264fc216ccf03dad3632eb173c07719e8f44f2206ee974ffbfa1ed",
+        "LifecycleSequence": "sha256:79aac40034e88c8481adf1dd6b3f9e5c5bb7951ee5255eeaf21653b88628491e"
+      },
+      "implementation_identity": "sha256:3f34199c5fa8ace62f0cdb6b9fd91c120d68fb91bc972d4de6f6be85717d40f5"
+    },
+    {
+      "case": "ld_parent_child",
+      "behavior_hash": "sha256:70f28d632a7f8c5cb9d7f6b33b311175c04de81c165b1371708b0fcc1a572849",
+      "policy_set_hash": "sha256:1b0df4b12b402496ef966fd6afd866005a3b1f0f58b6a3d2c3265a49e7e0f3e5",
+      "outcome": "Certified under assumptions",
+      "evidence_hash": "sha256:ee7599623f81ffd10a4590a7251d18581c6ec7d3589cfb236be339182565a5a1",
+      "audited_roots": 16,
+      "proof_sources": {
+        "Audit": "sha256:12a18a5bbb36731690dcec06c8498f0177d17f4680d47a534615ca2f4c5507f7",
+        "Check": "sha256:1693bda67e4015edf4310169c1f797a54edbeb2930bffacce9ed0f924c9b1040",
+        "Data": "sha256:3bb755e874dfae701d06f85c278efe078087df73f94322c52855390308863290",
+        "FieldOwnership": "sha256:146b1f1c7f65a8175668ec881e94476b9a3b8ae691fa3cebdb5232d33e757dbc",
+        "Finite": "sha256:1e07025d7544876cef1e5e60e1034928b9a6d32baae48f419f483ccea0628d62",
+        "LifecycleCheck": "sha256:726df35c5bf5cae60710f5aab66baa31fba2678075601b3483e3f5978e55ace9",
+        "LifecycleData": "sha256:bb88841f1f028122d684aabf9136e5170215348aae458827b3e88436e54a92e8",
+        "LifecycleDependency": "sha256:cc1c9f3144264fc216ccf03dad3632eb173c07719e8f44f2206ee974ffbfa1ed",
+        "LifecycleSequence": "sha256:79aac40034e88c8481adf1dd6b3f9e5c5bb7951ee5255eeaf21653b88628491e"
+      },
+      "implementation_identity": "sha256:3f34199c5fa8ace62f0cdb6b9fd91c120d68fb91bc972d4de6f6be85717d40f5"
+    },
+    {
+      "case": "ld_shared_parent",
+      "behavior_hash": "sha256:1cbb8f97977975bd37ef946d2760d38c9d96e9ea2d3708161a60d20b7be26f36",
+      "policy_set_hash": "sha256:64be85f26ccd60f1ea8be4bbb3b1687af74508b2ca8fbf4d08d11c06b5ea5194",
+      "outcome": "Certified under assumptions",
+      "evidence_hash": "sha256:38384937153280c35a1d67375fd63b5a69b6548084ebcd958911df4ab0300f4e",
+      "audited_roots": 16,
+      "proof_sources": {
+        "Audit": "sha256:12a18a5bbb36731690dcec06c8498f0177d17f4680d47a534615ca2f4c5507f7",
+        "Check": "sha256:1693bda67e4015edf4310169c1f797a54edbeb2930bffacce9ed0f924c9b1040",
+        "Data": "sha256:3bb755e874dfae701d06f85c278efe078087df73f94322c52855390308863290",
+        "FieldOwnership": "sha256:146b1f1c7f65a8175668ec881e94476b9a3b8ae691fa3cebdb5232d33e757dbc",
+        "Finite": "sha256:1e07025d7544876cef1e5e60e1034928b9a6d32baae48f419f483ccea0628d62",
+        "LifecycleCheck": "sha256:726df35c5bf5cae60710f5aab66baa31fba2678075601b3483e3f5978e55ace9",
+        "LifecycleData": "sha256:bb88841f1f028122d684aabf9136e5170215348aae458827b3e88436e54a92e8",
+        "LifecycleDependency": "sha256:cc1c9f3144264fc216ccf03dad3632eb173c07719e8f44f2206ee974ffbfa1ed",
+        "LifecycleSequence": "sha256:79aac40034e88c8481adf1dd6b3f9e5c5bb7951ee5255eeaf21653b88628491e"
+      },
+      "implementation_identity": "sha256:3f34199c5fa8ace62f0cdb6b9fd91c120d68fb91bc972d4de6f6be85717d40f5"
+    },
+    {
+      "case": "ld_vm_resource",
+      "behavior_hash": "sha256:379842b4722478d3c19d4cd87d5e7d8c7138a348616361c69d2eaf0eda186f46",
+      "policy_set_hash": "sha256:6e32a98dccbed62b07b571ce6dd4ad5322bfefe62d97321f04f7bb03023c24b3",
+      "outcome": "Certified under assumptions",
+      "evidence_hash": "sha256:161a766a34e0ac4ab4d0732caab9079d645db8348082d9e5c940b679bb8188e0",
+      "audited_roots": 16,
+      "proof_sources": {
+        "Audit": "sha256:12a18a5bbb36731690dcec06c8498f0177d17f4680d47a534615ca2f4c5507f7",
+        "Check": "sha256:1693bda67e4015edf4310169c1f797a54edbeb2930bffacce9ed0f924c9b1040",
+        "Data": "sha256:3bb755e874dfae701d06f85c278efe078087df73f94322c52855390308863290",
+        "FieldOwnership": "sha256:146b1f1c7f65a8175668ec881e94476b9a3b8ae691fa3cebdb5232d33e757dbc",
+        "Finite": "sha256:1e07025d7544876cef1e5e60e1034928b9a6d32baae48f419f483ccea0628d62",
+        "LifecycleCheck": "sha256:726df35c5bf5cae60710f5aab66baa31fba2678075601b3483e3f5978e55ace9",
+        "LifecycleData": "sha256:bb88841f1f028122d684aabf9136e5170215348aae458827b3e88436e54a92e8",
+        "LifecycleDependency": "sha256:cc1c9f3144264fc216ccf03dad3632eb173c07719e8f44f2206ee974ffbfa1ed",
+        "LifecycleSequence": "sha256:79aac40034e88c8481adf1dd6b3f9e5c5bb7951ee5255eeaf21653b88628491e"
+      },
+      "implementation_identity": "sha256:3f34199c5fa8ace62f0cdb6b9fd91c120d68fb91bc972d4de6f6be85717d40f5"
+    }
+  ],
+  "guard_matrix_cases": [
+    "canonical",
+    "equivalent_unsupported",
+    "insufficient_or",
+    "missing",
+    "permuted",
+    "wrong_parent"
+  ],
+  "overall_release_check": "Still running pytest; not yet a complete gate pass",
+  "frozen_candidate_manifest_sha256": "c6e392791cfcfe3b41e4fbfe34a59b5271ef3dbac7759b78f7152922a61d6ba8",
+  "binding": "Five source reference checks use same embedded proof/checker source identities as frozen installed candidate; installed references still pending."
+}

@@ -1,15 +1,18 @@
 # Versioning
 
 A Behavior release has one version number, but it carries several independent versions. They
-change for different reasons, and every one of them is reported, never implied
-(`behavior.versions()`, `behavior engine-info`, `release-manifest.json`).
+change for different reasons. Core/binding versions are reported through `behavior.versions()`,
+`behavior engine-info` and `release-manifest.json`. Safety analysis/evidence additionally reports
+its checker, statement and pinned proof-toolchain identities; those are separate from Core
+engine/verifier versions.
 
 | Kind | Example | What it identifies | Where it lives |
 |---|---|---|---|
-| **Release** | `0.13.1` | this repository's release: the Python package and everything it bundles | `[workspace.package] version` in `Cargo.toml`, the single source |
+| **Release** | `0.14.0` | this repository's release: the Python package and everything it bundles | `[workspace.package] version` in `Cargo.toml`, the single source |
 | **Core** | `0.15.0` | the exact Core Release the package is built against and bundles (feature 011) | `core-release.json`; `behavior.versions()["core"]` reports the full immutable commit |
-| **Binding** | `python 0.13.1` | the installable package of the Python binding | the release version in Python's form (PEP 440); the package requires *exactly* the core in `core-release.json` (checked at import) |
+| **Binding** | `python 0.14.0` | the installable package of the Python binding | the release version in Python's form (PEP 440); the package requires *exactly* the core in `core-release.json` (checked at import) |
 | **Formats and verifier** | accepted wire IR `0.4` … `0.8`, records `0.4` … `0.8`, verifier `0.10.0` | the document formats and the verification encoding | defined by the core: [its versioning](https://github.com/kallistoteles/behavior-ir-core/blob/v0.15.0/docs/versioning.md); reported by `behavior engine-info` |
+| **Safety certification** | checker `3`, statement `2`, evidence/bundle `v2` | build-time checking and proof-data contracts; policy meanings remain v1 | Safety analysis/evidence; `crates/behavior-models/src/safety/` and `crates/behavior-models/proofs/toolchain.json` |
 
 A module document, a record or a store document says which format version it is written in.
 That is what a reader checks, not the release number.
@@ -36,6 +39,15 @@ or helper without a deprecation period, compatibility shim or fallback, and cons
 the new contract. What never changes by accident is determinism, canonical content identity
 where semantically required, and evidence integrity; a change of semantic meaning is a
 deliberate design decision, documented with its release.
+
+Release 0.14.0 changes Safety certification outcomes and its evidence contract (feature 511),
+so it follows the minor rule. Safety checker 3 and statement contract 2 use evidence/bundle v2.
+This checker supports v2; historical v1 artifacts retain their original pinned verification
+conditions and are never rewritten or implicitly reinterpreted. Reproducible historical checking
+alone does not establish that an older implementation is sound. Safety policy semantics stay 1.
+Core remains exactly 0.15.0 with verifier 0.10.0; Core behavior identities, runtime state/replay
+and existing behavioral Model receipts are unchanged. Implementation and full acceptance checks
+are tracked separately; version metadata does not claim that those checks have passed.
 
 Release 0.13.1 is the first published Safety Models API: FieldOwnership v1 and the restricted
 LifecycleDependency v1, with Safety checker/lowerer 2. This is additive relative to published
@@ -172,3 +184,13 @@ policy and attestation format keeps its bytes.
 A release is the annotated tag `v<version>` on a commit that passed `scripts/release-check.sh`,
 together with the artifacts `scripts/release.sh` built into `dist/v<version>/`. Tags are never
 moved; a fix is a new patch release.
+
+### Safety certification capacity records
+
+Behavior 0.14.0 retains Core 0.15.0, verifier 0.10.0 and policy semantics v1, with checker 3,
+statement 2 and evidence/bundle v2. The exact candidate artifact and original measurement profile
+are bound separately. All 20 frozen requests passed three complete cold certification/checking
+pairs each; this is finite x86_64-linux capacity evidence, not universal completeness or an
+ARM latency promise. See [recorded costs, source/tool identities and limits](../specs/511-safety-certification-scale/scalability-results.md).
+Historical records retain their original formats and pinned verification conditions. A new
+delivered artifact cannot silently inherit a differently hashed candidate's performance evidence.

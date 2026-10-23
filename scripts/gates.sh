@@ -22,8 +22,9 @@ gate "clippy" cargo clippy -q --workspace --all-targets -- -D warnings
 gate "cargo test" cargo test -q -p behavior-models
 gate "maturin develop" maturin develop -q
 gate "Safety proofs" scripts/check-safety-proofs.sh
-gate "pytest" python -m pytest -q python/tests models --ignore=models/examples/purchase_approval \
-  --ignore=models/examples/work_queue
+gate "pytest" python -m pytest -q python/tests models specs/511-safety-certification-scale/experiments/tests \
+  --ignore=specs/511-safety-certification-scale/experiments/tests/test_scale_acceptance.py \
+  --ignore=models/examples/purchase_approval --ignore=models/examples/work_queue
 gate "conformance 506" scripts/conformance.sh 506
 # The warm quick-mode runtime budget is mandatory in both development and full CI gates.
 gate "conformance 507 quick" scripts/conformance.sh 507 quick

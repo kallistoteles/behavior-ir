@@ -1,3 +1,4 @@
+prelude
 import safety.LifecycleData
 
 namespace Safety.LifecycleDependency

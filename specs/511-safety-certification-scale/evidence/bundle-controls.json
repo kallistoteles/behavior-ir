@@ -1,0 +1,108 @@
+{
+  "format": "behavior.safety_investigation.controls.v1",
+  "package": "/tmp/behavior-511-investigation.zqro9o/consumer/lib/python3.13/site-packages/behavior/__init__.py",
+  "raw_observation_sha256": "69b687048f0e4692f1631f613357ef3da41277945cdaca8fe95f0232f25ea4ac",
+  "results": [
+    {
+      "assessment": {
+        "diagnostics": [
+          {
+            "action": null,
+            "code": "SAFETY_INVALID_BUNDLE",
+            "dependency": null,
+            "detail": "Claimed evidence scope/outcome differs",
+            "entity": null,
+            "field": null
+          }
+        ],
+        "obligations": {
+          "axiom_audit": "NotRun",
+          "concrete_proof": "NotRun",
+          "fresh_replay": "NotRun",
+          "generic_proof": "NotRun",
+          "inventory_comparison": "NotRun",
+          "theorem_types": "NotRun"
+        },
+        "outcome": "Failed"
+      },
+      "case": "module_identity",
+      "certificate_present": false
+    },
+    {
+      "assessment": {
+        "diagnostics": [
+          {
+            "action": null,
+            "code": "SAFETY_INVALID_DATA",
+            "dependency": null,
+            "detail": "inventory identity or canonical representation differs",
+            "entity": null,
+            "field": null
+          }
+        ],
+        "obligations": {
+          "axiom_audit": "NotRun",
+          "concrete_proof": "NotRun",
+          "fresh_replay": "NotRun",
+          "generic_proof": "NotRun",
+          "inventory_comparison": "NotRun",
+          "theorem_types": "NotRun"
+        },
+        "outcome": "Failed"
+      },
+      "case": "missing_action",
+      "certificate_present": false
+    },
+    {
+      "assessment": {
+        "diagnostics": [
+          {
+            "action": null,
+            "code": "SAFETY_INVALID_BUNDLE",
+            "dependency": null,
+            "detail": "Expected complete policy set or inventory differs",
+            "entity": null,
+            "field": null
+          }
+        ],
+        "obligations": {
+          "axiom_audit": "NotRun",
+          "concrete_proof": "NotRun",
+          "fresh_replay": "NotRun",
+          "generic_proof": "NotRun",
+          "inventory_comparison": "NotRun",
+          "theorem_types": "NotRun"
+        },
+        "outcome": "Failed"
+      },
+      "case": "missing_policy",
+      "certificate_present": false
+    },
+    {
+      "assessment": {
+        "diagnostics": [
+          {
+            "action": null,
+            "code": "SAFETY_INVALID_BUNDLE",
+            "dependency": null,
+            "detail": "Evidence content identity differs",
+            "entity": null,
+            "field": null
+          }
+        ],
+        "obligations": {
+          "axiom_audit": "NotRun",
+          "concrete_proof": "NotRun",
+          "fresh_replay": "NotRun",
+          "generic_proof": "NotRun",
+          "inventory_comparison": "NotRun",
+          "theorem_types": "NotRun"
+        },
+        "outcome": "Failed"
+      },
+      "case": "forged_proof_integrity",
+      "certificate_present": false
+    }
+  ],
+  "scope": "Tampered public bundle rejection, not a kernel axiom mutation test"
+}

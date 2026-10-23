@@ -1,0 +1,7 @@
+{
+  "status": "Final declared v1 regression passed",
+  "source_gate": "../delivery-gates/full-gates.json",
+  "installed": "reconciliation.json",
+  "membership": "membership-execution-final.json",
+  "scope": "Earlier source/preflight records retained; final installed same-wheel checks now independently complete."
+}

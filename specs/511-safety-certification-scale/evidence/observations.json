@@ -1,0 +1,1513 @@
+{
+  "format": "behavior.safety_investigation.archive.v1",
+  "observations": [
+    {
+      "actions": 1,
+      "analysis_issues": [],
+      "argv": [
+        "specs/511-safety-certification-scale/experiments/certification_probe.py",
+        "--actions",
+        "1",
+        "--output",
+        "/tmp/behavior-511-investigation.zqro9o/fo-actions-1",
+        "--toolchain",
+        "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0",
+        "--expect",
+        "certified"
+      ],
+      "assessment": {
+        "diagnostics": null,
+        "obligations": {
+          "axiom_audit": "Passed",
+          "concrete_proof": "Passed",
+          "fresh_replay": "Passed",
+          "generic_proof": "Passed",
+          "inventory_comparison": "Passed",
+          "theorem_types": "Passed"
+        },
+        "outcome": "Certified under assumptions"
+      },
+      "audit": [
+        {
+          "axioms": [
+            "Classical.choice",
+            "Quot.sound",
+            "propext"
+          ],
+          "declaration": "Safety.FieldOwnership.sound",
+          "expected_type_checked": true
+        },
+        {
+          "axioms": [
+            "propext"
+          ],
+          "declaration": "Safety.LifecycleDependency.sound",
+          "expected_type_checked": true
+        },
+        {
+          "axioms": [
+            "propext"
+          ],
+          "declaration": "Safety.LifecycleDependency.conjunction",
+          "expected_type_checked": true
+        },
+        {
+          "axioms": [
+            "Classical.choice",
+            "Quot.sound",
+            "propext"
+          ],
+          "declaration": "Safety.LifecycleDependency.projection_frame",
+          "expected_type_checked": true
+        },
+        {
+          "axioms": [
+            "propext"
+          ],
+          "declaration": "Safety.membership_order_equivalent",
+          "expected_type_checked": true
+        },
+        {
+          "axioms": [
+            "Quot.sound",
+            "propext"
+          ],
+          "declaration": "Safety.checkLifecycle_sound",
+          "expected_type_checked": true
+        },
+        {
+          "axioms": [
+            "Quot.sound",
+            "propext"
+          ],
+          "declaration": "Safety.classify_permitted",
+          "expected_type_checked": true
+        },
+        {
+          "axioms": [
+            "Classical.choice",
+            "Quot.sound",
+            "propext"
+          ],
+          "declaration": "Safety.lifecycle_module_preserves",
+          "expected_type_checked": true
+        },
+        {
+          "axioms": [
+            "Quot.sound",
+            "propext"
+          ],
+          "declaration": "Safety.checkModule_sound",
+          "expected_type_checked": true
+        },
+        {
+          "axioms": [
+            "Classical.choice",
+            "Quot.sound",
+            "propext"
+          ],
+          "declaration": "Safety.module_preserves",
+          "expected_type_checked": true
+        },
+        {
+          "axioms": [
+            "propext"
+          ],
+          "declaration": "Concrete.checked",
+          "expected_type_checked": true
+        },
+        {
+          "axioms": [
+            "Classical.choice",
+            "Quot.sound",
+            "propext"
+          ],
+          "declaration": "Concrete.certified",
+          "expected_type_checked": true
+        }
+      ],
+      "authoring_analysis_seconds": 0.002603980014100671,
+      "behavior_hash": "sha256:00b29f9cd1e2eb00c0742b6ddf3f97319e9cda0c427fdda918bcc5278bee9e1d",
+      "case": "fo-actions-1",
+      "certificate_present": true,
+      "certification_wall_seconds": 143.11147691198858,
+      "checker_version": 2,
+      "driver_sha256": "86634bb56fe9ba23c00e28bf0045681b9f00442948b6a60db13bd0b12eaaded3",
+      "format": "behavior.safety_investigation.observation.v1",
+      "inventory_json_bytes": 983,
+      "kind": "UnmodifiedPublishedCertification",
+      "lifecycle_dependencies": 0,
+      "measurement_limits": [
+        "Child CPU is waited-child aggregate, not per-stage CPU",
+        "Library memory records are direct-child 20ms samples, not exact peaks",
+        "No actual heartbeat or recursion high-water reading is claimed",
+        "Cache temperature is uncontrolled; no cold/warm claim"
+      ],
+      "observed_child_cpu_seconds": 140.592949,
+      "operations": 1,
+      "ownership_policies": 1,
+      "package": "/tmp/behavior-511-investigation.zqro9o/consumer/lib/python3.13/site-packages/behavior/__init__.py",
+      "platform": "Linux-6.18.38-x86_64-with-glibc2.42",
+      "policy_set_hash": "sha256:64f6acde617d20d4905a13735d427e93edb0b71deeb0d4b0c0cf81572a3b7a06",
+      "proof_files": [
+        {
+          "bytes": 7466,
+          "sha256": "66c876a81c79fcb02eef1c066b3d870c4580e8382adb889e7a346294c77130d1",
+          "source": "/tmp/behavior-511-investigation.zqro9o/fo-actions-1/certificate/proof-1693587-0/Concrete.lean",
+          "stage_resources": {
+            "Audit.resources.json": {
+              "elapsed_ms": 2328,
+              "exit_code": 0,
+              "limits": {
+                "address_space_mb": 8192,
+                "heap_mb": 4096,
+                "heartbeats": 200000,
+                "wall_seconds": 180
+              },
+              "peak_sampled_resident_kb": 1508072,
+              "peak_sampled_virtual_kb": 6400524
+            },
+            "Check.resources.json": {
+              "elapsed_ms": 1174,
+              "exit_code": 0,
+              "limits": {
+                "address_space_mb": 8192,
+                "heap_mb": 4096,
+                "heartbeats": 200000,
+                "wall_seconds": 180
+              },
+              "peak_sampled_resident_kb": 491684,
+              "peak_sampled_virtual_kb": 4936856
+            },
+            "Concrete.resources.json": {
+              "elapsed_ms": 3082,
+              "exit_code": 0,
+              "limits": {
+                "address_space_mb": 8192,
+                "heap_mb": 4096,
+                "heartbeats": 200000,
+                "wall_seconds": 180
+              },
+              "peak_sampled_resident_kb": 519348,
+              "peak_sampled_virtual_kb": 3826124
+            },
+            "Data.resources.json": {
+              "elapsed_ms": 1401,
+              "exit_code": 0,
+              "limits": {
+                "address_space_mb": 8192,
+                "heap_mb": 4096,
+                "heartbeats": 200000,
+                "wall_seconds": 180
+              },
+              "peak_sampled_resident_kb": 489216,
+              "peak_sampled_virtual_kb": 6047212
+            },
+            "FieldOwnership.resources.json": {
+              "elapsed_ms": 715,
+              "exit_code": 0,
+              "limits": {
+                "address_space_mb": 8192,
+                "heap_mb": 4096,
+                "heartbeats": 200000,
+                "wall_seconds": 180
+              },
+              "peak_sampled_resident_kb": 470220,
+              "peak_sampled_virtual_kb": 3824628
+            },
+            "Fresh.resources.json": {
+              "elapsed_ms": 120253,
+              "exit_code": 0,
+              "limits": {
+                "address_space_mb": 8192,
+                "heap_mb": 4096,
+                "heartbeats": 200000,
+                "wall_seconds": 180
+              },
+              "peak_sampled_resident_kb": 542436,
+              "peak_sampled_virtual_kb": 4948580
+            },
+            "LifecycleCheck.resources.json": {
+              "elapsed_ms": 6185,
+              "exit_code": 0,
+              "limits": {
+                "address_space_mb": 8192,
+                "heap_mb": 4096,
+                "heartbeats": 200000,
+                "wall_seconds": 180
+              },
+              "peak_sampled_resident_kb": 523696,
+              "peak_sampled_virtual_kb": 6050804
+            },
+            "LifecycleData.resources.json": {
+              "elapsed_ms": 1236,
+              "exit_code": 0,
+              "limits": {
+                "address_space_mb": 8192,
+                "heap_mb": 4096,
+                "heartbeats": 200000,
+                "wall_seconds": 180
+              },
+              "peak_sampled_resident_kb": 490328,
+              "peak_sampled_virtual_kb": 6047880
+            },
+            "LifecycleDependency.resources.json": {
+              "elapsed_ms": 1419,
+              "exit_code": 0,
+              "limits": {
+                "address_space_mb": 8192,
+                "heap_mb": 4096,
+                "heartbeats": 200000,
+                "wall_seconds": 180
+              },
+              "peak_sampled_resident_kb": 491756,
+              "peak_sampled_virtual_kb": 4934236
+            },
+            "LifecycleSequence.resources.json": {
+              "elapsed_ms": 1013,
+              "exit_code": 0,
+              "limits": {
+                "address_space_mb": 8192,
+                "heap_mb": 4096,
+                "heartbeats": 200000,
+                "wall_seconds": 180
+              },
+              "peak_sampled_resident_kb": 476324,
+              "peak_sampled_virtual_kb": 4935544
+            },
+            "Verify.resources.json": {
+              "elapsed_ms": 4066,
+              "exit_code": 0,
+              "limits": {
+                "address_space_mb": 8192,
+                "heap_mb": 4096,
+                "heartbeats": 200000,
+                "wall_seconds": 180
+              },
+              "peak_sampled_resident_kb": 1520624,
+              "peak_sampled_virtual_kb": 5304816
+            }
+          }
+        }
+      ],
+      "python": "3.13.15 (main, Aug  5 2026, 12:25:43) [GCC 15.3.0]",
+      "raw_observation_sha256": "67d097b1d5fc0596a92281a46997d5975c0cb0d324892336e3943870d24fe0f9",
+      "requested": {
+        "actions": 1,
+        "expect": "certified",
+        "operations": 1,
+        "output": "/tmp/behavior-511-investigation.zqro9o/fo-actions-1",
+        "padding": 0,
+        "policies": 1,
+        "toolchain": "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0",
+        "verify": false
+      },
+      "status": "Completed",
+      "toolchain": "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0",
+      "versions": {
+        "accepted_wire_ir": [
+          "0.4",
+          "0.5",
+          "0.6",
+          "0.7",
+          "0.8"
+        ],
+        "binding": {
+          "python": "0.13.1"
+        },
+        "command_occurrence_domain": "behavior.command_occurrence.v1",
+        "command_stream": "behavior.command_stream_request.v1",
+        "core": {
+          "commit": "6b93898a9375113f7a8946f23ab5535319b6f5d6",
+          "version": "0.15.0"
+        },
+        "engine": "0.15.0",
+        "read_records": [
+          "behavior.read_record.v1",
+          "behavior.read_record.v2"
+        ],
+        "records": [
+          "0.4",
+          "0.5",
+          "0.6",
+          "0.7",
+          "0.8"
+        ],
+        "store_documents": [
+          "behavior.entity_content.v1",
+          "behavior.entity_version.v1",
+          "behavior.state.v1",
+          "behavior.evidence_policy.v1",
+          "behavior.store_genesis.v1",
+          "behavior.commit_bundle.v1",
+          "behavior.transition_record.v1",
+          "behavior.replay_report.v1",
+          "behavior.migration_bundle.v1",
+          "behavior.store_genesis.v2",
+          "behavior.commit_bundle.v2",
+          "behavior.migration_bundle.v2",
+          "behavior.transition_record.v2"
+        ],
+        "verifier": "0.10.0",
+        "wire_ir": [
+          "0.1",
+          "0.2",
+          "0.3",
+          "0.4",
+          "0.5",
+          "0.6",
+          "0.7"
+        ]
+      }
+    },
+    {
+      "actions": 256,
+      "analysis_issues": [],
+      "argv": [
+        "/home/kalle/repos/behaviour-ir/specs/511-safety-certification-scale/experiments/certification_probe.py",
+        "--actions",
+        "256",
+        "--output",
+        "/tmp/behavior-511-investigation.zqro9o/fo-actions-256",
+        "--toolchain",
+        "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0",
+        "--expect",
+        "certified"
+      ],
+      "assessment": {
+        "diagnostics": [
+          {
+            "action": null,
+            "code": "SAFETY_PROOF_EXHAUSTED",
+            "dependency": null,
+            "detail": "Concrete: wall-time limit",
+            "entity": null,
+            "field": null
+          }
+        ],
+        "obligations": {
+          "axiom_audit": "NotRun",
+          "concrete_proof": "NotRun",
+          "fresh_replay": "NotRun",
+          "generic_proof": "Passed",
+          "inventory_comparison": "Passed",
+          "theorem_types": "NotRun"
+        },
+        "outcome": "Inconclusive"
+      },
+      "authoring_analysis_seconds": 0.07450139400316402,
+      "behavior_hash": "sha256:1d12d55301cfebbc01556ab9ef922df95b7700693faf17d926ce75f4def265df",
+      "case": "fo-actions-256",
+      "certificate_present": false,
+      "certification_wall_seconds": 194.74544905900257,
+      "checker_version": 2,
+      "driver_sha256": "86634bb56fe9ba23c00e28bf0045681b9f00442948b6a60db13bd0b12eaaded3",
+      "format": "behavior.safety_investigation.observation.v1",
+      "inventory_json_bytes": 115988,
+      "kind": "UnmodifiedPublishedCertification",
+      "lifecycle_dependencies": 0,
+      "measurement_limits": [
+        "Child CPU is waited-child aggregate, not per-stage CPU",
+        "Library memory records are direct-child 20ms samples, not exact peaks",
+        "No actual heartbeat or recursion high-water reading is claimed",
+        "Cache temperature is uncontrolled; no cold/warm claim"
+      ],
+      "observed_child_cpu_seconds": 191.471537,
+      "operations": 256,
+      "ownership_policies": 1,
+      "package": "/tmp/behavior-511-investigation.zqro9o/consumer/lib/python3.13/site-packages/behavior/__init__.py",
+      "platform": "Linux-6.18.38-x86_64-with-glibc2.42",
+      "policy_set_hash": "sha256:2acf766581f03a57d37c339c5f0a587cefd89069cdb88493f0ae8477257d8f7e",
+      "proof_files": [
+        {
+          "bytes": 618012,
+          "sha256": "8a4ffbab0ae40d6c49817020a8d320b43c0d24866fd3373568bf9bb6b42ead2e",
+          "source": "/tmp/behavior-511-investigation.zqro9o/fo-actions-256/certificate/proof-1691628-0/Concrete.lean",
+          "stage_resources": {
+            "Audit.resources.json": {
+              "elapsed_ms": 1969,
+              "exit_code": 0,
+              "limits": {
+                "address_space_mb": 8192,
+                "heap_mb": 4096,
+                "heartbeats": 200000,
+                "wall_seconds": 180
+              },
+              "peak_sampled_resident_kb": 1518224,
+              "peak_sampled_virtual_kb": 6400524
+            },
+            "Check.resources.json": {
+              "elapsed_ms": 1033,
+              "exit_code": 0,
+              "limits": {
+                "address_space_mb": 8192,
+                "heap_mb": 4096,
+                "heartbeats": 200000,
+                "wall_seconds": 180
+              },
+              "peak_sampled_resident_kb": 502316,
+              "peak_sampled_virtual_kb": 4936800
+            },
+            "Data.resources.json": {
+              "elapsed_ms": 1195,
+              "exit_code": 0,
+              "limits": {
+                "address_space_mb": 8192,
+                "heap_mb": 4096,
+                "heartbeats": 200000,
+                "wall_seconds": 180
+              },
+              "peak_sampled_resident_kb": 500756,
+              "peak_sampled_virtual_kb": 6047212
+            },
+            "FieldOwnership.resources.json": {
+              "elapsed_ms": 675,
+              "exit_code": 0,
+              "limits": {
+                "address_space_mb": 8192,
+                "heap_mb": 4096,
+                "heartbeats": 200000,
+                "wall_seconds": 180
+              },
+              "peak_sampled_resident_kb": 486036,
+              "peak_sampled_virtual_kb": 3822576
+            },
+            "LifecycleCheck.resources.json": {
+              "elapsed_ms": 6017,
+              "exit_code": 0,
+              "limits": {
+                "address_space_mb": 8192,
+                "heap_mb": 4096,
+                "heartbeats": 200000,
+                "wall_seconds": 180
+              },
+              "peak_sampled_resident_kb": 532220,
+              "peak_sampled_virtual_kb": 6050804
+            },
+            "LifecycleData.resources.json": {
+              "elapsed_ms": 1094,
+              "exit_code": 0,
+              "limits": {
+                "address_space_mb": 8192,
+                "heap_mb": 4096,
+                "heartbeats": 200000,
+                "wall_seconds": 180
+              },
+              "peak_sampled_resident_kb": 500408,
+              "peak_sampled_virtual_kb": 6047880
+            },
+            "LifecycleDependency.resources.json": {
+              "elapsed_ms": 1274,
+              "exit_code": 0,
+              "limits": {
+                "address_space_mb": 8192,
+                "heap_mb": 4096,
+                "heartbeats": 200000,
+                "wall_seconds": 180
+              },
+              "peak_sampled_resident_kb": 502128,
+              "peak_sampled_virtual_kb": 4934236
+            },
+            "LifecycleSequence.resources.json": {
+              "elapsed_ms": 870,
+              "exit_code": 0,
+              "limits": {
+                "address_space_mb": 8192,
+                "heap_mb": 4096,
+                "heartbeats": 200000,
+                "wall_seconds": 180
+              },
+              "peak_sampled_resident_kb": 485376,
+              "peak_sampled_virtual_kb": 4935544
+            }
+          }
+        }
+      ],
+      "python": "3.13.15 (main, Aug  5 2026, 12:25:43) [GCC 15.3.0]",
+      "raw_observation_sha256": "e0f6347b2cccd3234b52540ba5d59e12955413e9de72400bb03199ac440ca06b",
+      "requested": {
+        "actions": 256,
+        "expect": "certified",
+        "operations": 1,
+        "output": "/tmp/behavior-511-investigation.zqro9o/fo-actions-256",
+        "padding": 0,
+        "policies": 1,
+        "toolchain": "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0",
+        "verify": false
+      },
+      "status": "Completed",
+      "toolchain": "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0",
+      "versions": {
+        "accepted_wire_ir": [
+          "0.4",
+          "0.5",
+          "0.6",
+          "0.7",
+          "0.8"
+        ],
+        "binding": {
+          "python": "0.13.1"
+        },
+        "command_occurrence_domain": "behavior.command_occurrence.v1",
+        "command_stream": "behavior.command_stream_request.v1",
+        "core": {
+          "commit": "6b93898a9375113f7a8946f23ab5535319b6f5d6",
+          "version": "0.15.0"
+        },
+        "engine": "0.15.0",
+        "read_records": [
+          "behavior.read_record.v1",
+          "behavior.read_record.v2"
+        ],
+        "records": [
+          "0.4",
+          "0.5",
+          "0.6",
+          "0.7",
+          "0.8"
+        ],
+        "store_documents": [
+          "behavior.entity_content.v1",
+          "behavior.entity_version.v1",
+          "behavior.state.v1",
+          "behavior.evidence_policy.v1",
+          "behavior.store_genesis.v1",
+          "behavior.commit_bundle.v1",
+          "behavior.transition_record.v1",
+          "behavior.replay_report.v1",
+          "behavior.migration_bundle.v1",
+          "behavior.store_genesis.v2",
+          "behavior.commit_bundle.v2",
+          "behavior.migration_bundle.v2",
+          "behavior.transition_record.v2"
+        ],
+        "verifier": "0.10.0",
+        "wire_ir": [
+          "0.1",
+          "0.2",
+          "0.3",
+          "0.4",
+          "0.5",
+          "0.6",
+          "0.7"
+        ]
+      }
+    },
+    {
+      "actions": 512,
+      "analysis_issues": [],
+      "argv": [
+        "/home/kalle/repos/behaviour-ir/specs/511-safety-certification-scale/experiments/certification_probe.py",
+        "--actions",
+        "512",
+        "--output",
+        "/tmp/behavior-511-investigation.zqro9o/fo-actions-512",
+        "--toolchain",
+        "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0",
+        "--expect",
+        "certified"
+      ],
+      "assessment": {
+        "diagnostics": [
+          {
+            "action": null,
+            "code": "SAFETY_PROOF_EXHAUSTED",
+            "dependency": null,
+            "detail": "Concrete: wall-time limit",
+            "entity": null,
+            "field": null
+          }
+        ],
+        "obligations": {
+          "axiom_audit": "NotRun",
+          "concrete_proof": "NotRun",
+          "fresh_replay": "NotRun",
+          "generic_proof": "Passed",
+          "inventory_comparison": "Passed",
+          "theorem_types": "NotRun"
+        },
+        "outcome": "Inconclusive"
+      },
+      "authoring_analysis_seconds": 0.16917112399823964,
+      "behavior_hash": "sha256:2bd80b4c3c5a8501436ec33fe3f20dfb3350b33bc4912d29e1008d12f2375daa",
+      "case": "fo-actions-512",
+      "certificate_present": false,
+      "certification_wall_seconds": 195.2809756140341,
+      "checker_version": 2,
+      "driver_sha256": "86634bb56fe9ba23c00e28bf0045681b9f00442948b6a60db13bd0b12eaaded3",
+      "format": "behavior.safety_investigation.observation.v1",
+      "inventory_json_bytes": 231444,
+      "kind": "UnmodifiedPublishedCertification",
+      "lifecycle_dependencies": 0,
+      "measurement_limits": [
+        "Child CPU is waited-child aggregate, not per-stage CPU",
+        "Library memory records are direct-child 20ms samples, not exact peaks",
+        "No actual heartbeat or recursion high-water reading is claimed",
+        "Cache temperature is uncontrolled; no cold/warm claim"
+      ],
+      "observed_child_cpu_seconds": 191.71169600000002,
+      "operations": 512,
+      "ownership_policies": 1,
+      "package": "/tmp/behavior-511-investigation.zqro9o/consumer/lib/python3.13/site-packages/behavior/__init__.py",
+      "platform": "Linux-6.18.38-x86_64-with-glibc2.42",
+      "policy_set_hash": "sha256:337bbfb2e7fe6a59c724788946fb05e4a5e0f1243b60e8abe9bec55fcba34cb6",
+      "proof_files": [
+        {
+          "bytes": 1233739,
+          "sha256": "11416cc2a9a9fcd9b5575e317bde1c0500bd0d2464ea694e5ffbbd3ab46fe1d1",
+          "source": "/tmp/behavior-511-investigation.zqro9o/fo-actions-512/certificate/proof-1691876-0/Concrete.lean",
+          "stage_resources": {
+            "Audit.resources.json": {
+              "elapsed_ms": 2211,
+              "exit_code": 0,
+              "limits": {
+                "address_space_mb": 8192,
+                "heap_mb": 4096,
+                "heartbeats": 200000,
+                "wall_seconds": 180
+              },
+              "peak_sampled_resident_kb": 1518444,
+              "peak_sampled_virtual_kb": 6401560
+            },
+            "Check.resources.json": {
+              "elapsed_ms": 1054,
+              "exit_code": 0,
+              "limits": {
+                "address_space_mb": 8192,
+                "heap_mb": 4096,
+                "heartbeats": 200000,
+                "wall_seconds": 180
+              },
+              "peak_sampled_resident_kb": 496420,
+              "peak_sampled_virtual_kb": 4936800
+            },
+            "Data.resources.json": {
+              "elapsed_ms": 1360,
+              "exit_code": 0,
+              "limits": {
+                "address_space_mb": 8192,
+                "heap_mb": 4096,
+                "heartbeats": 200000,
+                "wall_seconds": 180
+              },
+              "peak_sampled_resident_kb": 489028,
+              "peak_sampled_virtual_kb": 6047212
+            },
+            "FieldOwnership.resources.json": {
+              "elapsed_ms": 750,
+              "exit_code": 0,
+              "limits": {
+                "address_space_mb": 8192,
+                "heap_mb": 4096,
+                "heartbeats": 200000,
+                "wall_seconds": 180
+              },
+              "peak_sampled_resident_kb": 468848,
+              "peak_sampled_virtual_kb": 3822576
+            },
+            "LifecycleCheck.resources.json": {
+              "elapsed_ms": 5938,
+              "exit_code": 0,
+              "limits": {
+                "address_space_mb": 8192,
+                "heap_mb": 4096,
+                "heartbeats": 200000,
+                "wall_seconds": 180
+              },
+              "peak_sampled_resident_kb": 528800,
+              "peak_sampled_virtual_kb": 6050804
+            },
+            "LifecycleData.resources.json": {
+              "elapsed_ms": 1217,
+              "exit_code": 0,
+              "limits": {
+                "address_space_mb": 8192,
+                "heap_mb": 4096,
+                "heartbeats": 200000,
+                "wall_seconds": 180
+              },
+              "peak_sampled_resident_kb": 490964,
+              "peak_sampled_virtual_kb": 6047880
+            },
+            "LifecycleDependency.resources.json": {
+              "elapsed_ms": 1338,
+              "exit_code": 0,
+              "limits": {
+                "address_space_mb": 8192,
+                "heap_mb": 4096,
+                "heartbeats": 200000,
+                "wall_seconds": 180
+              },
+              "peak_sampled_resident_kb": 497912,
+              "peak_sampled_virtual_kb": 4934236
+            },
+            "LifecycleSequence.resources.json": {
+              "elapsed_ms": 852,
+              "exit_code": 0,
+              "limits": {
+                "address_space_mb": 8192,
+                "heap_mb": 4096,
+                "heartbeats": 200000,
+                "wall_seconds": 180
+              },
+              "peak_sampled_resident_kb": 483084,
+              "peak_sampled_virtual_kb": 4935544
+            }
+          }
+        }
+      ],
+      "python": "3.13.15 (main, Aug  5 2026, 12:25:43) [GCC 15.3.0]",
+      "raw_observation_sha256": "c05dff903103b5c81b4a268eae4c8d8702e4ef09303857d860df6c3f0bfb23ab",
+      "requested": {
+        "actions": 512,
+        "expect": "certified",
+        "operations": 1,
+        "output": "/tmp/behavior-511-investigation.zqro9o/fo-actions-512",
+        "padding": 0,
+        "policies": 1,
+        "toolchain": "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0",
+        "verify": false
+      },
+      "status": "Completed",
+      "toolchain": "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0",
+      "versions": {
+        "accepted_wire_ir": [
+          "0.4",
+          "0.5",
+          "0.6",
+          "0.7",
+          "0.8"
+        ],
+        "binding": {
+          "python": "0.13.1"
+        },
+        "command_occurrence_domain": "behavior.command_occurrence.v1",
+        "command_stream": "behavior.command_stream_request.v1",
+        "core": {
+          "commit": "6b93898a9375113f7a8946f23ab5535319b6f5d6",
+          "version": "0.15.0"
+        },
+        "engine": "0.15.0",
+        "read_records": [
+          "behavior.read_record.v1",
+          "behavior.read_record.v2"
+        ],
+        "records": [
+          "0.4",
+          "0.5",
+          "0.6",
+          "0.7",
+          "0.8"
+        ],
+        "store_documents": [
+          "behavior.entity_content.v1",
+          "behavior.entity_version.v1",
+          "behavior.state.v1",
+          "behavior.evidence_policy.v1",
+          "behavior.store_genesis.v1",
+          "behavior.commit_bundle.v1",
+          "behavior.transition_record.v1",
+          "behavior.replay_report.v1",
+          "behavior.migration_bundle.v1",
+          "behavior.store_genesis.v2",
+          "behavior.commit_bundle.v2",
+          "behavior.migration_bundle.v2",
+          "behavior.transition_record.v2"
+        ],
+        "verifier": "0.10.0",
+        "wire_ir": [
+          "0.1",
+          "0.2",
+          "0.3",
+          "0.4",
+          "0.5",
+          "0.6",
+          "0.7"
+        ]
+      }
+    },
+    {
+      "authority": "DiagnosticOnly",
+      "case": "probe-256-data",
+      "command": [
+        "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+        "-DmaxHeartbeats=200000",
+        "-M4096",
+        "-j1",
+        "-DmaxRecDepth=4096",
+        "-o",
+        "Concrete.olean",
+        "Concrete.lean"
+      ],
+      "cpu_system_seconds": 0.520899,
+      "cpu_user_seconds": 58.572459,
+      "cwd": "/tmp/behavior-511-investigation.zqro9o/probe-256-data",
+      "driver_sha256": "2e6623884e84518f27bddb60cb5adf092261581fc8bba38d2a82355e83d42002",
+      "exit_code": -9,
+      "format": "behavior.safety_investigation.lean_probe.v1",
+      "log": "",
+      "max_rss_kib": 1320960,
+      "measurement_limits": [
+        "Generic olean imports reused; cache temperature uncontrolled",
+        "Heartbeat and recursion high-water counters unavailable",
+        "Diagnostic variant is not a library certificate"
+      ],
+      "original": "/tmp/behavior-511-investigation.zqro9o/fo-actions-256/certificate/proof-1691628-0/Concrete.lean",
+      "original_sha256": "8a4ffbab0ae40d6c49817020a8d320b43c0d24866fd3373568bf9bb6b42ead2e",
+      "raw_observation_sha256": "cac680ef042d90807a84f736cda5ba74d2555622505bb0807efce64bfe169bc2",
+      "source_bytes": 617049,
+      "source_sha256": "92c0e4d507c43c1c6dc6bec25010688afbb1dc4bcdc04d526bc6fc3b88c40f36",
+      "status": "WallTimeLimit",
+      "variant": "data",
+      "virtual_memory_budget_bytes": 8589934592,
+      "wall_budget_seconds": 60,
+      "wall_seconds": 60.03527736797696
+    },
+    {
+      "authority": "DiagnosticOnly",
+      "case": "probe-256-data-markers",
+      "command": [
+        "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+        "-DmaxHeartbeats=200000",
+        "-M4096",
+        "-j1",
+        "-DmaxRecDepth=4096",
+        "-o",
+        "Concrete.olean",
+        "Concrete.lean"
+      ],
+      "cpu_system_seconds": 3.6970549999999998,
+      "cpu_user_seconds": 174.007494,
+      "cwd": "/tmp/behavior-511-investigation.zqro9o/probe-256-data-markers",
+      "driver_sha256": "12f8087cf0971ecde3bf0daeccb47c468c06f9f4f2471fc33a46f2582622b463",
+      "exit_code": -9,
+      "format": "behavior.safety_investigation.lean_probe.v1",
+      "log": "",
+      "max_rss_kib": 3203116,
+      "measurement_limits": [
+        "Generic olean imports reused; cache temperature uncontrolled",
+        "Heartbeat and recursion high-water counters unavailable",
+        "Diagnostic variant is not a library certificate"
+      ],
+      "original": "/tmp/behavior-511-investigation.zqro9o/fo-actions-256/certificate/proof-1691628-0/Concrete.lean",
+      "original_sha256": "8a4ffbab0ae40d6c49817020a8d320b43c0d24866fd3373568bf9bb6b42ead2e",
+      "raw_observation_sha256": "7d2b4d83e7f879fb8cdc3231c4b8e3b5be60ff9d3bcfa6561ded4da34566dbfa",
+      "source_bytes": 617715,
+      "source_sha256": "b9cb5a40f3989776326aa2ffc5c1199bc8dd9189d20ef769f293d8948cdfb1bc",
+      "status": "WallTimeLimit",
+      "validity": "Discarded: marker command lacks required Lean.Elab.Command import",
+      "variant": "data-markers",
+      "virtual_memory_budget_bytes": 8589934592,
+      "wall_budget_seconds": 180,
+      "wall_seconds": 180.11805393599207
+    },
+    {
+      "authority": "DiagnosticOnly",
+      "case": "probe-256-factored-hashes-data",
+      "command": [
+        "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+        "-DmaxHeartbeats=200000",
+        "-M4096",
+        "-j1",
+        "-DmaxRecDepth=4096",
+        "-o",
+        "Concrete.olean",
+        "Concrete.lean"
+      ],
+      "cpu_system_seconds": 0.44347499999999995,
+      "cpu_user_seconds": 22.512256999999998,
+      "cwd": "/tmp/behavior-511-investigation.zqro9o/probe-256-factored-hashes-data",
+      "driver_sha256": "0c7934641afef446522cddb9e21567b742769c8a7876f5127c68fc5e8ab104da",
+      "exit_code": 0,
+      "format": "behavior.safety_investigation.lean_probe.v1",
+      "log": "",
+      "max_rss_kib": 957416,
+      "measurement_limits": [
+        "Generic olean imports reused; cache temperature uncontrolled",
+        "Heartbeat and recursion high-water counters unavailable",
+        "Diagnostic variant is not a library certificate"
+      ],
+      "olean_sha256": "8332d400783538069f0017958a75d6465e20c5f06a79550d28c97e63be03392f",
+      "original": "/tmp/behavior-511-investigation.zqro9o/fo-actions-256/certificate/proof-1691628-0/Concrete.lean",
+      "original_sha256": "8a4ffbab0ae40d6c49817020a8d320b43c0d24866fd3373568bf9bb6b42ead2e",
+      "raw_observation_sha256": "8c56e155c613a09d2c988b34f8599dba2c83c03a0528210233064ff560e89ccc",
+      "source_bytes": 79191,
+      "source_sha256": "3173a13629e46d69b93d13ae4cb0bdc59cfb631a16bd9795bcb7b291bee2c24b",
+      "status": "Passed",
+      "variant": "no-anchors-factored-hashes-data",
+      "virtual_memory_budget_bytes": 8589934592,
+      "wall_budget_seconds": 60,
+      "wall_seconds": 23.315557643014472
+    },
+    {
+      "authority": "DiagnosticOnly",
+      "case": "probe-256-imported-authority",
+      "command": [
+        "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+        "-DmaxHeartbeats=200000",
+        "-M4096",
+        "-j1",
+        "-DmaxRecDepth=4096",
+        "-o",
+        "Probe.olean",
+        "Probe.lean"
+      ],
+      "cpu_system_seconds": 0.392708,
+      "cpu_user_seconds": 14.328973,
+      "cwd": "/tmp/behavior-511-investigation.zqro9o/probe-256-imported-authority",
+      "driver_sha256": "a210b20dec3d67def8b850f6eb3f38bd6d682e4fb9053d2c2eb0074129d0a7c7",
+      "exit_code": 0,
+      "format": "behavior.safety_investigation.lean_probe.v1",
+      "log": "",
+      "max_rss_kib": 916924,
+      "measurement_limits": [
+        "Generic olean imports reused; cache temperature uncontrolled",
+        "Heartbeat and recursion high-water counters unavailable",
+        "Diagnostic variant is not a library certificate"
+      ],
+      "olean_sha256": "0c905caa1815d6a88a119eb5d862796417ce30a68ca12f0abd268c7976c3feab",
+      "original": "/tmp/behavior-511-investigation.zqro9o/fo-actions-256/certificate/proof-1691628-0/Concrete.lean",
+      "original_sha256": "8a4ffbab0ae40d6c49817020a8d320b43c0d24866fd3373568bf9bb6b42ead2e",
+      "precompiled_data": "/tmp/behavior-511-investigation.zqro9o/probe-256-factored-hashes-data",
+      "precompiled_data_sha256": "8332d400783538069f0017958a75d6465e20c5f06a79550d28c97e63be03392f",
+      "raw_observation_sha256": "2a2aa40c00c7e0c1f85f5f31351175468a99cb3cb7e55ebc5d7d4e19ee516911",
+      "source_bytes": 119,
+      "source_sha256": "cd8fd9274e9f56bd83d372cd56226113103bfcf8c091ef572a47062f64ed8383",
+      "status": "Passed",
+      "variant": "authority",
+      "virtual_memory_budget_bytes": 8589934592,
+      "wall_budget_seconds": 60,
+      "wall_seconds": 15.09071885701269
+    },
+    {
+      "authority": "DiagnosticOnly",
+      "case": "probe-256-imported-eval",
+      "command": [
+        "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+        "-DmaxHeartbeats=200000",
+        "-M4096",
+        "-j1",
+        "-DmaxRecDepth=4096",
+        "-o",
+        "Probe.olean",
+        "Probe.lean"
+      ],
+      "cpu_system_seconds": 0.158799,
+      "cpu_user_seconds": 0.507946,
+      "cwd": "/tmp/behavior-511-investigation.zqro9o/probe-256-imported-eval",
+      "driver_sha256": "5ddd1cb574901e586f930efa10f89f21d443cbd54217aa50c0b13e103b902520",
+      "exit_code": 0,
+      "format": "behavior.safety_investigation.lean_probe.v1",
+      "log": "true\n",
+      "max_rss_kib": 493472,
+      "measurement_limits": [
+        "Generic olean imports reused; cache temperature uncontrolled",
+        "Heartbeat and recursion high-water counters unavailable",
+        "Diagnostic variant is not a library certificate"
+      ],
+      "olean_sha256": "16041cb462334fe8e8b70fb10ca86c98544f21b659706f4ad08f01ed8102bd37",
+      "original": "/tmp/behavior-511-investigation.zqro9o/fo-actions-256/certificate/proof-1691628-0/Concrete.lean",
+      "original_sha256": "8a4ffbab0ae40d6c49817020a8d320b43c0d24866fd3373568bf9bb6b42ead2e",
+      "precompiled_data": "/tmp/behavior-511-investigation.zqro9o/probe-256-factored-hashes-data",
+      "precompiled_data_sha256": "8332d400783538069f0017958a75d6465e20c5f06a79550d28c97e63be03392f",
+      "raw_observation_sha256": "03be65e8db3c3d2864b5963220e77ee9b675d5cd88c25c686ce1f975993e973e",
+      "source_bytes": 86,
+      "source_sha256": "09814e3209e8a5d04057a044ae3e49ccc1bce68a1863204ba6b8cb8fb23d6401",
+      "status": "Passed",
+      "variant": "eval",
+      "virtual_memory_budget_bytes": 8589934592,
+      "wall_budget_seconds": 30,
+      "wall_seconds": 0.7235847769770771
+    },
+    {
+      "authority": "DiagnosticOnly",
+      "case": "probe-256-imported-lifecycle",
+      "command": [
+        "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+        "-DmaxHeartbeats=200000",
+        "-M4096",
+        "-j1",
+        "-DmaxRecDepth=4096",
+        "-o",
+        "Probe.olean",
+        "Probe.lean"
+      ],
+      "cpu_system_seconds": 0.16827399999999998,
+      "cpu_user_seconds": 0.29601,
+      "cwd": "/tmp/behavior-511-investigation.zqro9o/probe-256-imported-lifecycle",
+      "driver_sha256": "a210b20dec3d67def8b850f6eb3f38bd6d682e4fb9053d2c2eb0074129d0a7c7",
+      "exit_code": 0,
+      "format": "behavior.safety_investigation.lean_probe.v1",
+      "log": "",
+      "max_rss_kib": 481784,
+      "measurement_limits": [
+        "Generic olean imports reused; cache temperature uncontrolled",
+        "Heartbeat and recursion high-water counters unavailable",
+        "Diagnostic variant is not a library certificate"
+      ],
+      "olean_sha256": "43bfbc9b31a950dd12b1fa3222544cc09c94afba7d247484604968dd434db6a3",
+      "original": "/tmp/behavior-511-investigation.zqro9o/fo-actions-256/certificate/proof-1691628-0/Concrete.lean",
+      "original_sha256": "8a4ffbab0ae40d6c49817020a8d320b43c0d24866fd3373568bf9bb6b42ead2e",
+      "precompiled_data": "/tmp/behavior-511-investigation.zqro9o/probe-256-factored-hashes-data",
+      "precompiled_data_sha256": "8332d400783538069f0017958a75d6465e20c5f06a79550d28c97e63be03392f",
+      "raw_observation_sha256": "f0fe967f49cf40f399b9d123d70a46b7b0abf6d2be827b9ca69914b136dba1be",
+      "source_bytes": 165,
+      "source_sha256": "579a48f85ca996ed290adfad4d9b318801b3f9f11115c5aa61f7f7341e414e50",
+      "status": "Passed",
+      "variant": "lifecycle",
+      "virtual_memory_budget_bytes": 8589934592,
+      "wall_budget_seconds": 60,
+      "wall_seconds": 0.5256095579825342
+    },
+    {
+      "authority": "DiagnosticOnly",
+      "case": "probe-256-imported-unique",
+      "command": [
+        "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+        "-DmaxHeartbeats=200000",
+        "-M4096",
+        "-j1",
+        "-DmaxRecDepth=4096",
+        "-o",
+        "Probe.olean",
+        "Probe.lean"
+      ],
+      "cpu_system_seconds": 3.24828,
+      "cpu_user_seconds": 39.631823,
+      "cwd": "/tmp/behavior-511-investigation.zqro9o/probe-256-imported-unique",
+      "driver_sha256": "a210b20dec3d67def8b850f6eb3f38bd6d682e4fb9053d2c2eb0074129d0a7c7",
+      "exit_code": -9,
+      "format": "behavior.safety_investigation.lean_probe.v1",
+      "log": "",
+      "max_rss_kib": 1034536,
+      "measurement_limits": [
+        "Generic olean imports reused; cache temperature uncontrolled",
+        "Heartbeat and recursion high-water counters unavailable",
+        "Diagnostic variant is not a library certificate"
+      ],
+      "original": "/tmp/behavior-511-investigation.zqro9o/fo-actions-256/certificate/proof-1691628-0/Concrete.lean",
+      "original_sha256": "8a4ffbab0ae40d6c49817020a8d320b43c0d24866fd3373568bf9bb6b42ead2e",
+      "precompiled_data": "/tmp/behavior-511-investigation.zqro9o/probe-256-factored-hashes-data",
+      "precompiled_data_sha256": "8332d400783538069f0017958a75d6465e20c5f06a79550d28c97e63be03392f",
+      "raw_observation_sha256": "b1d303fefeefb9482fd64a1d70133ee2cc3fcbc86963b097f95e9da9e42ab239",
+      "source_bytes": 124,
+      "source_sha256": "ea4c332217aca6a15771ad78e2ea7299a6e7e961092356ca272f25479cdd1ee5",
+      "status": "WallTimeLimit",
+      "variant": "unique",
+      "virtual_memory_budget_bytes": 8589934592,
+      "wall_budget_seconds": 60,
+      "wall_seconds": 60.12032451003324
+    },
+    {
+      "authority": "DiagnosticOnly",
+      "case": "probe-256-imported-without-unique",
+      "command": [
+        "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+        "-DmaxHeartbeats=200000",
+        "-M4096",
+        "-j1",
+        "-DmaxRecDepth=4096",
+        "-o",
+        "Probe.olean",
+        "Probe.lean"
+      ],
+      "cpu_system_seconds": 0.19153699999999999,
+      "cpu_user_seconds": 0.9101699999999999,
+      "cwd": "/tmp/behavior-511-investigation.zqro9o/probe-256-imported-without-unique",
+      "driver_sha256": "a210b20dec3d67def8b850f6eb3f38bd6d682e4fb9053d2c2eb0074129d0a7c7",
+      "exit_code": 0,
+      "format": "behavior.safety_investigation.lean_probe.v1",
+      "log": "",
+      "max_rss_kib": 502848,
+      "measurement_limits": [
+        "Generic olean imports reused; cache temperature uncontrolled",
+        "Heartbeat and recursion high-water counters unavailable",
+        "Diagnostic variant is not a library certificate"
+      ],
+      "olean_sha256": "761b6fee36b46c258c3b51117be889f667f9291803bdf551b2bc8d6a70a80ff6",
+      "original": "/tmp/behavior-511-investigation.zqro9o/fo-actions-256/certificate/proof-1691628-0/Concrete.lean",
+      "original_sha256": "8a4ffbab0ae40d6c49817020a8d320b43c0d24866fd3373568bf9bb6b42ead2e",
+      "precompiled_data": "/tmp/behavior-511-investigation.zqro9o/probe-256-factored-hashes-data",
+      "precompiled_data_sha256": "8332d400783538069f0017958a75d6465e20c5f06a79550d28c97e63be03392f",
+      "raw_observation_sha256": "1e659aad03eda17ab9fc7868e72aa1ee94f44041621aecee32ece9a8fb091cc2",
+      "source_bytes": 744,
+      "source_sha256": "8564c1ec67af1677e223db50a052ca2dcdb721bf12e2999cba63a0289ef29c4e",
+      "status": "Passed",
+      "variant": "without-unique",
+      "virtual_memory_budget_bytes": 8589934592,
+      "wall_budget_seconds": 60,
+      "wall_seconds": 1.3309831410297193
+    },
+    {
+      "authority": "DiagnosticOnly",
+      "case": "probe-256-no-anchors-data",
+      "command": [
+        "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+        "-DmaxHeartbeats=200000",
+        "-M4096",
+        "-j1",
+        "-DmaxRecDepth=4096",
+        "-o",
+        "Concrete.olean",
+        "Concrete.lean"
+      ],
+      "cpu_system_seconds": 0.342723,
+      "cpu_user_seconds": 22.451442,
+      "cwd": "/tmp/behavior-511-investigation.zqro9o/probe-256-no-anchors-data",
+      "driver_sha256": "018a6d5b294e1d9e26043ee33f4e95a04af0eeea147324c80372241b4a02882e",
+      "exit_code": 1,
+      "format": "behavior.safety_investigation.lean_probe.v1",
+      "log": "Concrete.lean:3:4: error: maximum recursion depth has been reached\nuse `set_option maxRecDepth <num>` to increase limit\nuse `set_option diagnostics true` to get diagnostic information\n",
+      "max_rss_kib": 903372,
+      "measurement_limits": [
+        "Generic olean imports reused; cache temperature uncontrolled",
+        "Heartbeat and recursion high-water counters unavailable",
+        "Diagnostic variant is not a library certificate"
+      ],
+      "original": "/tmp/behavior-511-investigation.zqro9o/fo-actions-256/certificate/proof-1691628-0/Concrete.lean",
+      "original_sha256": "8a4ffbab0ae40d6c49817020a8d320b43c0d24866fd3373568bf9bb6b42ead2e",
+      "raw_observation_sha256": "02b7baac9fae5a0db8466411005e1f4758371b9bf23ebb6ce69907b3746de995",
+      "source_bytes": 68147,
+      "source_sha256": "5ea4961d52c671ec5afa393fea2c420ed1b44c9e1fe8e7b236b69ed2167eaa5f",
+      "status": "Failed",
+      "variant": "no-anchors-data",
+      "virtual_memory_budget_bytes": 8589934592,
+      "wall_budget_seconds": 60,
+      "wall_seconds": 23.228279700968415
+    },
+    {
+      "authority": "DiagnosticOnly",
+      "case": "probe-256-no-anchors-factored-hashes-checked",
+      "command": [
+        "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+        "-DmaxHeartbeats=200000",
+        "-M4096",
+        "-j1",
+        "-DmaxRecDepth=4096",
+        "-o",
+        "Concrete.olean",
+        "Concrete.lean"
+      ],
+      "cpu_system_seconds": 2.5191559999999997,
+      "cpu_user_seconds": 56.608313,
+      "cwd": "/tmp/behavior-511-investigation.zqro9o/probe-256-no-anchors-factored-hashes-checked",
+      "driver_sha256": "0c7934641afef446522cddb9e21567b742769c8a7876f5127c68fc5e8ab104da",
+      "exit_code": -9,
+      "format": "behavior.safety_investigation.lean_probe.v1",
+      "log": "",
+      "max_rss_kib": 1464032,
+      "measurement_limits": [
+        "Generic olean imports reused; cache temperature uncontrolled",
+        "Heartbeat and recursion high-water counters unavailable",
+        "Diagnostic variant is not a library certificate"
+      ],
+      "original": "/tmp/behavior-511-investigation.zqro9o/fo-actions-256/certificate/proof-1691628-0/Concrete.lean",
+      "original_sha256": "8a4ffbab0ae40d6c49817020a8d320b43c0d24866fd3373568bf9bb6b42ead2e",
+      "raw_observation_sha256": "f5209daa4277e39bdefc595b3b6013886e5ebabe6ca00ad1b05bc8f3f1be7184",
+      "source_bytes": 79253,
+      "source_sha256": "ac07a29a3b5179713ba4eb3fa25cd0cf31dbe49fd66d8823f2be4cbc440e2f59",
+      "status": "WallTimeLimit",
+      "variant": "no-anchors-factored-hashes-checked",
+      "virtual_memory_budget_bytes": 8589934592,
+      "wall_budget_seconds": 60,
+      "wall_seconds": 60.10593655297998
+    },
+    {
+      "authority": "DiagnosticOnly",
+      "case": "probe-256-no-anchors-factored-hashes-kernel",
+      "command": [
+        "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+        "-DmaxHeartbeats=200000",
+        "-M4096",
+        "-j1",
+        "-DmaxRecDepth=4096",
+        "-o",
+        "Concrete.olean",
+        "Concrete.lean"
+      ],
+      "cpu_system_seconds": 6.252495,
+      "cpu_user_seconds": 51.644311,
+      "cwd": "/tmp/behavior-511-investigation.zqro9o/probe-256-no-anchors-factored-hashes-kernel",
+      "driver_sha256": "0c7934641afef446522cddb9e21567b742769c8a7876f5127c68fc5e8ab104da",
+      "exit_code": -9,
+      "format": "behavior.safety_investigation.lean_probe.v1",
+      "log": "",
+      "max_rss_kib": 2167924,
+      "measurement_limits": [
+        "Generic olean imports reused; cache temperature uncontrolled",
+        "Heartbeat and recursion high-water counters unavailable",
+        "Diagnostic variant is not a library certificate"
+      ],
+      "original": "/tmp/behavior-511-investigation.zqro9o/fo-actions-256/certificate/proof-1691628-0/Concrete.lean",
+      "original_sha256": "8a4ffbab0ae40d6c49817020a8d320b43c0d24866fd3373568bf9bb6b42ead2e",
+      "raw_observation_sha256": "71acd8d6fe7cd5927a13201aefb15302807ac6389387f7cde95fc092b9aa59f2",
+      "source_bytes": 80157,
+      "source_sha256": "4dd898780636a10baea76808d001c3163d2cb063816f4cf52f6b27a1d10e1832",
+      "status": "WallTimeLimit",
+      "variant": "no-anchors-factored-hashes-kernel",
+      "virtual_memory_budget_bytes": 8589934592,
+      "wall_budget_seconds": 60,
+      "wall_seconds": 60.38611998298438
+    },
+    {
+      "authority": "DiagnosticOnly",
+      "case": "probe-256-no-anchors-no-actions-data",
+      "command": [
+        "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+        "-DmaxHeartbeats=200000",
+        "-M4096",
+        "-j1",
+        "-DmaxRecDepth=4096",
+        "-o",
+        "Concrete.olean",
+        "Concrete.lean"
+      ],
+      "cpu_system_seconds": 0.320932,
+      "cpu_user_seconds": 20.959798,
+      "cwd": "/tmp/behavior-511-investigation.zqro9o/probe-256-no-anchors-no-actions-data",
+      "driver_sha256": "84a8aed83396b3df89b941077674ad36b370e72b63411e003396a2e33e6ad827",
+      "exit_code": 1,
+      "format": "behavior.safety_investigation.lean_probe.v1",
+      "log": "Concrete.lean:3:4: error: maximum recursion depth has been reached\nuse `set_option maxRecDepth <num>` to increase limit\nuse `set_option diagnostics true` to get diagnostic information\n",
+      "max_rss_kib": 890892,
+      "measurement_limits": [
+        "Generic olean imports reused; cache temperature uncontrolled",
+        "Heartbeat and recursion high-water counters unavailable",
+        "Diagnostic variant is not a library certificate"
+      ],
+      "original": "/tmp/behavior-511-investigation.zqro9o/fo-actions-256/certificate/proof-1691628-0/Concrete.lean",
+      "original_sha256": "8a4ffbab0ae40d6c49817020a8d320b43c0d24866fd3373568bf9bb6b42ead2e",
+      "raw_observation_sha256": "591e46368d75620afc0fca1acdbd2d89e63acb193e3c0e25b045389de1420e0e",
+      "source_bytes": 60578,
+      "source_sha256": "e9ea303beb46ffc49723330d21f6af0af19d7598c1d2c781b9d11396a43c074f",
+      "status": "Failed",
+      "variant": "no-anchors-no-actions-data",
+      "virtual_memory_budget_bytes": 8589934592,
+      "wall_budget_seconds": 60,
+      "wall_seconds": 21.62204121495597
+    },
+    {
+      "authority": "DiagnosticOnly",
+      "case": "probe-256-no-anchors-no-hashes-data",
+      "command": [
+        "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+        "-DmaxHeartbeats=200000",
+        "-M4096",
+        "-j1",
+        "-DmaxRecDepth=4096",
+        "-o",
+        "Concrete.olean",
+        "Concrete.lean"
+      ],
+      "cpu_system_seconds": 0.140556,
+      "cpu_user_seconds": 1.638751,
+      "cwd": "/tmp/behavior-511-investigation.zqro9o/probe-256-no-anchors-no-hashes-data",
+      "driver_sha256": "84a8aed83396b3df89b941077674ad36b370e72b63411e003396a2e33e6ad827",
+      "exit_code": 0,
+      "format": "behavior.safety_investigation.lean_probe.v1",
+      "log": "",
+      "max_rss_kib": 520480,
+      "measurement_limits": [
+        "Generic olean imports reused; cache temperature uncontrolled",
+        "Heartbeat and recursion high-water counters unavailable",
+        "Diagnostic variant is not a library certificate"
+      ],
+      "olean_sha256": "84ed54233db17d7bae51fffa1efbc35cf0a74a1d5be6adabe78f15d9525b02e2",
+      "original": "/tmp/behavior-511-investigation.zqro9o/fo-actions-256/certificate/proof-1691628-0/Concrete.lean",
+      "original_sha256": "8a4ffbab0ae40d6c49817020a8d320b43c0d24866fd3373568bf9bb6b42ead2e",
+      "raw_observation_sha256": "657b1c71b43e19c1c37572693ec53a1797f33a42b04609796d6a38ad4bf76c19",
+      "source_bytes": 9497,
+      "source_sha256": "84d7308c577ff6b55eae23a9705db241016c947a0567f95df4fd4cf089b42778",
+      "status": "Passed",
+      "variant": "no-anchors-no-hashes-data",
+      "virtual_memory_budget_bytes": 8589934592,
+      "wall_budget_seconds": 60,
+      "wall_seconds": 1.8286566560273059
+    },
+    {
+      "authority": "DiagnosticOnly",
+      "case": "probe-256-no-anchors-no-policies-data",
+      "command": [
+        "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+        "-DmaxHeartbeats=200000",
+        "-M4096",
+        "-j1",
+        "-DmaxRecDepth=4096",
+        "-o",
+        "Concrete.olean",
+        "Concrete.lean"
+      ],
+      "cpu_system_seconds": 0.401736,
+      "cpu_user_seconds": 23.854634,
+      "cwd": "/tmp/behavior-511-investigation.zqro9o/probe-256-no-anchors-no-policies-data",
+      "driver_sha256": "84a8aed83396b3df89b941077674ad36b370e72b63411e003396a2e33e6ad827",
+      "exit_code": 1,
+      "format": "behavior.safety_investigation.lean_probe.v1",
+      "log": "Concrete.lean:3:4: error: maximum recursion depth has been reached\nuse `set_option maxRecDepth <num>` to increase limit\nuse `set_option diagnostics true` to get diagnostic information\n",
+      "max_rss_kib": 899156,
+      "measurement_limits": [
+        "Generic olean imports reused; cache temperature uncontrolled",
+        "Heartbeat and recursion high-water counters unavailable",
+        "Diagnostic variant is not a library certificate"
+      ],
+      "original": "/tmp/behavior-511-investigation.zqro9o/fo-actions-256/certificate/proof-1691628-0/Concrete.lean",
+      "original_sha256": "8a4ffbab0ae40d6c49817020a8d320b43c0d24866fd3373568bf9bb6b42ead2e",
+      "raw_observation_sha256": "c980d9181aa61df3e52ec0f917eae5a8f0a56076dec1f44dce460dea710652ff",
+      "source_bytes": 67211,
+      "source_sha256": "5f5a7b70367cb4476d08c6a9bb01222ff8184630eb24f3118a46d4dc86b71bcc",
+      "status": "Failed",
+      "variant": "no-anchors-no-policies-data",
+      "virtual_memory_budget_bytes": 8589934592,
+      "wall_budget_seconds": 60,
+      "wall_seconds": 24.863804446009453
+    },
+    {
+      "authority": "DiagnosticOnly",
+      "case": "probe-256-noncomputable-data",
+      "command": [
+        "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+        "-DmaxHeartbeats=200000",
+        "-M4096",
+        "-j1",
+        "-DmaxRecDepth=4096",
+        "-o",
+        "Concrete.olean",
+        "Concrete.lean"
+      ],
+      "cpu_system_seconds": 0.558155,
+      "cpu_user_seconds": 58.542776,
+      "cwd": "/tmp/behavior-511-investigation.zqro9o/probe-256-noncomputable-data",
+      "driver_sha256": "4acff201b4e8d0dde093e80d720eaace7aae63c81c3632d6e8aa288d36630750",
+      "exit_code": -9,
+      "format": "behavior.safety_investigation.lean_probe.v1",
+      "log": "",
+      "max_rss_kib": 1335496,
+      "measurement_limits": [
+        "Generic olean imports reused; cache temperature uncontrolled",
+        "Heartbeat and recursion high-water counters unavailable",
+        "Diagnostic variant is not a library certificate"
+      ],
+      "original": "/tmp/behavior-511-investigation.zqro9o/fo-actions-256/certificate/proof-1691628-0/Concrete.lean",
+      "original_sha256": "8a4ffbab0ae40d6c49817020a8d320b43c0d24866fd3373568bf9bb6b42ead2e",
+      "raw_observation_sha256": "d99cb403d204de39b7d70fbd82119131fdb97950a8d9b64d971df5bfde5a1b94",
+      "source_bytes": 646659,
+      "source_sha256": "772af76ca4a600933e036b5e74a4296cc00da7324aa56bd72f4669e6a38639c5",
+      "status": "WallTimeLimit",
+      "variant": "noncomputable-data",
+      "virtual_memory_budget_bytes": 8589934592,
+      "wall_budget_seconds": 60,
+      "wall_seconds": 60.036700338008814
+    },
+    {
+      "authority": "DiagnosticOnly",
+      "case": "probe-256-original-extended-wall",
+      "command": [
+        "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+        "-DmaxHeartbeats=200000",
+        "-M4096",
+        "-j1",
+        "-DmaxRecDepth=4096",
+        "-o",
+        "Concrete.olean",
+        "Concrete.lean"
+      ],
+      "cpu_system_seconds": 8.834179,
+      "cpu_user_seconds": 281.974116,
+      "cwd": "/tmp/behavior-511-investigation.zqro9o/probe-256-original-extended-wall",
+      "driver_sha256": "84a8aed83396b3df89b941077674ad36b370e72b63411e003396a2e33e6ad827",
+      "exit_code": 1,
+      "format": "behavior.safety_investigation.lean_probe.v1",
+      "log": "Concrete.lean:2120:4: error: maximum recursion depth has been reached\nuse `set_option maxRecDepth <num>` to increase limit\nuse `set_option diagnostics true` to get diagnostic information\nConcrete.lean:2132:55: error: (deterministic) timeout at `whnf`, maximum number of heartbeats (200000) has been reached\n\nNote: Use `set_option maxHeartbeats <num>` to set the limit.\n\nHint: Additional diagnostic information may be available using the `set_option diagnostics true` command.\n",
+      "max_rss_kib": 3494884,
+      "measurement_limits": [
+        "Generic olean imports reused; cache temperature uncontrolled",
+        "Heartbeat and recursion high-water counters unavailable",
+        "Diagnostic variant is not a library certificate"
+      ],
+      "original": "/tmp/behavior-511-investigation.zqro9o/fo-actions-256/certificate/proof-1691628-0/Concrete.lean",
+      "original_sha256": "8a4ffbab0ae40d6c49817020a8d320b43c0d24866fd3373568bf9bb6b42ead2e",
+      "raw_observation_sha256": "68df405e340840a21e4ff9e47564caa59c810e284edfd100137c403761585268",
+      "source_bytes": 618012,
+      "source_sha256": "8a4ffbab0ae40d6c49817020a8d320b43c0d24866fd3373568bf9bb6b42ead2e",
+      "status": "Failed",
+      "variant": "full",
+      "virtual_memory_budget_bytes": 8589934592,
+      "wall_budget_seconds": 360,
+      "wall_seconds": 297.9356572359684
+    },
+    {
+      "authority": "DiagnosticOnly",
+      "case": "probe-256-raw-nat-data",
+      "command": [
+        "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+        "-DmaxHeartbeats=200000",
+        "-M4096",
+        "-j1",
+        "-DmaxRecDepth=4096",
+        "-o",
+        "Concrete.olean",
+        "Concrete.lean"
+      ],
+      "cpu_system_seconds": 3.065165,
+      "cpu_user_seconds": 132.318593,
+      "cwd": "/tmp/behavior-511-investigation.zqro9o/probe-256-raw-nat-data",
+      "driver_sha256": "bbfaccc021a4228340b5456b79cdf689c080ba69cbf5aa7ca56978bc11a0fb96",
+      "exit_code": 1,
+      "format": "behavior.safety_investigation.lean_probe.v1",
+      "log": "Concrete.lean:2120:4: error: maximum recursion depth has been reached\nuse `set_option maxRecDepth <num>` to increase limit\nuse `set_option diagnostics true` to get diagnostic information\n",
+      "max_rss_kib": 3064508,
+      "measurement_limits": [
+        "Generic olean imports reused; cache temperature uncontrolled",
+        "Heartbeat and recursion high-water counters unavailable",
+        "Diagnostic variant is not a library certificate"
+      ],
+      "original": "/tmp/behavior-511-investigation.zqro9o/fo-actions-256/certificate/proof-1691628-0/Concrete.lean",
+      "original_sha256": "8a4ffbab0ae40d6c49817020a8d320b43c0d24866fd3373568bf9bb6b42ead2e",
+      "raw_observation_sha256": "d090e2fe7ae05cff556d26cdcb5bc1834f79f7d7d20f4edfbbcc5b5eddd38b51",
+      "source_bytes": 1968289,
+      "source_sha256": "a6a8841fcf9b2b989956d1de324b779d4a5c1ee54ab8b0bd164d56315fba0347",
+      "status": "Failed",
+      "variant": "raw-nat-data",
+      "virtual_memory_budget_bytes": 8589934592,
+      "wall_budget_seconds": 180,
+      "wall_seconds": 137.26120911398903
+    },
+    {
+      "authority": "DiagnosticOnly",
+      "case": "probe-256-typed-cons-factored-hashes-full",
+      "command": [
+        "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+        "-DmaxHeartbeats=200000",
+        "-M4096",
+        "-j1",
+        "-DmaxRecDepth=4096",
+        "-o",
+        "Concrete.olean",
+        "Concrete.lean"
+      ],
+      "cpu_system_seconds": 10.4455,
+      "cpu_user_seconds": 163.822225,
+      "cwd": "/tmp/behavior-511-investigation.zqro9o/probe-256-typed-cons-factored-hashes-full",
+      "driver_sha256": "0c7934641afef446522cddb9e21567b742769c8a7876f5127c68fc5e8ab104da",
+      "exit_code": -9,
+      "format": "behavior.safety_investigation.lean_probe.v1",
+      "log": "",
+      "max_rss_kib": 3693652,
+      "measurement_limits": [
+        "Generic olean imports reused; cache temperature uncontrolled",
+        "Heartbeat and recursion high-water counters unavailable",
+        "Diagnostic variant is not a library certificate"
+      ],
+      "original": "/tmp/behavior-511-investigation.zqro9o/fo-actions-256/certificate/proof-1691628-0/Concrete.lean",
+      "original_sha256": "8a4ffbab0ae40d6c49817020a8d320b43c0d24866fd3373568bf9bb6b42ead2e",
+      "raw_observation_sha256": "c3d2599946c8d69bcd40b0d951958ad7782db96f9372feea3aca3faaba5f52bd",
+      "source_bytes": 4306972,
+      "source_sha256": "d42c1126a36b2c5b98ea75d7b3c0ef2494fc2f4c3224873c14b29b655b46d21b",
+      "status": "WallTimeLimit",
+      "variant": "typed-cons-factored-hashes-full",
+      "virtual_memory_budget_bytes": 8589934592,
+      "wall_budget_seconds": 180,
+      "wall_seconds": 180.37649906199658
+    }
+  ]
+}

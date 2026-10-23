@@ -12,6 +12,7 @@ pub mod input;
 pub mod inventory;
 pub mod lifecycle_dependency;
 mod membership_orders;
+mod merge_witness;
 mod proof_data;
 pub mod resolve;
 pub mod snapshot;
@@ -23,7 +24,7 @@ pub use input::{
 pub use inventory::Inventory;
 
 pub const FIELD_OWNERSHIP_SEMANTIC_VERSION: u32 = 1;
-pub const SAFETY_CHECKER_VERSION: u32 = 2;
+pub const SAFETY_CHECKER_VERSION: u32 = 3;
 
 /// Structural analysis only. Existing Model ownership must already have succeeded.
 pub fn analyze(

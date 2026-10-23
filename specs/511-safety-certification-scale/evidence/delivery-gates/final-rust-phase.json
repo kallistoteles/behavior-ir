@@ -1,0 +1,56 @@
+{
+  "status": "328 Rust tests passed in48 binaries; whole release-check still running",
+  "log": "target/safety-models/scale-511/final-release-check-01.log",
+  "profile": "test opt-level=1/debug0/incremental0; assertions and cases unchanged, RUST_TEST_THREADS1",
+  "membership_cases": 82,
+  "exhaustive_seconds": 848.36,
+  "coverage_record_sha256": "a5d6f07f4cfcb7200d78ca63a8a1f5d1786505ec9fe026a3a3c88c18bd81fb8a",
+  "coverage": {
+    "attempts": 38006,
+    "bounds": {
+      "child_categories": [
+        "Active",
+        "Terminal"
+      ],
+      "child_types": [
+        1,
+        2
+      ],
+      "children_per_type": [
+        0,
+        2
+      ],
+      "id_variants": 2,
+      "owner_mappings": "all valid typed mappings",
+      "parent_categories": [
+        "Open",
+        "Gone"
+      ],
+      "parents": [
+        0,
+        2
+      ]
+    },
+    "commits_by_action": {
+      "activate": 2528,
+      "create_child": 2688,
+      "create_parent": 1904,
+      "finish": 3104,
+      "other_activate": 2380,
+      "other_create_child": 2538,
+      "other_finish": 2902,
+      "other_remove_child": 2902,
+      "remove_child": 3104,
+      "remove_parent": 552,
+      "reopen": 3664,
+      "stop": 1952
+    },
+    "committed": 30218,
+    "core_valid_source_states": 3924,
+    "evidence_class": "Bounded actual-Core correspondence tests; not generic mathematical proof",
+    "format": "behavior.safety_exhaustive_coverage.v1",
+    "passed": true,
+    "safety_valid_source_states": 1904,
+    "unsafe_certified_commits": 0
+  }
+}

@@ -97,3 +97,40 @@ def test_assessment_preserves_original_typed_parent_issues(tmp_path,mode,code):
     assert result.to_dict()["diagnostics"]==original
     assert original[0]["code"]==code
     assert result.to_dict()["diagnostic_codes"]==[code]
+
+@pytest.mark.parametrize("field,value", [
+    ("nodes", "run_io IO.println \"untrusted\""),
+    ("root", False),
+    ("root", -1),
+    ("format", "behavior.safety_merge_trace.v999"),
+])
+def test_witness_transport_is_strict_typed_data(certified_bundle, tmp_path, field, value):
+    _, _, bundle, _ = certified_bundle
+    data = bundle.to_dict()
+    assert data["format"] == "behavior.safety_bundle.v2"
+    data["witness"][field] = value
+    with pytest.raises(b._engine.EngineError):
+        b.load_safety_bundle(data)
+
+
+def test_witness_never_accepts_source_or_compiled_code(certified_bundle, tmp_path):
+    _, _, bundle, _ = certified_bundle
+    marker = tmp_path / "execution-sentinel"
+    for key in ("lean_source", "script", "olean", "success"):
+        data = bundle.to_dict()
+        assert data["format"] == "behavior.safety_bundle.v2"
+        data["witness"][key] = f'run_io IO.FS.writeFile "{marker}" "executed"'
+        with pytest.raises(b._engine.EngineError):
+            b.load_safety_bundle(data)
+        assert not marker.exists()
+
+
+def test_version_two_transport_remains_unverified_even_with_a_success_claim():
+    data = {"format": "behavior.safety_bundle.v2", "module": "{}", "inventory": {}, "policies": [],
+            "witness": {"format": "behavior.safety_merge_trace.v1", "nodes": [{"kind": "leaf"}], "root": 0},
+            "evidence": {"format": "behavior.safety_evidence.v2", "obligations": {}, "proof": {},
+                         "behavior_hash": "x", "policy_set_hash": "p", "evidence_hash": "e",
+                         "outcome": "Certified under assumptions"}}
+    bundle = b.load_safety_bundle(data)
+    assert not bundle.is_verified
+    assert not hasattr(bundle, "certificate")

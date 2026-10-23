@@ -1,0 +1,155 @@
+{
+  "format": "behavior.safety_remediation.regression_corpus.v1",
+  "reference_cases": [
+    {
+      "analysis_issues": [],
+      "behavior_hash": "sha256:1d0a2bbbc66d1f05d68a4a004e6a18f60c6b3f2ec4dffbaa688bd7165f3dac79",
+      "case": "fo_field",
+      "construction": "build()",
+      "expected_action_operations": {
+        "discard": 1,
+        "edit": 1,
+        "open_note": 1
+      },
+      "independently_expected": {
+        "actions": 3,
+        "lifecycle_dependencies": 0,
+        "operations": 3,
+        "ownership_policies": 1
+      },
+      "origin": "existing v1 public reference",
+      "policy_set_hash": "sha256:fd25e48cb70f0043d6ca7399e031cfac0e8e42e21afa462c5340aa6b620172e7",
+      "source": "models/examples/safety_models/fo_field.py",
+      "source_sha256": "d7e1cdd4e32c8ccb5cfcc719e0dad6cb1ad0f95e7bc0f674e04b6250c9169118"
+    },
+    {
+      "analysis_issues": [],
+      "behavior_hash": "sha256:3b9196c9afc84ee6a347e8f7f38b3cece6fb8e8081060f6557be27abb0b8e608",
+      "case": "fo_state_machine",
+      "construction": "build()",
+      "expected_action_operations": {
+        "task__finish": 1
+      },
+      "independently_expected": {
+        "actions": 1,
+        "lifecycle_dependencies": 0,
+        "operations": 1,
+        "ownership_policies": 1
+      },
+      "origin": "existing v1 public reference",
+      "policy_set_hash": "sha256:2e327cb9358727b87d8497d500ed03573d5f2c31d4aeb25d9a2d16f9018e3e03",
+      "source": "models/examples/safety_models/fo_state_machine.py",
+      "source_sha256": "5f24d4584f3f4b03d5e0be133912bfe00b7bb6faca415508d47b8c54eed57764"
+    },
+    {
+      "analysis_issues": [],
+      "behavior_hash": "sha256:70f28d632a7f8c5cb9d7f6b33b311175c04de81c165b1371708b0fcc1a572849",
+      "case": "ld_parent_child",
+      "construction": "build()",
+      "expected_action_operations": {
+        "activate": 1,
+        "create_child": 1,
+        "create_parent": 1,
+        "finish": 1,
+        "remove_child": 1,
+        "remove_parent": 1,
+        "reopen": 1,
+        "stop": 1
+      },
+      "independently_expected": {
+        "actions": 8,
+        "lifecycle_dependencies": 1,
+        "operations": 8,
+        "ownership_policies": 2
+      },
+      "origin": "existing v1 public reference",
+      "policy_set_hash": "sha256:1b0df4b12b402496ef966fd6afd866005a3b1f0f58b6a3d2c3265a49e7e0f3e5",
+      "source": "models/examples/safety_models/ld_parent_child.py",
+      "source_sha256": "f59b23055c2aaddb52ee3a9036903039f9f370e7f8cc8bcafee6bf0ad28f2341"
+    },
+    {
+      "analysis_issues": [],
+      "behavior_hash": "sha256:1cbb8f97977975bd37ef946d2760d38c9d96e9ea2d3708161a60d20b7be26f36",
+      "case": "ld_shared_parent",
+      "construction": "build()",
+      "expected_action_operations": {
+        "activate": 1,
+        "create_child": 1,
+        "create_parent": 1,
+        "finish": 1,
+        "other_activate": 1,
+        "other_create_child": 1,
+        "other_finish": 1,
+        "other_remove_child": 1,
+        "remove_child": 1,
+        "remove_parent": 1,
+        "reopen": 1,
+        "stop": 1
+      },
+      "independently_expected": {
+        "actions": 12,
+        "lifecycle_dependencies": 2,
+        "operations": 12,
+        "ownership_policies": 3
+      },
+      "origin": "existing v1 public reference",
+      "policy_set_hash": "sha256:64be85f26ccd60f1ea8be4bbb3b1687af74508b2ca8fbf4d08d11c06b5ea5194",
+      "source": "models/examples/safety_models/ld_shared_parent.py",
+      "source_sha256": "3fc9372a6b1887a1f95d7a32e4d9edd4d1b00decd7c7450c4c0222eb12f4dac2"
+    },
+    {
+      "analysis_issues": [],
+      "behavior_hash": "sha256:379842b4722478d3c19d4cd87d5e7d8c7138a348616361c69d2eaf0eda186f46",
+      "case": "ld_vm_resource",
+      "construction": "build()",
+      "expected_action_operations": {
+        "activate": 1,
+        "create_child": 1,
+        "create_parent": 1,
+        "finish": 1,
+        "remove_child": 1,
+        "remove_parent": 1,
+        "reopen": 1,
+        "stop": 1
+      },
+      "independently_expected": {
+        "actions": 8,
+        "lifecycle_dependencies": 1,
+        "operations": 8,
+        "ownership_policies": 2
+      },
+      "origin": "existing v1 public reference",
+      "policy_set_hash": "sha256:6e32a98dccbed62b07b571ce6dd4ad5322bfefe62d97321f04f7bb03023c24b3",
+      "source": "models/examples/safety_models/ld_vm_resource.py",
+      "source_sha256": "029e3694ce4f394cb97a5d15108d183928cfb883880fb9dc472991ba9678997f"
+    }
+  ],
+  "scale_extensions": "New exact workload cases/counts are produced and checked in T006/T007, then frozen at T011; no capacity claimed here.",
+  "supported_categories": [
+    {
+      "category": "independent creator/writer/remover, aliases, same-value and unreachable assignments, intersecting policies",
+      "source": "crates/behavior-models/tests/safety_ownership.rs",
+      "tests": [
+        "authorized_bindings_initialization_and_removal",
+        "noop_and_unreachable_writers_have_no_semantic_exception",
+        "overlapping_policies_intersect_and_labels_have_no_authority",
+        "binding_spelling_and_policy_order_never_grant_permissions"
+      ]
+    },
+    {
+      "category": "all generated Model actions and additional restrictions",
+      "source": "crates/behavior-models/tests/safety_composition.rs",
+      "tests": [
+        "every_generated_model_is_subject_to_additional_restrictions",
+        "generated_selector_resolves_to_same_authority_as_exact_name"
+      ]
+    },
+    {
+      "category": "canonical membership orders and duplicates",
+      "source": "python/tests/test_safety_membership.py",
+      "tests": [
+        "test_public_order_and_duplicates_certify_exact_authored_module"
+      ]
+    }
+  ]
+}

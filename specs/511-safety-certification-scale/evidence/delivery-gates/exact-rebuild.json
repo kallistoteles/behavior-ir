@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "evaluated_wheel_sha256": "810566f34559851fb6e725179a7cb066e64fae3a3a25d3eb85e524855de3902b",
+  "rebuild_wheel_sha256": "810566f34559851fb6e725179a7cb066e64fae3a3a25d3eb85e524855de3902b",
+  "source_root_original_matches_frozen_snapshot": true,
+  "source_files": 155,
+  "evaluation_tooling_files": 13,
+  "candidate_manifest_sha256": "c6e392791cfcfe3b41e4fbfe34a59b5271ef3dbac7759b78f7152922a61d6ba8",
+  "frozen_profile_sha256": "d89f382a170001623b16ee6ae95923819a6a8d42c9752484cae59070deed1272",
+  "command": "Existing release-build.sh0.14.0 into fresh dist-repro-01, then exact SHA256SUMS comparison to dist-final-01.",
+  "scope": "No new artifact substituted; same installed candidate selected for actual60pair run."
+}

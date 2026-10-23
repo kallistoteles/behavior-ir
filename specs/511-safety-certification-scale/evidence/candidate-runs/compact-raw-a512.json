@@ -1,0 +1,22 @@
+{
+  "authority": "DiagnosticOnly",
+  "child_cpu_seconds": 33.182306,
+  "child_maxrss_kib": 1354448,
+  "command": [
+    "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+    "-DmaxHeartbeats=200000",
+    "-DmaxRecDepth=4096",
+    "-M4096",
+    "-j1",
+    "-o",
+    "Concrete.olean",
+    "Concrete.lean"
+  ],
+  "log": "",
+  "source_sha256": "bf88026a3d9291095df63d180d547f804891b32d8b90cfa298e44309f9c586ee",
+  "status": "Passed",
+  "variant": "identical compact A512 data with raw Nat key literals",
+  "wall_seconds": 33.74440907291137,
+  "raw_path": "target/safety-models/scale-511/compact-raw-a512/data-observation.json",
+  "raw_sha256": "1be510b031e8b0e0fbf92867bc0d98bda8a2c24390866fd08757d9b8de602fa1"
+}

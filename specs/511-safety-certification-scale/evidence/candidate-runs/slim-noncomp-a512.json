@@ -1,0 +1,102 @@
+{
+  "authority": "DiagnosticOnly",
+  "reused_generic_imports": true,
+  "stages": [
+    {
+      "stage": "Concrete",
+      "status": "Passed",
+      "exit_code": 0,
+      "wall_seconds": 19.9087280749809,
+      "child_cpu_seconds": 19.696393999999998,
+      "cumulative_waited_child_maxrss_kib": 837004,
+      "command": [
+        "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+        "-DmaxHeartbeats=200000",
+        "-DmaxRecDepth=4096",
+        "-M4096",
+        "-j1",
+        "-o",
+        "Concrete.olean",
+        "Concrete.lean"
+      ],
+      "log": "",
+      "source_sha256": "1335eb397f83771436f20577c0622a5c20fcc0b1d5af8006230e0f2b4653aba7"
+    },
+    {
+      "stage": "MergeProbe",
+      "status": "Passed",
+      "exit_code": 0,
+      "wall_seconds": 8.382550214999355,
+      "child_cpu_seconds": 8.265947,
+      "cumulative_waited_child_maxrss_kib": 837004,
+      "command": [
+        "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+        "-DmaxHeartbeats=200000",
+        "-DmaxRecDepth=4096",
+        "-M4096",
+        "-j1",
+        "-o",
+        "MergeProbe.olean",
+        "MergeProbe.lean"
+      ],
+      "log": "",
+      "source_sha256": "b9ca86a774113687050d1b4194661add63433cbfa9b26f2e99dfc87f0e9b4b73"
+    },
+    {
+      "stage": "CompleteProbe",
+      "status": "Passed",
+      "exit_code": 0,
+      "wall_seconds": 59.709802774945274,
+      "child_cpu_seconds": 58.88231,
+      "cumulative_waited_child_maxrss_kib": 2017500,
+      "command": [
+        "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+        "-DmaxHeartbeats=200000",
+        "-DmaxRecDepth=4096",
+        "-M4096",
+        "-j1",
+        "-o",
+        "CompleteProbe.olean",
+        "CompleteProbe.lean"
+      ],
+      "log": "",
+      "source_sha256": "3a44b1b08abab2b128b8d99f4295ce81a0875abf0b045937e8f4944a145acf87"
+    },
+    {
+      "stage": "CompleteAudit",
+      "status": "Passed",
+      "exit_code": 0,
+      "wall_seconds": 2.0010942480294034,
+      "child_cpu_seconds": 1.9558139999999975,
+      "cumulative_waited_child_maxrss_kib": 2017500,
+      "command": [
+        "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+        "-DmaxHeartbeats=200000",
+        "-DmaxRecDepth=4096",
+        "-M4096",
+        "-j1",
+        "CompleteAudit.lean"
+      ],
+      "log": "",
+      "source_sha256": "432970bace2f1712d5181bf03e18f69dd0f798a89caa6d38e259d6c7d1252f82"
+    },
+    {
+      "stage": "Fresh",
+      "status": "Passed",
+      "exit_code": 0,
+      "wall_seconds": 74.17636078898795,
+      "child_cpu_seconds": 73.174894,
+      "cumulative_waited_child_maxrss_kib": 2017500,
+      "command": [
+        "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/leanchecker",
+        "--fresh",
+        "CompleteProbe"
+      ],
+      "log": "",
+      "source_sha256": null
+    }
+  ],
+  "status": "Passed",
+  "raw_path": "target/safety-models/scale-511/slim-noncomp-a512/instance-observation.json",
+  "raw_sha256": "3aff91bdd8ee8ffc814ef0c62fc5452138d0c0e04250089a541a8af88fa9e4c5"
+}

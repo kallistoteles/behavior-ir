@@ -1,3 +1,4 @@
+prelude
 import Lean
 import Lean.Util.CollectAxioms
 import safety.Check

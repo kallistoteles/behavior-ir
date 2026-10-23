@@ -1,12 +1,12 @@
 ---
 name: behavior-verification
-description: Run Behavior verification and act on its results (proven, counterexample, inconclusive), fixing the model rather than weakening checks, and telling verifier precision debt from a missing requirement. Use after writing or changing a behavior model, and whenever an attestation is not verified.
-release: 0.13.1
+description: Run Core verification and Safety certification or independent evidence checking; act on verification results (proven, counterexample, inconclusive), fixing the model rather than weakening checks, and telling verifier precision debt from a missing requirement. Use after writing or changing a behavior model, and whenever an attestation is not verified.
+release: 0.14.0
 ---
 
 # Verifying behavior
 
-This skill describes **Behavior release 0.13.1**. Use only what is described here or listed in the
+This skill describes **Behavior release 0.14.0**. Use only what is described here or listed in the
 release's public API.
 
 The package bundles Core 0.15.0 and verifier 0.10.0, including corrected read-filter,
@@ -20,6 +20,21 @@ fresh required-governance v1 writes require explicit adoption into store-v2 hist
 > If the public Behavior API cannot express a requirement, record a semantic gap in
 > `SEMANTIC_GAPS.md` (format: skills/README.md). Do not work around it: no engine internals,
 > no hand-written IR, no moving the rule into host code, no silent approximation.
+
+## Safety certification
+
+Safety certification is separate from Core SMT verification. For Safety policies, use the
+public certification workflow in `models/examples/safety_models/README.md`. Release 0.14.0
+uses checker 3, statement version 2 and separate v2 evidence/bundles. Certification and
+independent checking cover the exact admitted module and complete expected policy set;
+loading or hashing a bundle alone establishes neither validity nor completeness.
+
+Successful checking requires all generic and concrete Lean obligations, permitted-axiom
+audits and fresh kernel replay. The supplied witness is untrusted data. Rust extraction and
+encoding remain explicit trusted correspondence boundaries. Report computational exhaustion
+as `Inconclusive`, never as a counterexample or a proof. Genesis, migrations and authorized
+module activation remain separate obligations. Historical artifacts retain their original
+verification contracts; reproducibility alone does not establish an old checker's soundness.
 
 ## Running it
 
@@ -229,7 +244,7 @@ assert check["outcome"] == "inconclusive" and not debt.verified
 
 The command line has `behavior migration verify <source> <target> <migration>`.
 
-## Precision debt catalogue (release 0.13.1)
+## Precision debt catalogue (release 0.14.0)
 
 These properties can hold and still be inconclusive. They are verifier limits, not model errors.
 

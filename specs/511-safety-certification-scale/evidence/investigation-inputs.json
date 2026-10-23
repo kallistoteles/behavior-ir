@@ -1,0 +1,17 @@
+{
+  "files": {
+    "evidence/bundle-controls.json": "be47b8aca9a0f2d3c755e1fe7f0b1867c3f85beee0a8925dc412b289bd24a576",
+    "evidence/correspondence-controls.xml": "2655ae66c6cf3947722b4dce2a366cde6f9ba3d05cbdc2fa10278638942df5fe",
+    "evidence/environment.json": "59b0525d7230a9e20f6970b5a7cdb59e2090db725d38dece1b30cbab62e246dd",
+    "evidence/observations.json": "d47693a3170c5580d69ec60d5deff87e864973ecc698f2b9cb445f81ecaed3e8",
+    "evidence/proof-integrity-controls.json": "f2b971d22e5cef40f6b6ead20ecc1c7bb0e4e6fe619436ab836e990898a0c850",
+    "evidence/remediation-baseline.json": "1d92f491e868eceab9a599516de8a88f885565d588f2af17a60f8c4e789695db",
+    "evidence/v1-regression-corpus.json": "ed9c81e039c0869640421a5e7fb98dd68ce252d3e8af037bb32fc2962a61daef",
+    "experiments/bundle_controls.py": "f997fa6f063661e266d5f70c1a88c183cfa6559a754e36f5368716a4b1748664",
+    "experiments/certification_probe.py": "86634bb56fe9ba23c00e28bf0045681b9f00442948b6a60db13bd0b12eaaded3",
+    "experiments/collect_observations.py": "c9be76dc9bb9990c96a464f3f537a28b8bfaff2532fcd74f634970dd522c9d36",
+    "experiments/lean_stage_probe.py": "5ddd1cb574901e586f930efa10f89f21d443cbd54217aa50c0b13e103b902520",
+    "experiments/proof_integrity_controls.py": "8c7ad5ab4cc646fbc5a891617d1555ec380ed754e9720b95946f98b03897e3e5"
+  },
+  "meaning": "Input inventory only; no new benchmark or certificate acceptance."
+}

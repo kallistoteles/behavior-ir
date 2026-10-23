@@ -1,0 +1,48 @@
+{
+  "passed": true,
+  "installed_python_tests": 86,
+  "installed_python_log": "installed-regression.txt",
+  "wheel_sha256": "810566f34559851fb6e725179a7cb066e64fae3a3a25d3eb85e524855de3902b",
+  "prefix": "/tmp/behavior-511-delivery-tqmy2d06/installed-regression-venv",
+  "import_mode": "importlib; installed behavior chosen independently of source tree",
+  "references": {
+    "passed": 5,
+    "summary": "installed-summary.json",
+    "all_original_behavior_and_policy_hashes_match": true
+  },
+  "categories": [
+    {
+      "category": "independent creator/writer/remover, aliases, same-value and unreachable assignments, intersecting policies",
+      "source": "crates/behavior-models/tests/safety_ownership.rs",
+      "tests": [
+        "authorized_bindings_initialization_and_removal",
+        "noop_and_unreachable_writers_have_no_semantic_exception",
+        "overlapping_policies_intersect_and_labels_have_no_authority",
+        "binding_spelling_and_policy_order_never_grant_permissions"
+      ]
+    },
+    {
+      "category": "all generated Model actions and additional restrictions",
+      "source": "crates/behavior-models/tests/safety_composition.rs",
+      "tests": [
+        "every_generated_model_is_subject_to_additional_restrictions",
+        "generated_selector_resolves_to_same_authority_as_exact_name"
+      ]
+    },
+    {
+      "category": "canonical membership orders and duplicates",
+      "source": "python/tests/test_safety_membership.py",
+      "tests": [
+        "test_public_order_and_duplicates_certify_exact_authored_module"
+      ]
+    }
+  ],
+  "category_execution": "All named Rust ownership/composition categories passed in full328test gate; same checker/proof/dependency identity verified against frozen installed wheel. Public authoring/lifecycle/membership/evidence/snapshot/transparency tests passed86fromsamewheel.",
+  "membership_instances": {
+    "actual_kernel_checked": 82,
+    "record": "membership-execution-final.json",
+    "frozen_checker_identity_match": true
+  },
+  "no_language_removed_or_new_domain_restrictions": true,
+  "scope": "Finite complete declared regression corpus and source predicate compatibility, not universal producer completeness."
+}

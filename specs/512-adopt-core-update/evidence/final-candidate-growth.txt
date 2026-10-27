@@ -1,0 +1,4 @@
+warning: Git tree '/home/kalle/repos/behavior-ir-512' is dirty
+{"population": 64, "repetitions_complete": 3}
+{"population": 256, "repetitions_complete": 3}
+{"population": 1024, "repetitions_complete": 3}

@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-26
 
-**Status**: Draft
+**Status**: Implemented — candidate validated; publication is a separate explicit step
 
 **Repository**: `kallistoteles/behavior-ir`
 

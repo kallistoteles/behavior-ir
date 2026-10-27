@@ -43,20 +43,20 @@
 
 - [X] T014 [US3] Capture `candidate-semantic.json`, require an empty semantic comparison against T003 and preserved version contracts, and add new-Core ordinary/Safety compatibility tuples in `models/fixtures/compat.json` and `models/fixtures/safety-compat.json` with the existing writer while retaining established entries; explain expected dependency-bound inventory hashes separately. Keep same-Core inventory checks exact; normalize only selected current release metadata in the historical conformance-byte comparison.
 - [X] T015 [US3] Refresh current Core verification examples/fixtures and explicit verifier-policy references using the released public API in `skills/behavior-verification/examples/approval_verification.py`; exercise fresh-versus-archival/context/cache controls in `python/tests/test_verify.py` and `python/tests/test_store.py`, retaining immutable old evidence and exact action scope.
-- [ ] T016 [US3] Regenerate and independently check fresh Safety bundles under the new exact dependency identities through existing `release/safety_smoke.py` and `python/tests/test_safety_evidence.py`; preserve all required proof/axiom/fresh-kernel checks and reject stale/wrong-context bundles without changing policy semantics or theorems solely for the pin update.
+- [X] T016 [US3] Regenerate and independently check fresh Safety bundles under the new exact dependency identities through existing `release/safety_smoke.py` and `python/tests/test_safety_evidence.py`; preserve all required proof/axiom/fresh-kernel checks and reject stale/wrong-context bundles without changing policy semantics or theorems solely for the pin update.
 
 ## Phase 6: US4 — Skills and release guidance (P2)
 
 **Goal/independent test**: All three Skills and essential examples accurately describe the installed candidate; complete conformance and existing release checks assess its exact source.
 
 - [X] T017 [US4] Update the three `skills/behavior-*/SKILL.md` documents, essential versioned examples, `README.md`, `docs/versioning.md` and `release/notes/0.15.0.md`; document recognized Ref guards/checks, measured global-rule scope, current precision limits, evidence boundaries and normal retry versus lost-acknowledgement recovery without expanding Models.
-- [ ] T018 [US4] Execute essential Skill examples and fresh certification/reverification from a clean installed candidate through the existing `scripts/release-check.sh`; retain the tested package checksum and preserve ordinary Core replay without Lean/Safety artifacts.
+- [X] T018 [US4] Execute essential Skill examples and fresh certification/reverification from a clean installed candidate through the existing `scripts/release-check.sh`; retain the tested package checksum and preserve ordinary Core replay without Lean/Safety artifacts.
 - [X] T019 [US4] Run `scripts/conformance.sh 506 complete` and `scripts/conformance.sh 507 complete`, retaining full reports and existing timing requirements; do not weaken checks or label blocked scenarios complete.
 
 ## Phase 7: Final acceptance
 
-- [ ] T020 Run existing `scripts/gates.sh`, required Safety proof/integrity checks and full `scripts/release-check.sh` with reproducibility/artifact verification against the exact declared Core release; record source and artifact digests and actual raw results in `specs/512-adopt-core-update/evidence/`.
-- [ ] T021 Close FR-001–016, SC-001–007 and all 12 story scenarios in `specs/512-adopt-core-update/evidence/README.md`; record blockers and deferred nonblocking findings, validate all links/commands, and report release readiness only when every preceding task passes. No tag, release publication, unrelated Core/SMT work or new governance is authorized.
+- [X] T020 Run existing `scripts/gates.sh`, required Safety proof/integrity checks and full `scripts/release-check.sh` with reproducibility/artifact verification against the exact declared Core release; record source and artifact digests and actual raw results in `specs/512-adopt-core-update/evidence/`.
+- [X] T021 Close FR-001–016, SC-001–007 and all 12 story scenarios in `specs/512-adopt-core-update/evidence/README.md`; record blockers and deferred nonblocking findings, validate all links/commands, and report release readiness only when every preceding task passes. No tag, release publication, unrelated Core/SMT work or new governance is authorized.
 
 ## Dependencies and parallel opportunities
 

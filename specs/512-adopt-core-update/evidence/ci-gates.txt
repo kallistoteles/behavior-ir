@@ -1,0 +1,813 @@
+gates	Set up job	﻿2026-10-27T11:06:33.6163649Z Current runner version: '2.338.0'
+gates	Set up job	2026-10-27T11:06:33.6181302Z ##[group]Runner Image Provisioner
+gates	Set up job	2026-10-27T11:06:33.6181946Z Hosted Compute Agent
+gates	Set up job	2026-10-27T11:06:33.6182294Z Version: 20261021.618
+gates	Set up job	2026-10-27T11:06:33.6182694Z Commit: 21505ad2541d5be6135ed84fc33697146cf75b8e
+gates	Set up job	2026-10-27T11:06:33.6183166Z Build Date: 2026-10-21T00:45:21Z
+gates	Set up job	2026-10-27T11:06:33.6183570Z Worker ID: {b626d907-7ff4-4b81-afd0-a05b2155e5fe}
+gates	Set up job	2026-10-27T11:06:33.6184047Z Region: westus3
+gates	Set up job	2026-10-27T11:06:33.6184379Z Cloud: Azure
+gates	Set up job	2026-10-27T11:06:33.6184868Z ##[endgroup]
+gates	Set up job	2026-10-27T11:06:33.6185879Z ##[group]Operating System
+gates	Set up job	2026-10-27T11:06:33.6186243Z Ubuntu
+gates	Set up job	2026-10-27T11:06:33.6186607Z 24.04.5
+gates	Set up job	2026-10-27T11:06:33.6186918Z LTS
+gates	Set up job	2026-10-27T11:06:33.6187218Z ##[endgroup]
+gates	Set up job	2026-10-27T11:06:33.6187618Z ##[group]Runner Image
+gates	Set up job	2026-10-27T11:06:33.6187986Z Image: ubuntu-24.04
+gates	Set up job	2026-10-27T11:06:33.6188384Z Version: 20261012.334.1
+gates	Set up job	2026-10-27T11:06:33.6188991Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261012.334/images/ubuntu/Ubuntu2404-Readme.md
+gates	Set up job	2026-10-27T11:06:33.6190071Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261012.334
+gates	Set up job	2026-10-27T11:06:33.6190650Z ##[endgroup]
+gates	Set up job	2026-10-27T11:06:33.6191310Z ##[group]GITHUB_TOKEN Permissions
+gates	Set up job	2026-10-27T11:06:33.6192480Z Contents: read
+gates	Set up job	2026-10-27T11:06:33.6192903Z Metadata: read
+gates	Set up job	2026-10-27T11:06:33.6193232Z ##[endgroup]
+gates	Set up job	2026-10-27T11:06:33.6194602Z Secret source: Actions
+gates	Set up job	2026-10-27T11:06:33.6195212Z Cache mode: write
+gates	Set up job	2026-10-27T11:06:33.6195609Z Prepare workflow directory
+gates	Set up job	2026-10-27T11:06:33.6400251Z Prepare all required actions
+gates	Set up job	2026-10-27T11:06:33.6431152Z Getting action download info
+gates	Set up job	2026-10-27T11:06:33.9858315Z Download action repository 'actions/checkout@11d5960a326750d5838078e36cf38b85af677262' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+gates	Set up job	2026-10-27T11:06:34.3860575Z Download action repository 'DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea' (SHA:90bb610b90bf290cad97484ba341453bd1cbefea)
+gates	Set up job	2026-10-27T11:06:35.2737357Z Download action repository 'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+gates	Set up job	2026-10-27T11:06:35.9879682Z Complete job name: gates
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	﻿2026-10-27T11:06:36.0892126Z ##[group]Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.0892534Z with:
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.0892687Z   fetch-depth: 0
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.0892858Z   repository: kallistoteles/behavior-ir
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.0894630Z   token: ***
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.0894784Z   ssh-strict: true
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.0894933Z   ssh-user: git
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.0895091Z   persist-credentials: true
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.0895264Z   clean: true
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.0895422Z   sparse-checkout-cone-mode: true
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.0895603Z   fetch-tags: false
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.0895774Z   show-progress: true
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.0895933Z   lfs: false
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.0896087Z   submodules: false
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.0896241Z   set-safe-directory: true
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.0896434Z   allow-unsafe-pr-checkout: false
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.0896795Z ##[endgroup]
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.1565506Z Syncing repository: kallistoteles/behavior-ir
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.1567076Z ##[group]Getting Git version info
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.1567554Z Working directory is '/home/runner/work/behavior-ir/behavior-ir'
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.1568121Z [command]/usr/bin/git version
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.1604889Z git version 2.55.0
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.1616926Z ##[endgroup]
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.1626157Z Temporarily overriding HOME='/home/runner/work/_temp/ee042aa5-3609-4387-a159-3c8e116f3f66' before making global git config changes
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.1626882Z Adding repository directory to the temporary git global config as a safe directory
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.1629408Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/behavior-ir/behavior-ir
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.1734994Z Deleting the contents of '/home/runner/work/behavior-ir/behavior-ir'
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.1748977Z ##[group]Initializing the repository
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.1751500Z [command]/usr/bin/git init /home/runner/work/behavior-ir/behavior-ir
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.1939417Z hint: Using 'master' as the name for the initial branch. This default branch name
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.1940739Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.1941083Z hint: to use in all of your new repositories, which will suppress this warning,
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.1941344Z hint: call:
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.1941579Z hint:
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.1941923Z hint: 	git config --global init.defaultBranch <name>
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.1961021Z hint:
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.1961253Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.1961579Z hint: 'development'. The just-created branch can be renamed via this command:
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.1961827Z hint:
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.1961980Z hint: 	git branch -m <name>
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.1962145Z hint:
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.1962360Z hint: Disable this message with "git config set advice.defaultBranchName false"
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.1962717Z Initialized empty Git repository in /home/runner/work/behavior-ir/behavior-ir/.git/
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.1965286Z [command]/usr/bin/git remote add origin https://github.com/kallistoteles/behavior-ir
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.2052437Z ##[endgroup]
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.2052905Z ##[group]Disabling automatic garbage collection
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.2056671Z [command]/usr/bin/git config --local gc.auto 0
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.2146305Z ##[endgroup]
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.2146774Z ##[group]Setting up auth
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.2149397Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.2179596Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.2481481Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.2508735Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.2682776Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.2710274Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.2887331Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.3038140Z ##[endgroup]
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.3038593Z ##[group]Fetching the repository
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:36.3044991Z [command]/usr/bin/git -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/* +862c26e5da2ab591bde406ebf6b7f7b144ec5977:refs/remotes/pull/30/merge
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9381177Z From https://github.com/kallistoteles/behavior-ir
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9381900Z  * [new branch]      001-verifiable-behavior-ir               -> origin/001-verifiable-behavior-ir
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9382268Z  * [new branch]      002-smt-verification                     -> origin/002-smt-verification
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9382612Z  * [new branch]      003-fixed-scale-decimals                 -> origin/003-fixed-scale-decimals
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9382965Z  * [new branch]      004-exact-arithmetic-closure             -> origin/004-exact-arithmetic-closure
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9383340Z  * [new branch]      005-persistence-contract                 -> origin/005-persistence-contract
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9383688Z  * [new branch]      006-entity-lifecycle                     -> origin/006-entity-lifecycle
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9384064Z  * [new branch]      007-relational-queries                   -> origin/007-relational-queries
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9384539Z  * [new branch]      008-agent-ready-package                  -> origin/008-agent-ready-package
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9385085Z  * [new branch]      009-schema-evolution                     -> origin/009-schema-evolution
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9385408Z  * [new branch]      010-first-class-reads                    -> origin/010-first-class-reads
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9385767Z  * [new branch]      011-core-ecosystem-split                 -> origin/011-core-ecosystem-split
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9386089Z  * [new branch]      011-review                               -> origin/011-review
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9443974Z  * [new branch]      500-core-release-alignment               -> origin/500-core-release-alignment
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9445071Z  * [new branch]      501-model-lowering-state-machine         -> origin/501-model-lowering-state-machine
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9445485Z  * [new branch]      502-request-flow                         -> origin/502-request-flow
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9445822Z  * [new branch]      503-approval-model                       -> origin/503-approval-model
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9446201Z  * [new branch]      504-core-release-0-13                    -> origin/504-core-release-0-13
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9446542Z  * [new branch]      505-model-type-identity                  -> origin/505-model-type-identity
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9446876Z  * [new branch]      506-e2e-conformance                      -> origin/506-e2e-conformance
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9447319Z  * [new branch]      507-work-queue                           -> origin/507-work-queue
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9447904Z  * [new branch]      508-core-release-0-15                    -> origin/508-core-release-0-15
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9448387Z  * [new branch]      509-ecosystem-release                    -> origin/509-ecosystem-release
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9448872Z  * [new branch]      510-safety-models                        -> origin/510-safety-models
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9449386Z  * [new branch]      511-safety-certification-scale           -> origin/511-safety-certification-scale
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9449937Z  * [new branch]      512-adopt-core-update                    -> origin/512-adopt-core-update
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9450366Z  * [new branch]      dev                                      -> origin/dev
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9450792Z  * [new branch]      fix-release-check-env                    -> origin/fix-release-check-env
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9451504Z  * [new branch]      fix-reproducible-wheel                   -> origin/fix-reproducible-wheel
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9452256Z  * [new branch]      fix/canonical-core-release-gates-20261005 -> origin/fix/canonical-core-release-gates-20261005
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9452919Z  * [new branch]      fix/github-flow-ci                       -> origin/fix/github-flow-ci
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9453520Z  * [new branch]      fix/source-locations                     -> origin/fix/source-locations
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9453954Z  * [new branch]      main                                     -> origin/main
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9454581Z  * [new branch]      test/sc-010-ecosystem-clippy-20261004    -> origin/test/sc-010-ecosystem-clippy-20261004
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9455253Z  * [new branch]      test/sc-010-ecosystem-determinism-20261004 -> origin/test/sc-010-ecosystem-determinism-20261004
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9455938Z  * [new branch]      test/sc-010-ecosystem-equivalence-20261004 -> origin/test/sc-010-ecosystem-equivalence-20261004
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9456702Z  * [new branch]      test/sc-010-ecosystem-fmt-20261004       -> origin/test/sc-010-ecosystem-fmt-20261004
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9457397Z  * [new branch]      test/sc-010-ecosystem-pin-20261004       -> origin/test/sc-010-ecosystem-pin-20261004
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9458063Z  * [new branch]      test/sc-010-ecosystem-skill-example-20261004 -> origin/test/sc-010-ecosystem-skill-example-20261004
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9458746Z  * [new branch]      test/sc-010-ecosystem-surface-20261004   -> origin/test/sc-010-ecosystem-surface-20261004
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9459379Z  * [new branch]      test/sc-010-ecosystem-test-20261004      -> origin/test/sc-010-ecosystem-test-20261004
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9460005Z  * [new tag]         v0.10.2                                  -> v0.10.2
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9460347Z  * [new tag]         v0.10.3                                  -> v0.10.3
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9460678Z  * [new tag]         v0.10.4                                  -> v0.10.4
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9461019Z  * [new tag]         v0.12.0                                  -> v0.12.0
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9461366Z  * [new tag]         v0.13.0                                  -> v0.13.0
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9461704Z  * [new tag]         v0.13.1                                  -> v0.13.1
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9462046Z  * [new tag]         v0.14.0                                  -> v0.14.0
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9462390Z  * [new tag]         v0.8.0                                   -> v0.8.0
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9462781Z  * [new ref]         862c26e5da2ab591bde406ebf6b7f7b144ec5977 -> pull/30/merge
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9463948Z ##[endgroup]
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9464282Z ##[group]Determining the checkout info
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9464821Z ##[endgroup]
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9465046Z [command]/usr/bin/git sparse-checkout disable
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9465678Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9471138Z ##[group]Checking out the ref
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:37.9474046Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/30/merge
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:38.0238935Z Note: switching to 'refs/remotes/pull/30/merge'.
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:38.0239214Z 
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:38.0239364Z You are in 'detached HEAD' state. You can look around, make experimental
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:38.0239664Z changes and commit them, and you can discard any commits you make in this
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:38.0239955Z state without impacting any branches by switching back to a branch.
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:38.0240113Z 
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:38.0240243Z If you want to create a new branch to retain commits you create, you may
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:38.0240519Z do so (now or later) by using -c with the switch command. Example:
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:38.0240701Z 
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:38.0240782Z   git switch -c <new-branch-name>
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:38.0240884Z 
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:38.0240959Z Or undo this operation with:
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:38.0241095Z 
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:38.0241320Z   git switch -
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:38.0241541Z 
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:38.0241686Z Turn off this advice by setting config variable advice.detachedHead to false
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:38.0241860Z 
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:38.0242089Z HEAD is now at 862c26e Merge fdbed105d2d721dd176b811bc9faccfbab2c178a into 1cba9e16ff73f927ae08e70a7bc74a6ca52355e4
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:38.0252490Z ##[endgroup]
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:38.0293350Z [command]/usr/bin/git log -1 --format=%H
+gates	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T11:06:38.0315625Z 862c26e5da2ab591bde406ebf6b7f7b144ec5977
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	﻿2026-10-27T11:06:38.0527897Z ##[group]Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:38.0528179Z with:
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:38.0528296Z   determinate: false
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:38.0528418Z   flakehub: false
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:38.0528559Z   force-no-systemd: false
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:38.0530052Z   github-token: ***
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:38.0530193Z   github-server-url: https://github.com
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:38.0530350Z   job-status: success
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:38.0530469Z   kvm: true
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:38.0530587Z   modify-profile: true
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:38.0530715Z   reinstall: false
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:38.0530833Z   start-daemon: true
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:38.0530971Z   diagnostic-endpoint: -
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:38.0531107Z   trust-runner-user: true
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:38.0531244Z   _internal-strict-mode: false
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:38.0531383Z ##[endgroup]
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:38.3883985Z ^[[0;31m^[[1m^[[4mDeterminate Systems, Inc. | Status Status
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:38.3884995Z 🛠️ monitoring: Patched PHP security release (https://status.determinate.systems/incidents/51ece80b-c4d6-401e-a3bb-cc2811518fc6)
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:38.3886009Z 🔴 monitoring: eMudhra Intermediate CA Compromise (https://status.determinate.systems/incidents/f7cd1dd4-f0d1-4960-b787-e8077e6d4885)
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:38.3886835Z See: https://status.determinate.systems/
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:38.3886964Z 
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:38.3901119Z [command]/usr/bin/sudo mkdir -p /var/lib/determinate
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:38.4099281Z ##[group]Detecting systemd...
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:38.4099589Z ##[endgroup]
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:38.4105997Z ##[group]Configuring KVM
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:38.4452542Z ##[endgroup]
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:38.4453391Z ^[[32m Accelerated KVM is enabled ^[[33m⚡️
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:38.4453797Z ##[group]Installing Nix
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:38.4455653Z ##[group]Downloading nix-installer for x86_64-linux
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:38.4456614Z Fetching from https://cf.install.determinate.systems/nix-installer/stable/x86_64-linux
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:38.7178091Z Cache hit for: determinatesystem-nix-installer-x86_64-linux-714b581bf9912a8a7e9d7cf3efcdb637
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:39.9535656Z Received 25165824 of 49560979 (50.8%), 24.0 MBs/sec
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:40.9546774Z Received 45366675 of 49560979 (91.5%), 21.6 MBs/sec
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:40.9803332Z Received 49560979 of 49560979 (100.0%), 23.3 MBs/sec
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:40.9803844Z Cache Size: ~47 MB (49560979 B)
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:40.9825117Z [command]/usr/bin/tar -xf /home/runner/work/_temp/3ab85532-cf36-440c-b4ea-970460bbf3e8/cache.tzst -P -C /home/runner/work/_temp/nix-installer-670cffaf-f435-4a1e-a0b9-ed10ab88a0ed --use-compress-program unzstd
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:41.0670796Z Cache restored successfully
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:41.0696908Z ##[endgroup]
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:41.0707222Z [command]/home/runner/work/_temp/nix-installer-670cffaf-f435-4a1e-a0b9-ed10ab88a0ed/nix-installer install linux
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:41.0745103Z  INFO nix-installer v3.24.1
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:41.2138420Z ^[[2m^[[33m`nix-installer` needs to run as `root`, attempting to escalate now via `sudo`...^[[39m^[[0m
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:41.2226901Z  INFO nix-installer v3.24.1
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:41.4455408Z  INFO Step: Create directory `/nix`
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:41.4455718Z  INFO Step: Install Determinate Nixd
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:41.4544021Z  INFO Step: Provision Nix
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:43.3718351Z  INFO Step: Create build users (UID 30001-30032) and group (GID 30000)
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:44.4729793Z  INFO Step: Configure Nix
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:44.9959900Z  INFO Step: Create directory `/etc/tmpfiles.d`
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:44.9960347Z  INFO Step: Configure the Determinate Nix daemon
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:45.7407255Z  INFO Step: Cleanup
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:45.7434637Z  INFO Running self test for shell sh
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:45.9379280Z  INFO Running self test for shell bash
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:46.0888403Z ^[[1m^[[32mNix was installed successfully!^[[39m^[[0m
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:46.0889117Z To get started using Nix, open a new shell or run `^[[1m. /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh^[[0m`
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:46.0889492Z 
+gates	Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T11:06:46.1664171Z ##[endgroup]
+gates	Run nix develop -c scripts/gates.sh	﻿2026-10-27T11:06:46.2677777Z ##[group]Run nix develop -c scripts/gates.sh
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:46.2678023Z ^[[36;1mnix develop -c scripts/gates.sh^[[0m
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:46.2875486Z shell: /usr/bin/bash -e {0}
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:46.2875657Z env:
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:46.2875847Z   DETSYS_BACKTRACE_COLLECTOR: 376cf64c-c3f9-4bf1-84be-9477c912555b
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:46.2876056Z   DETERMINATE_NIX_KVM: 1
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:46.2876202Z   BEHAVIOR_FULL_PROPERTIES: 1
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:46.2876345Z ##[endgroup]
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:46.4329914Z copying path '/nix/store/zc9xvdvz642n6q20m04ixm30s98m6281-source' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:54.0615852Z unpacking 'github:oxalica/rust-overlay/fb058ecf6d14837ea152a3d5225ce7f88ee5cde1?narHash=sha256-01WcSplVEmQt13QUZLfWez27JO%2B2lyYWX%2ByTitvkF3g%3D' into the Git cache...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.3379654Z copying path '/nix/store/fh8svr4ds87z84iarfnxrlfpjlbmc816-tzdata-2026c' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.3380872Z copying path '/nix/store/549nkjs10xhma2f9kx3rxw61kym0abjx-mailcap-2.1.54' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.3411131Z copying path '/nix/store/9v00p4m9cdzn23gmy5m9d3a6c3gfwhl7-iana-etc-20251215' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.3626158Z copying path '/nix/store/m07syxhld8hpprrdmzq565ziia6vlw9l-xgcc-15.3.0-libgcc' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.3760216Z copying path '/nix/store/wkiqjb44n5k0fwhmc523dvflspd47q3b-gcc-15.3.0-libgcc' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.3836195Z copying path '/nix/store/n8k0wza75nmrx08civlj29h26scx2fjh-gnu-config-2024-01-01' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.3844842Z copying path '/nix/store/bv3lx708clpz3m6zbd5742np4dlry0yj-libunistring-1.4.2' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.4032991Z copying path '/nix/store/rjri54xd29c5qfwj124j62ffzjjigjmh-update-autotools-gnu-config-scripts-hook' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.4229024Z copying path '/nix/store/gqwgk08v8n97y38m740w1lpdwcn6f9is-linux-headers-7.2' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.4254635Z copying path '/nix/store/7gddsfyp9bwb0m6iwd10ig7jr06xrv73-bin' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.4261705Z copying path '/nix/store/i3jw341xs88r6wxf1j22rjx1mmd8cfjw-libidn2-2.3.8' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.4278113Z copying path '/nix/store/8l4s0n61pskzsgr2ccdfj70fd3vcz0gv-builder.pl' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.4532873Z copying path '/nix/store/lm3pknxi0ipypy3lxh1wmm8wvvavdwrn-glibc-2.42-84' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.4649164Z copying path '/nix/store/6jwjml7pv5qmdhmi7sk1nm3pa1vzrwfp-die-hook' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.5061238Z copying path '/nix/store/i1zh0v06x5br4gv4jy0b8zc4vk3xg7ri-python3.13-pip-26.1.2-man' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.5470425Z copying path '/nix/store/4q3lydn0anq5qyzpxm5xyxnxqxn5nj7c-zlib-1.3.2-static' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.6281550Z copying path '/nix/store/f9rvx8k8i9v6ks7f6s4qzkn6wxj1n35w-curl-8.22.0-man' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.6287175Z copying path '/nix/store/bvqkbbpv0kyspw39v3by6b0cflgfsf9q-acl-2.4.0' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.6289544Z copying path '/nix/store/dy7rlj1ja9s51gnm20h3f56mv424p8fs-attr-2.6.0' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.6291234Z copying path '/nix/store/svx59425zxp552p2b8gm11qj5r09b56i-bash-5.3p15' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.6294240Z copying path '/nix/store/l509wk1p0c5sh0i4pvfd9d018pzmjnd8-bzip2-1.0.8' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.6301740Z copying path '/nix/store/x3z8l9qvz5s1c74vfnnpcckzjrvkdasf-ed-1.22.6' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.6302777Z copying path '/nix/store/b3xx1nxngi605as6hv0w85rirmq0dmp3-expand-response-params' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.6303542Z copying path '/nix/store/9zib1q94gka8i5q530364cvy25504qz5-gawk-5.4.1' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.6304993Z copying path '/nix/store/pzky0fzxs3iy95lf14ffybxg973nv933-expat-2.8.4' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.6305660Z copying path '/nix/store/604gsr59rj7dzd0nrhp143rpvf7gyiaz-gcc-15.3.0-lib' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.6306356Z copying path '/nix/store/fdpy1l72q9gvq8d9snrdq67gm0j5s1dg-glibc-2.42-84-bin' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.6311079Z copying path '/nix/store/r4awsy3173chrfdqy65vlk90r43zrf73-gmp-6.3.0' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.6311838Z copying path '/nix/store/96fkfd8hdjr8aj8jxvk0rgi6nbafjq4d-gdbm-1.26-lib' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.6312662Z copying path '/nix/store/p0axjf0ry2f7zdz0zi40fbi2982hky6i-expand-response-params' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.6319105Z copying path '/nix/store/qf2wzyq4irhgyhnq3s2hz0ldjq3w8a3x-gnused-4.10' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.6321037Z copying path '/nix/store/c011mk580m964s1zxjccvdax3fcmppnl-gnumake-4.4.1' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.6512017Z copying path '/nix/store/hhv2z8dn6760d1bzvrd69l4ivclb792r-libxml2-2.15.4' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.6549728Z copying path '/nix/store/6vqahj875znq0wlsy1bg926yki3d5m4r-pcre2-10.48' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.6575636Z copying path '/nix/store/lw86vj9kfwgvlivg3p8qg2nibpmhmsl9-zlib-1.3.2' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.6589855Z copying path '/nix/store/41l3h8s1lr518n03bsrzv5vsf37bhnb9-gnutar-1.35' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.6594070Z copying path '/nix/store/l5sll8nxk70p73l5yqbsjy4mh0c3g0v5-gzip-1.14' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.6595107Z copying path '/nix/store/3r5wfb1dl3sfknvy1yringvmap0hxj4r-libffi-3.8.0' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.6601414Z copying path '/nix/store/81zqbas7qc02yfdj7142fdcqhxgd3cgz-patch-2.8' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.6628707Z copying path '/nix/store/j3yz0ag9j442229n8harpmp9aa5qyvhn-bzip2-1.0.8-bin' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.6678457Z copying path '/nix/store/cjippm7n89ac2z3rxdghns4p02s6g09m-xz-5.8.3' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.6734771Z copying path '/nix/store/68b1blnvl4scgdq48d4p7h4lw4pm5w0w-libuv-1.52.1' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.6890333Z copying path '/nix/store/5ajjlk8dyi96ajvm066yivd4fbyg2gjh-isl-0.20' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.6976748Z copying path '/nix/store/bsjdf8dh5k8sylwzgp58ip47sbpbzw5l-gh-2.101.0' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.7004926Z copying path '/nix/store/l59iyibk32661wkzrc9nkhn3k24xz752-mpfr-4.2.2' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.7090895Z copying path '/nix/store/lbjwxax9n0457lgd83rqwpd1l9lgfl7r-glibc-2.42-84-dev' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.7121416Z copying path '/nix/store/6y8dlv5k1ma6r8cb9m5iwpx72hd3lizc-nghttp2-1.70.0-lib' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.7130933Z copying path '/nix/store/pk03s7pvpzgfhvlk4z9yz69yzn2l8iw9-keyutils-1.6.3-lib' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.7135743Z copying path '/nix/store/mgnj8wmxlj77kzgnlgpb52yg171gf1kp-nghttp2-1.70.0' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.7139427Z copying path '/nix/store/sbbghw4j32smy8hfbvvcbqvbafi6d66i-openssl-3.6.4' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.7140559Z copying path '/nix/store/4cj18ri8yyjbiragdkxm0q3y6bqr0dqs-lndir-1.0.5' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.7185139Z copying path '/nix/store/fv9yl55hkskpc2cj9c0sdyq91car9kgl-file-5.48' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.7275068Z copying path '/nix/store/8vl6rm8j9n8f2rklmi9j8yhgry8ffhh6-binutils-2.46-lib' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.7290905Z copying path '/nix/store/48i2j08s83lddnyhlrg4ahxq5kcflkxw-make-shell-wrapper-hook' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.7329442Z copying path '/nix/store/51hxzq3l1qd4gy0r4safnj1y9s0hgs68-ncurses-6.6' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.7342430Z copying path '/nix/store/518dig8gpvqyac6pkksyjjfzvi9zn8vq-xz-5.8.3-bin' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.7497479Z copying path '/nix/store/xmvbzzxm5snla5a2cyfhm7hjy9bifx7n-gnugrep-3.12' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.7537902Z copying path '/nix/store/7a0nx1a0rdc5s07vxrsdhplqnzncl5z9-sqlite-3.53.3' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.7571867Z copying path '/nix/store/l7hnbf72dzsccm3bqkyvhyd10vq2z4az-libmpc-1.4.1' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.7719226Z copying path '/nix/store/8ci2gp6razvwij8hqv0znhb7gkr33qs0-mpdecimal-4.0.1' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.7723849Z copying path '/nix/store/n5p5q01x4nqvgp36i651rc5ky95i0iq2-util-linux-minimal-2.42.3-lib' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.7726721Z copying path '/nix/store/yj34vymbqf7mf4lmffipy8jqc4kwr1mc-openssl-3.6.4' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.7789331Z copying path '/nix/store/7y2nfyd4k237pk5fp9qkfi7xr9gb1mfc-libxcrypt-4.5.2' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.7803326Z copying path '/nix/store/6zyyljmsm2f5cpp13x386ajqdfsprsig-nghttp2-1.70.0-dev' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.7951133Z copying path '/nix/store/z3qwljip4pf9nzyx7w5ri6942ifsrkys-maturin-1.15.0' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.8092908Z copying path '/nix/store/rx0qkfh4zcf1lp9i94kq04yh149w10a1-z3-4.16.0' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.8246859Z copying path '/nix/store/hyfr0bx0vvxwxm7ybwh8vsksrzv0i0rp-z3-4.16.0-lib' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.8341447Z copying path '/nix/store/h9wq5kdv1jc9hxmwgn9vh9bwsigmnsj6-patchelf-0.15.2' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.8371470Z copying path '/nix/store/dyi7b3zz14xj75sv14q354qa6qkvzdbg-llvm-21.1.8-lib' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.8797677Z copying path '/nix/store/yfrd1ghcyk23shcgd84ya18axiwf5j5m-gmp-with-cxx-6.3.0' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.8864977Z copying path '/nix/store/8sjgd7q3mdks1rb7rbcv0sallhvrhai5-gcc-15.3.0' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.8879999Z copying path '/nix/store/jxd26cx6cgbjzal3mzw0vcv8pqdbh0bb-gmp-with-cxx-6.3.0' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.8919390Z copying path '/nix/store/m6770zvd26wrdyxfsj6m6mdcpa1s8dm8-cadical-2.1.3' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.8957598Z copying path '/nix/store/31gnwsgag5qa14hfblqi5hyn71pyx7py-binutils-2.46' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.9390814Z copying path '/nix/store/8ik1d1r4l2jzm9mjh6bc0a13yczx62wg-zstd-1.5.7' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.9628566Z copying path '/nix/store/7af934aj137dhmnjpjdxsmvi5x9jmlvw-unzip-6.0' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.9647129Z copying path '/nix/store/xjl7p8dvyk2j53kqf7f43kdj4ypbxz7g-coreutils-9.11' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.9717933Z copying path '/nix/store/k88w5gs8n850cwm9agc0bna4awxsddzp-krb5-1.22.2-lib' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:57.9890479Z copying path '/nix/store/3ggn8ircmlw3sb9hdfg3xralqc7isywd-libssh2-1.11.1' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:58.0190416Z copying path '/nix/store/ld12llamdxx5m5gi40jipihxshnypz6g-openssl-3.6.4-bin' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:58.0267606Z copying path '/nix/store/c8b0qp903w2hhpa63a2lfs7d565zag30-gnutar-1.35' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:58.0650826Z copying path '/nix/store/k0jg46fv3kwkn14pq3wzryan72rki8yp-zlib-1.3.2-dev' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:58.1171530Z copying path '/nix/store/7d2p2g4pgdc94cwvyvix758grp7kpmay-readline-8.3p3' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:58.1637908Z copying path '/nix/store/zh4ns9db9vnq3gi42k0rgpr6sc7l12a5-openssl-3.6.4-dev' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:58.1693599Z copying path '/nix/store/b8xvzgd52jby5dfpi0pf46nisy6wma5d-diffutils-3.12' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:58.1702727Z copying path '/nix/store/i9wgqa0l88aprvpwfaq5hkfa6pklhlv0-findutils-4.11.0' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:58.1703434Z copying path '/nix/store/w03i01kiakf4wz7jbp1l59c0bhb3pjca-perl-5.42.3' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:58.1975851Z copying path '/nix/store/h532sni7byvancbp77r3blhjj14b7khd-krb5-1.22.2' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:58.1976741Z copying path '/nix/store/sihkj5n2clcwp0xak1ny2zlwbnr9ll9d-curl-8.22.0' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:58.2573946Z copying path '/nix/store/2ndah67h0z5m31v2wkdmg2md4380ggr5-bash-interactive-5.3p15' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:58.2576636Z copying path '/nix/store/d64q19q1xjdwfhqx6czvrjgrhq0n3lcc-python3-3.14.7' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:58.2577430Z copying path '/nix/store/wj1f56qky4pmjc7l0r6b6l7whnnw7hp6-python3-3.13.15' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:58.3345827Z copying path '/nix/store/cwpnwphsymvh4dlmydryndlar0ci8mp0-libssh2-1.11.1-dev' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:58.3423721Z copying path '/nix/store/8yjpimn4kvpwzr7lj3l97k9iib1qwxfh-krb5-1.22.2-dev' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:58.3451214Z copying path '/nix/store/c29a7xzhhv8nk62w1gls6f6jj8zihggv-stdenv-linux-no-cc' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:58.3514056Z copying path '/nix/store/wfp6pwbfbx6i4i91f2cslyi52l0lyxjg-curl-8.22.0-bin' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:58.4655746Z copying path '/nix/store/gfz8rpcd61fw2lc08wsh3p6zkl00mgv1-curl-8.22.0-dev' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:58.5378661Z copying path '/nix/store/06cd0la3gmknmkfnl3h2l2d462hl757q-binutils-wrapper-2.46' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:58.5388265Z copying path '/nix/store/0fdc105g1896ganr8916rsjxhvr9qv5b-binutils-wrapper-2.46' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:58.5866679Z building '/nix/store/qppk0arr2s692jx6qj4la3gk2jz1dc40-cargo-1.98.1-x86_64-unknown-linux-gnu.tar.xz.drv'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:58.6218389Z building '/nix/store/jcm5xvpvg05yfs52nkq66r2s451r0v0x-clippy-1.98.1-x86_64-unknown-linux-gnu.tar.xz.drv'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:58.6505773Z building '/nix/store/sa44iz9s5cjzm84fk4hpzp537mq8wbjc-rust-std-1.98.1-x86_64-unknown-linux-gnu.tar.xz.drv'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:58.6809173Z building '/nix/store/kqq3pq8vnpkzk4yfkavjnndqc96lfnra-rustc-1.98.1-x86_64-unknown-linux-gnu.tar.xz.drv'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:58.7469944Z building '/nix/store/ipid790sgmiwiwc96q26zmpc7gjv5wsd-rustfmt-1.98.1-x86_64-unknown-linux-gnu.tar.xz.drv'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:58.9115213Z building '/nix/store/ipid790sgmiwiwc96q26zmpc7gjv5wsd-rustfmt-1.98.1-x86_64-unknown-linux-gnu.tar.xz.drv'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:06:59.1140542Z copying path '/nix/store/q711qkzsw0ma5i5jfslmx7jg3qh007mf-z3-4.16.0-dev' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:00.2095464Z copying path '/nix/store/xq3h5h5y8hn0l662hgwv56q10n292b8v-python3.13-attrs-26.1.0' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:00.2100644Z copying path '/nix/store/y89pvnz56vn32imib6ykgj2jdbgwfy70-python3.13-flit-core-3.12.0' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:00.2101818Z copying path '/nix/store/kb6kfxkc1q4i5fkhnfsfydakgvfw6cpp-python3.13-iniconfig-2.3.0' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:00.2103718Z copying path '/nix/store/nfi7ql1rd7sfv2hlrp6s1czij0k0gk5f-python3.13-packaging-26.2' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:00.2107892Z copying path '/nix/store/hrsm95pfx06aig6zj9003ppadjs1g9qm-python3.13-librt-0.13.0' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:00.2110600Z copying path '/nix/store/ypz52km3j4h5phs4mdmimar1fd6kgqj5-python3.13-pathspec-1.1.1' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:00.2117185Z copying path '/nix/store/0qmawjjbswpgsm78rgdvl055wjamxnaz-python3.13-pluggy-1.6.0' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:00.2119652Z copying path '/nix/store/mkia3blmmwqx5cng2x952aq7bhx4p01s-python3.13-pip-26.1.2' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:00.2132080Z copying path '/nix/store/w629cqzq89h2z5839i14wz5m8c9iynxg-python3.13-ply-3.11' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:00.2139485Z copying path '/nix/store/yicfnadwf0fnl8facf4qw0kc8sickzwf-python3.13-pyelftools-0.32' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:00.2148724Z copying path '/nix/store/nvblz1x5chrvm08lw2z96z651w8x1d1b-python3.13-pygments-2.20.0' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:00.2150545Z copying path '/nix/store/5chrgjp66zj552nl2sdxbcdrwmbpvch7-python3.13-rpds-py-2026.6.3' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:00.2151727Z copying path '/nix/store/4kim7m51j88pmb4sgvychljrxn8cfqwh-python3.13-typing-extensions-4.16.0' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:00.2988808Z copying path '/nix/store/f5dnmr862adql9azgbfaxacl6gxnjx85-python3.14-pyelftools-0.32' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:00.3725824Z copying path '/nix/store/18prqy9gkv27hg3g1r7257djn56dwx4p-python3.13-mypy-extensions-1.1.0' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:00.3778952Z copying path '/nix/store/z1gs01l6ca9kh4q3sjcavypgh3law0fc-python3.13-referencing-0.37.0' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:00.3781599Z copying path '/nix/store/y06rlnmfgbmix4rl6sdf1aa7sg2h0fp5-python3.13-jsonpath-ng-1.8.0' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:00.4026925Z copying path '/nix/store/z0l7jkdfkdydh3gvifwkcg3cv0dyv4m9-python3.13-auditwheel-6.7.0' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:00.4033871Z copying path '/nix/store/0zrvi5bnmlnkvk5wwcvhcc13kn5daw2k-python3-3.14.7-env' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:00.4387829Z copying path '/nix/store/kn5852pzjcsfaqy0ikkw53jg542a6g4k-auto-patchelf-0-unstable-2024-08-14' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:00.4505545Z copying path '/nix/store/ag12dq6ymirqid0cwwnjl24phy7k9gcf-python3.13-mypy-2.1.0' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:00.4599508Z copying path '/nix/store/h7zp543lqwfd7h97f5g1bjw5ia5q5zb7-python3.13-jsonschema-specifications-2025.9.1' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:00.4631429Z copying path '/nix/store/4vqkd9693khsacdkgahw4bszr6fznqln-auto-patchelf-hook' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:00.4957284Z building '/nix/store/b2cah51b047nn1ahix8jsjhrwbqpyazz-cargo-1.98.1-x86_64-unknown-linux-gnu.drv'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:00.5316395Z building '/nix/store/mv8lwj7wigxh1fxhmwg7a3y4h6jjh5c1-rust-std-1.98.1-x86_64-unknown-linux-gnu.drv'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:00.5665986Z building '/nix/store/lzsrq7i52h212r1j2ba6rx77xzb9blwd-rustc-1.98.1-x86_64-unknown-linux-gnu.drv'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:00.6128031Z copying path '/nix/store/9g2n93cban53vwsj47js08sf0309pa9x-python3.13-jsonschema-4.26.0' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:00.6130600Z copying path '/nix/store/i6llwygspxqwlkfxqgdsgjc6zb0fdv00-python3.13-pytest-9.1.1' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:01.3298348Z copying path '/nix/store/z4c6k0mrlkwl3s4w9ysxc8vq1wylm3ms-gcc-wrapper-15.3.0' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:01.3970370Z copying path '/nix/store/xysbrlyn8h5gmxw2y4y14rbjgsvx6qdj-make-binary-wrapper-hook' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:01.3971264Z copying path '/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:01.3974916Z copying path '/nix/store/dp0zdsysxsli2xncj4prvhsik08qn697-stdenv-linux' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:01.7406598Z building '/nix/store/p0k0jhlh43d69pafks75h7z10b0l36vs-python3-3.13.15-env.drv'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:05.8508157Z copying path '/nix/store/a3kjvvlm7f8abcmxh6f8dndiwc4vp726-clang-21.1.8-lib' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:13.8326029Z copying path '/nix/store/83qs3ksyjclr149vpxbaz1z18wvi9rms-zig-0.16.0' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:17.9506058Z copying path '/nix/store/ynl6agsdh6gk6l9k2c9vzqa1jz6krg7h-cargo-zigbuild-0.23.4' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:20.6575676Z building '/nix/store/igs0y6k05brv76yjv655cpk4bg0zriww-clippy-preview-1.98.1-x86_64-unknown-linux-gnu.drv'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:20.7114225Z building '/nix/store/yckfaf4lm15b248sxbahagm2s700sk2n-rustfmt-preview-1.98.1-x86_64-unknown-linux-gnu.drv'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:22.1302365Z building '/nix/store/7h347601mx7ad22bswvimpx63jvrfqw2-rust-minimal-1.98.1.drv'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:45.3922699Z building '/nix/store/mf56bi1x953bajjqd55x6r6bczn5bpid-nix-shell-env.drv'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:45.8299678Z this path will be fetched (107.5 KiB download, 107.4 KiB unpacked):
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:45.8300231Z   /nix/store/2qdkkyyrf2hxwmykimcnnb1ksd6cff4a-bash-interactive-5.3p15-man
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:45.8308747Z copying path '/nix/store/2qdkkyyrf2hxwmykimcnnb1ksd6cff4a-bash-interactive-5.3p15-man' from 'https://cache.nixos.org'...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:47.3720294Z gates: core pin
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:50.3104707Z check-core-pin: OK (v0.16.0 63a8c164523275e06ac1d7dc5330db4a899c9d99)
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:50.3106131Z gates: public surface
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:50.3913163Z check-public-surface: OK (behavior-engine only; no core file copied)
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:50.3915964Z gates: fetch core
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:51.2843802Z fetch-core: core v0.16.0 installed (fixtures in .core/0.16.0, CLI in python/behavior/_bin)
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:51.2877397Z gates: cargo fmt
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:07:51.6376059Z gates: clippy
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:08:05.3430465Z gates: cargo test
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:08:45.9169014Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:08:45.9169624Z running 31 tests
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:09:33.0681113Z ...............................
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:09:33.0682769Z test result: ok. 31 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 47.15s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:09:33.0683081Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:09:33.0699909Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:09:33.0700008Z running 8 tests
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:09:53.6343003Z ........
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:09:53.6343589Z test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 20.56s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:09:53.6343972Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:09:53.6364785Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:09:53.6365032Z running 2 tests
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:38.9613495Z ..
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:38.9613883Z test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 45.32s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:38.9614128Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:38.9637094Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:38.9637205Z running 12 tests
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.0724978Z ............
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.0725445Z test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.11s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.0725653Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.0745260Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.0745581Z running 8 tests
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.1306363Z ........
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.1306690Z test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.1306895Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.1321440Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.1321712Z running 17 tests
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.1339199Z .................
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.1339597Z test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.1339942Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.1352034Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.1352236Z running 8 tests
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.1403165Z ........
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.1403522Z test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.1403860Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.1418352Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.1418466Z running 6 tests
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.1622153Z ......
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.1622518Z test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.1622820Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.1638870Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.1638977Z running 11 tests
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.2735675Z ...........
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.2736148Z test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.2736448Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.2753858Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.2754065Z running 1 test
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.3122697Z .
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.3123059Z test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.3123711Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.3136055Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.3136206Z running 4 tests
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.3208555Z ....
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.3208934Z test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.3209233Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.3220889Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.3221002Z running 1 test
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.3229505Z .
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.3229844Z test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.3230142Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.3242627Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.3242876Z running 11 tests
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.3486648Z ...........
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.3486995Z test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.3487292Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.3499793Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.3500000Z running 9 tests
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.7273890Z .........
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.7274567Z test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.38s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.7274869Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.7291776Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:40.7291973Z running 5 tests
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:48.3849456Z .....
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:48.3849950Z test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.66s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:48.3850237Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:48.3868877Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:48.3869366Z running 15 tests
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:48.4037951Z ...............
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:48.4038350Z test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:48.4038654Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:48.4053555Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:48.4053818Z running 10 tests
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:48.4166075Z ..........
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:48.4167537Z test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:48.4167828Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:48.4183590Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:48.4183743Z running 7 tests
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:58.3617191Z .......
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:58.3617682Z test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 9.94s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:58.3617994Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:58.3636283Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:58.3636608Z running 8 tests
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:58.3798025Z ........
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:58.3798433Z test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:58.3798740Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:58.3814041Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:10:58.3814358Z running 9 tests
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:11:06.4995059Z .........
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:11:06.4995558Z test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 8.12s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:11:06.4995847Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:11:06.5013182Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:11:06.5013505Z running 7 tests
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:11:06.5153913Z .......
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:11:06.5154202Z test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:11:06.5154549Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:11:06.5169179Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:11:06.5169431Z running 8 tests
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:11:06.5248696Z ........
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:11:06.5249106Z test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:11:06.5249402Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:11:06.5264019Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:11:06.5264173Z running 8 tests
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:11:06.5370022Z ........
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:11:06.5370408Z test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:11:06.5370665Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:11:06.5384718Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:11:06.5384861Z running 11 tests
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:11:06.5409087Z ...........
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:11:06.5409445Z test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:11:06.5409745Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:11:06.5423140Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:11:06.5423352Z running 3 tests
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:11:06.5803420Z ...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:11:06.5803787Z test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:11:06.5803988Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:11:06.5821746Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:11:06.5821950Z running 10 tests
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:11:06.6129907Z ..........
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:11:06.6130427Z test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:11:06.6130683Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:11:06.6150751Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:11:06.6151076Z running 5 tests
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:11:06.7027538Z .....
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:11:06.7028045Z test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:11:06.7028352Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:11:06.7048232Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:11:06.7048722Z running 6 tests
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:11:29.6447723Z ......
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:11:29.6448106Z test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 22.94s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:11:29.6448319Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:11:29.6467037Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:11:29.6467336Z running 1 test
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:12:29.6469340Z test enumerate_small_typed_states_against_actual_core_transitions has been running for over 60 seconds
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:37:11.3873540Z .
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:37:11.3875502Z test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1541.74s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:37:11.3875806Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:37:11.3891649Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:37:11.3892208Z running 4 tests
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:37:11.3926707Z ....
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:37:11.3927090Z test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:37:11.3927380Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:37:11.3941208Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:37:11.3941372Z running 4 tests
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:37:11.5319434Z ....
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:37:11.5319934Z test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:37:11.5320237Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:37:11.5336748Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:37:11.5336985Z running 4 tests
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:37:11.5411051Z ....
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:37:11.5411410Z test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:37:11.5411705Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:37:11.5424274Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:37:11.5424375Z running 10 tests
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:37:12.0064973Z ..........
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:37:12.0065456Z test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.46s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:37:12.0065744Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:37:12.0082862Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:37:12.0083239Z running 1 test
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:37:36.0646648Z .
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:37:36.0648274Z test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 24.06s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:37:36.0648599Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:37:36.0663858Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:37:36.0664015Z running 6 tests
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:38:36.0675588Z ....test every_small_permutation_duplicates_and_large_representatives_receive_actual_proofs has been running for over 60 seconds
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:38:37.0125536Z test repeated_membership_evidence_is_identical_across_output_directories has been running for over 60 seconds
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:29.9781339Z ..
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:29.9781846Z test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 713.91s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:29.9782244Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:29.9803319Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:30.0594978Z running 7 tests
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:30.0595163Z .......
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:30.0595380Z test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:30.0595613Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:30.0611064Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:30.0611240Z running 7 tests
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:51.4741767Z .....AuthorityMutation.lean:35:60: error: Tactic `decide` proved that the proposition
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:51.4742450Z   Safety.checkAuthority data = true
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:51.4742741Z is false
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:51.7045739Z IdentityMutation.lean:39:792: error: Application type mismatch: The argument
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:51.7047703Z   rfl
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:51.7048208Z has type
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:51.7048383Z   ?m.1222 = ?m.1222
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:51.7048578Z but is expected to have type
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:51.7048795Z   data.behaviorHash =
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:51.7048983Z     let y :=
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:51.7049149Z       let y :=
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:51.7049317Z         let y :=
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:51.7049986Z           let y := [56, 98, 52, 50, 51];
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:51.7055451Z           98 :: 102 :: 97 :: 50 :: y;
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:51.7055721Z         let y := 98 :: 100 :: 51 :: 55 :: 54 :: y;
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:51.7055986Z         100 :: 55 :: 50 :: 100 :: y;
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:51.7056194Z       let y :=
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:51.7056380Z         let y := 48 :: 48 :: 56 :: 102 :: 98 :: y;
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:51.7056613Z         99 :: 51 :: 101 :: 100 :: y;
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:51.7056840Z       let y := 56 :: 50 :: 101 :: 56 :: 97 :: y;
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:51.7057069Z       48 :: 49 :: 101 :: 53 :: y;
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:51.7057261Z     let y :=
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:51.7057422Z       let y :=
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:51.7057607Z         let y := 51 :: 55 :: 97 :: 102 :: 51 :: y;
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:51.7057836Z         49 :: 50 :: 98 :: 98 :: y;
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:51.7058051Z       let y := 102 :: 51 :: 55 :: 54 :: 98 :: y;
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:51.7058276Z       57 :: 48 :: 49 :: 98 :: y;
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:51.7058471Z     let y :=
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:51.7058663Z       let y := 99 :: 101 :: 49 :: 55 :: 97 :: y;
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:51.7058888Z       99 :: 55 :: 51 :: 56 :: y;
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:51.7059093Z     let y := 53 :: 54 :: 58 :: 48 :: y;
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:51.7059309Z     115 :: 104 :: 97 :: 50 :: y
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:51.7059806Z in the application
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:51.7059981Z   And.intro rfl
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:52.0205972Z ./home/runner/work/behavior-ir/behavior-ir/crates/behavior-models/../../target/safety-models/fo/safety-proof-control-21780/proof-21780-0/OwnershipMutations.lean:51:8: warning: declaration uses `sorry`
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:52.0207534Z /home/runner/work/behavior-ir/behavior-ir/crates/behavior-models/../../target/safety-models/fo/safety-proof-control-21780/proof-21780-0/OwnershipMutations.lean:52:31: warning: `Lean.trustCompiler` has been deprecated: in-kernel native reduction is deprecated; assert native evaluations with axioms instead
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:52.0740483Z .
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:52.0740954Z test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 22.01s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:52.0741286Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:52.0759190Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:49:52.0759317Z running 4 tests
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:34.0553681Z ....
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:34.0554080Z test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 41.98s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:34.0554319Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:34.0571794Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:34.0571921Z running 5 tests
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:34.1757803Z .....
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:34.1759585Z test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:34.1759892Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:34.1776634Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:34.1776725Z running 3 tests
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:34.4206238Z ...
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:34.4206669Z test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.24s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:34.4206862Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:34.4223169Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:34.4223278Z running 7 tests
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:34.4310774Z .......
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:34.4311125Z test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:34.4311449Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:34.4323353Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:34.4323574Z running 4 tests
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:34.4867075Z ....
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:34.4867487Z test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:34.4867772Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:34.4881400Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:34.4881640Z running 1 test
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:55.2929435Z .
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:55.2929919Z test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 20.80s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:55.2930206Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:55.2945423Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:55.2945572Z running 5 tests
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:55.3214051Z .....
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:55.3215131Z test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:55.3215420Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:55.3227565Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:55.3227768Z running 6 tests
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:55.3827944Z ......
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:55.3828766Z test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:55.3828957Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:55.3841075Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:55.3841189Z running 1 test
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:55.4177026Z .
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:55.4177362Z test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:55.4177644Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:55.4189743Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:55.4189843Z running 8 tests
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:55.4388305Z ........
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:55.4388657Z test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:55.4388940Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:55.5366043Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:55.5366880Z running 0 tests
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:55.5367063Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:55.5367272Z test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:55.5367468Z 
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:55.5399552Z gates: maturin develop
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:55.7008137Z 📦 Including license file `LICENSE`
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:55.7008819Z 🍹 Building a mixed python/rust project
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:55.7992590Z 🐍 Found CPython 3.13 at /home/runner/work/behavior-ir/behavior-ir/.venv/bin/python
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:50:55.7993336Z 🔗 Found pyo3 bindings with abi3-py3.13 support
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:51:07.7497054Z 📦 Built wheel for abi3 Python ≥ 3.13 to /tmp/nix-shell.B2DN6q/.tmpzATOWq/behavior-0.15.0-cp313-abi3-linux_x86_64.whl
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:51:08.1352138Z ✏️ Setting installed package as editable
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:51:08.2686107Z 🛠 Installed behavior-0.15.0
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:51:08.2701775Z gates: Safety proofs
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:51:29.9493677Z fo_field: Certified under assumptions
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:51:51.2062076Z fo_state_machine: Certified under assumptions
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:52:12.9983417Z ld_parent_child: Certified under assumptions
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:52:34.8280050Z ld_shared_parent: Certified under assumptions
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:52:56.6863767Z ld_vm_resource: Certified under assumptions
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:53:39.5636691Z gates: pytest
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:54:20.7655409Z ........................................................................ [  9%]
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:54:26.7521785Z ........................................................................ [ 18%]
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:54:29.9728134Z ........................................................................ [ 28%]
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:54:31.0940788Z ........................................................................ [ 37%]
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:54:33.2818472Z ......................................................................ss [ 47%]
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:54:33.5073802Z sss..................................................................... [ 56%]
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:56:50.8980132Z ........................................................................ [ 66%]
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:59:00.5290259Z ........................................................................ [ 75%]
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:59:07.5548950Z ........................................................................ [ 85%]
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:59:56.7723293Z ........................................................................ [ 94%]
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:59:57.4822470Z ..........................................                               [100%]
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:59:57.4822918Z 757 passed, 5 skipped in 377.78s (0:06:17)
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T11:59:57.5257702Z gates: conformance 506
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:00:11.8560514Z .......................................                                  [100%]
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:00:11.8560817Z 39 passed in 13.96s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:00:11.9515925Z conformance full: blocked 0, failed 0, inconclusive 0, passed 39, unsupported 0, unverifiable 0
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:00:11.9516303Z full conformance: complete
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:00:11.9679530Z gates: conformance 507 quick
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:00:24.0351362Z ......ssss......s............................................            [100%]
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:00:24.0351800Z 56 passed, 5 skipped in 11.82s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:00:24.1317371Z conformance quick: blocked 0, failed 0, inconclusive 0, passed 56, unsupported 5, unverifiable 0
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:00:24.1317727Z obligations: passed 5, unsupported 7
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:00:24.1318435Z evidence: contract 5, smt 7, structural 5, test 13; assumptions named by 9 of 12 obligations
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:00:24.1318687Z full conformance: NOT complete
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:00:24.1538784Z conformance 507 quick runtime: 12.17s / 35s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:00:24.1560677Z gates: conformance 507 full
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:23.2290034Z .............................................................            [100%]
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:23.2290338Z 61 passed in 58.84s
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:23.3310342Z conformance full: blocked 0, failed 0, inconclusive 0, passed 61, unsupported 0, unverifiable 0
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:23.3310820Z obligations: passed 12
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:23.3311164Z evidence: contract 5, smt 7, structural 5, test 13; assumptions named by 9 of 12 obligations
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:23.3320760Z full conformance: complete
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:23.3464645Z gates: mypy
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:24.1533293Z Success: no issues found in 24 source files
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:24.1596405Z gates: models compat
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:24.4319489Z check-models-compat: OK (1 cases under {"co_supplied":[{"kind":"request_flow","lowerer_version":1,"model_semantic_version":2},{"kind":"state_machine","lowerer_version":1,"model_semantic_version":2}],"core_release":{"commit":"63a8c164523275e06ac1d7dc5330db4a899c9d99","version":"0.16.0"},"lowerer_version":1,"model_kind":"approval","model_semantic_version":1}, 1 cases under {"co_supplied":[{"kind":"state_machine","lowerer_version":1,"model_semantic_version":2}],"core_release":{"commit":"63a8c164523275e06ac1d7dc5330db4a899c9d99","version":"0.16.0"},"lowerer_version":1,"model_kind":"approval","model_semantic_version":1}, 3 cases under {"core_release":{"commit":"63a8c164523275e06ac1d7dc5330db4a899c9d99","version":"0.16.0"},"embedded":[{"kind":"state_machine","lowerer_version":1,"model_semantic_version":2}],"lowerer_version":1,"model_kind":"request_flow","model_semantic_version":2}, 2 cases under {"core_release":{"commit":"63a8c164523275e06ac1d7dc5330db4a899c9d99","version":"0.16.0"},"embedded":[{"kind":"state_machine","lowerer_version":1,"model_semantic_version":2}],"lowerer_version":1,"model_kind":"work_queue","model_semantic_version":1}, 1 cases under {"core_release":{"commit":"63a8c164523275e06ac1d7dc5330db4a899c9d99","version":"0.16.0"},"embedded":[{"kind":"state_machine","lowerer_version":1,"model_semantic_version":3}],"lowerer_version":1,"model_kind":"request_flow","model_semantic_version":3}, 1 cases under {"core_release":{"commit":"63a8c164523275e06ac1d7dc5330db4a899c9d99","version":"0.16.0"},"embedded":[{"kind":"state_machine","lowerer_version":1,"model_semantic_version":3}],"lowerer_version":1,"model_kind":"work_queue","model_semantic_version":1}, 1 cases under {"core_release":{"commit":"63a8c164523275e06ac1d7dc5330db4a899c9d99","version":"0.16.0"},"lowerer_version":1,"model_kind":"approval","model_semantic_version":1}, 4 cases under {"core_release":{"commit":"63a8c164523275e06ac1d7dc5330db4a899c9d99","version":"0.16.0"},"lowerer_version":1,"model_kind":"state_machine","model_semantic_version":2}, 1 cases under {"core_release":{"commit":"63a8c164523275e06ac1d7dc5330db4a899c9d99","version":"0.16.0"},"lowerer_version":1,"model_kind":"state_machine","model_semantic_version":3})
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:24.4325118Z check-models-compat: OK (3 cases under {"co_supplied":[{"kind":"field_ownership","lowerer_version":3,"model_semantic_version":1}],"core_release":{"commit":"63a8c164523275e06ac1d7dc5330db4a899c9d99","version":"0.16.0"},"lowerer_version":3,"model_kind":"lifecycle_dependency","model_semantic_version":1}, 1 cases under {"co_supplied":[{"kind":"state_machine","lowerer_version":1,"model_semantic_version":2}],"core_release":{"commit":"63a8c164523275e06ac1d7dc5330db4a899c9d99","version":"0.16.0"},"lowerer_version":3,"model_kind":"field_ownership","model_semantic_version":1}, 1 cases under {"core_release":{"commit":"63a8c164523275e06ac1d7dc5330db4a899c9d99","version":"0.16.0"},"lowerer_version":3,"model_kind":"field_ownership","model_semantic_version":1})
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:24.4455454Z gates: determinism check
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:30.1378850Z determinism-check: OK
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:30.1405312Z gates: ownership
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:30.1778819Z check-ownership: note: 120 files placed by rule 1 also match rule 3 (another owner); the first rule decides
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:30.1779495Z check-ownership: note: 28 files placed by rule 13 also match rule 14 (another owner); the first rule decides
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:30.1779930Z check-ownership: OK both 74, core 0, ecosystem 744
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:30.1810887Z gates: terms
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:30.1964859Z check-terms: OK
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:30.1966943Z gates: workflows
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:30.2511386Z check-workflows: OK
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:30.2513231Z gates: script tests
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:30.9329146Z test_check_core_pin: OK
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:32.5282020Z test_check_public_surface: OK
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:32.8761042Z test_check_tag: OK
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:32.9606860Z test_check_terms: OK
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:33.0733785Z test_check_workflows: OK
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:43.1773864Z test_conformance_506_bytes: OK (selected release metadata normalized)
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:44.2590597Z test_conformance_report: OK
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:44.4980874Z test_fetch_core: OK
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:46.4217127Z test_models_compat: OK
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:46.9578040Z test_models_safety_compat: OK
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:47.4816115Z test_pinned_identity_baseline: OK (22 baseline receipts unchanged, 0 new)
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:47.9382171Z safety smoke: OK
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:47.9382744Z {"behavior_hash":"sha256:d52b8efe792b2f2dbf39356bfa1af4358c2f16c7e8e2222493a3c6166644fb5c","certified":false,"core_only_replay":"Passed","ordinary_execution":"Passed"}
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:48.0442914Z safety smoke: certification failed: ('SAFETY_TOOLCHAIN_MISMATCH', 'SAFETY_TOOLCHAIN_MISMATCH: Expected the locked immutable Nix output')
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:48.0545994Z test_safety_package: OK
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:48.1968082Z fo_field: Inconclusive
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:48.2181490Z fo_state_machine: Inconclusive
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:48.5275307Z ld_parent_child: Inconclusive
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:48.8027992Z ld_shared_parent: Inconclusive
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:49.1033172Z ld_vm_resource: Inconclusive
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:49.1431484Z test_safety_proofs: OK (failure aggregation only; real proofs are mandatory separately)
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:49.4102475Z test_safety_proofs: real command failure controls OK
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:49.7389505Z test_safety_scale: collection and failure propagation OK; not proof evidence
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:51.1176510Z Lean (version 4.30.0, commit v4.30.0, Release)
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:51.8278986Z test_safety_toolchain: OK
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:51.9960513Z test_semantic_snapshot: OK
+gates	Run nix develop -c scripts/gates.sh	2026-10-27T12:01:51.9985535Z gates: OK
+gates	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	﻿2026-10-27T12:01:52.0042413Z ##[group]Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+gates	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-27T12:01:52.0042638Z with:
+gates	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-27T12:01:52.0042758Z   name: conformance-report
+gates	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-27T12:01:52.0042903Z   path: target/conformance/
+gates	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-27T12:01:52.0043037Z   if-no-files-found: warn
+gates	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-27T12:01:52.0043167Z   compression-level: 6
+gates	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-27T12:01:52.0043289Z   overwrite: false
+gates	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-27T12:01:52.0043412Z   include-hidden-files: false
+gates	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-27T12:01:52.0043542Z env:
+gates	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-27T12:01:52.0043693Z   DETSYS_BACKTRACE_COLLECTOR: 376cf64c-c3f9-4bf1-84be-9477c912555b
+gates	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-27T12:01:52.0043887Z   DETERMINATE_NIX_KVM: 1
+gates	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-27T12:01:52.0044029Z ##[endgroup]
+gates	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-27T12:01:52.2181404Z (node:29383) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+gates	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-27T12:01:52.2182298Z (Use `node --trace-deprecation ...` to show where the warning was created)
+gates	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-27T12:01:52.2236934Z With the provided path, there will be 9 files uploaded
+gates	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-27T12:01:52.2241578Z Artifact name is valid!
+gates	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-27T12:01:52.2241834Z Root directory input is valid!
+gates	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-27T12:01:52.5624054Z Beginning upload of artifact content to blob storage
+gates	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-27T12:01:52.5823069Z (node:29383) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+gates	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-27T12:01:52.8424111Z Uploaded bytes 8926
+gates	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-27T12:01:52.9108658Z Finished uploading artifact content to blob storage!
+gates	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-27T12:01:52.9109210Z SHA256 digest of uploaded artifact zip is 70a8ee3bc6ba36a12d135efd6aa6aaea6a6b1d1ba62aa9ee9eea37bd70f4161c
+gates	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-27T12:01:52.9110525Z Finalizing artifact upload
+gates	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-27T12:01:53.4684818Z Artifact conformance-report.zip successfully finalized. Artifact ID 12732561567
+gates	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-27T12:01:53.4685526Z Artifact conformance-report has been successfully uploaded! Final size is 8926 bytes. Artifact ID is 12732561567
+gates	Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02	2026-10-27T12:01:53.4689891Z Artifact download URL: https://github.com/kallistoteles/behavior-ir/actions/runs/40493631821/artifacts/12732561567
+gates	Post Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	﻿2026-10-27T12:01:53.4867429Z Post job cleanup.
+gates	Post Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T12:01:53.9964010Z ^[[0;31m^[[1m^[[4mDeterminate Systems, Inc. | Status Status
+gates	Post Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T12:01:53.9964980Z 🛠️ monitoring: Patched PHP security release (https://status.determinate.systems/incidents/51ece80b-c4d6-401e-a3bb-cc2811518fc6)
+gates	Post Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T12:01:53.9965925Z 🔴 monitoring: eMudhra Intermediate CA Compromise (https://status.determinate.systems/incidents/f7cd1dd4-f0d1-4960-b787-e8077e6d4885)
+gates	Post Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T12:01:53.9966489Z See: https://status.determinate.systems/
+gates	Post Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T12:01:53.9967156Z 
+gates	Post Run DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea	2026-10-27T12:01:53.9988453Z [command]/usr/bin/sudo mkdir -p /var/lib/determinate
+gates	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	﻿2026-10-27T12:01:54.6145433Z Post job cleanup.
+gates	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T12:01:54.6693902Z [command]/usr/bin/git version
+gates	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T12:01:54.6726984Z git version 2.55.0
+gates	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T12:01:54.6753693Z Temporarily overriding HOME='/home/runner/work/_temp/bed21161-fed8-4a10-8338-8282a100e324' before making global git config changes
+gates	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T12:01:54.6754350Z Adding repository directory to the temporary git global config as a safe directory
+gates	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T12:01:54.6757777Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/behavior-ir/behavior-ir
+gates	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T12:01:54.6789244Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+gates	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T12:01:54.6816181Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+gates	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T12:01:54.7031246Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+gates	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T12:01:54.7051319Z http.https://github.com/.extraheader
+gates	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T12:01:54.7059975Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+gates	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T12:01:54.7089109Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+gates	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T12:01:54.7306618Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+gates	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-27T12:01:54.7340626Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+gates	Complete job	﻿2026-10-27T12:01:54.7639459Z Cleaning up orphan processes
+gates	Complete job	2026-10-27T12:01:54.7965052Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@11d5960a326750d5838078e36cf38b85af677262, actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02, DeterminateSystems/nix-installer-action@90bb610b90bf290cad97484ba341453bd1cbefea. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

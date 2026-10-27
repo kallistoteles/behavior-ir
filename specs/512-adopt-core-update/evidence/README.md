@@ -1,8 +1,13 @@
 # Feature 512 execution record
 
-Status: T001–T014 complete; current policy/Safety controls, Skills documentation and final
-acceptance are in progress. Behavior 0.15.0 now pins published Core 0.16.0/verifier 0.11.0.
-The full release check has not yet passed; this is not a publication or readiness claim.
+Status: **complete for release-candidate preparation**. T001–T021 are complete.
+The validated implementation is `fdbed105d2d721dd176b811bc9faccfbab2c178a`, with all four
+existing CI jobs passed in run [40493631821](https://github.com/kallistoteles/behavior-ir/actions/runs/40493631821).
+The exact local final wheel is `6e406b8b05050168763348440e8c31c759c1fa23415d47583e4207ef70757522`.
+No Behavior release tag or distribution has been published by this feature.
+
+Earlier sections retain timestamped/checkpoint states and failed attempts. This header and the
+final acceptance section describe completion; earlier pending labels are not current status.
 
 ## Checkout and environment
 
@@ -263,3 +268,97 @@ and `package` jobs, the latter invoking `release-check.sh --skip-gates`. No work
 proof requirement is changed. A draft PR runs these existing jobs on the exact corrected commit;
 CI success and clean final-package checks remain pending. Local completed component results are
 retained honestly rather than claiming the earlier orchestration exited zero.
+
+## Exact corrected candidate: local package and final performance
+
+The corrected source commit is `fdbed105d2d721dd176b811bc9faccfbab2c178a`, submitted as
+[draft PR #30](https://github.com/kallistoteles/behavior-ir/pull/30).
+The [final candidate environment](final-candidate-environment.json) identifies wheel
+`6e406b8b05050168763348440e8c31c759c1fa23415d47583e4207ef70757522` and a manifest
+bound to that actual commit. All 32 wheel member contents match the earlier package;
+archive timestamps and manifest commit bindings are distinct and recorded separately.
+The earlier 892e7c2 package record remains an explicitly named checkpoint, not final evidence.
+
+[Local package acceptance](final-package-check.txt) exits zero through the existing
+`release-check.sh --skip-gates` path used by the CI `package` job: clean hash-checked install,
+correct versions/CLI, smoke with and without the solver, installed/repository byte identity,
+all essential Skills, 49 drift/equivalence tests, ordinary Core execution/replay without Lean
+on PATH, explicit pinned certification plus a separate producer-workspace-denied consumer,
+and two reproducible rebuilds. The mandatory full gates are delegated to the existing CI job;
+that job is still pending, so total readiness is not yet claimed.
+
+[Final fresh measurements](final-candidate-growth.json) use a new isolated hash-checked install
+of the exact final wheel, with local builds/package checks complete before measurement.
+[Final comparison](final-growth-comparison.json) passes the original untouched frozen profile:
+
+| Initial population | Baseline median / eight cycles | Final wheel median / eight cycles | Final / baseline |
+|---|---:|---:|---:|
+| 64 | 58.970 ms | 41.500 ms | 0.7037 |
+| 256 | 171.302 ms | 115.638 ms | 0.6750 |
+| 1024 | 677.440 ms | 430.161 ms | 0.6350 |
+
+The exact final artifact is 36.5% faster at the largest point; its growth-increment ratio is
+0.6284. All nine repetitions, output sizes, authored wire/BehaviorHash, 1000/1001 refusal,
+unaffected update and both replay modes pass. The earlier 42% observation is retained as its
+own measurement and artifact checkpoint, not relabeled as this final run. Both runs exceed
+the same predeclared improvement requirements; neither implies constant-time transactions.
+
+[Disk remediation](disk-remediation.json) archives only the completed task-owned membership
+proof builds after checking all 4,100 files and gzip integrity; a checksum-verified copy resides
+in a dedicated task cache. A finished isolated package test's compiler cache was removed only
+after checking that no process held its cwd or open files. Original source, fixtures, copied
+source and unrelated user work remain intact. Neither operation changes semantic evidence or
+requires runtime access to proof artifacts.
+
+## Final acceptance
+
+All requirements FR-001–016, SC-001–007 and the 12 story scenarios in the evidence map are
+closed for the exact candidate above. The [CI result](ci-result.json), [complete gate log](ci-gates.txt)
+and [package log](ci-package.txt) establish successful execution of the unchanged official CI
+workflow on the corrected implementation. This uses the established separate mandatory
+`gates` and `package` jobs; it neither bypasses a required check nor adds a release process.
+
+- Rust: **329 passed**, zero failed/ignored. Native Model/binding/proof sources are unchanged.
+- CI Python/model regressions: **757 passed, 5 skipped**. Those five existing slow release-script
+  tests ran in the earlier local full 749-test run; all 13 added comparator controls also pass.
+- Safety: five reference certificates, complete six-case Core/Safety comparison, required
+  theorem/type/axiom/fresh-kernel checks, 82 concrete membership cases and their negative controls.
+- Full conformance: 506 **39 passed**; 507 **61 passed, all 12 obligations passed**, no blockers.
+  Separate explicit complete-mode reports are retained. Quick mode is **12.17/35 seconds in CI**
+  and 9.95/35 locally; the existing budget is unchanged.
+- Clean package: all installed examples, 49 drift/equivalence checks, missing-solver handling,
+  ordinary Core replay without Lean, explicit fresh certification and independent installed
+  consumer checking all pass. Repeated builds match under each exact build context.
+- Exact final candidate growth: all frozen conditions pass, **36.5% lower transaction cost at
+  1024 entities**, growth-increment ratio 0.6284, unchanged full outputs and successful boundary/replay.
+- [Immutability checks](final-immutability.json): both protected historical baseline files are
+  byte-identical; established manifest tuples and semantic identities survive. Only selected,
+  explicitly checked release metadata is normalized during historical comparison.
+- Local links: 92 checked file targets exist. Commands above were executed under the pinned Nix
+  environment. No post-implement extension hooks are configured in this checkout.
+
+CI's package build uses its checkout/merge commit and has its own archive checksum; it is not
+substituted for the locally measured wheel or claimed byte-identical to a different commit's
+archive. The candidate manifest names the actual implementation commit. Publication must build
+from the approved merge/tag commit and verify its downloaded artifacts through the established
+release procedure, after a separate explicit request.
+
+### Remaining nonblocking limitations
+
+The demonstrated performance profile is finite x86_64-linux evidence on a retained native Store.
+Complete outputs still grow; unsupported global dependencies, reopened Stores and continuity
+changes can require full reference validation. Unsupported reference-verifier shapes and resource
+exhaustion remain inconclusive. Neither result is a mathematical counterexample or proof.
+
+Safety certification remains conditional: initial-state validation, migrations, exact-boundary
+approved-module enforcement, backend completeness and Rust-to-Core/proof correspondence are
+explicit boundaries. A bundle hash alone grants no mathematical validity or governance authority.
+No Core semantics, Safety policy meaning, theorem, supported v1 language or runtime state was added.
+
+Optional proof-toolchain release-manifest discoverability, broader performance/caching work and
+unrelated `unique(Option)` verifier research remain deferred. No nonblocking improvement expanded
+this feature, and no substantive release blocker remains for the validated candidate.
+
+Existing pinned CI actions emit a Node.js 20 deprecation warning while the hosted runner forces
+Node.js 24. All jobs pass. Refreshing those action pins is deferred maintenance, outside this
+Core-adoption scope.

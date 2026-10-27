@@ -3,6 +3,12 @@
   "archive_bytes": 140310325,
   "archive_sha256": "786236a7e81aa743e1ca692bf95bb66d3c447fa3e20efb5fdc353e7f00264a22",
   "completed_process": 3466068,
+  "completed_scratch_build_cache": {
+    "bytes_removed": 272446776,
+    "no_live_cwd_or_file_descriptors": true,
+    "path": "/data/core028/ecosystem-512-target/tmp/nix-shell.nd2NwH/pytest-of-kalle/pytest-0/release-repo0/target",
+    "scope": "Only reproducible compiler outputs in the finished isolated package-test copy; copied source and all user work retained."
+  },
   "every_regular_file_verified_byte_for_byte": true,
   "files": 4100,
   "gzip_crc_checked": true,

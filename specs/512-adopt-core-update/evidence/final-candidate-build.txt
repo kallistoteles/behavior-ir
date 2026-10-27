@@ -1,0 +1,16 @@
+check-core-pin: OK (v0.16.0 63a8c164523275e06ac1d7dc5330db4a899c9d99)
+fetch-core: core v0.16.0 installed (fixtures in .core/0.16.0, CLI in python/behavior/_bin)
+📦 Including license file `LICENSE`
+🍹 Building a mixed python/rust project
+🐍 Found CPython 3.13 at /home/kalle/repos/behavior-ir-512/.venv/bin/python
+🔗 Found pyo3 bindings with abi3-py3.13 support
+🛠️ Using zig for cross-compiling to x86_64-unknown-linux-gnu
+warning: linker stderr: ignoring deprecated linker optimization setting '1'
+  |
+  = note: `#[warn(linker_messages)]` on by default
+
+warning: `behavior-py` (lib) generated 1 warning
+    Finished `release` profile [optimized] target(s) in 0.16s
+📦 Including files matching "python/behavior/_bin/behavior"
+📦 Built wheel for abi3 Python ≥ 3.13 to target/core-adoption/candidate-dist/behavior-0.15.0-cp313-abi3-manylinux_2_28_x86_64.whl
+release-build: target/core-adoption/candidate-dist

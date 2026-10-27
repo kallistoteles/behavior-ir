@@ -1,0 +1,18 @@
+{
+  "base": "1cba9e16ff73f927ae08e70a7bc74a6ca52355e4",
+  "checked_unchanged_paths": [
+    "crates/behavior-models/src",
+    "crates/behavior-models/proofs",
+    "crates/behavior-py/src",
+    "crates/behavior-py/build.rs",
+    "python/behavior",
+    "rust-toolchain.toml",
+    "flake.lock"
+  ],
+  "native_model_proof_and_binding_sources": "unchanged",
+  "protected_files": {
+    "specs/507-work-queue/baseline/506-report-quick.json": "455784069781b2d48f5bff5f4304ac0f71e2ad9974d2c61ac29b02697deb58c4",
+    "specs/507-work-queue/baseline/compat-print.txt": "f2eb9f2183a940109329aabedcb0d75abf9eb44cd5681476aad43c0d8f5265fc"
+  },
+  "public_api": "only release metadata changed"
+}

@@ -1,0 +1,111 @@
+warning: Git tree '/home/kalle/repos/behavior-ir-512' is dirty
+FFF...F...                                                               [100%]
+=================================== FAILURES ===================================
+__________________ test_the_declared_core_release_is_current ___________________
+
+    def test_the_declared_core_release_is_current() -> None:
+        pin = json.loads((ROOT / "core-release.json").read_text())
+        assert pin["format"] == "behavior.core_pin.v1"
+>       assert pin["version"] == CURRENT_CORE
+E       AssertionError: assert '0.16.0' == '0.15.0'
+E         
+E         - 0.15.0
+E         ?    ^
+E         + 0.16.0
+E         ?    ^
+
+python/tests/test_core_alignment.py:23: AssertionError
+__ test_the_extension_and_dependencies_name_the_exact_declared_core_revision ___
+
+    def test_the_extension_and_dependencies_name_the_exact_declared_core_revision() -> None:
+        pin = json.loads((ROOT / "core-release.json").read_text())
+        manifest = tomllib.loads((ROOT / "Cargo.toml").read_text())
+        dependency = manifest["workspace"]["dependencies"]["behavior-engine"]
+        assert dependency == {"git": pin["repository"], "rev": pin["commit"]}
+        source = f"git+{pin['repository']}?rev={pin['commit']}#{pin['commit']}"
+        lock = tomllib.loads((ROOT / "Cargo.lock").read_text())
+        core = [p for p in lock["package"] if p["name"] in {
+            "behavior-core", "behavior-engine", "behavior-store", "behavior-verify",
+        }]
+        assert {p["name"] for p in core} == {
+            "behavior-core", "behavior-engine", "behavior-store", "behavior-verify",
+        }
+        for package in core:
+>           assert package["version"] == CURRENT_CORE, package["name"]
+E           AssertionError: behavior-core
+E           assert '0.16.0' == '0.15.0'
+E             
+E             - 0.15.0
+E             ?    ^
+E             + 0.16.0
+E             ?    ^
+
+python/tests/test_core_alignment.py:50: AssertionError
+___ test_binding_and_bundled_cli_report_current_core_formats[engine-0.15.0] ____
+
+key = 'engine', expected = '0.15.0'
+
+    @pytest.mark.parametrize(("key", "expected"), [
+        ("engine", CURRENT_CORE),
+        # Core 020 (0.13.0): reports only what fresh admission accepts; 0.1–0.3 never were.
+        ("accepted_wire_ir", ["0.4", "0.5", "0.6", "0.7", "0.8"]),
+        ("records", ["0.4", "0.5", "0.6", "0.7", "0.8"]),
+        ("read_records", ["behavior.read_record.v1", "behavior.read_record.v2"]),
+        # Core 028 (0.15.0): verifier 0.10.0 (guarded query-summary congruence).
+        ("verifier", "0.10.0"),
+        ("command_stream", "behavior.command_stream_request.v1"),
+        ("command_occurrence_domain", "behavior.command_occurrence.v1"),
+    ])
+    def test_binding_and_bundled_cli_report_current_core_formats(key: str, expected: object) -> None:
+        output = subprocess.run(
+            [sys.executable, "-m", "behavior._cli", "engine-info"],
+            check=True, capture_output=True, text=True,
+        )
+        cli = json.loads(output.stdout)
+>       assert behavior.versions().get(key) == expected, key
+E       AssertionError: engine
+E       assert '0.16.0' == '0.15.0'
+E         
+E         - 0.15.0
+E         ?    ^
+E         + 0.16.0
+E         ?    ^
+
+python/tests/test_core_alignment.py:74: AssertionError
+__ test_binding_and_bundled_cli_report_current_core_formats[verifier-0.10.0] ___
+
+key = 'verifier', expected = '0.10.0'
+
+    @pytest.mark.parametrize(("key", "expected"), [
+        ("engine", CURRENT_CORE),
+        # Core 020 (0.13.0): reports only what fresh admission accepts; 0.1–0.3 never were.
+        ("accepted_wire_ir", ["0.4", "0.5", "0.6", "0.7", "0.8"]),
+        ("records", ["0.4", "0.5", "0.6", "0.7", "0.8"]),
+        ("read_records", ["behavior.read_record.v1", "behavior.read_record.v2"]),
+        # Core 028 (0.15.0): verifier 0.10.0 (guarded query-summary congruence).
+        ("verifier", "0.10.0"),
+        ("command_stream", "behavior.command_stream_request.v1"),
+        ("command_occurrence_domain", "behavior.command_occurrence.v1"),
+    ])
+    def test_binding_and_bundled_cli_report_current_core_formats(key: str, expected: object) -> None:
+        output = subprocess.run(
+            [sys.executable, "-m", "behavior._cli", "engine-info"],
+            check=True, capture_output=True, text=True,
+        )
+        cli = json.loads(output.stdout)
+>       assert behavior.versions().get(key) == expected, key
+E       AssertionError: verifier
+E       assert '0.11.0' == '0.10.0'
+E         
+E         - 0.10.0
+E         ?    ^
+E         + 0.11.0
+E         ?    ^
+
+python/tests/test_core_alignment.py:74: AssertionError
+=========================== short test summary info ============================
+FAILED python/tests/test_core_alignment.py::test_the_declared_core_release_is_current
+FAILED python/tests/test_core_alignment.py::test_the_extension_and_dependencies_name_the_exact_declared_core_revision
+FAILED python/tests/test_core_alignment.py::test_binding_and_bundled_cli_report_current_core_formats[engine-0.15.0]
+FAILED python/tests/test_core_alignment.py::test_binding_and_bundled_cli_report_current_core_formats[verifier-0.10.0]
+4 failed, 6 passed in 2.13s

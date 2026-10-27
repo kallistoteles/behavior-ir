@@ -1,0 +1,944 @@
+{
+  "behavior_hash": "sha256:edcdacf2082e9cc7c33b4e4526efef396e7239ece1359ed848a3666b830af966",
+  "boundary": {
+    "behavior_replay": true,
+    "creation_1000": "ALLOW",
+    "creation_1001": "DENY",
+    "data_replay": true,
+    "limit": 1000,
+    "refused_head_unchanged": true,
+    "unaffected_update": "ALLOW"
+  },
+  "cpu_affinity": [
+    0
+  ],
+  "creations_per_repetition": 8,
+  "measurement_limit": 10000,
+  "method": "Fresh Store for each repetition; retained through all eight actual creation cycles. Native in-memory backend; complete public evaluate/commit including Python return conversion. Metric serialization excluded from transaction_wall_ns but included in window_wall_ns. Setup/replay separate; installed package and warm OS file caches; no result cache or source override.",
+  "observations": [
+    {
+      "behavior_replay": true,
+      "cycles": [
+        {
+          "bundle_bytes": 5573,
+          "commit_ns": 3547198,
+          "cycle_ns": 4777252,
+          "evaluate_ns": 1230054,
+          "population_before": 64,
+          "record_bytes": 3697
+        },
+        {
+          "bundle_bytes": 5625,
+          "commit_ns": 3875459,
+          "cycle_ns": 5124442,
+          "evaluate_ns": 1248983,
+          "population_before": 65,
+          "record_bytes": 3735
+        },
+        {
+          "bundle_bytes": 5677,
+          "commit_ns": 3642723,
+          "cycle_ns": 4950449,
+          "evaluate_ns": 1307726,
+          "population_before": 66,
+          "record_bytes": 3773
+        },
+        {
+          "bundle_bytes": 5729,
+          "commit_ns": 4034713,
+          "cycle_ns": 5325228,
+          "evaluate_ns": 1290515,
+          "population_before": 67,
+          "record_bytes": 3811
+        },
+        {
+          "bundle_bytes": 5781,
+          "commit_ns": 3829257,
+          "cycle_ns": 5170602,
+          "evaluate_ns": 1341345,
+          "population_before": 68,
+          "record_bytes": 3849
+        },
+        {
+          "bundle_bytes": 5833,
+          "commit_ns": 4013277,
+          "cycle_ns": 5402439,
+          "evaluate_ns": 1389162,
+          "population_before": 69,
+          "record_bytes": 3887
+        },
+        {
+          "bundle_bytes": 5885,
+          "commit_ns": 3922714,
+          "cycle_ns": 5242445,
+          "evaluate_ns": 1319731,
+          "population_before": 70,
+          "record_bytes": 3925
+        },
+        {
+          "bundle_bytes": 5937,
+          "commit_ns": 3987274,
+          "cycle_ns": 5351935,
+          "evaluate_ns": 1364661,
+          "population_before": 71,
+          "record_bytes": 3963
+        }
+      ],
+      "data_replay": true,
+      "final_population": 72,
+      "initial_population": 64,
+      "repetition": 0,
+      "replay_ns": 75817313,
+      "setup_ns": 21303558,
+      "transaction_wall_ns": 41344792,
+      "window_wall_ns": 44078065
+    },
+    {
+      "behavior_replay": true,
+      "cycles": [
+        {
+          "bundle_bytes": 5573,
+          "commit_ns": 3492708,
+          "cycle_ns": 4587057,
+          "evaluate_ns": 1094349,
+          "population_before": 64,
+          "record_bytes": 3697
+        },
+        {
+          "bundle_bytes": 5625,
+          "commit_ns": 3628218,
+          "cycle_ns": 4966848,
+          "evaluate_ns": 1338630,
+          "population_before": 65,
+          "record_bytes": 3735
+        },
+        {
+          "bundle_bytes": 5677,
+          "commit_ns": 3774393,
+          "cycle_ns": 5017716,
+          "evaluate_ns": 1243323,
+          "population_before": 66,
+          "record_bytes": 3773
+        },
+        {
+          "bundle_bytes": 5729,
+          "commit_ns": 3933570,
+          "cycle_ns": 5207991,
+          "evaluate_ns": 1274421,
+          "population_before": 67,
+          "record_bytes": 3811
+        },
+        {
+          "bundle_bytes": 5781,
+          "commit_ns": 3802980,
+          "cycle_ns": 5102205,
+          "evaluate_ns": 1299225,
+          "population_before": 68,
+          "record_bytes": 3849
+        },
+        {
+          "bundle_bytes": 5833,
+          "commit_ns": 3749316,
+          "cycle_ns": 5077283,
+          "evaluate_ns": 1327967,
+          "population_before": 69,
+          "record_bytes": 3887
+        },
+        {
+          "bundle_bytes": 5885,
+          "commit_ns": 4124632,
+          "cycle_ns": 5446649,
+          "evaluate_ns": 1322017,
+          "population_before": 70,
+          "record_bytes": 3925
+        },
+        {
+          "bundle_bytes": 5937,
+          "commit_ns": 3882776,
+          "cycle_ns": 5289551,
+          "evaluate_ns": 1406775,
+          "population_before": 71,
+          "record_bytes": 3963
+        }
+      ],
+      "data_replay": true,
+      "final_population": 72,
+      "initial_population": 64,
+      "repetition": 1,
+      "replay_ns": 74898195,
+      "setup_ns": 20071624,
+      "transaction_wall_ns": 40695300,
+      "window_wall_ns": 43437388
+    },
+    {
+      "behavior_replay": true,
+      "cycles": [
+        {
+          "bundle_bytes": 5573,
+          "commit_ns": 3588153,
+          "cycle_ns": 4590245,
+          "evaluate_ns": 1002092,
+          "population_before": 64,
+          "record_bytes": 3697
+        },
+        {
+          "bundle_bytes": 5625,
+          "commit_ns": 3633174,
+          "cycle_ns": 4907571,
+          "evaluate_ns": 1274397,
+          "population_before": 65,
+          "record_bytes": 3735
+        },
+        {
+          "bundle_bytes": 5677,
+          "commit_ns": 3751416,
+          "cycle_ns": 5022019,
+          "evaluate_ns": 1270603,
+          "population_before": 66,
+          "record_bytes": 3773
+        },
+        {
+          "bundle_bytes": 5729,
+          "commit_ns": 3868492,
+          "cycle_ns": 5312160,
+          "evaluate_ns": 1443668,
+          "population_before": 67,
+          "record_bytes": 3811
+        },
+        {
+          "bundle_bytes": 5781,
+          "commit_ns": 3807285,
+          "cycle_ns": 5133735,
+          "evaluate_ns": 1326450,
+          "population_before": 68,
+          "record_bytes": 3849
+        },
+        {
+          "bundle_bytes": 5833,
+          "commit_ns": 4092867,
+          "cycle_ns": 5405588,
+          "evaluate_ns": 1312721,
+          "population_before": 69,
+          "record_bytes": 3887
+        },
+        {
+          "bundle_bytes": 5885,
+          "commit_ns": 3852785,
+          "cycle_ns": 5294792,
+          "evaluate_ns": 1442007,
+          "population_before": 70,
+          "record_bytes": 3925
+        },
+        {
+          "bundle_bytes": 5937,
+          "commit_ns": 3949840,
+          "cycle_ns": 5282840,
+          "evaluate_ns": 1333000,
+          "population_before": 71,
+          "record_bytes": 3963
+        }
+      ],
+      "data_replay": true,
+      "final_population": 72,
+      "initial_population": 64,
+      "repetition": 2,
+      "replay_ns": 74676141,
+      "setup_ns": 20126632,
+      "transaction_wall_ns": 40948950,
+      "window_wall_ns": 43738183
+    },
+    {
+      "behavior_replay": true,
+      "cycles": [
+        {
+          "bundle_bytes": 15450,
+          "commit_ns": 9954203,
+          "cycle_ns": 12800540,
+          "evaluate_ns": 2846337,
+          "population_before": 256,
+          "record_bytes": 10922
+        },
+        {
+          "bundle_bytes": 15502,
+          "commit_ns": 10345102,
+          "cycle_ns": 13874289,
+          "evaluate_ns": 3529187,
+          "population_before": 257,
+          "record_bytes": 10960
+        },
+        {
+          "bundle_bytes": 15554,
+          "commit_ns": 10847638,
+          "cycle_ns": 14332716,
+          "evaluate_ns": 3485078,
+          "population_before": 258,
+          "record_bytes": 10998
+        },
+        {
+          "bundle_bytes": 15606,
+          "commit_ns": 10648149,
+          "cycle_ns": 14194432,
+          "evaluate_ns": 3546283,
+          "population_before": 259,
+          "record_bytes": 11036
+        },
+        {
+          "bundle_bytes": 15658,
+          "commit_ns": 10581190,
+          "cycle_ns": 14208485,
+          "evaluate_ns": 3627295,
+          "population_before": 260,
+          "record_bytes": 11074
+        },
+        {
+          "bundle_bytes": 15710,
+          "commit_ns": 10601375,
+          "cycle_ns": 14283833,
+          "evaluate_ns": 3682458,
+          "population_before": 261,
+          "record_bytes": 11112
+        },
+        {
+          "bundle_bytes": 15762,
+          "commit_ns": 10688481,
+          "cycle_ns": 14073801,
+          "evaluate_ns": 3385320,
+          "population_before": 262,
+          "record_bytes": 11150
+        },
+        {
+          "bundle_bytes": 15814,
+          "commit_ns": 11097113,
+          "cycle_ns": 14414397,
+          "evaluate_ns": 3317284,
+          "population_before": 263,
+          "record_bytes": 11188
+        }
+      ],
+      "data_replay": true,
+      "final_population": 264,
+      "initial_population": 256,
+      "repetition": 0,
+      "replay_ns": 248081522,
+      "setup_ns": 78908619,
+      "transaction_wall_ns": 112182493,
+      "window_wall_ns": 119571889
+    },
+    {
+      "behavior_replay": true,
+      "cycles": [
+        {
+          "bundle_bytes": 15450,
+          "commit_ns": 10098472,
+          "cycle_ns": 12739164,
+          "evaluate_ns": 2640692,
+          "population_before": 256,
+          "record_bytes": 10922
+        },
+        {
+          "bundle_bytes": 15502,
+          "commit_ns": 10856815,
+          "cycle_ns": 15574148,
+          "evaluate_ns": 4717333,
+          "population_before": 257,
+          "record_bytes": 10960
+        },
+        {
+          "bundle_bytes": 15554,
+          "commit_ns": 10704304,
+          "cycle_ns": 14002343,
+          "evaluate_ns": 3298039,
+          "population_before": 258,
+          "record_bytes": 10998
+        },
+        {
+          "bundle_bytes": 15606,
+          "commit_ns": 10525622,
+          "cycle_ns": 13810020,
+          "evaluate_ns": 3284398,
+          "population_before": 259,
+          "record_bytes": 11036
+        },
+        {
+          "bundle_bytes": 15658,
+          "commit_ns": 10750146,
+          "cycle_ns": 13986031,
+          "evaluate_ns": 3235885,
+          "population_before": 260,
+          "record_bytes": 11074
+        },
+        {
+          "bundle_bytes": 15710,
+          "commit_ns": 10861354,
+          "cycle_ns": 14221871,
+          "evaluate_ns": 3360517,
+          "population_before": 261,
+          "record_bytes": 11112
+        },
+        {
+          "bundle_bytes": 15762,
+          "commit_ns": 11202304,
+          "cycle_ns": 14505937,
+          "evaluate_ns": 3303633,
+          "population_before": 262,
+          "record_bytes": 11150
+        },
+        {
+          "bundle_bytes": 15814,
+          "commit_ns": 11165941,
+          "cycle_ns": 14516599,
+          "evaluate_ns": 3350658,
+          "population_before": 263,
+          "record_bytes": 11188
+        }
+      ],
+      "data_replay": true,
+      "final_population": 264,
+      "initial_population": 256,
+      "repetition": 1,
+      "replay_ns": 231594337,
+      "setup_ns": 78915120,
+      "transaction_wall_ns": 113356113,
+      "window_wall_ns": 121009336
+    },
+    {
+      "behavior_replay": true,
+      "cycles": [
+        {
+          "bundle_bytes": 15450,
+          "commit_ns": 8975839,
+          "cycle_ns": 11624626,
+          "evaluate_ns": 2648787,
+          "population_before": 256,
+          "record_bytes": 10922
+        },
+        {
+          "bundle_bytes": 15502,
+          "commit_ns": 9736567,
+          "cycle_ns": 13099596,
+          "evaluate_ns": 3363029,
+          "population_before": 257,
+          "record_bytes": 10960
+        },
+        {
+          "bundle_bytes": 15554,
+          "commit_ns": 9826722,
+          "cycle_ns": 12837755,
+          "evaluate_ns": 3011033,
+          "population_before": 258,
+          "record_bytes": 10998
+        },
+        {
+          "bundle_bytes": 15606,
+          "commit_ns": 9707061,
+          "cycle_ns": 12728892,
+          "evaluate_ns": 3021831,
+          "population_before": 259,
+          "record_bytes": 11036
+        },
+        {
+          "bundle_bytes": 15658,
+          "commit_ns": 10041711,
+          "cycle_ns": 13123298,
+          "evaluate_ns": 3081587,
+          "population_before": 260,
+          "record_bytes": 11074
+        },
+        {
+          "bundle_bytes": 15710,
+          "commit_ns": 10028233,
+          "cycle_ns": 13284150,
+          "evaluate_ns": 3255917,
+          "population_before": 261,
+          "record_bytes": 11112
+        },
+        {
+          "bundle_bytes": 15762,
+          "commit_ns": 10132124,
+          "cycle_ns": 13271261,
+          "evaluate_ns": 3139137,
+          "population_before": 262,
+          "record_bytes": 11150
+        },
+        {
+          "bundle_bytes": 15814,
+          "commit_ns": 10227303,
+          "cycle_ns": 13612737,
+          "evaluate_ns": 3385434,
+          "population_before": 263,
+          "record_bytes": 11188
+        }
+      ],
+      "data_replay": true,
+      "final_population": 264,
+      "initial_population": 256,
+      "repetition": 2,
+      "replay_ns": 218584847,
+      "setup_ns": 70817902,
+      "transaction_wall_ns": 103582315,
+      "window_wall_ns": 110449930
+    },
+    {
+      "behavior_replay": true,
+      "cycles": [
+        {
+          "bundle_bytes": 55459,
+          "commit_ns": 35320996,
+          "cycle_ns": 43903797,
+          "evaluate_ns": 8582801,
+          "population_before": 1024,
+          "record_bytes": 40155
+        },
+        {
+          "bundle_bytes": 55511,
+          "commit_ns": 39304913,
+          "cycle_ns": 51400378,
+          "evaluate_ns": 12095465,
+          "population_before": 1025,
+          "record_bytes": 40193
+        },
+        {
+          "bundle_bytes": 55563,
+          "commit_ns": 40966945,
+          "cycle_ns": 52756355,
+          "evaluate_ns": 11789410,
+          "population_before": 1026,
+          "record_bytes": 40231
+        },
+        {
+          "bundle_bytes": 55615,
+          "commit_ns": 41076057,
+          "cycle_ns": 53025798,
+          "evaluate_ns": 11949741,
+          "population_before": 1027,
+          "record_bytes": 40269
+        },
+        {
+          "bundle_bytes": 55667,
+          "commit_ns": 40099500,
+          "cycle_ns": 51912690,
+          "evaluate_ns": 11813190,
+          "population_before": 1028,
+          "record_bytes": 40307
+        },
+        {
+          "bundle_bytes": 55719,
+          "commit_ns": 40349933,
+          "cycle_ns": 52374022,
+          "evaluate_ns": 12024089,
+          "population_before": 1029,
+          "record_bytes": 40345
+        },
+        {
+          "bundle_bytes": 55771,
+          "commit_ns": 40188748,
+          "cycle_ns": 52093623,
+          "evaluate_ns": 11904875,
+          "population_before": 1030,
+          "record_bytes": 40383
+        },
+        {
+          "bundle_bytes": 55823,
+          "commit_ns": 40397024,
+          "cycle_ns": 52504438,
+          "evaluate_ns": 12107414,
+          "population_before": 1031,
+          "record_bytes": 40421
+        }
+      ],
+      "data_replay": true,
+      "final_population": 1032,
+      "initial_population": 1024,
+      "repetition": 0,
+      "replay_ns": 881831770,
+      "setup_ns": 282062845,
+      "transaction_wall_ns": 409971101,
+      "window_wall_ns": 431360672
+    },
+    {
+      "behavior_replay": true,
+      "cycles": [
+        {
+          "bundle_bytes": 55459,
+          "commit_ns": 35113869,
+          "cycle_ns": 43514438,
+          "evaluate_ns": 8400569,
+          "population_before": 1024,
+          "record_bytes": 40155
+        },
+        {
+          "bundle_bytes": 55511,
+          "commit_ns": 38671461,
+          "cycle_ns": 50730089,
+          "evaluate_ns": 12058628,
+          "population_before": 1025,
+          "record_bytes": 40193
+        },
+        {
+          "bundle_bytes": 55563,
+          "commit_ns": 37562628,
+          "cycle_ns": 49501763,
+          "evaluate_ns": 11939135,
+          "population_before": 1026,
+          "record_bytes": 40231
+        },
+        {
+          "bundle_bytes": 55615,
+          "commit_ns": 37641940,
+          "cycle_ns": 49599237,
+          "evaluate_ns": 11957297,
+          "population_before": 1027,
+          "record_bytes": 40269
+        },
+        {
+          "bundle_bytes": 55667,
+          "commit_ns": 37817541,
+          "cycle_ns": 49527527,
+          "evaluate_ns": 11709986,
+          "population_before": 1028,
+          "record_bytes": 40307
+        },
+        {
+          "bundle_bytes": 55719,
+          "commit_ns": 37877817,
+          "cycle_ns": 50002001,
+          "evaluate_ns": 12124184,
+          "population_before": 1029,
+          "record_bytes": 40345
+        },
+        {
+          "bundle_bytes": 55771,
+          "commit_ns": 38247913,
+          "cycle_ns": 50080050,
+          "evaluate_ns": 11832137,
+          "population_before": 1030,
+          "record_bytes": 40383
+        },
+        {
+          "bundle_bytes": 55823,
+          "commit_ns": 38561801,
+          "cycle_ns": 50437947,
+          "evaluate_ns": 11876146,
+          "population_before": 1031,
+          "record_bytes": 40421
+        }
+      ],
+      "data_replay": true,
+      "final_population": 1032,
+      "initial_population": 1024,
+      "repetition": 1,
+      "replay_ns": 877161927,
+      "setup_ns": 282225365,
+      "transaction_wall_ns": 393393052,
+      "window_wall_ns": 414663444
+    },
+    {
+      "behavior_replay": true,
+      "cycles": [
+        {
+          "bundle_bytes": 55459,
+          "commit_ns": 34453625,
+          "cycle_ns": 43030309,
+          "evaluate_ns": 8576684,
+          "population_before": 1024,
+          "record_bytes": 40155
+        },
+        {
+          "bundle_bytes": 55511,
+          "commit_ns": 36995308,
+          "cycle_ns": 48365632,
+          "evaluate_ns": 11370324,
+          "population_before": 1025,
+          "record_bytes": 40193
+        },
+        {
+          "bundle_bytes": 55563,
+          "commit_ns": 37127189,
+          "cycle_ns": 48892376,
+          "evaluate_ns": 11765187,
+          "population_before": 1026,
+          "record_bytes": 40231
+        },
+        {
+          "bundle_bytes": 55615,
+          "commit_ns": 37227401,
+          "cycle_ns": 49157554,
+          "evaluate_ns": 11930153,
+          "population_before": 1027,
+          "record_bytes": 40269
+        },
+        {
+          "bundle_bytes": 55667,
+          "commit_ns": 37562031,
+          "cycle_ns": 49176376,
+          "evaluate_ns": 11614345,
+          "population_before": 1028,
+          "record_bytes": 40307
+        },
+        {
+          "bundle_bytes": 55719,
+          "commit_ns": 38290014,
+          "cycle_ns": 50400601,
+          "evaluate_ns": 12110587,
+          "population_before": 1029,
+          "record_bytes": 40345
+        },
+        {
+          "bundle_bytes": 55771,
+          "commit_ns": 36884343,
+          "cycle_ns": 48979141,
+          "evaluate_ns": 12094798,
+          "population_before": 1030,
+          "record_bytes": 40383
+        },
+        {
+          "bundle_bytes": 55823,
+          "commit_ns": 38498704,
+          "cycle_ns": 50322817,
+          "evaluate_ns": 11824113,
+          "population_before": 1031,
+          "record_bytes": 40421
+        }
+      ],
+      "data_replay": true,
+      "final_population": 1032,
+      "initial_population": 1024,
+      "repetition": 2,
+      "replay_ns": 870857052,
+      "setup_ns": 286439807,
+      "transaction_wall_ns": 388324806,
+      "window_wall_ns": 409874577
+    }
+  ],
+  "peak_process_rss_kib": 71900,
+  "platform": "Linux-6.18.38-x86_64-with-glibc2.42",
+  "populations": [
+    64,
+    256,
+    1024
+  ],
+  "repetitions": 3,
+  "serial": true,
+  "versions": {
+    "accepted_wire_ir": [
+      "0.4",
+      "0.5",
+      "0.6",
+      "0.7",
+      "0.8"
+    ],
+    "binding": {
+      "python": "0.15.0"
+    },
+    "command_occurrence_domain": "behavior.command_occurrence.v1",
+    "command_stream": "behavior.command_stream_request.v1",
+    "core": {
+      "commit": "63a8c164523275e06ac1d7dc5330db4a899c9d99",
+      "version": "0.16.0"
+    },
+    "engine": "0.16.0",
+    "read_records": [
+      "behavior.read_record.v1",
+      "behavior.read_record.v2"
+    ],
+    "records": [
+      "0.4",
+      "0.5",
+      "0.6",
+      "0.7",
+      "0.8"
+    ],
+    "store_documents": [
+      "behavior.entity_content.v1",
+      "behavior.entity_version.v1",
+      "behavior.state.v1",
+      "behavior.evidence_policy.v1",
+      "behavior.store_genesis.v1",
+      "behavior.commit_bundle.v1",
+      "behavior.transition_record.v1",
+      "behavior.replay_report.v1",
+      "behavior.migration_bundle.v1",
+      "behavior.store_genesis.v2",
+      "behavior.commit_bundle.v2",
+      "behavior.migration_bundle.v2",
+      "behavior.transition_record.v2"
+    ],
+    "verifier": "0.11.0",
+    "wire_ir": [
+      "0.1",
+      "0.2",
+      "0.3",
+      "0.4",
+      "0.5",
+      "0.6",
+      "0.7"
+    ]
+  },
+  "wire": {
+    "actions": [
+      {
+        "effects": [
+          {
+            "create": "Item",
+            "fields": {
+              "value": {
+                "loc": {
+                  "file": "growth.py",
+                  "line": 28
+                },
+                "op": "lit",
+                "type": {
+                  "t": "int"
+                },
+                "value": 0
+              }
+            },
+            "id": {
+              "loc": {
+                "file": "growth.py",
+                "line": 40
+              },
+              "op": "param",
+              "param": "item_id"
+            },
+            "loc": {
+              "file": "growth.py",
+              "line": 28
+            }
+          }
+        ],
+        "loc": {
+          "file": "growth.py",
+          "line": 26
+        },
+        "name": "add_item",
+        "params": [
+          {
+            "name": "item_id",
+            "role": "input",
+            "type": {
+              "entity": "Item",
+              "t": "id"
+            }
+          }
+        ],
+        "postconditions": [],
+        "preconditions": []
+      },
+      {
+        "effects": [
+          {
+            "loc": {
+              "file": "growth.py",
+              "line": 33
+            },
+            "target": {
+              "field": "value",
+              "param": "item"
+            },
+            "value": {
+              "loc": {
+                "file": "growth.py",
+                "line": 33
+              },
+              "op": "lit",
+              "type": {
+                "t": "int"
+              },
+              "value": 1
+            }
+          }
+        ],
+        "loc": {
+          "file": "growth.py",
+          "line": 31
+        },
+        "name": "update_item",
+        "params": [
+          {
+            "name": "item",
+            "role": "state",
+            "type": {
+              "name": "Item",
+              "t": "entity"
+            }
+          }
+        ],
+        "postconditions": [],
+        "preconditions": []
+      }
+    ],
+    "constraints": [],
+    "derived": [],
+    "entities": [
+      {
+        "fields": [
+          {
+            "loc": {
+              "file": "growth.py",
+              "line": 23
+            },
+            "name": "value",
+            "type": {
+              "t": "int"
+            }
+          }
+        ],
+        "loc": {
+          "file": "growth.py",
+          "line": 21
+        },
+        "name": "Item"
+      }
+    ],
+    "enums": [],
+    "invariants": [
+      {
+        "body": {
+          "args": [
+            {
+              "args": [
+                {
+                  "entity": "Item",
+                  "loc": {
+                    "file": "growth.py",
+                    "line": 39
+                  },
+                  "op": "select"
+                }
+              ],
+              "loc": {
+                "file": "growth.py",
+                "line": 39
+              },
+              "op": "count"
+            },
+            {
+              "loc": {
+                "file": "growth.py",
+                "line": 39
+              },
+              "op": "lit",
+              "type": {
+                "t": "int"
+              },
+              "value": 10000
+            }
+          ],
+          "loc": {
+            "file": "growth.py",
+            "line": 39
+          },
+          "op": "le"
+        },
+        "loc": {
+          "file": "growth.py",
+          "line": 37
+        },
+        "name": "maximum_items"
+      }
+    ],
+    "ir_version": "0.6",
+    "nominals": []
+  }
+}

@@ -94,7 +94,7 @@ def required_guard_row(name,row):
         if not isinstance(bh,str) or not bh.startswith("sha256:"):return False
         if json.loads(core["canonical_attestation"])!=att or att["behavior_version"]!=bh:return False
         if core["attestation_hash"]!=att["hash"] or core["result"]!=att["result"]:return False
-        if att["verifier_version"]!="0.10.0" or not isinstance(checks,list) or not checks or checks!=att["checks"]:return False
+        if att["verifier_version"]!=core_api.versions()["verifier"] or not isinstance(checks,list) or not checks or checks!=att["checks"]:return False
         if core["profile"]["checks"]!=["postcondition"]:return False
         if any(att["profile"].get(k)!=v for k,v in core["profile"].items()):return False
         if not row["postcondition_hashes"]:return False
@@ -114,7 +114,9 @@ def required_guard_contract(report):
     from .guard_contract import VARIANTS
     cases=report.get("cases",{})
     return (report.get("complete") is True and not report.get("errors")
-            and report.get("versions",{}).get("engine")=="0.15.0" and set(cases)==set(VARIANTS)
+            and report.get("versions",{}).get("core")==core_api.versions()["core"]
+            and report.get("versions",{}).get("verifier")==core_api.versions()["verifier"]
+            and report.get("versions",{}).get("engine")==core_api.versions()["engine"] and set(cases)==set(VARIANTS)
             and all(required_guard_row(name,row) for name,row in cases.items()))
 
 

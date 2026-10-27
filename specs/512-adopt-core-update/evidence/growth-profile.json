@@ -1,0 +1,33 @@
+{
+  "acceptance": {
+    "all_boundary_replay_and_outcome_controls_required": true,
+    "largest_minus_smallest_median_growth_candidate_over_baseline_max": 0.9,
+    "largest_population_median_candidate_over_baseline_max": 0.85,
+    "no_other_population_median_regression_above_ratio": 1.1,
+    "per_repetition_transaction_seconds_max": 60,
+    "wall_budget_is_operational_not_semantic": true
+  },
+  "baseline_median_transaction_ns": {
+    "1024": 677439970,
+    "256": 171302197,
+    "64": 58970177
+  },
+  "baseline_sha256": "8fe2146968c24be1d5e3c6b68b1c5622fd131ed6d38fc3e8c0600332b0254864",
+  "baseline_wheel_sha256": "794d2dd5ddf8613c52f524a1b4b74c0246d86a5ea52414424ab89ef104e86513",
+  "candidate_evaluated": false,
+  "cpu_affinity": [
+    0
+  ],
+  "creations_per_repetition": 8,
+  "format": "behavior.core_adoption_growth_profile.v1",
+  "frozen_before_candidate_evaluation": true,
+  "platform": "Linux-6.18.38-x86_64-with-glibc2.42",
+  "populations": [
+    64,
+    256,
+    1024
+  ],
+  "probe_sha256": "e8fad08a49bbd7c6a6304692c6b290aedfbf73bc23c47cf0802bd1df75c16be9",
+  "rationale": "Require at least 15% complete-transaction improvement at largest measured population and 10% lower growth increment, retaining all semantic controls and complete output. Permit up to 10% noise/regression at other populations. Operational ceiling is at least 60 seconds and ten baseline largest-window medians. These are frozen adoption thresholds, not proof claims or universal scaling bounds; failure blocks acceptance rather than silently changing the thresholds.",
+  "repetitions": 3
+}

@@ -1,0 +1,20 @@
+{
+  "boundary_and_replays": "passed",
+  "candidate_median_transaction_ns": {
+    "1024": 393393052,
+    "256": 112182493,
+    "64": 40948950
+  },
+  "candidate_over_baseline": {
+    "1024": 0.5807054047903315,
+    "256": 0.6548806434747594,
+    "64": 0.6944010020522746
+  },
+  "candidate_wheel_sha256": "a362ccf94abdf3f0009d71fafb44fe1331e0f1f5cea08ec1062fc463cceaf965",
+  "frozen_profile_acceptance": "passed",
+  "growth_increment_ratio": 0.5698646983071006,
+  "limitations": "Three measured live populations, native in-memory backend, fixed Linux environment and retained Store; complete output remains population-dependent. This is not a constant-time or arbitrary-global-rule claim.",
+  "profile_sha256": "a4a4626262f506ea1b02c0494a45d9d0db876155e30e1c67b6dbdc35fd070fdf",
+  "same_authored_behavior_and_wire": true,
+  "same_output_sizes_in_every_cycle": true
+}

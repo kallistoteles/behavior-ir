@@ -261,9 +261,9 @@ def test_cli_evidence_requires_independent_context_and_attachment_preserves_cand
     assert callable(getattr(bh, "with_trusted_evidence", None)), "evidence attachment is native"
     assert callable(getattr(bh.Store, "commit_with_context", None)), "live context is explicit"
     module = receipt_model()
-    # Fresh authenticated verification selects verifier-0.10.0 policies explicitly (Core 0.15.0).
-    policy_path = FIXTURES / "governance-v2/policy-verifier-0.10.json"
-    evidence_policy_path = FIXTURES / "governance-v2/evidence-policy-verifier-0.10.json"
+    # Fresh authenticated verification selects verifier-0.11.0 policies explicitly (Core 0.16.0).
+    policy_path = FIXTURES / "governance-v2/policy-verifier-0.11.json"
+    evidence_policy_path = FIXTURES / "governance-v2/evidence-policy-verifier-0.11.json"
     context_path = FIXTURES / "governance-v2/context.json"
     genesis = bh.Store.genesis_v2_for(module, [], evidence_policy_path.read_text())
     store = bh.Store.create(bh.InMemoryBackend(), module, genesis)
@@ -281,6 +281,16 @@ def test_cli_evidence_requires_independent_context_and_attachment_preserves_cand
         "--seed", str(FIXTURES / "governance-v2/verifier.seed"), "--out", str(envelope_path),
     ], capture_output=True, text=True)
     assert verified.returncode == 0, verified.stderr
+    # Selecting the released current policy does not upgrade an older policy implicitly.
+    stale_path = tmp_path / "stale-evidence.json"
+    stale = subprocess.run([
+        *cli, "authorize", str(candidate_path), "--wire", str(wire_path), "--evidence-policy",
+        str(evidence_policy_path), "--policy", str(FIXTURES / "governance-v2/policy-verifier-0.10.json"),
+        "--seed", str(FIXTURES / "governance-v2/authorizer.seed"), "--verification", str(envelope_path),
+        "--context", str(context_path), "--now", T0, "--out", str(stale_path),
+    ], capture_output=True, text=True)
+    assert stale.returncode == 2 and not stale_path.exists(), stale.stdout + stale.stderr
+    assert "EXECUTION_POLICY_NOT_ALLOWED" in stale.stderr
     authorized = subprocess.run([
         *cli, "authorize", str(candidate_path), "--wire", str(wire_path), "--evidence-policy",
         str(evidence_policy_path), "--policy", str(policy_path), "--seed",

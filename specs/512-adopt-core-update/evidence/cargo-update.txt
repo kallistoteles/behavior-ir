@@ -1,0 +1,15 @@
+warning: Git tree '/home/kalle/repos/behavior-ir-512' is dirty
+    Updating git repository `https://github.com/kallistoteles/behavior-ir-core`
+    Updating crates.io index
+     Locking 6 packages to latest Rust 1.98.1 compatible versions
+      Adding behavior-core v0.16.0 (https://github.com/kallistoteles/behavior-ir-core?rev=63a8c164523275e06ac1d7dc5330db4a899c9d99#63a8c164)
+    Removing behavior-core v0.15.0 (https://github.com/kallistoteles/behavior-ir-core?rev=6b93898a9375113f7a8946f23ab5535319b6f5d6#6b93898a)
+      Adding behavior-engine v0.16.0 (https://github.com/kallistoteles/behavior-ir-core?rev=63a8c164523275e06ac1d7dc5330db4a899c9d99#63a8c164)
+    Removing behavior-engine v0.15.0 (https://github.com/kallistoteles/behavior-ir-core?rev=6b93898a9375113f7a8946f23ab5535319b6f5d6#6b93898a)
+    Updating behavior-models v0.14.0 (/home/kalle/repos/behavior-ir-512/crates/behavior-models) -> v0.15.0
+    Updating behavior-py v0.14.0 (/home/kalle/repos/behavior-ir-512/crates/behavior-py) -> v0.15.0
+      Adding behavior-store v0.16.0 (https://github.com/kallistoteles/behavior-ir-core?rev=63a8c164523275e06ac1d7dc5330db4a899c9d99#63a8c164)
+    Removing behavior-store v0.15.0 (https://github.com/kallistoteles/behavior-ir-core?rev=6b93898a9375113f7a8946f23ab5535319b6f5d6#6b93898a)
+      Adding behavior-verify v0.16.0 (https://github.com/kallistoteles/behavior-ir-core?rev=63a8c164523275e06ac1d7dc5330db4a899c9d99#63a8c164)
+    Removing behavior-verify v0.15.0 (https://github.com/kallistoteles/behavior-ir-core?rev=6b93898a9375113f7a8946f23ab5535319b6f5d6#6b93898a)
+note: pass `--verbose` to see 20 unchanged dependencies behind latest

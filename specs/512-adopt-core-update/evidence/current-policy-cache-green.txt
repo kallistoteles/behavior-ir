@@ -1,0 +1,3 @@
+warning: Git tree '/home/kalle/repos/behavior-ir-512' is dirty
+.....................................                                    [100%]
+37 passed in 4.73s

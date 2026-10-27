@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "/home/kalle/repos/behavior-ir-512/specs/512-adopt-core-update/probes/adoption_cases.py", line 152, in <module>
+    main()
+    ~~~~^^
+  File "/home/kalle/repos/behavior-ir-512/specs/512-adopt-core-update/probes/adoption_cases.py", line 138, in main
+    positives = [positive(pattern, profile) for profile in ["0.7", "0.8"] for pattern in ACTIONS]
+                 ~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/home/kalle/repos/behavior-ir-512/specs/512-adopt-core-update/probes/adoption_cases.py", line 83, in positive
+    assert wire["ir_version"] == profile
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

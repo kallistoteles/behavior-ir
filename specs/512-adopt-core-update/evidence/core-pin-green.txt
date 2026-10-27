@@ -1,0 +1,2 @@
+warning: Git tree '/home/kalle/repos/behavior-ir-512' is dirty
+check-core-pin: OK (v0.16.0 63a8c164523275e06ac1d7dc5330db4a899c9d99)

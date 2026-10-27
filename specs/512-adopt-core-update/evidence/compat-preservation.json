@@ -1,0 +1,49 @@
+{
+  "compat": {
+    "historical_count": 9,
+    "current_count": 18,
+    "historical_entries_exact": true
+  },
+  "safety-compat": {
+    "historical_count": 9,
+    "current_count": 12,
+    "historical_entries_exact": true
+  },
+  "safety_new_dependency_changes": [
+    {
+      "model_kind": "lifecycle_dependency",
+      "case": "ld_parent_child",
+      "changes": [
+        "inventory_hash"
+      ]
+    },
+    {
+      "model_kind": "lifecycle_dependency",
+      "case": "ld_shared_parent",
+      "changes": [
+        "inventory_hash"
+      ]
+    },
+    {
+      "model_kind": "lifecycle_dependency",
+      "case": "ld_vm_resource",
+      "changes": [
+        "inventory_hash"
+      ]
+    },
+    {
+      "model_kind": "field_ownership",
+      "case": "fo_state_machine",
+      "changes": [
+        "inventory_hash"
+      ]
+    },
+    {
+      "model_kind": "field_ownership",
+      "case": "fo_field",
+      "changes": [
+        "inventory_hash"
+      ]
+    }
+  ]
+}

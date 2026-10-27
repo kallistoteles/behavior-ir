@@ -1,0 +1,4 @@
+warning: Git tree '/home/kalle/repos/behavior-ir-512' is dirty
+check-models-compat: recorded tuple {"co_supplied":[{"kind":"field_ownership","lowerer_version":3,"model_semantic_version":1}],"core_release":{"commit":"63a8c164523275e06ac1d7dc5330db4a899c9d99","version":"0.16.0"},"lowerer_version":3,"model_kind":"lifecycle_dependency","model_semantic_version":1}
+check-models-compat: recorded tuple {"co_supplied":[{"kind":"state_machine","lowerer_version":1,"model_semantic_version":2}],"core_release":{"commit":"63a8c164523275e06ac1d7dc5330db4a899c9d99","version":"0.16.0"},"lowerer_version":3,"model_kind":"field_ownership","model_semantic_version":1}
+check-models-compat: recorded tuple {"core_release":{"commit":"63a8c164523275e06ac1d7dc5330db4a899c9d99","version":"0.16.0"},"lowerer_version":3,"model_kind":"field_ownership","model_semantic_version":1}

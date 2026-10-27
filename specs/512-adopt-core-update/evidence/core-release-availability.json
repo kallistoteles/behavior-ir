@@ -1,0 +1,54 @@
+{
+  "checked_at": "2026-10-27",
+  "endpoint": "https://api.github.com/repos/kallistoteles/behavior-ir-core/releases?per_page=10",
+  "required_features": [
+    "029-incremental-global-validation",
+    "030-verify-ref-removals"
+  ],
+  "qualifying_published_release": null,
+  "releases": [
+    {
+      "tag": "v0.15.0",
+      "draft": false,
+      "prerelease": false,
+      "published_at": "2026-10-17T13:15:32Z",
+      "html_url": "https://github.com/kallistoteles/behavior-ir-core/releases/tag/v0.15.0"
+    },
+    {
+      "tag": "v0.14.0",
+      "draft": false,
+      "prerelease": false,
+      "published_at": "2026-10-16T14:40:47Z",
+      "html_url": "https://github.com/kallistoteles/behavior-ir-core/releases/tag/v0.14.0"
+    },
+    {
+      "tag": "v0.13.0",
+      "draft": false,
+      "prerelease": false,
+      "published_at": "2026-10-14T22:22:38Z",
+      "html_url": "https://github.com/kallistoteles/behavior-ir-core/releases/tag/v0.13.0"
+    },
+    {
+      "tag": "v0.12.1",
+      "draft": false,
+      "prerelease": false,
+      "published_at": "2026-10-10T17:13:07Z",
+      "html_url": "https://github.com/kallistoteles/behavior-ir-core/releases/tag/v0.12.1"
+    },
+    {
+      "tag": "v0.12.0",
+      "draft": false,
+      "prerelease": false,
+      "published_at": "2026-10-06T19:56:51Z",
+      "html_url": "https://github.com/kallistoteles/behavior-ir-core/releases/tag/v0.12.0"
+    },
+    {
+      "tag": "v0.10.2",
+      "draft": false,
+      "prerelease": false,
+      "published_at": "2026-10-04T10:09:14Z",
+      "html_url": "https://github.com/kallistoteles/behavior-ir-core/releases/tag/v0.10.2"
+    }
+  ],
+  "conclusion": "No published Core release containing 029/030; latest is v0.15.0 with verifier 0.10.0. Pin adoption and candidate acceptance remain pending."
+}

@@ -1,0 +1,4 @@
+.......................................                                  [100%]
+39 passed in 7.67s
+conformance complete: blocked 0, failed 0, inconclusive 0, passed 39, unsupported 0, unverifiable 0
+full conformance: complete

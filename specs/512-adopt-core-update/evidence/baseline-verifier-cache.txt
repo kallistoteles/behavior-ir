@@ -1,0 +1,2 @@
+warning: Git tree '/home/kalle/repos/behavior-ir-512' is dirty
+{"verifier": "0.10.0", "behavior_hash": "sha256:7fad9d8fdb40975484653ef25a3b1f1892c1c7c65248ee8c461123ae20dfe682", "cache_files": 1, "warm_hits": true}

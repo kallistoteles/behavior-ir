@@ -9,11 +9,11 @@ skills, the models area and the installable package. The deterministic semantic 
 [Behavior Core](https://github.com/kallistoteles/behavior-ir-core) (`behavior-ir-core`). Core
 defines meaning; this repository defines ways to author and use it. The package is built
 against exactly one Core Release, named in [`core-release.json`](core-release.json) (core
-v0.15.0), and bundles it, so users install one thing.
+v0.16.0), and bundles it, so users install one thing.
 
 The semantics are specified and documented in the core:
-- [PRINCIPLES.md](https://github.com/kallistoteles/behavior-ir-core/blob/v0.15.0/PRINCIPLES.md): the first principles every feature is checked against;
-- [ARCHITECTURE.md](https://github.com/kallistoteles/behavior-ir-core/blob/v0.15.0/ARCHITECTURE.md): core, bindings and models, and where a new concept
+- [PRINCIPLES.md](https://github.com/kallistoteles/behavior-ir-core/blob/v0.16.0/PRINCIPLES.md): the first principles every feature is checked against;
+- [ARCHITECTURE.md](https://github.com/kallistoteles/behavior-ir-core/blob/v0.16.0/ARCHITECTURE.md): core, bindings and models, and where a new concept
   belongs;
 - `docs/persistence.md`, `docs/verification.md` and the specifications 001–007, 009, 010,
   012 and 013.
@@ -335,7 +335,7 @@ The invocation document uses typed `{entity, id}` bindings. For untrusted capabi
 pass host context explicitly with `invoke(..., context=...)`; the caller supplies neither
 state nor acting context. Passing raw JSON text preserves duplicate keys for the core's
 checked decoder. Canonical records, refusal order, semantic hashes and replay come from core.
-See the pinned [invocation contract](https://github.com/kallistoteles/behavior-ir-core/blob/v0.15.0/docs/invocation.md).
+See the pinned [invocation contract](https://github.com/kallistoteles/behavior-ir-core/blob/v0.16.0/docs/invocation.md).
 
 The public Python DSL supports `@command` payload declarations and `emit(...)` in actions
 and Model capabilities. Passing `commands=[...]` to `BehaviorModule` selects the command
@@ -353,7 +353,7 @@ Reads, refusals and uncommitted candidates leave history unchanged.
 upper anchor and a limit on whole history events. Duplicate emissions retain multiplicity;
 each committed occurrence has a stable identity. Command-only commits advance history while
 preserving state content. Adapters consume these occurrences and own dispatch, retries and
-delivery status. See the pinned [command contract](https://github.com/kallistoteles/behavior-ir-core/blob/v0.15.0/docs/commands.md).
+delivery status. See the pinned [command contract](https://github.com/kallistoteles/behavior-ir-core/blob/v0.16.0/docs/commands.md).
 
 Trusted proof generation and authorization are available through the bundled
 `behavior governance verify`, `verify-migration` and `authorize` commands. Python can derive
@@ -363,7 +363,7 @@ supplied host context and the exact execution policy. Historical v1 policies req
 authorization refuse fresh action or migration writes with
 `TRUSTED_GOVERNANCE_UPGRADE_REQUIRED`. Validated state export and an explicit v2 genesis begin
 a new lineage; historical evidence retains its original trust level. See the pinned
-[governance contract](https://github.com/kallistoteles/behavior-ir-core/blob/v0.15.0/docs/governance.md).
+[governance contract](https://github.com/kallistoteles/behavior-ir-core/blob/v0.16.0/docs/governance.md).
 
 ## Using a release (feature 008)
 
@@ -373,7 +373,7 @@ pinned by file and hash; no Rust toolchain is needed:
 
 ```text
 # requirements.txt of the application
-behavior @ file:///path/to/behavior-0.14.0-cp313-abi3-manylinux_2_28_x86_64.whl --hash=sha256:<from SHA256SUMS>
+behavior @ file:///path/to/behavior-0.15.0-cp313-abi3-manylinux_2_28_x86_64.whl --hash=sha256:<from SHA256SUMS>
 ```
 
 - **Install.** Run `pip install --require-hashes -r requirements.txt`. The wheel also installs
@@ -400,14 +400,16 @@ behavior @ file:///path/to/behavior-0.14.0-cp313-abi3-manylinux_2_28_x86_64.whl 
   [`api/public-api.json`](api/public-api.json). The versioning policy is in
   [`docs/versioning.md`](docs/versioning.md).
 
-The 0.14.0 candidate bundles Core 0.15.0 and verifier 0.10.0. See the
-[release notes](release/notes/0.14.0.md) for consumer adaptations and verification improvements.
+The 0.15.0 candidate adopts supported incremental global-rule validation and guarded
+Ref-target removal verification. Existing Model semantics and state/replay contracts are
+preserved. It bundles Core 0.16.0 and verifier 0.11.0. See the
+[release notes](release/notes/0.15.0.md) for consumer adaptations and verification improvements.
 
 Maintainers prepare and validate a committed candidate using the existing build and
 `scripts/release-check.sh` (full gates, installed examples and reproducibility), plus complete
 506/507 conformance. After merge and a separate explicit publication request, create the
-annotated `v0.14.0` tag on the approved commit and run `scripts/check-tag.sh` followed by
-`scripts/release.sh 0.14.0`. That script checks/builds and generates notes; it does not create
+annotated `v0.15.0` tag on the approved commit and run `scripts/check-tag.sh` followed by
+`scripts/release.sh 0.15.0`. That script checks/builds and generates notes; it does not create
 tags. Pushing the tag starts the existing publishing workflow. Verify downloaded artifacts
 against checksums, the manifest and a repeat build. See the
 [release process](docs/versioning.md#releases). Previously published tags and
@@ -458,7 +460,7 @@ Layout:
 - `examples/`, `skills/` (consumer skills), `models/` (model rules and a state-machine example).
 - `release/`, `api/public-api.json`, `scripts/`.
 
-## Safety Models (Behavior 0.14.0)
+## Safety Models (Behavior 0.15.0)
 
 Behavior 0.13.1 introduced compile-time `FieldOwnership` and restricted `LifecycleDependency`
 checks with Core 0.15.0. Published 0.13.0 artifacts do not contain these APIs.
@@ -477,7 +479,7 @@ Core remains the sole runtime authority. Initial-state validation, migrations an
 authorization are separate boundaries. The mandatory `Safety proofs` gate uses the existing
 `scripts/gates.sh` process; Lean is never required by Store execution or replay.
 
-The 0.14.0 certification contract uses statement version 2 and separate v2 evidence/bundles.
+The certification contract introduced in 0.14.0 uses statement version 2 and separate v2 evidence/bundles.
 Independent checking verifies an untrusted, data-only witness against the exact admitted module
 and complete expected policy set, including all required obligations, axiom audits and fresh
 kernel replay. It does not trust a producer's earlier approval. Published historical artifacts

@@ -1,0 +1,11 @@
+{
+  "artifacts": {
+    "SHA256SUMS": "28edbd51f0432ec87cad960341d1b65078da8e1a4c6ab065246a840380e742c2",
+    "behavior-0.15.0-cp313-abi3-manylinux_2_28_x86_64.whl": "a362ccf94abdf3f0009d71fafb44fe1331e0f1f5cea08ec1062fc463cceaf965",
+    "release-manifest.json": "5fcc7684b77c85d6a52eafeadaa6fdc12d22da80d0085d41a5cac21df0f62f91"
+  },
+  "exact_candidate_rebuild": "byte-identical",
+  "note": "Manifest commit is base HEAD; the separately indexed working source is the tested candidate. Matching final package bytes bind the original installed/growth measurement wheel to the final package sources.",
+  "publication": false,
+  "working_source_index": "tested-source.json"
+}

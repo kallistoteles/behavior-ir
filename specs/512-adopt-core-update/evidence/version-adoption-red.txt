@@ -1,0 +1,47 @@
+FF...............F                                                       [100%]
+=================================== FAILURES ===================================
+_______________ test_the_binding_version_is_the_release_version ________________
+
+    def test_the_binding_version_is_the_release_version() -> None:
+>       assert behavior.__version__ == "0.15.0"
+E       AssertionError: assert '0.14.0' == '0.15.0'
+E         
+E         - 0.15.0
+E         ?    ^
+E         + 0.14.0
+E         ?    ^
+
+python/tests/test_versions.py:24: AssertionError
+_______ test_versions_are_the_engine_info_plus_the_core_and_the_binding ________
+
+    def test_versions_are_the_engine_info_plus_the_core_and_the_binding() -> None:
+        expected = _engine_info()
+        pin = _pin()
+        expected["core"] = {"version": pin["version"], "commit": pin["commit"]}
+        expected["binding"] = {"python": "0.15.0"}
+>       assert behavior.versions() == expected
+E       AssertionError: assert {'accepted_wi...'0.15.0', ...} == {'accepted_wi...'0.15.0', ...}
+E         
+E         Omitting 10 identical items, use -vv to show
+E         Differing items:
+E         {'binding': {'python': '0.14.0'}} != {'binding': {'python': '0.15.0'}}
+E         Use -v to get more diff
+
+python/tests/test_versions.py:32: AssertionError
+__________________ test_the_adopted_core_verifier_is_reported __________________
+
+    def test_the_adopted_core_verifier_is_reported() -> None:
+>       assert behavior.versions()["verifier"] == "0.11.0"
+E       AssertionError: assert '0.10.0' == '0.11.0'
+E         
+E         - 0.11.0
+E         ?    ^
+E         + 0.10.0
+E         ?    ^
+
+python/tests/test_versions.py:102: AssertionError
+=========================== short test summary info ============================
+FAILED python/tests/test_versions.py::test_the_binding_version_is_the_release_version
+FAILED python/tests/test_versions.py::test_versions_are_the_engine_info_plus_the_core_and_the_binding
+FAILED python/tests/test_versions.py::test_the_adopted_core_verifier_is_reported
+3 failed, 15 passed in 0.45s

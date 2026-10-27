@@ -112,6 +112,59 @@
     "ld_parent_child": {
      "behavior_hash": "sha256:70f28d632a7f8c5cb9d7f6b33b311175c04de81c165b1371708b0fcc1a572849",
      "generating_models": [],
+     "inventory_hash": "sha256:c437d91e709155cb99a7425a9762deda4ce5c3948632369bbe947ad259858a23",
+     "models": [
+      "sha256:3105cc8aa59b41d1b155970af0a30abbf6e4305d473eb8c3cea04b026e1b6445",
+      "sha256:613132ff0b13c054da978ac8395cedd616a0523785298f9caeefa6d8f9e577d7",
+      "sha256:84596fef911c8c2f1b7f3b3d2b233c0f82c37bde814d94a8496274403d6688e2"
+     ],
+     "policy_set_hash": "sha256:1b0df4b12b402496ef966fd6afd866005a3b1f0f58b6a3d2c3265a49e7e0f3e5"
+    },
+    "ld_shared_parent": {
+     "behavior_hash": "sha256:1cbb8f97977975bd37ef946d2760d38c9d96e9ea2d3708161a60d20b7be26f36",
+     "generating_models": [],
+     "inventory_hash": "sha256:427243c969e10ef5845085126d3fe2f86e1ce4a090ace6b2499966979d5653d1",
+     "models": [
+      "sha256:613132ff0b13c054da978ac8395cedd616a0523785298f9caeefa6d8f9e577d7",
+      "sha256:89463c70614d28f4e2dee83f2448aee56699b70840df0c6b28611566ef734d09",
+      "sha256:90f61d0f97c17eebe8f07de610bb4a87646c32dbb6d153bb094c009502a82c34",
+      "sha256:b8d469c866557c5021af27882ed22b079cd1005bba80569a8e2079218d506903",
+      "sha256:e968c6003fe3a89c1767ed71314747d1bd9340a8a5466ce50076f9ab11d2b29c"
+     ],
+     "policy_set_hash": "sha256:64be85f26ccd60f1ea8be4bbb3b1687af74508b2ca8fbf4d08d11c06b5ea5194"
+    },
+    "ld_vm_resource": {
+     "behavior_hash": "sha256:379842b4722478d3c19d4cd87d5e7d8c7138a348616361c69d2eaf0eda186f46",
+     "generating_models": [],
+     "inventory_hash": "sha256:780494a099aecbe4aa1c20fb0a2d2e5299419a52231bed47928e79b80e9d74e8",
+     "models": [
+      "sha256:1a62c1fed995659a7961bfd816cc336791cb48a27f1b4b9d35f8c60adf3c8a25",
+      "sha256:9c5dadcd161f771dce2aef25ac33d495004603a756ec6d9f99ccefa53c588428",
+      "sha256:c29fedc93cafe5fb55ba505f12e3235bdca363d4167fd294def1c0e9e118c6a4"
+     ],
+     "policy_set_hash": "sha256:6e32a98dccbed62b07b571ce6dd4ad5322bfefe62d97321f04f7bb03023c24b3"
+    }
+   },
+   "co_supplied": [
+    {
+     "kind": "field_ownership",
+     "lowerer_version": 3,
+     "model_semantic_version": 1
+    }
+   ],
+   "core_release": {
+    "commit": "63a8c164523275e06ac1d7dc5330db4a899c9d99",
+    "version": "0.16.0"
+   },
+   "lowerer_version": 3,
+   "model_kind": "lifecycle_dependency",
+   "model_semantic_version": 1
+  },
+  {
+   "cases": {
+    "ld_parent_child": {
+     "behavior_hash": "sha256:70f28d632a7f8c5cb9d7f6b33b311175c04de81c165b1371708b0fcc1a572849",
+     "generating_models": [],
      "inventory_hash": "sha256:b85c46e20521843f83f90bf4822d15e06dbdfe603ef024879e5d6aee69b07cf3",
      "models": [
       "sha256:3105cc8aa59b41d1b155970af0a30abbf6e4305d473eb8c3cea04b026e1b6445",
@@ -158,6 +211,35 @@
    },
    "lowerer_version": 3,
    "model_kind": "lifecycle_dependency",
+   "model_semantic_version": 1
+  },
+  {
+   "cases": {
+    "fo_state_machine": {
+     "behavior_hash": "sha256:3b9196c9afc84ee6a347e8f7f38b3cece6fb8e8081060f6557be27abb0b8e608",
+     "generating_models": [
+      "sha256:1b90df6bfd2bfeab0c8c0ef21d704e81a4297c15ba1cf3480386c0d61dde18a4"
+     ],
+     "inventory_hash": "sha256:d9d2defa90ed4a83f3b11e3e7150a3e24547574e409bcfb768462339b887f917",
+     "models": [
+      "sha256:d0e4ea424c6f816a6af9bf025933bf6323b33836fabd96428df2f5a77a1ee2a3"
+     ],
+     "policy_set_hash": "sha256:2e327cb9358727b87d8497d500ed03573d5f2c31d4aeb25d9a2d16f9018e3e03"
+    }
+   },
+   "co_supplied": [
+    {
+     "kind": "state_machine",
+     "lowerer_version": 1,
+     "model_semantic_version": 2
+    }
+   ],
+   "core_release": {
+    "commit": "63a8c164523275e06ac1d7dc5330db4a899c9d99",
+    "version": "0.16.0"
+   },
+   "lowerer_version": 3,
+   "model_kind": "field_ownership",
    "model_semantic_version": 1
   },
   {
@@ -242,6 +324,26 @@
    "core_release": {
     "commit": "6b93898a9375113f7a8946f23ab5535319b6f5d6",
     "version": "0.15.0"
+   },
+   "lowerer_version": 3,
+   "model_kind": "field_ownership",
+   "model_semantic_version": 1
+  },
+  {
+   "cases": {
+    "fo_field": {
+     "behavior_hash": "sha256:1d0a2bbbc66d1f05d68a4a004e6a18f60c6b3f2ec4dffbaa688bd7165f3dac79",
+     "generating_models": [],
+     "inventory_hash": "sha256:cc0d0719750fd55aa57517f3b5d4a7d24a5279bf1180e8cc51865f1ace1bfd9b",
+     "models": [
+      "sha256:e72cfbcf37d9c4e159a1c48c497f1988f071a024be155da6dfacbd447d26e2a5"
+     ],
+     "policy_set_hash": "sha256:fd25e48cb70f0043d6ca7399e031cfac0e8e42e21afa462c5340aa6b620172e7"
+    }
+   },
+   "core_release": {
+    "commit": "63a8c164523275e06ac1d7dc5330db4a899c9d99",
+    "version": "0.16.0"
    },
    "lowerer_version": 3,
    "model_kind": "field_ownership",

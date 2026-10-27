@@ -1,0 +1,8 @@
+warning: Git tree '/home/kalle/repos/behavior-ir-512' is dirty
+📦 Including license file `LICENSE`
+🍹 Building a mixed python/rust project
+🐍 Found CPython 3.13 at /home/kalle/repos/behavior-ir-512/.venv/bin/python
+🔗 Found pyo3 bindings with abi3-py3.13 support
+📦 Built wheel for abi3 Python ≥ 3.13 to /home/kalle/repos/behavior-ir-512/target/tmp/nix-shell.NRPMqh/.tmp2Q0qho/behavior-0.15.0-cp313-abi3-linux_x86_64.whl
+✏️ Setting installed package as editable
+🛠 Installed behavior-0.15.0

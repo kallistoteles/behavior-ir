@@ -1,0 +1,163 @@
+warning: Git tree '/home/kalle/repos/behavior-ir-512' is dirty
+FFFFFF....FFFF..                                                         [100%]
+=================================== FAILURES ===================================
+_____ test_supported_removal_has_real_proofs_and_allowed_replay[free-0.7] ______
+
+pattern = 'free', profile = '0.7'
+
+    @pytest.mark.parametrize("profile", ["0.7", "0.8"])
+    @pytest.mark.parametrize("pattern", ["free", "joint", "retarget"])
+    def test_supported_removal_has_real_proofs_and_allowed_replay(pattern: str, profile: str) -> None:
+        row = cases.positive(pattern, profile)
+>       assert row["supported"], row["report"]
+E       AssertionError: {'attestation_version': '1', 'behavior_version': 'sha256:08abf469d199a0bc832e30b6b9329c4a590ac0582855500ea72e50602a869...ns for removal target)', 'hash': 'sha256:f00cbdd2128a504d34f89f93d3f6253bff06bae87111d7db29048607c8ff0164', ...}], ...}
+E       assert False
+
+python/tests/test_core_update_adoption.py:24: AssertionError
+_____ test_supported_removal_has_real_proofs_and_allowed_replay[free-0.8] ______
+
+pattern = 'free', profile = '0.8'
+
+    @pytest.mark.parametrize("profile", ["0.7", "0.8"])
+    @pytest.mark.parametrize("pattern", ["free", "joint", "retarget"])
+    def test_supported_removal_has_real_proofs_and_allowed_replay(pattern: str, profile: str) -> None:
+        row = cases.positive(pattern, profile)
+>       assert row["supported"], row["report"]
+E       AssertionError: {'attestation_version': '1', 'behavior_version': 'sha256:7a6b40977f8379c7d2a9d7bd78541a34d6f6abea838857301c84797699a98...ns for removal target)', 'hash': 'sha256:7383cf91f781464f0364f830bb43dcf151404b292b772e60bd83ac8d194a3c0e', ...}], ...}
+E       assert False
+
+python/tests/test_core_update_adoption.py:24: AssertionError
+_____ test_supported_removal_has_real_proofs_and_allowed_replay[joint-0.7] _____
+
+pattern = 'joint', profile = '0.7'
+
+    @pytest.mark.parametrize("profile", ["0.7", "0.8"])
+    @pytest.mark.parametrize("pattern", ["free", "joint", "retarget"])
+    def test_supported_removal_has_real_proofs_and_allowed_replay(pattern: str, profile: str) -> None:
+        row = cases.positive(pattern, profile)
+>       assert row["supported"], row["report"]
+E       AssertionError: {'attestation_version': '1', 'behavior_version': 'sha256:b320b5ee1877096577bca6e0f32be5bd9233a9b960ee513da2ef026a583cb...ns for removal target)', 'hash': 'sha256:160f6d9c1322a35af593db5a2a69d3cea9425f63c46eb687d9bb25b3842eff69', ...}], ...}
+E       assert False
+
+python/tests/test_core_update_adoption.py:24: AssertionError
+_____ test_supported_removal_has_real_proofs_and_allowed_replay[joint-0.8] _____
+
+pattern = 'joint', profile = '0.8'
+
+    @pytest.mark.parametrize("profile", ["0.7", "0.8"])
+    @pytest.mark.parametrize("pattern", ["free", "joint", "retarget"])
+    def test_supported_removal_has_real_proofs_and_allowed_replay(pattern: str, profile: str) -> None:
+        row = cases.positive(pattern, profile)
+>       assert row["supported"], row["report"]
+E       AssertionError: {'attestation_version': '1', 'behavior_version': 'sha256:89d8488b23e0c1da960cce30678d0a4441a2179038d63032531813a33bb70...ns for removal target)', 'hash': 'sha256:b2de775d258c72f5fc4262989ef133332bd9a5d4250e1425dea92d397e722072', ...}], ...}
+E       assert False
+
+python/tests/test_core_update_adoption.py:24: AssertionError
+___ test_supported_removal_has_real_proofs_and_allowed_replay[retarget-0.7] ____
+
+pattern = 'retarget', profile = '0.7'
+
+    @pytest.mark.parametrize("profile", ["0.7", "0.8"])
+    @pytest.mark.parametrize("pattern", ["free", "joint", "retarget"])
+    def test_supported_removal_has_real_proofs_and_allowed_replay(pattern: str, profile: str) -> None:
+        row = cases.positive(pattern, profile)
+>       assert row["supported"], row["report"]
+E       AssertionError: {'attestation_version': '1', 'behavior_version': 'sha256:a4e934cb90a1313180894cda583fc09d8a790c8079cf1c689646a3466bd67...ns for removal target)', 'hash': 'sha256:2c5cb3d2afc7e2f5a0f043ebfd762fd2af7121bb07f5f28acbe4ed73671779bc', ...}], ...}
+E       assert False
+
+python/tests/test_core_update_adoption.py:24: AssertionError
+___ test_supported_removal_has_real_proofs_and_allowed_replay[retarget-0.8] ____
+
+pattern = 'retarget', profile = '0.8'
+
+    @pytest.mark.parametrize("profile", ["0.7", "0.8"])
+    @pytest.mark.parametrize("pattern", ["free", "joint", "retarget"])
+    def test_supported_removal_has_real_proofs_and_allowed_replay(pattern: str, profile: str) -> None:
+        row = cases.positive(pattern, profile)
+>       assert row["supported"], row["report"]
+E       AssertionError: {'attestation_version': '1', 'behavior_version': 'sha256:31f3970b46a5a07166df680bb86462ba8c03ee79221e4e6db914ff183f9dc...ns for removal target)', 'hash': 'sha256:fa08b2ecb2fcdcdc2d1f860007424f44a5c66c595e9464ccb8f4ce01394dff47', ...}], ...}
+E       assert False
+
+python/tests/test_core_update_adoption.py:24: AssertionError
+______ test_other_incoming_classes_and_fields_stay_in_the_inventory[0.7] _______
+
+profile = '0.7'
+
+    @pytest.mark.parametrize("profile", ["0.7", "0.8"])
+    def test_other_incoming_classes_and_fields_stay_in_the_inventory(profile: str) -> None:
+        report = cases.extra_incoming_class(profile)
+        refs = [c for c in report.checks if c["subject"]["kind"] == "reference_world"]
+>       assert {c["subject"]["name"] for c in refs} == {
+            "ref(Holder.target)", "ref(OtherHolder.target)", "ref(OtherHolder.second)",
+        }
+E       AssertionError: assert set() == {'ref(Holder....lder.target)'}
+E         
+E         Extra items in the right set:
+E         'ref(OtherHolder.target)'
+E         'ref(OtherHolder.second)'
+E         'ref(Holder.target)'
+E         Use -v to get more diff
+
+python/tests/test_core_update_adoption.py:40: AssertionError
+______ test_other_incoming_classes_and_fields_stay_in_the_inventory[0.8] _______
+
+profile = '0.8'
+
+    @pytest.mark.parametrize("profile", ["0.7", "0.8"])
+    def test_other_incoming_classes_and_fields_stay_in_the_inventory(profile: str) -> None:
+        report = cases.extra_incoming_class(profile)
+        refs = [c for c in report.checks if c["subject"]["kind"] == "reference_world"]
+>       assert {c["subject"]["name"] for c in refs} == {
+            "ref(Holder.target)", "ref(OtherHolder.target)", "ref(OtherHolder.second)",
+        }
+E       AssertionError: assert set() == {'ref(Holder....lder.target)'}
+E         
+E         Extra items in the right set:
+E         'ref(OtherHolder.target)'
+E         'ref(OtherHolder.second)'
+E         'ref(Holder.target)'
+E         Use -v to get more diff
+
+python/tests/test_core_update_adoption.py:40: AssertionError
+_______________ test_real_solver_exhaustion_is_inconclusive[0.7] _______________
+
+profile = '0.7'
+
+    @pytest.mark.parametrize("profile", ["0.7", "0.8"])
+    def test_real_solver_exhaustion_is_inconclusive(profile: str) -> None:
+        report = b.verify(cases.model_for(cases.remove_free, profile),
+                          b.Profile(checks=["preservation"], rlimit=1))
+        assert not report.verified and report.checks
+        assert all(c["outcome"] == "inconclusive" for c in report.checks)
+>       assert any(c.get("reason") == "resource_limit" for c in report.checks)
+E       assert False
+E        +  where False = any(<generator object test_real_solver_exhaustion_is_inconclusive.<locals>.<genexpr> at 0x7ffff4e6e670>)
+
+python/tests/test_core_update_adoption.py:53: AssertionError
+_______________ test_real_solver_exhaustion_is_inconclusive[0.8] _______________
+
+profile = '0.8'
+
+    @pytest.mark.parametrize("profile", ["0.7", "0.8"])
+    def test_real_solver_exhaustion_is_inconclusive(profile: str) -> None:
+        report = b.verify(cases.model_for(cases.remove_free, profile),
+                          b.Profile(checks=["preservation"], rlimit=1))
+        assert not report.verified and report.checks
+        assert all(c["outcome"] == "inconclusive" for c in report.checks)
+>       assert any(c.get("reason") == "resource_limit" for c in report.checks)
+E       assert False
+E        +  where False = any(<generator object test_real_solver_exhaustion_is_inconclusive.<locals>.<genexpr> at 0x7ffff4e6d3c0>)
+
+python/tests/test_core_update_adoption.py:53: AssertionError
+=========================== short test summary info ============================
+FAILED python/tests/test_core_update_adoption.py::test_supported_removal_has_real_proofs_and_allowed_replay[free-0.7]
+FAILED python/tests/test_core_update_adoption.py::test_supported_removal_has_real_proofs_and_allowed_replay[free-0.8]
+FAILED python/tests/test_core_update_adoption.py::test_supported_removal_has_real_proofs_and_allowed_replay[joint-0.7]
+FAILED python/tests/test_core_update_adoption.py::test_supported_removal_has_real_proofs_and_allowed_replay[joint-0.8]
+FAILED python/tests/test_core_update_adoption.py::test_supported_removal_has_real_proofs_and_allowed_replay[retarget-0.7]
+FAILED python/tests/test_core_update_adoption.py::test_supported_removal_has_real_proofs_and_allowed_replay[retarget-0.8]
+FAILED python/tests/test_core_update_adoption.py::test_other_incoming_classes_and_fields_stay_in_the_inventory[0.7]
+FAILED python/tests/test_core_update_adoption.py::test_other_incoming_classes_and_fields_stay_in_the_inventory[0.8]
+FAILED python/tests/test_core_update_adoption.py::test_real_solver_exhaustion_is_inconclusive[0.7]
+FAILED python/tests/test_core_update_adoption.py::test_real_solver_exhaustion_is_inconclusive[0.8]
+10 failed, 6 passed in 0.88s

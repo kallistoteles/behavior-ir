@@ -1,0 +1,715 @@
+{
+  "evidence": {
+    "action_obligations": [
+      {
+        "action_hash": "sha256:a98717c2d24d051595260f068340f259e4d5ed8c1db53557987b9512741705de",
+        "effect_correspondence": "Assumed; irrelevant projections use the proved frame lemmas",
+        "lifecycle": {
+          "class": "Machine-checked theorem instantiated by finite checking",
+          "dependencies": [],
+          "issues": [],
+          "result": "NotApplicable"
+        },
+        "operations": [
+          {
+            "entity": "Note",
+            "hash": "sha256:e4bf4ca7d5cf364d5c63addf69d8fe0e713f30bb5e5871f76566fc9eb6c1c98b",
+            "index": 0,
+            "kind": "remove",
+            "param": "note"
+          }
+        ],
+        "ownership": {
+          "class": "Kernel-checked finite premises",
+          "proof_integrity": "Complete",
+          "result": "Passed"
+        }
+      },
+      {
+        "action_hash": "sha256:d4bd6f10646518ac617caed9a2051e8f6d99d3369806a4266f79a79f7a386340",
+        "effect_correspondence": "Assumed; irrelevant projections use the proved frame lemmas",
+        "lifecycle": {
+          "class": "Machine-checked theorem instantiated by finite checking",
+          "dependencies": [],
+          "issues": [],
+          "result": "NotApplicable"
+        },
+        "operations": [
+          {
+            "entity": "Note",
+            "field": "text",
+            "hash": "sha256:4a8ada32f7b05a46484c8c83ee259319b1ce582136c85f1680776ac07da5ae19",
+            "index": 0,
+            "kind": "assign",
+            "param": "note",
+            "value": "sha256:abf12877504abe3e75d629f9b1ab2262094fa501578c8e50a242355de9718305"
+          }
+        ],
+        "ownership": {
+          "class": "Kernel-checked finite premises",
+          "proof_integrity": "Complete",
+          "result": "Passed"
+        }
+      },
+      {
+        "action_hash": "sha256:9238ceaefb410ea03fa7dc79ff26b6c63a5c188f406072c4967a9210a545eb88",
+        "effect_correspondence": "Assumed; irrelevant projections use the proved frame lemmas",
+        "lifecycle": {
+          "class": "Machine-checked theorem instantiated by finite checking",
+          "dependencies": [],
+          "issues": [],
+          "result": "NotApplicable"
+        },
+        "operations": [
+          {
+            "entity": "Note",
+            "fields": {
+              "label": "sha256:ae9c1276aa07944f73cbf7f2ad7c30b30685f5b23c93c6f8b6be11456e24a0de",
+              "text": "sha256:abf12877504abe3e75d629f9b1ab2262094fa501578c8e50a242355de9718305"
+            },
+            "hash": "sha256:287d3b64d428009844ecaf9fc8219d02b6a2cca82699bb94774d8b32e78a23ee",
+            "id": "sha256:3f1ee06c33f53a7094fe7b5cbfb0e5c3ea613c11f90b1114e6cd378956ff15d4",
+            "index": 0,
+            "kind": "create"
+          }
+        ],
+        "ownership": {
+          "class": "Kernel-checked finite premises",
+          "proof_integrity": "Complete",
+          "result": "Passed"
+        }
+      }
+    ],
+    "analysis_version": 1,
+    "assumptions": [
+      "Core semantic and backend contracts",
+      "Rust extraction/probe/encoding correspondence",
+      "Pinned kernel/toolchain/build integrity",
+      "Valid initial property and host-enforced approved deployment segment"
+    ],
+    "behavior_hash": "sha256:1d0a2bbbc66d1f05d68a4a004e6a18f60c6b3f2ec4dffbaa688bd7165f3dac79",
+    "checker_version": 3,
+    "core_release": {
+      "commit": "6b93898a9375113f7a8946f23ab5535319b6f5d6",
+      "version": "0.15.0"
+    },
+    "dependency_identity": {
+      "cargo_lock": "sha256:7a2296c69095c093086d1b914805003de36fde00c7d89e170236bf011be88309",
+      "core_release": {
+        "commit": "6b93898a9375113f7a8946f23ab5535319b6f5d6",
+        "version": "0.15.0"
+      },
+      "proof_toolchain_manifest": "sha256:84d169bb98b6ee50139e4f2bf3ba0f9e06c2ffb8a034a91245e1a644b1977d0a",
+      "rust_toolchain": "sha256:023075a0ddb84ee3a394b26da660bb9b49491db99c7ccf9cf440b6e69e51b1c5"
+    },
+    "diagnostic_codes": [],
+    "evidence_hash": "sha256:91af50c17ad55c37324fc5ff016a16e5106f96ae59971cec729b030b54e5e297",
+    "exclusions": [
+      "Genesis validity",
+      "Migration safety",
+      "Alternative modules",
+      "Physical host execution",
+      "End-to-end formal verification"
+    ],
+    "external_obligations": [
+      {
+        "class": "Separate state-validation obligation",
+        "id": "initial_validity",
+        "status": "Unestablished"
+      },
+      {
+        "class": "Exact BehaviorHash and complete policy set, exact validated activation anchor and enforced continuity",
+        "id": "approved_modules",
+        "status": "Host obligation"
+      },
+      {
+        "class": "Separate resulting-state validation or preservation proof required",
+        "id": "migration_safety",
+        "status": "Excluded"
+      }
+    ],
+    "format": "behavior.safety_evidence.v2",
+    "initial_validity": "Unestablished",
+    "inventory": {
+      "actions": [
+        {
+          "hash": "sha256:a98717c2d24d051595260f068340f259e4d5ed8c1db53557987b9512741705de",
+          "name": "discard",
+          "operations": [
+            {
+              "entity": "Note",
+              "hash": "sha256:e4bf4ca7d5cf364d5c63addf69d8fe0e713f30bb5e5871f76566fc9eb6c1c98b",
+              "index": 0,
+              "kind": "remove",
+              "param": "note"
+            }
+          ],
+          "params": [
+            {
+              "name": "note",
+              "type": {
+                "Entity": "Note"
+              }
+            }
+          ],
+          "postconditions": [],
+          "preconditions": []
+        },
+        {
+          "hash": "sha256:d4bd6f10646518ac617caed9a2051e8f6d99d3369806a4266f79a79f7a386340",
+          "name": "edit",
+          "operations": [
+            {
+              "entity": "Note",
+              "field": "text",
+              "hash": "sha256:4a8ada32f7b05a46484c8c83ee259319b1ce582136c85f1680776ac07da5ae19",
+              "index": 0,
+              "kind": "assign",
+              "param": "note",
+              "value": "sha256:abf12877504abe3e75d629f9b1ab2262094fa501578c8e50a242355de9718305"
+            }
+          ],
+          "params": [
+            {
+              "name": "note",
+              "type": {
+                "Entity": "Note"
+              }
+            },
+            {
+              "name": "text",
+              "type": "String"
+            }
+          ],
+          "postconditions": [],
+          "preconditions": []
+        },
+        {
+          "hash": "sha256:9238ceaefb410ea03fa7dc79ff26b6c63a5c188f406072c4967a9210a545eb88",
+          "name": "open_note",
+          "operations": [
+            {
+              "entity": "Note",
+              "fields": {
+                "label": "sha256:ae9c1276aa07944f73cbf7f2ad7c30b30685f5b23c93c6f8b6be11456e24a0de",
+                "text": "sha256:abf12877504abe3e75d629f9b1ab2262094fa501578c8e50a242355de9718305"
+              },
+              "hash": "sha256:287d3b64d428009844ecaf9fc8219d02b6a2cca82699bb94774d8b32e78a23ee",
+              "id": "sha256:3f1ee06c33f53a7094fe7b5cbfb0e5c3ea613c11f90b1114e6cd378956ff15d4",
+              "index": 0,
+              "kind": "create"
+            }
+          ],
+          "params": [
+            {
+              "name": "note_id",
+              "type": {
+                "Id": "Note"
+              }
+            },
+            {
+              "name": "text",
+              "type": "String"
+            }
+          ],
+          "postconditions": [],
+          "preconditions": []
+        }
+      ],
+      "behavior_hash": "sha256:1d0a2bbbc66d1f05d68a4a004e6a18f60c6b3f2ec4dffbaa688bd7165f3dac79",
+      "core_release": {
+        "commit": "6b93898a9375113f7a8946f23ab5535319b6f5d6",
+        "version": "0.15.0"
+      },
+      "declarations": {
+        "Note": {
+          "fields": {
+            "id": {
+              "reference": false,
+              "type": {
+                "Id": "Note"
+              }
+            },
+            "label": {
+              "reference": false,
+              "type": "String"
+            },
+            "text": {
+              "reference": false,
+              "type": "String"
+            }
+          },
+          "hash": "sha256:5820fbd1d3905ac0272662a724f021130cb662dc170d0c6ac6d49a4583a44ce3"
+        }
+      },
+      "format": "behavior.safety_inventory.v1",
+      "inventory_hash": "sha256:cfb6f0c2a928fcdd34504a6b254bea103a913b5c41a13146fd81551265fef858"
+    },
+    "obligation_evidence": {
+      "axiom_audit": {
+        "class": "Transitive axiom audit",
+        "result": "Passed"
+      },
+      "concrete_proof": {
+        "class": "Kernel-checked finite premises",
+        "result": "Passed"
+      },
+      "fresh_replay": {
+        "class": "Fresh kernel replay",
+        "result": "Passed"
+      },
+      "generic_proof": {
+        "class": "Machine-checked theorem",
+        "result": "Passed"
+      },
+      "inventory_comparison": {
+        "class": "Structural correspondence check",
+        "result": "Passed"
+      },
+      "theorem_types": {
+        "class": "Kernel type comparison",
+        "result": "Passed"
+      }
+    },
+    "obligations": {
+      "axiom_audit": "Passed",
+      "concrete_proof": "Passed",
+      "fresh_replay": "Passed",
+      "generic_proof": "Passed",
+      "inventory_comparison": "Passed",
+      "theorem_types": "Passed"
+    },
+    "outcome": "Certified under assumptions",
+    "policies": [
+      {
+        "document": {
+          "creators": [
+            "sha256:9238ceaefb410ea03fa7dc79ff26b6c63a5c188f406072c4967a9210a545eb88"
+          ],
+          "entity": "sha256:5820fbd1d3905ac0272662a724f021130cb662dc170d0c6ac6d49a4583a44ce3",
+          "kind": "FieldOwnership",
+          "model_semantic_version": 1,
+          "removers": [
+            "sha256:a98717c2d24d051595260f068340f259e4d5ed8c1db53557987b9512741705de"
+          ],
+          "writers": {
+            "text": [
+              "sha256:d4bd6f10646518ac617caed9a2051e8f6d99d3369806a4266f79a79f7a386340"
+            ]
+          }
+        },
+        "model_hash": "sha256:e72cfbcf37d9c4e159a1c48c497f1988f071a024be155da6dfacbd447d26e2a5"
+      }
+    ],
+    "policy_set_hash": "sha256:fd25e48cb70f0043d6ca7399e031cfac0e8e42e21afa462c5340aa6b620172e7",
+    "proof": {
+      "audit": [
+        {
+          "axioms": [
+            "Classical.choice",
+            "Quot.sound",
+            "propext"
+          ],
+          "declaration": "Safety.FieldOwnership.sound",
+          "expected_type_checked": true
+        },
+        {
+          "axioms": [
+            "propext"
+          ],
+          "declaration": "Safety.LifecycleDependency.sound",
+          "expected_type_checked": true
+        },
+        {
+          "axioms": [
+            "propext"
+          ],
+          "declaration": "Safety.LifecycleDependency.conjunction",
+          "expected_type_checked": true
+        },
+        {
+          "axioms": [
+            "Classical.choice",
+            "Quot.sound",
+            "propext"
+          ],
+          "declaration": "Safety.LifecycleDependency.projection_frame",
+          "expected_type_checked": true
+        },
+        {
+          "axioms": [
+            "propext"
+          ],
+          "declaration": "Safety.membership_order_equivalent",
+          "expected_type_checked": true
+        },
+        {
+          "axioms": [
+            "Quot.sound",
+            "propext"
+          ],
+          "declaration": "Safety.checkLifecycle_sound",
+          "expected_type_checked": true
+        },
+        {
+          "axioms": [
+            "Quot.sound",
+            "propext"
+          ],
+          "declaration": "Safety.classify_permitted",
+          "expected_type_checked": true
+        },
+        {
+          "axioms": [
+            "Classical.choice",
+            "Quot.sound",
+            "propext"
+          ],
+          "declaration": "Safety.lifecycle_module_preserves",
+          "expected_type_checked": true
+        },
+        {
+          "axioms": [
+            "Quot.sound",
+            "propext"
+          ],
+          "declaration": "Safety.checkModule_sound",
+          "expected_type_checked": true
+        },
+        {
+          "axioms": [
+            "Classical.choice",
+            "Quot.sound",
+            "propext"
+          ],
+          "declaration": "Safety.module_preserves",
+          "expected_type_checked": true
+        },
+        {
+          "axioms": [
+            "Classical.choice",
+            "Quot.sound",
+            "propext"
+          ],
+          "declaration": "Concrete.checked",
+          "expected_type_checked": true
+        },
+        {
+          "axioms": [
+            "Classical.choice",
+            "Quot.sound",
+            "propext"
+          ],
+          "declaration": "Concrete.certified",
+          "expected_type_checked": true
+        },
+        {
+          "axioms": [
+            "Classical.choice",
+            "Quot.sound",
+            "propext"
+          ],
+          "declaration": "Safety.Candidate.traceChecked_sound",
+          "expected_type_checked": true
+        },
+        {
+          "axioms": [
+            "propext"
+          ],
+          "declaration": "Safety.Candidate.compactPayload_flatten",
+          "expected_type_checked": true
+        },
+        {
+          "axioms": [
+            "propext"
+          ],
+          "declaration": "Safety.Candidate.literalBytes_injective",
+          "expected_type_checked": true
+        },
+        {
+          "axioms": [
+            "propext"
+          ],
+          "declaration": "Safety.Candidate.checked_from_parts",
+          "expected_type_checked": true
+        }
+      ],
+      "audit_source": "sha256:ee292932d5f5aeb02f829a00dafaf431fda1be24fa4de95a76c624b3b7d53d75",
+      "checker_version": 3,
+      "concrete_source": "sha256:e54dc81f4104bc787242d622cadbdb3b90537a3e2c9b5b398fbdaa5048d7dfc5",
+      "implementation_sources": "sha256:3f34199c5fa8ace62f0cdb6b9fd91c120d68fb91bc972d4de6f6be85717d40f5",
+      "sources": {
+        "Audit": "sha256:12a18a5bbb36731690dcec06c8498f0177d17f4680d47a534615ca2f4c5507f7",
+        "Check": "sha256:1693bda67e4015edf4310169c1f797a54edbeb2930bffacce9ed0f924c9b1040",
+        "Data": "sha256:3bb755e874dfae701d06f85c278efe078087df73f94322c52855390308863290",
+        "FieldOwnership": "sha256:146b1f1c7f65a8175668ec881e94476b9a3b8ae691fa3cebdb5232d33e757dbc",
+        "Finite": "sha256:1e07025d7544876cef1e5e60e1034928b9a6d32baae48f419f483ccea0628d62",
+        "LifecycleCheck": "sha256:726df35c5bf5cae60710f5aab66baa31fba2678075601b3483e3f5978e55ace9",
+        "LifecycleData": "sha256:bb88841f1f028122d684aabf9136e5170215348aae458827b3e88436e54a92e8",
+        "LifecycleDependency": "sha256:cc1c9f3144264fc216ccf03dad3632eb173c07719e8f44f2206ee974ffbfa1ed",
+        "LifecycleSequence": "sha256:79aac40034e88c8481adf1dd6b3f9e5c5bb7951ee5255eeaf21653b88628491e"
+      },
+      "statement_version": 2,
+      "toolchain": {
+        "flake_lock_sha256": "ed16bd3f98b17e19e07d6ecafecdd20897024a170f7f3727ed6565c582a01bbe",
+        "platform": "x86_64-linux",
+        "profile": {
+          "drvPath": "/nix/store/6wy0z2zc7gl2i6vxzcw59i9pdhk2g6b8-lean4-4.30.0.drv",
+          "outPath": "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0",
+          "version": "4.30.0"
+        }
+      },
+      "witness": {
+        "format": "behavior.safety_merge_trace.v1",
+        "nodes": [
+          {
+            "kind": "leaf"
+          },
+          {
+            "kind": "leaf"
+          },
+          {
+            "kind": "leaf"
+          },
+          {
+            "choices": [
+              false,
+              true
+            ],
+            "kind": "branch",
+            "left": 1,
+            "right": 2
+          },
+          {
+            "choices": [
+              false,
+              true,
+              false
+            ],
+            "kind": "branch",
+            "left": 0,
+            "right": 3
+          }
+        ],
+        "root": 4
+      }
+    },
+    "provided_behavior_hash": "sha256:1d0a2bbbc66d1f05d68a4a004e6a18f60c6b3f2ec4dffbaa688bd7165f3dac79",
+    "runtime_tests": {
+      "class": "Tests",
+      "statement": "Independent Core correspondence tests are separate evidence, not universal proofs",
+      "status": "NotRunByCertification"
+    },
+    "scope": "OrdinaryTransitions",
+    "trusted_correspondence": [
+      {
+        "class": "Trusted semantic contract",
+        "id": "core_semantics",
+        "statement": "Pinned Core admission, ordinary atomic transition semantics, freshness and complete resulting-state Ref integrity",
+        "status": "Assumed"
+      },
+      {
+        "class": "Host/backend obligation",
+        "id": "backend_contract",
+        "statement": "Backend supplies complete consistent typed states and honors Core query and commit contracts",
+        "status": "Assumed"
+      },
+      {
+        "class": "Trusted correspondence",
+        "id": "inventory_extraction",
+        "statement": "Rust extracts every final Core action/effect and compares the full inventory independently",
+        "status": "Assumed"
+      },
+      {
+        "class": "Trusted correspondence",
+        "id": "proof_encoding",
+        "statement": "Rust resolves policy meaning and faithfully encodes Core identities, bindings, values and effect projections into the checked finite model",
+        "status": "Assumed"
+      },
+      {
+        "class": "Cryptographic identity assumption",
+        "id": "core_hashes",
+        "statement": "Core semantic hashing and collision resistance correctly bind the admitted declarations and module",
+        "status": "Assumed"
+      },
+      {
+        "class": "Trusted proof infrastructure",
+        "id": "proof_toolchain",
+        "statement": "Pinned Lean kernel, auditor, immutable Nix store, Rust/compiler dependencies and build environment are sound",
+        "status": "Assumed"
+      }
+    ]
+  },
+  "format": "behavior.safety_bundle.v2",
+  "inventory": {
+    "actions": [
+      {
+        "hash": "sha256:a98717c2d24d051595260f068340f259e4d5ed8c1db53557987b9512741705de",
+        "name": "discard",
+        "operations": [
+          {
+            "entity": "Note",
+            "hash": "sha256:e4bf4ca7d5cf364d5c63addf69d8fe0e713f30bb5e5871f76566fc9eb6c1c98b",
+            "index": 0,
+            "kind": "remove",
+            "param": "note"
+          }
+        ],
+        "params": [
+          {
+            "name": "note",
+            "type": {
+              "Entity": "Note"
+            }
+          }
+        ],
+        "postconditions": [],
+        "preconditions": []
+      },
+      {
+        "hash": "sha256:d4bd6f10646518ac617caed9a2051e8f6d99d3369806a4266f79a79f7a386340",
+        "name": "edit",
+        "operations": [
+          {
+            "entity": "Note",
+            "field": "text",
+            "hash": "sha256:4a8ada32f7b05a46484c8c83ee259319b1ce582136c85f1680776ac07da5ae19",
+            "index": 0,
+            "kind": "assign",
+            "param": "note",
+            "value": "sha256:abf12877504abe3e75d629f9b1ab2262094fa501578c8e50a242355de9718305"
+          }
+        ],
+        "params": [
+          {
+            "name": "note",
+            "type": {
+              "Entity": "Note"
+            }
+          },
+          {
+            "name": "text",
+            "type": "String"
+          }
+        ],
+        "postconditions": [],
+        "preconditions": []
+      },
+      {
+        "hash": "sha256:9238ceaefb410ea03fa7dc79ff26b6c63a5c188f406072c4967a9210a545eb88",
+        "name": "open_note",
+        "operations": [
+          {
+            "entity": "Note",
+            "fields": {
+              "label": "sha256:ae9c1276aa07944f73cbf7f2ad7c30b30685f5b23c93c6f8b6be11456e24a0de",
+              "text": "sha256:abf12877504abe3e75d629f9b1ab2262094fa501578c8e50a242355de9718305"
+            },
+            "hash": "sha256:287d3b64d428009844ecaf9fc8219d02b6a2cca82699bb94774d8b32e78a23ee",
+            "id": "sha256:3f1ee06c33f53a7094fe7b5cbfb0e5c3ea613c11f90b1114e6cd378956ff15d4",
+            "index": 0,
+            "kind": "create"
+          }
+        ],
+        "params": [
+          {
+            "name": "note_id",
+            "type": {
+              "Id": "Note"
+            }
+          },
+          {
+            "name": "text",
+            "type": "String"
+          }
+        ],
+        "postconditions": [],
+        "preconditions": []
+      }
+    ],
+    "behavior_hash": "sha256:1d0a2bbbc66d1f05d68a4a004e6a18f60c6b3f2ec4dffbaa688bd7165f3dac79",
+    "core_release": {
+      "commit": "6b93898a9375113f7a8946f23ab5535319b6f5d6",
+      "version": "0.15.0"
+    },
+    "declarations": {
+      "Note": {
+        "fields": {
+          "id": {
+            "reference": false,
+            "type": {
+              "Id": "Note"
+            }
+          },
+          "label": {
+            "reference": false,
+            "type": "String"
+          },
+          "text": {
+            "reference": false,
+            "type": "String"
+          }
+        },
+        "hash": "sha256:5820fbd1d3905ac0272662a724f021130cb662dc170d0c6ac6d49a4583a44ce3"
+      }
+    },
+    "format": "behavior.safety_inventory.v1",
+    "inventory_hash": "sha256:cfb6f0c2a928fcdd34504a6b254bea103a913b5c41a13146fd81551265fef858"
+  },
+  "module": "{\"actions\":[{\"effects\":[{\"loc\":{\"file\":\"fo_field.py\",\"line\":28},\"remove\":\"note\"}],\"loc\":{\"file\":\"fo_field.py\",\"line\":26},\"name\":\"discard\",\"params\":[{\"name\":\"note\",\"role\":\"state\",\"type\":{\"name\":\"Note\",\"t\":\"entity\"}}],\"postconditions\":[],\"preconditions\":[]},{\"effects\":[{\"loc\":{\"file\":\"fo_field.py\",\"line\":18},\"target\":{\"field\":\"text\",\"param\":\"note\"},\"value\":{\"loc\":{\"file\":\"fo_field.py\",\"line\":39},\"op\":\"param\",\"param\":\"text\"}}],\"loc\":{\"file\":\"fo_field.py\",\"line\":16},\"name\":\"edit\",\"params\":[{\"name\":\"note\",\"role\":\"state\",\"type\":{\"name\":\"Note\",\"t\":\"entity\"}},{\"name\":\"text\",\"role\":\"input\",\"type\":{\"t\":\"string\"}}],\"postconditions\":[],\"preconditions\":[]},{\"effects\":[{\"create\":\"Note\",\"fields\":{\"label\":{\"loc\":{\"file\":\"fo_field.py\",\"line\":23},\"op\":\"lit\",\"type\":{\"t\":\"string\"},\"value\":\"unchanged\"},\"text\":{\"loc\":{\"file\":\"fo_field.py\",\"line\":39},\"op\":\"param\",\"param\":\"text\"}},\"id\":{\"loc\":{\"file\":\"fo_field.py\",\"line\":39},\"op\":\"param\",\"param\":\"note_id\"},\"loc\":{\"file\":\"fo_field.py\",\"line\":23}}],\"loc\":{\"file\":\"fo_field.py\",\"line\":21},\"name\":\"open_note\",\"params\":[{\"name\":\"note_id\",\"role\":\"input\",\"type\":{\"entity\":\"Note\",\"t\":\"id\"}},{\"name\":\"text\",\"role\":\"input\",\"type\":{\"t\":\"string\"}}],\"postconditions\":[],\"preconditions\":[]}],\"constraints\":[],\"derived\":[],\"entities\":[{\"fields\":[{\"loc\":{\"file\":\"fo_field.py\",\"line\":12},\"name\":\"text\",\"type\":{\"t\":\"string\"}},{\"loc\":{\"file\":\"fo_field.py\",\"line\":13},\"name\":\"label\",\"type\":{\"t\":\"string\"}}],\"loc\":{\"file\":\"fo_field.py\",\"line\":10},\"name\":\"Note\"}],\"enums\":[],\"invariants\":[],\"ir_version\":\"0.5\",\"nominals\":[]}",
+  "policies": [
+    {
+      "document": {
+        "creators": [
+          "sha256:9238ceaefb410ea03fa7dc79ff26b6c63a5c188f406072c4967a9210a545eb88"
+        ],
+        "entity": "sha256:5820fbd1d3905ac0272662a724f021130cb662dc170d0c6ac6d49a4583a44ce3",
+        "kind": "FieldOwnership",
+        "model_semantic_version": 1,
+        "removers": [
+          "sha256:a98717c2d24d051595260f068340f259e4d5ed8c1db53557987b9512741705de"
+        ],
+        "writers": {
+          "text": [
+            "sha256:d4bd6f10646518ac617caed9a2051e8f6d99d3369806a4266f79a79f7a386340"
+          ]
+        }
+      },
+      "model_hash": "sha256:e72cfbcf37d9c4e159a1c48c497f1988f071a024be155da6dfacbd447d26e2a5"
+    }
+  ],
+  "witness": {
+    "format": "behavior.safety_merge_trace.v1",
+    "nodes": [
+      {
+        "kind": "leaf"
+      },
+      {
+        "kind": "leaf"
+      },
+      {
+        "kind": "leaf"
+      },
+      {
+        "choices": [
+          false,
+          true
+        ],
+        "kind": "branch",
+        "left": 1,
+        "right": 2
+      },
+      {
+        "choices": [
+          false,
+          true,
+          false
+        ],
+        "kind": "branch",
+        "left": 0,
+        "right": 3
+      }
+    ],
+    "root": 4
+  }
+}

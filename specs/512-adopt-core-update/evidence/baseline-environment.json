@@ -1,0 +1,84 @@
+{
+  "available_cpus": 8,
+  "baseline_release": "https://github.com/kallistoteles/behavior-ir/releases/tag/v0.14.0",
+  "build_needed": false,
+  "cpu": "Intel(R) Xeon(R) CPU           X5670  @ 2.93GHz",
+  "development_venv_used_for_package_baseline": false,
+  "download_install_measured_separately": true,
+  "local_previous_candidate_rejected_sha256": "810566f34559851fb6e725179a7cb066e64fae3a3a25d3eb85e524855de3902b",
+  "memory": [
+    "MemTotal:       24542280 kB",
+    "MemFree:         1414224 kB",
+    "MemAvailable:    8492728 kB"
+  ],
+  "platform": "Linux-6.18.38-x86_64-with-glibc2.42",
+  "prefix": "/home/kalle/repos/behavior-ir-512/target/core-adoption/baseline",
+  "protected_files": {
+    "Cargo.lock": "06582479d1f4a812deec77acb4358626fac780fd080de2cd2dd23761069447b1",
+    "Cargo.toml": "3e55d6200851679c923ac904e575d68f548139212d6771b11dc8f78cafa9e2d6",
+    "core-release.json": "ab8373fb8817a48fb5ea563c69b97463c82458ce03d9ceb0eccd4da53e768e0d",
+    "models/fixtures/compat.json": "2af24307c6c7e50ba6ceda082e851a72c82783d4a13a9f28d071c717cede6122",
+    "models/fixtures/safety-compat.json": "317a23899326a31f3bd8257a2ee9e6e685a2b216305f825f3712c16c81396c8d",
+    "specs/507-work-queue/baseline/compat-print.txt": "f2eb9f2183a940109329aabedcb0d75abf9eb44cd5681476aad43c0d8f5265fc"
+  },
+  "python": "/home/kalle/repos/behavior-ir-512/target/core-adoption/baseline/bin/python",
+  "snapshot_sha256": "5a161d45e8bec93b15d5a77d05201d281f949cfeecac3c08cdbc6984f31b789e",
+  "source": "1cba9e16ff73f927ae08e70a7bc74a6ca52355e4",
+  "versions": {
+    "accepted_wire_ir": [
+      "0.4",
+      "0.5",
+      "0.6",
+      "0.7",
+      "0.8"
+    ],
+    "binding": {
+      "python": "0.14.0"
+    },
+    "command_occurrence_domain": "behavior.command_occurrence.v1",
+    "command_stream": "behavior.command_stream_request.v1",
+    "core": {
+      "commit": "6b93898a9375113f7a8946f23ab5535319b6f5d6",
+      "version": "0.15.0"
+    },
+    "engine": "0.15.0",
+    "read_records": [
+      "behavior.read_record.v1",
+      "behavior.read_record.v2"
+    ],
+    "records": [
+      "0.4",
+      "0.5",
+      "0.6",
+      "0.7",
+      "0.8"
+    ],
+    "store_documents": [
+      "behavior.entity_content.v1",
+      "behavior.entity_version.v1",
+      "behavior.state.v1",
+      "behavior.evidence_policy.v1",
+      "behavior.store_genesis.v1",
+      "behavior.commit_bundle.v1",
+      "behavior.transition_record.v1",
+      "behavior.replay_report.v1",
+      "behavior.migration_bundle.v1",
+      "behavior.store_genesis.v2",
+      "behavior.commit_bundle.v2",
+      "behavior.migration_bundle.v2",
+      "behavior.transition_record.v2"
+    ],
+    "verifier": "0.10.0",
+    "wire_ir": [
+      "0.1",
+      "0.2",
+      "0.3",
+      "0.4",
+      "0.5",
+      "0.6",
+      "0.7"
+    ]
+  },
+  "wheel": "/home/kalle/repos/behavior-ir-512/target/core-adoption/baseline-dist/behavior-0.14.0-cp313-abi3-manylinux_2_28_x86_64.whl",
+  "wheel_sha256": "794d2dd5ddf8613c52f524a1b4b74c0246d86a5ea52414424ab89ef104e86513"
+}

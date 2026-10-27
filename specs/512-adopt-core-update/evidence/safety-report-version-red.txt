@@ -1,0 +1,36 @@
+warning: Git tree '/home/kalle/repos/behavior-ir-512' is dirty
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_______ test_current_core_guard_row_uses_the_installed_verifier_contract _______
+
+tmp_path = PosixPath('/tmp/nix-shell.GHGSaj/pytest-of-kalle/pytest-0/test_current_core_guard_row_us0')
+
+    def test_current_core_guard_row_uses_the_installed_verifier_contract(tmp_path):
+        """A real unsupported Safety pattern can still carry a current local SMT report."""
+        from models.examples.safety_models.guard_contract import build
+        model = build("missing")
+        profile = b.Profile(checks=["postcondition"])
+        att = b.verify(model, profile)
+        assessment = b.certify_safety(model, output=tmp_path)
+        doc = assessment.to_dict()
+        action = model.safety_analysis.to_dict()["inventory"]["actions"][0]
+        row = {
+            "status": "Complete", "behavior_hash": model.behavior_version,
+            "action_hash": action["hash"], "postcondition_hashes": action["postconditions"],
+            "core": {"profile": {"checks": profile.checks, "rlimit": profile.rlimit,
+                                 "wall_clock_guard_ms": profile.wall_clock_guard_ms},
+                     "attestation": att.data, "canonical_attestation": att.json,
+                     "attestation_hash": att.hash, "result": att.result, "checks": att.checks},
+            "safety": {"certificate_present": False, "assessment": doc,
+                       "outcome": assessment.outcome, "evidence_hash": doc["evidence_hash"],
+                       "diagnostics": doc.get("diagnostics", [])},
+        }
+>       assert run.required_guard_row("missing", row)
+E       AssertionError: assert False
+E        +  where False = <function required_guard_row at 0x7ffff5be1a80>('missing', {'status': 'Complete', 'behavior_hash': 'sha256:104f6ab3930df2994e47f713aec6ec630fb777474b33be49585501da39737768', 'ac...9eac3c1a900', 'postcondition_hashes': ['sha256:59838fe5f6a992e86bb79d468d145939616a1095e6417a60bd9d0277cdc68107'], ...})
+E        +    where <function required_guard_row at 0x7ffff5be1a80> = run.required_guard_row
+
+python/tests/test_safety_guard_contract.py:91: AssertionError
+=========================== short test summary info ============================
+FAILED python/tests/test_safety_guard_contract.py::test_current_core_guard_row_uses_the_installed_verifier_contract
+1 failed in 0.44s

@@ -1,15 +1,15 @@
 ---
 name: behavior-application
 description: Build the host application around a Behavior model (certified deployment segments, stores, evaluate and commit, reads and read intents for agents, conflicts, replay, custom storage backends, supplying facts), keeping every business rule in behavior. Use when writing services, handlers, jobs or storage code that use a behavior model.
-release: 0.14.0
+release: 0.15.0
 ---
 
 # Building an application on Behavior
 
-This skill describes **Behavior release 0.14.0**. Use only what is described here or listed in the
+This skill describes **Behavior release 0.15.0**. Use only what is described here or listed in the
 release's public API.
 
-This release bundles Core 0.15.0 (verifier 0.10.0). Public Models and command declarations
+This release bundles Core 0.16.0 (verifier 0.11.0). Public Models and command declarations
 lower to ordinary Core behavior. Command modules use explicit Store-v2 genesis and durable
 command history; command-free modules retain their established profile. Trusted proof and authorization
 generation use the bundled `behavior governance` commands; a fresh trusted commit receives
@@ -91,6 +91,20 @@ assert replay_behavior(store, [model]).ok
 
 A denied decision has no bundle: report its `decision.reasons` to the user. There is nothing to
 commit.
+
+### Growing Stores and global rules
+
+Core 0.16.0 can retain validated state across supported evaluate/commit sequences, including
+genuine changes to supported global count bounds. Keep a Store instance across transactions;
+reopening, external commits or unsupported dependencies may require full validation again.
+Core owns this optimization and all fallbacks. Never maintain a parallel validity flag in the
+host or skip reference/invariant checks. Conflict handling still requires re-evaluation.
+
+A repeated-creation benchmark with a real count bound measured about 42% lower total
+transaction-window cost at 1,024 live entities than Behavior 0.14.0 in the recorded Linux
+profile. This is finite measured evidence, not a constant-time promise or support for every
+global invariant. Complete snapshots, returned records and query results can still grow with
+the live state. See `specs/512-adopt-core-update/evidence/README.md` for workload and limits.
 
 ### Models and a work lifecycle
 
@@ -248,7 +262,7 @@ history, identities and references carry over, and old states still load exactly
   `TRUSTED_GOVERNANCE_UPGRADE_REQUIRED`; structural `authorize_migration` evidence does not
   upgrade that trust. Adopt validated state into an explicit v2 genesis for new trusted
   history. Trusted migrations follow the
-  [public core migration contract](https://github.com/kallistoteles/behavior-ir-core/blob/v0.15.0/specs/013-durable-command-intents/contracts/governance.md);
+  [public core migration contract](https://github.com/kallistoteles/behavior-ir-core/blob/v0.16.0/specs/013-durable-command-intents/contracts/governance.md);
   the legacy Python `store.migrate` helper supplies no independent v2 authorization context.
 - **Replay**: `replay_behavior(store, models, migrations=[...])` re-runs every migration.
 
@@ -380,7 +394,7 @@ of this automatically, so prefer a store for anything that changes state.
 ## Deploying Safety-certified behavior
 
 Safety evidence is a build artifact, independent of Store state and deterministic replay.
-Release 0.14.0 uses checker 3 and v2 evidence/bundles. Independently check supplied evidence
+Release 0.15.0 uses checker 3 and v2 evidence/bundles. Independently check supplied evidence
 against the exact module and the complete expected Safety policy set before relying on it.
 Core execution and replay require neither Lean nor certificates.
 

@@ -1,0 +1,2 @@
+{"positive_cases": 6, "negative_cases": 4, "runtime_controls": "passed", "missing_reference_proofs": ["free/0.7", "joint/0.7", "retarget/0.7", "free/0.8", "joint/0.8", "retarget/0.8"]}
+Required nonempty reference proofs not established: free/0.7, joint/0.7, retarget/0.7, free/0.8, joint/0.8, retarget/0.8

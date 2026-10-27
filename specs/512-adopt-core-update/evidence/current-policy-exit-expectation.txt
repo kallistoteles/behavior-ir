@@ -1,0 +1,51 @@
+warning: Git tree '/home/kalle/repos/behavior-ir-512' is dirty
+................................F...                                     [100%]
+=================================== FAILURES ===================================
+_ test_cli_evidence_requires_independent_context_and_attachment_preserves_candidate _
+
+tmp_path = PosixPath('/tmp/nix-shell.PeRyZl/pytest-of-kalle/pytest-0/test_cli_evidence_requires_ind0')
+
+    def test_cli_evidence_requires_independent_context_and_attachment_preserves_candidate(
+        tmp_path: Path,
+    ) -> None:
+        assert callable(getattr(bh, "with_trusted_evidence", None)), "evidence attachment is native"
+        assert callable(getattr(bh.Store, "commit_with_context", None)), "live context is explicit"
+        module = receipt_model()
+        # Fresh authenticated verification selects verifier-0.11.0 policies explicitly (Core 0.16.0).
+        policy_path = FIXTURES / "governance-v2/policy-verifier-0.11.json"
+        evidence_policy_path = FIXTURES / "governance-v2/evidence-policy-verifier-0.11.json"
+        context_path = FIXTURES / "governance-v2/context.json"
+        genesis = bh.Store.genesis_v2_for(module, [], evidence_policy_path.read_text())
+        store = bh.Store.create(bh.InMemoryBackend(), module, genesis)
+        start = store.current_history()
+        result = store.invoke(module, fixture("commands/invocations/receipt.json"), commit_time=T0)
+        assert result.bundle is not None
+        candidate = bh.governance_candidate(result.bundle)
+        candidate_path = tmp_path / "candidate.json"
+        candidate_path.write_text(json.dumps(candidate))
+        envelope_path, evidence_path = tmp_path / "envelope.json", tmp_path / "evidence.json"
+        wire_path = FIXTURES / "commands/modules/receipt.json"
+        cli = [sys.executable, "-m", "behavior._cli", "governance"]
+        verified = subprocess.run([
+            *cli, "verify", str(wire_path), "--profile", str(FIXTURES / "governance-v2/profile.json"),
+            "--seed", str(FIXTURES / "governance-v2/verifier.seed"), "--out", str(envelope_path),
+        ], capture_output=True, text=True)
+        assert verified.returncode == 0, verified.stderr
+        # Selecting the released current policy does not upgrade an older policy implicitly.
+        stale_path = tmp_path / "stale-evidence.json"
+        stale = subprocess.run([
+            *cli, "authorize", str(candidate_path), "--wire", str(wire_path), "--evidence-policy",
+            str(evidence_policy_path), "--policy", str(FIXTURES / "governance-v2/policy-verifier-0.10.json"),
+            "--seed", str(FIXTURES / "governance-v2/authorizer.seed"), "--verification", str(envelope_path),
+            "--context", str(context_path), "--now", T0, "--out", str(stale_path),
+        ], capture_output=True, text=True)
+>       assert stale.returncode == 1 and not stale_path.exists(), stale.stdout + stale.stderr
+E       AssertionError: behavior: EXECUTION_POLICY_NOT_ALLOWED: execution policy identity is absent from immutable evidence policy
+E         
+E       assert (2 == 1)
+E        +  where 2 = CompletedProcess(args=['/home/kalle/repos/behavior-ir-512/.venv/bin/python', '-m', 'behavior._cli', 'governance', 'aut... stderr='behavior: EXECUTION_POLICY_NOT_ALLOWED: execution policy identity is absent from immutable evidence policy\n').returncode
+
+python/tests/test_command_documents.py:292: AssertionError
+=========================== short test summary info ============================
+FAILED python/tests/test_command_documents.py::test_cli_evidence_requires_independent_context_and_attachment_preserves_candidate
+1 failed, 35 passed in 4.30s

@@ -1,0 +1,13 @@
+{
+  "changed_tracked_paths": [
+    "specs/512-adopt-core-update/evidence/README.md",
+    "specs/512-adopt-core-update/evidence/disk-remediation.json",
+    "specs/512-adopt-core-update/spec.md",
+    "specs/512-adopt-core-update/tasks.md"
+  ],
+  "closeout_is_evidence_and_status_only": true,
+  "identity_check_is_not_mathematical_proof": "Actual mathematical checks and CI results are recorded separately.",
+  "implementation_commit": "fdbed105d2d721dd176b811bc9faccfbab2c178a",
+  "implementation_tree": "d1151c7d70ae0f6e8ce89cff4e58e81a45ef0e1e",
+  "no_packaged_proof_or_test_implementation_changed": true
+}

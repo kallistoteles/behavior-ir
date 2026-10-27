@@ -1,0 +1,1 @@
+test_pinned_identity_baseline: OK (22 baseline receipts unchanged, 0 new)

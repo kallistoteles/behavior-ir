@@ -1,0 +1,26 @@
+warning: Git tree '/home/kalle/repos/behavior-ir-512' is dirty
+check-core-pin: OK (v0.16.0 63a8c164523275e06ac1d7dc5330db4a899c9d99)
+release-check: step 1 gates
+release-check: gates skipped
+release-check: step 2 wheel compliance
+release-check: step 3 clean environment
+release-check: step 4 install
+release-check: step 5 smoke scenario
+smoke: OK
+release-check: step 6 missing solver
+smoke: OK
+release-check: step 7 versions
+release-check: step 8 byte identity with the repository
+smoke: OK
+release-check: step 9 skill examples
+release-check: step 10 drift and equivalence
+.................................................                        [100%]
+49 passed in 28.01s
+release-check: step 10a safety package
+safety smoke: OK
+{"behavior_hash":"sha256:d52b8efe792b2f2dbf39356bfa1af4358c2f16c7e8e2222493a3c6166644fb5c","certified":false,"core_only_replay":"Passed","ordinary_execution":"Passed"}
+safety smoke: OK
+{"behavior_hash":"sha256:d52b8efe792b2f2dbf39356bfa1af4358c2f16c7e8e2222493a3c6166644fb5c","certified":true,"core_only_replay":"Passed","ordinary_execution":"Passed"}
+release-check: step 11 reproducible
+release-check: SHA256SUMS 6e406b8b05050168763348440e8c31c759c1fa23415d47583e4207ef70757522  behavior-0.15.0-cp313-abi3-manylinux_2_28_x86_64.whl
+release-check: OK (behavior-0.15.0-cp313-abi3-manylinux_2_28_x86_64.whl)

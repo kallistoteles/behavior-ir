@@ -1,0 +1,3 @@
+warning: Git tree '/home/kalle/repos/behavior-ir-512' is dirty
+fetch-core: core v0.16.0 installed (fixtures in .core/0.16.0, CLI in python/behavior/_bin)
+export BEHAVIOR_CORE_DIR=/home/kalle/repos/behavior-ir-512/.core/0.16.0

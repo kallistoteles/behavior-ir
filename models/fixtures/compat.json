@@ -49,8 +49,125 @@
     }
    ],
    "core_release": {
+    "commit": "63a8c164523275e06ac1d7dc5330db4a899c9d99",
+    "version": "0.16.0"
+   },
+   "lowerer_version": 1,
+   "model_kind": "approval",
+   "model_semantic_version": 1
+  },
+  {
+   "cases": {
+    "ap_purchase_request": {
+     "behavior_hash": "sha256:2a301cd86097470ff113c79b4db213d95e143a8589cb4d4870df28885b636b12",
+     "embedded": {
+      "purchase_request": "sha256:b761e98806c5f9493a9f53a5183019ce7d786fdfe741775574f97ee270c92168"
+     },
+     "entities": {
+      "purchase_request": "PurchaseRequest"
+     },
+     "generated": {
+      "purchase_request_approval": {
+       "derived": {
+        "approve_count": "sha256:d81b7538f58c22b0cf4a8818fe3d37329a7685a90c7eb12307532011f9b1833c",
+        "approved": "sha256:db77e645328655599b706ed78e476242152cb1f45d6c2c6c9f6882e0c698c7be",
+        "pending": "sha256:017d77c66ef431e36886c06662f49ed4c2d8c0d468430286e7594b01e572e3db",
+        "reject_count": "sha256:660b18bc72aeb0be47cd7888a1ae581e1cc94eb0802b94128ad71cc1c366e43f",
+        "rejected": "sha256:89f0571ba61ffcbf1d278c42b4f78892960f0dbda915899667821d8d4a530fe9"
+       },
+       "entity": {
+        "hash": "sha256:79c58d17b217d03473a60b66886bc1deb4935765a566fd25beb247169ac0cde8",
+        "name": "PurchaseRequestApprovalDecision"
+       },
+       "enum": {
+        "hash": "sha256:1dfffb63bb100e242f0eb475b4d6dc195464bd9689ba18d9fce6ed2de32a1863",
+        "name": "PurchaseRequestApprovalDecisionChoice"
+       }
+      }
+     },
+     "models": {
+      "purchase_request": "sha256:9ca938b9a285a6b850495ac437dc7dddd6837c697efe65caaef575f0c2f79c62",
+      "purchase_request_approval": "sha256:5f75c1365aa9d8597a211847253772e86d395a871f8c7186d146f627389d9ecd"
+     }
+    }
+   },
+   "co_supplied": [
+    {
+     "kind": "request_flow",
+     "lowerer_version": 1,
+     "model_semantic_version": 2
+    },
+    {
+     "kind": "state_machine",
+     "lowerer_version": 1,
+     "model_semantic_version": 2
+    }
+   ],
+   "core_release": {
     "commit": "6b93898a9375113f7a8946f23ab5535319b6f5d6",
     "version": "0.15.0"
+   },
+   "lowerer_version": 1,
+   "model_kind": "approval",
+   "model_semantic_version": 1
+  },
+  {
+   "cases": {
+    "ap_two_approvals": {
+     "behavior_hash": "sha256:8f515e2456ba68e36806814fdd46a6272df934ec3a63407bb98bbb17c3443eb3",
+     "generated": {
+      "finance_approval": {
+       "derived": {
+        "approve_count": "sha256:21999e6e87d38fa5d8ef471b9273c1020a14bea5e76613e1031430bc88279821",
+        "approved": "sha256:c8771f1568c12205562edc3ee30b340e2153801ea34fa20121782e48ed7a41a1",
+        "pending": "sha256:dae4bc00c40a7f2ec1d65ee3b3c618cf73c641f3af192459aaef2467d7096af0",
+        "reject_count": "sha256:8585810811e052a10f67c57b936bc803345052ecac5d1a47c96d222c6ac28f5c",
+        "rejected": "sha256:8cbc12ea9bdba6fc3b6755413e750bc7d9ef4d06755242d4b0b2d2c5046c8c37"
+       },
+       "entity": {
+        "hash": "sha256:41584e4a1697c49680aa480d1b999fdab1f113f5b89f9852a9aae51f00623e8f",
+        "name": "FinanceApprovalDecision"
+       },
+       "enum": {
+        "hash": "sha256:4cd7987855e5c2ed2cd4fae1706c84df8af3eff26852edb650934257d448ee26",
+        "name": "FinanceApprovalDecisionChoice"
+       }
+      },
+      "legal_review": {
+       "derived": {
+        "approve_count": "sha256:b38ba7fb9498e90a68d4333a68f7744fc2fbef4da01207ce6fa74a5671ee09cd",
+        "approved": "sha256:8e8428f469c481f7537d1ac029fad1709b24504ff0c8845f5063a06a9070dc7f",
+        "pending": "sha256:eaaac97fb521f9a002a9718ba37dbee7cf70bdf4cbfd01559e97ee3ee533638c",
+        "reject_count": "sha256:82a3b8e5445deade207274aa114714bf8596cdcaba6b50fb4117036647bf1029",
+        "rejected": "sha256:2bbd58addb2f5e569357478126894f681f6c192a705e87b7ae18cb93ea1beae5"
+       },
+       "entity": {
+        "hash": "sha256:245ef36f5c3279cd320078ac2ed78d705fa535c9f45fa19417b00e33eab5b4a0",
+        "name": "LegalReviewDecision"
+       },
+       "enum": {
+        "hash": "sha256:6de31d9f94e5372563d2a21b354b47677808c26153aa4bccc81a4222c841342b",
+        "name": "LegalReviewDecisionChoice"
+       }
+      }
+     },
+     "models": {
+      "finance_approval": "sha256:59257e0476ec3aca1828851a4dbc36627fb829fee8b9d9d44317851a7e9a6575",
+      "legal_review": "sha256:408a18840eccdb6eec10dc1f6258d5816a7990fbf7a77e2e27e414515ff2dda8",
+      "ticket": "sha256:ced89694bbbffc1430fb797cbd15353193c2444322f7633c9586331ec68b950a"
+     }
+    }
+   },
+   "co_supplied": [
+    {
+     "kind": "state_machine",
+     "lowerer_version": 1,
+     "model_semantic_version": 2
+    }
+   ],
+   "core_release": {
+    "commit": "63a8c164523275e06ac1d7dc5330db4a899c9d99",
+    "version": "0.16.0"
    },
    "lowerer_version": 1,
    "model_kind": "approval",
@@ -117,6 +234,348 @@
    "lowerer_version": 1,
    "model_kind": "approval",
    "model_semantic_version": 1
+  },
+  {
+   "cases": {
+    "rf_purchase_request": {
+     "behavior_hash": "sha256:6a51f91049227d70d7b61dcd53f1e4e23127c8329e6ad0cb21f6bc1d2b182062",
+     "embedded": {
+      "purchase_request": "sha256:e40679e09084d51de5ee04d02c61c46006e3b320ab11b2dcb648261881dd9d21"
+     },
+     "entities": {
+      "purchase_request": "PurchaseRequest"
+     },
+     "models": {
+      "purchase_request": "sha256:3e5133647f5398d7d2570ffb21327c67f087207b3a08dcfe2ba6e93d8da90266"
+     }
+    },
+    "rf_two_flows_local_submit": {
+     "behavior_hash": "sha256:98c6b300c763d24b699bdb30f60c24e2ac20f6aea76ea6a3c4a76a6fb49f920b",
+     "embedded": {
+      "leave_request": "sha256:308f0a05b6c4444957cadca77c123ac5f3f0f5e9867b13727aa174e1a8089792",
+      "purchase_request": "sha256:ca84eb54afdeddec6cd4f7fca38fe0a8500bd94bc36a9d86bba37a3e723f7c5c"
+     },
+     "entities": {
+      "leave_request": "LeaveRequest",
+      "purchase_request": "PurchaseRequest"
+     },
+     "models": {
+      "leave_request": "sha256:3c992f167633a6d1a6c73cc744fccc429a6fbe566e866211c8e8e6d14156ccf1",
+      "purchase_request": "sha256:bdae1b1cad9a9c58168dd3e783d15a2ba21a92b9e22547dc921f5cf239aea59e"
+     }
+    },
+    "rf_with_standalone_machine": {
+     "behavior_hash": "sha256:8cabd65707a101b365b714f6db4aea285a7244aa1df55521cbb0f5b38ce6ccf2",
+     "embedded": {
+      "purchase_request": "sha256:ca84eb54afdeddec6cd4f7fca38fe0a8500bd94bc36a9d86bba37a3e723f7c5c"
+     },
+     "entities": {
+      "purchase_request": "PurchaseRequest"
+     },
+     "models": {
+      "budget": "sha256:dac125f74b2eda102d4eeb414787768901106c6a34766601d9e0027ed53ab5b3",
+      "purchase_request": "sha256:bdae1b1cad9a9c58168dd3e783d15a2ba21a92b9e22547dc921f5cf239aea59e"
+     }
+    }
+   },
+   "core_release": {
+    "commit": "63a8c164523275e06ac1d7dc5330db4a899c9d99",
+    "version": "0.16.0"
+   },
+   "embedded": [
+    {
+     "kind": "state_machine",
+     "lowerer_version": 1,
+     "model_semantic_version": 2
+    }
+   ],
+   "lowerer_version": 1,
+   "model_kind": "request_flow",
+   "model_semantic_version": 2
+  },
+  {
+   "cases": {
+    "wq_minimal": {
+     "behavior_hash": "sha256:dc5ddacffad6c82d5b1486f62d167a947055a43275a6c1c87e2a94b55b5bdd01",
+     "embedded": {
+      "jobs": "sha256:6263a7421af0beaeda1f3b2fdddbdd4b0d4cf95d2f27df62198dfbbc0ff018e4"
+     },
+     "entities": {
+      "jobs": "Jobs"
+     },
+     "generated": {
+      "jobs": {
+       "derived": {
+        "terminal": "sha256:b3c4e8af4b605b03b2476662769cba933b9a1a6897136df238f0f2fe771512ec"
+       },
+       "entity": {
+        "hash": "sha256:88380ff110e6924d7e3769fceb4a3404202689530ed46b7b3b65fd29bd536319",
+        "name": "Jobs"
+       },
+       "enum": {
+        "hash": "sha256:cc62bfab92fca012812e4ed166727d85e39cfaf0b81e0da4ddcb1dbdf1bba8e1",
+        "name": "JobsStatus"
+       },
+       "invariant": {
+        "hash": "sha256:be084f40652248e609c6955919b488807b3787064fa6f804fbf5cac2cea32595",
+        "name": "jobs__valid_work"
+       },
+       "reads": {
+        "expired": "sha256:ccc7f3fbc8141ce8e0d20d7662eae3c2a248395ea69cc37e11e64205e7ff6feb",
+        "ready": "sha256:a2896930520cc6bc32a01c1ed4acac9a3d80d3b94c0474df3aab5366335a6dd9"
+       }
+      }
+     },
+     "models": {
+      "jobs": "sha256:78bcfa23ac45ea42794b00b7d32a059af510d0b686b2f8afd38de829480fddee"
+     }
+    },
+    "wq_two_queues": {
+     "behavior_hash": "sha256:fc81021a95958a5181eeaefa2f0b485823076fd34e10ca6d4c4e3a0973c3171a",
+     "embedded": {
+      "exports": "sha256:610262e8385af320d7cce9bc6a4469718a88b0ac950835277879106a30db33f1",
+      "jobs": "sha256:6263a7421af0beaeda1f3b2fdddbdd4b0d4cf95d2f27df62198dfbbc0ff018e4"
+     },
+     "entities": {
+      "exports": "Exports",
+      "jobs": "Jobs"
+     },
+     "generated": {
+      "exports": {
+       "derived": {
+        "terminal": "sha256:b86a2a7463dcf6a6d01a5a49f2aea7b8c5b1768a459e2a3fe7196ca6603b7ea6"
+       },
+       "entity": {
+        "hash": "sha256:b3cc1646fb0bc4a30285b038c63074e3b33c875c51fe4b803d37705a6b113f63",
+        "name": "Exports"
+       },
+       "enum": {
+        "hash": "sha256:42a54f4d32e63db738ae453d5d7280be9616dc4aa411c75a1acae36c8e9b5670",
+        "name": "ExportsStatus"
+       },
+       "invariant": {
+        "hash": "sha256:d0fbdd32cc4c53f006c926c1604e1d7885b35d768d23514b84e22c3186c63340",
+        "name": "exports__valid_work"
+       },
+       "reads": {
+        "expired": "sha256:458907a2c21bd1d44138e5798e83de727bb4f022a8a3c3894cbec9d03d021687",
+        "ready": "sha256:5002ff36250f0e40be4baf1da895ebc42d783911de2ac2cf068df4b3b5524df3"
+       }
+      },
+      "jobs": {
+       "derived": {
+        "terminal": "sha256:b3c4e8af4b605b03b2476662769cba933b9a1a6897136df238f0f2fe771512ec"
+       },
+       "entity": {
+        "hash": "sha256:88380ff110e6924d7e3769fceb4a3404202689530ed46b7b3b65fd29bd536319",
+        "name": "Jobs"
+       },
+       "enum": {
+        "hash": "sha256:cc62bfab92fca012812e4ed166727d85e39cfaf0b81e0da4ddcb1dbdf1bba8e1",
+        "name": "JobsStatus"
+       },
+       "invariant": {
+        "hash": "sha256:be084f40652248e609c6955919b488807b3787064fa6f804fbf5cac2cea32595",
+        "name": "jobs__valid_work"
+       },
+       "reads": {
+        "expired": "sha256:ccc7f3fbc8141ce8e0d20d7662eae3c2a248395ea69cc37e11e64205e7ff6feb",
+        "ready": "sha256:a2896930520cc6bc32a01c1ed4acac9a3d80d3b94c0474df3aab5366335a6dd9"
+       }
+      }
+     },
+     "models": {
+      "exports": "sha256:5f5e73308dd8f681b440b9e5f86da57438c01b9a2c4a5d8747d03824c8ef9ef2",
+      "jobs": "sha256:78bcfa23ac45ea42794b00b7d32a059af510d0b686b2f8afd38de829480fddee"
+     }
+    }
+   },
+   "core_release": {
+    "commit": "63a8c164523275e06ac1d7dc5330db4a899c9d99",
+    "version": "0.16.0"
+   },
+   "embedded": [
+    {
+     "kind": "state_machine",
+     "lowerer_version": 1,
+     "model_semantic_version": 2
+    }
+   ],
+   "lowerer_version": 1,
+   "model_kind": "work_queue",
+   "model_semantic_version": 1
+  },
+  {
+   "cases": {
+    "rf_bind_ticket": {
+     "behavior_hash": "sha256:3f49965c4113212074bda920a46163b343d8987af1a4e856df6ab863ad89b972",
+     "embedded": {
+      "ticket": "sha256:6990a686c191c30bd3e40ed578a3cbf1f3f67270b91e98a2bec3e947fad51602"
+     },
+     "entities": {
+      "ticket": "Ticket"
+     },
+     "models": {
+      "ticket": "sha256:efb0ac4e606dc76cdae8acdb1ef3cf98809be517cda6a5f8b8b6544dc30c2f28"
+     }
+    }
+   },
+   "core_release": {
+    "commit": "63a8c164523275e06ac1d7dc5330db4a899c9d99",
+    "version": "0.16.0"
+   },
+   "embedded": [
+    {
+     "kind": "state_machine",
+     "lowerer_version": 1,
+     "model_semantic_version": 3
+    }
+   ],
+   "lowerer_version": 1,
+   "model_kind": "request_flow",
+   "model_semantic_version": 3
+  },
+  {
+   "cases": {
+    "wq_documents": {
+     "behavior_hash": "sha256:60cd00a526d9be148a83f1f0452e095240b224a20339e7b088e4c0cf3d180de8",
+     "embedded": {
+      "documents": "sha256:ca2f5f3234d9172aa8c3c50aaf1b0efd52e37eb5bad12065f89b7d448dd2d42b"
+     },
+     "entities": {
+      "documents": "Documents"
+     },
+     "generated": {
+      "documents": {
+       "derived": {
+        "terminal": "sha256:6f281fb414acb3c1391763a342957f25f459576fcb81265febb337b314f5a6ee"
+       },
+       "entity": {
+        "hash": "sha256:ef5bb838d32228c67147ded2ff63372f41e121dab51b5b5b48e718a4f86955ca",
+        "name": "Documents"
+       },
+       "enum": {
+        "hash": "sha256:78ea1f71ef7b0d86cd926d76a769c5bf8cd6ba5cd1dbb61cc33d76fd487bad73",
+        "name": "DocumentsStatus"
+       },
+       "invariant": {
+        "hash": "sha256:d6ae9b7dae4b6e0eebfe11de732062c87ac3b62a5fcb0c61df3f7a974d915219",
+        "name": "documents__valid_work"
+       },
+       "reads": {
+        "expired": "sha256:72d9425c3ddbea0acd279c15000df5a789809ec1c3f09af2d87786f9b948e0de",
+        "ready": "sha256:f825f0f0812581870e96e4fe69586c78c51e3a5a3b5ce761d3b7b28b873158de"
+       }
+      }
+     },
+     "models": {
+      "documents": "sha256:a2d0fce8271684ea1ec3cd00af3cb5154338a32d1f1637a99dc72d08805332be"
+     }
+    }
+   },
+   "core_release": {
+    "commit": "63a8c164523275e06ac1d7dc5330db4a899c9d99",
+    "version": "0.16.0"
+   },
+   "embedded": [
+    {
+     "kind": "state_machine",
+     "lowerer_version": 1,
+     "model_semantic_version": 3
+    }
+   ],
+   "lowerer_version": 1,
+   "model_kind": "work_queue",
+   "model_semantic_version": 1
+  },
+  {
+   "cases": {
+    "ap_document_review": {
+     "behavior_hash": "sha256:400dbdc34b7a54c2567556d72e9593fe2a6ae2fe28e6d7dd0f8d3a7ca13db9ef",
+     "generated": {
+      "document_review": {
+       "derived": {
+        "approve_count": "sha256:782f6be2a50111cbf4c3540f88458c775d81fbc8b36c9b90b29c099b155a4b5f",
+        "approved": "sha256:5bd9026a27e66d90a8c3b7d1340a6859c9c6a1b03da153381ba15af18680f7e6",
+        "pending": "sha256:7cea570f22a8838f895869b6b61c1038b66b55a82ece37f24adef88907626560",
+        "reject_count": "sha256:888b173818c3d10c3d49b8c3cf664551247c9ea2287c6a1d4c15af06e862a8fb",
+        "rejected": "sha256:2bbd58addb2f5e569357478126894f681f6c192a705e87b7ae18cb93ea1beae5"
+       },
+       "entity": {
+        "hash": "sha256:7a9dcedbcc379958aa363b9e206fab2a9ef8fdb579680e7df9935ac7fea70689",
+        "name": "DocumentReviewDecision"
+       },
+       "enum": {
+        "hash": "sha256:2e19d21c2a291f50db4ab431afb451c70d60dc08219a5ebe1f5569145c1f2577",
+        "name": "DocumentReviewDecisionChoice"
+       }
+      }
+     },
+     "models": {
+      "document_review": "sha256:29c0a010bfe98e14e8c544f393553e500699ca847b59f79e39970316829dbb5e"
+     }
+    }
+   },
+   "core_release": {
+    "commit": "63a8c164523275e06ac1d7dc5330db4a899c9d99",
+    "version": "0.16.0"
+   },
+   "lowerer_version": 1,
+   "model_kind": "approval",
+   "model_semantic_version": 1
+  },
+  {
+   "cases": {
+    "order": {
+     "behavior_hash": "sha256:eaeae2756f0624ccdb8acb57711fc4a9b07c032256c6f35d87aaa4fb1c65d970",
+     "models": {
+      "order": "sha256:16e07bf1e7ed406be274e377b2f19dec3ea068e2145e1df68f26a42a24e64ccf"
+     }
+    },
+    "purchase_request": {
+     "behavior_hash": "sha256:02286fb386b82177012dfc4328b39b06bbe4ffbeb200da2b02ea59b69dbaa10a",
+     "models": {
+      "purchase_request": "sha256:8868892bef1294bea979d53752fab40f4af63dc06483e1a9b6b81fd04fbc98fb"
+     }
+    },
+    "request_flow_reference": {
+     "behavior_hash": "sha256:7192caa4714bd3a2eff38a4058a2803ed04f718222316e3bf1157b08bff75d30",
+     "models": {
+      "request": "sha256:f3867103f001c4ea5e8621828fbe6e8e6a60d0a68fefa745c4a0f5cde5533fbe"
+     }
+    },
+    "two_machines_same_local_ids": {
+     "behavior_hash": "sha256:5bd2c5c65f10f56a6097a1942e342e6ff5c3db0ebc002a8e67d01f837efeb88f",
+     "models": {
+      "invoice": "sha256:d2256e85e91fe1a5c66bd19c90ac2a48bd2d379ce5f1a372cd6205a96d1877e8",
+      "quote": "sha256:7c4f8d9b3d24eddaee0ce5ca2c8b06dad1b4ebfead193801aa22d86c30aacde2"
+     }
+    }
+   },
+   "core_release": {
+    "commit": "63a8c164523275e06ac1d7dc5330db4a899c9d99",
+    "version": "0.16.0"
+   },
+   "lowerer_version": 1,
+   "model_kind": "state_machine",
+   "model_semantic_version": 2
+  },
+  {
+   "cases": {
+    "sm_bind_task_board": {
+     "behavior_hash": "sha256:4e7555ebb2585c7f500ab166253f9ed3d01d92a26d93602f51a42560be95084e",
+     "models": {
+      "task": "sha256:ecc58f76cb5a5dabe5119a10a74a4e51d07394458f5ab29e47ef42fc000cefb9"
+     }
+    }
+   },
+   "core_release": {
+    "commit": "63a8c164523275e06ac1d7dc5330db4a899c9d99",
+    "version": "0.16.0"
+   },
+   "lowerer_version": 1,
+   "model_kind": "state_machine",
+   "model_semantic_version": 3
   },
   {
    "cases": {

@@ -1,0 +1,18 @@
+{
+  "506": {
+    "command": [
+      "scripts/conformance.sh",
+      "506",
+      "complete"
+    ],
+    "exit": 0
+  },
+  "507": {
+    "command": [
+      "scripts/conformance.sh",
+      "507",
+      "complete"
+    ],
+    "exit": 0
+  }
+}

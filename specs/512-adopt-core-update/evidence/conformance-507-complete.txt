@@ -1,0 +1,6 @@
+.............................................................            [100%]
+61 passed in 31.16s
+conformance complete: blocked 0, failed 0, inconclusive 0, passed 61, unsupported 0, unverifiable 0
+obligations: passed 12
+evidence: contract 5, smt 7, structural 5, test 13; assumptions named by 9 of 12 obligations
+full conformance: complete

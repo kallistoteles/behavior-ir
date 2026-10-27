@@ -1,0 +1,26 @@
+{
+  "baseline_environment_sha256": "21cd3e19959eebe88e2fff02b151cac925250e56710cc73c253bd8cc864d5906",
+  "baseline_growth_sha256": "8fe2146968c24be1d5e3c6b68b1c5622fd131ed6d38fc3e8c0600332b0254864",
+  "candidate_tested": false,
+  "core_pin_changed": false,
+  "files": {
+    "python/tests/test_pinned_identity_baseline.py": "f33b67db61c7c6b9c768f2e5fca6750f6637d3819664529f0af8644258dca660",
+    "scripts/tests/test_pinned_identity_baseline.sh": "838c6c9984cb845d3483d529844881e16f81b350c1e2790e674d5ec84cf803ce",
+    "specs/512-adopt-core-update/probes/adoption_cases.py": "1ada816ece70313beadf6d926ae7e5be90af462c56e77521b627d0266e01a840",
+    "specs/512-adopt-core-update/probes/growth.py": "e8fad08a49bbd7c6a6304692c6b290aedfbf73bc23c47cf0802bd1df75c16be9"
+  },
+  "full_candidate_gates_run": false,
+  "next_task": "T007",
+  "preexisting_user_work_unchanged": true,
+  "publication_performed": false,
+  "source_head": "1cba9e16ff73f927ae08e70a7bc74a6ca52355e4",
+  "state": "preparation_complete_release_dependency_unavailable",
+  "tasks_complete": [
+    "T001",
+    "T002",
+    "T003",
+    "T004",
+    "T005",
+    "T006"
+  ]
+}

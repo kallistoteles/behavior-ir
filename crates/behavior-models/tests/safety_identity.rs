@@ -47,23 +47,73 @@ fn repeat_encoding_is_canonical_and_type_changes_fail() {
     assert!(Inventory::from_json(&data).is_err());
 }
 
-#[test]
-fn checker_transition_preserves_every_established_reference_semantic_identity() {
+// Inventory identity includes the exact Core release. Its equality is meaningful
+// within that dependency context; Model/policy/behavior identity crosses contexts.
+fn assert_established_cases(manifest: &serde_json::Value) {
     use std::collections::BTreeMap;
-    let manifest: serde_json::Value =
-        serde_json::from_str(include_str!("../../../models/fixtures/safety-compat.json")).unwrap();
-    let mut cases = BTreeMap::new();
-    let mut historical = false;
-    let mut current = false;
+    let mut semantics = BTreeMap::new();
+    let mut inventories = BTreeMap::new();
     for tuple in manifest["tuples"].as_array().unwrap() {
-        historical |= tuple["lowerer_version"] == 2;
-        current |= tuple["lowerer_version"] == 3;
+        let core = tuple["core_release"].to_string();
         for (name, case) in tuple["cases"].as_object().unwrap() {
-            if let Some(old) = cases.insert(name, case) {
-                assert_eq!(old, case, "historical case {name} changed");
+            let mut semantic = case.clone();
+            semantic
+                .as_object_mut()
+                .unwrap()
+                .remove("inventory_hash")
+                .unwrap();
+            if let Some(old) = semantics.insert(name.clone(), semantic.clone()) {
+                assert_eq!(old, semantic, "historical semantics for {name} changed");
+            }
+            if let Some(old) = inventories.insert((core.clone(), name.clone()), case.clone()) {
+                assert_eq!(old, *case, "same-Core inventory for {name} changed");
             }
         }
     }
-    assert!(historical && current);
+}
+
+#[test]
+fn checker_transition_preserves_every_established_reference_semantic_identity() {
+    let manifest: serde_json::Value =
+        serde_json::from_str(include_str!("../../../models/fixtures/safety-compat.json")).unwrap();
+    assert_established_cases(&manifest);
+    let tuples = manifest["tuples"].as_array().unwrap();
+    assert!(tuples.iter().any(|t| t["lowerer_version"] == 2));
+    assert!(tuples.iter().any(|t| t["lowerer_version"] == 3));
     assert_eq!(behavior_models::safety::FIELD_OWNERSHIP_SEMANTIC_VERSION, 1);
+}
+
+#[test]
+fn dependency_change_allows_only_inventory_identity_drift() {
+    let case = json!({"behavior_hash":"same", "policy_set_hash":"same", "models":["same"],
+                      "generating_models":[], "inventory_hash":"old"});
+    let original =
+        json!({"core_release":{"version":"old","commit":"old"}, "cases":{"reference":case}});
+    let mut incoming = original.clone();
+    incoming["core_release"] = json!({"version":"new","commit":"new"});
+    incoming["cases"]["reference"]["inventory_hash"] = json!("new");
+    let accepted = json!({"tuples":[original, incoming]});
+    assert_established_cases(&accepted);
+    for field in [
+        "behavior_hash",
+        "policy_set_hash",
+        "models",
+        "generating_models",
+    ] {
+        let mut changed = accepted.clone();
+        changed["tuples"][1]["cases"]["reference"][field] = json!("changed");
+        assert!(
+            std::panic::catch_unwind(|| assert_established_cases(&changed)).is_err(),
+            "{field}"
+        );
+    }
+    let mut same_core = accepted.clone();
+    same_core["tuples"][1]["core_release"] = same_core["tuples"][0]["core_release"].clone();
+    assert!(std::panic::catch_unwind(|| assert_established_cases(&same_core)).is_err());
+    let mut missing_hash = accepted;
+    missing_hash["tuples"][1]["cases"]["reference"]
+        .as_object_mut()
+        .unwrap()
+        .remove("inventory_hash");
+    assert!(std::panic::catch_unwind(|| assert_established_cases(&missing_hash)).is_err());
 }

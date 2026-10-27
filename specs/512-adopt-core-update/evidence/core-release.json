@@ -1,0 +1,106 @@
+{
+  "all_published_assets_sha256_checked": true,
+  "annotated_tag_object": "13c02885a5813207030f1ceaee722ba6294a0bc4",
+  "contains_features": [
+    "029",
+    "030"
+  ],
+  "downloaded_cli_required_reference_cases_verified": 6,
+  "ecosystem_pin_changed": false,
+  "feature_ancestry_checked": true,
+  "manifest": {
+    "artifacts": [
+      {
+        "file": "behavior-0.16.0-x86_64-linux-musl",
+        "sha256": "eb029e24c60a9c2f8fc3bc24a7e78d2459a6c0ae42b4c2891f22038930177eb1"
+      },
+      {
+        "file": "behavior-conformance-0.16.0.tar.gz",
+        "sha256": "2486af782f18d06eb32a85c143211c964bd3a2484b969b1bf9bdeb5c2e2e745f"
+      }
+    ],
+    "commit": "63a8c164523275e06ac1d7dc5330db4a899c9d99",
+    "format": "behavior.core_release_manifest.v1",
+    "public_surface": {
+      "crate": "behavior-engine",
+      "items_sha256": "9cbd83d7302f6835e1d2140373f1fb5b997910dfae147067e48b9a1e8fa38049"
+    },
+    "release": "0.16.0",
+    "solver": {
+      "name": "z3",
+      "version": "4.16.0"
+    },
+    "tag": "v0.16.0",
+    "versions": {
+      "accepted_wire_ir": [
+        "0.4",
+        "0.5",
+        "0.6",
+        "0.7",
+        "0.8"
+      ],
+      "command_occurrence_domain": "behavior.command_occurrence.v1",
+      "command_stream": "behavior.command_stream_request.v1",
+      "engine": "0.16.0",
+      "read_records": [
+        "behavior.read_record.v1",
+        "behavior.read_record.v2"
+      ],
+      "records": [
+        "0.4",
+        "0.5",
+        "0.6",
+        "0.7",
+        "0.8"
+      ],
+      "store_documents": [
+        "behavior.entity_content.v1",
+        "behavior.entity_version.v1",
+        "behavior.state.v1",
+        "behavior.evidence_policy.v1",
+        "behavior.store_genesis.v1",
+        "behavior.commit_bundle.v1",
+        "behavior.transition_record.v1",
+        "behavior.replay_report.v1",
+        "behavior.migration_bundle.v1",
+        "behavior.store_genesis.v2",
+        "behavior.commit_bundle.v2",
+        "behavior.migration_bundle.v2",
+        "behavior.transition_record.v2"
+      ],
+      "verifier": "0.11.0",
+      "wire_ir": [
+        "0.1",
+        "0.2",
+        "0.3",
+        "0.4",
+        "0.5",
+        "0.6",
+        "0.7"
+      ]
+    }
+  },
+  "matches_independent_reproduced_local_build": true,
+  "pin": {
+    "assets": {
+      "cli": {
+        "file": "behavior-0.16.0-x86_64-linux-musl",
+        "sha256": "eb029e24c60a9c2f8fc3bc24a7e78d2459a6c0ae42b4c2891f22038930177eb1"
+      },
+      "conformance": {
+        "file": "behavior-conformance-0.16.0.tar.gz",
+        "sha256": "2486af782f18d06eb32a85c143211c964bd3a2484b969b1bf9bdeb5c2e2e745f"
+      }
+    },
+    "commit": "63a8c164523275e06ac1d7dc5330db4a899c9d99",
+    "format": "behavior.core_pin.v1",
+    "repository": "https://github.com/kallistoteles/behavior-ir-core",
+    "tag": "v0.16.0",
+    "version": "0.16.0"
+  },
+  "publication_workflow": 40465901907,
+  "publication_workflow_conclusion": "success",
+  "published_at": "2026-10-27T07:44:59Z",
+  "release_url": "https://github.com/kallistoteles/behavior-ir-core/releases/tag/v0.16.0",
+  "verifier": "0.11.0"
+}

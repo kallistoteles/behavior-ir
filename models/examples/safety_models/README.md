@@ -106,8 +106,8 @@ separate Safety assessments/evidence identities. The mandatory proof gate requir
 comparison alongside the original five certificates. Early failures retain explicit unrun rows.
 Ordinary lowering mode remains available without proof tools.
 
-With pinned Core 0.15.0 / verifier 0.10.0 and profile `postcondition`, the reference has these
-observed local results:
+With pinned Core 0.16.0 / verifier 0.11.0 and profile `postcondition`, the reference
+retains these observed local results (also observed with 0.15.0 / 0.10.0):
 
 | Guard variant | Core local postcondition | Safety v1 |
 | --- | --- | --- |
@@ -194,3 +194,12 @@ ARM performance has not been measured. See the complete
 A certificate is not Store governance authorization. The host must enforce the certified exact
 BehaviorHash and complete policy set, validate the incoming state and prevent intervening commits
 at activation. Migrations and later module/policy switches require their own valid boundary anchors.
+
+## Behavior 0.15.0 / Core 0.16.0 adoption
+
+Current certification binds the exact Core 0.16.0 dependency and complete policy set.
+Checker 3, statement 2, evidence/bundle v2 and policy meanings v1 remain unchanged.
+Old-Core bundles retain their archived identities and fail fresh certification under the new
+dependency. Generic/concrete Lean checks, transitive axiom audits and fresh kernel replay remain
+mandatory. Core's new supported Ref-removal SMT patterns do not expand the restricted
+LifecycleDependency language. See [Feature 512 acceptance evidence](../../../specs/512-adopt-core-update/evidence/README.md).

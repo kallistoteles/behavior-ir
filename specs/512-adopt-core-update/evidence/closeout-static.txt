@@ -1,0 +1,6 @@
+warning: Git tree '/home/kalle/repos/behavior-ir-512' is dirty
+check-terms: OK
+check-workflows: OK
+check-ownership: note: 120 files placed by rule 1 also match rule 3 (another owner); the first rule decides
+check-ownership: note: 28 files placed by rule 13 also match rule 14 (another owner); the first rule decides
+check-ownership: OK both 74, core 0, ecosystem 760

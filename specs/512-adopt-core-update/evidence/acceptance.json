@@ -1,0 +1,37 @@
+{
+  "added_comparator_controls_passed": 13,
+  "behavior_publication": false,
+  "candidate_wheel_sha256": "6e406b8b05050168763348440e8c31c759c1fa23415d47583e4207ef70757522",
+  "ci_conclusion": "success",
+  "ci_jobs": {
+    "gates": "success",
+    "package": "success",
+    "pin": "success",
+    "surface": "success"
+  },
+  "ci_python_passed": 757,
+  "ci_python_skipped": 5,
+  "ci_run": 40493631821,
+  "complete_conformance": {
+    "506": 39,
+    "507": 61,
+    "obligations_507": 12
+  },
+  "core_release": "0.16.0",
+  "ecosystem_version": "0.15.0",
+  "final_metadata_controls_passed": 50,
+  "local_full_python_passed_before_comparator_only_fix": 749,
+  "package_checks": "passed locally and in CI through existing split workflow",
+  "quick_507_ci_seconds": 12.17,
+  "quick_budget_seconds": 35,
+  "requirements_closed": {
+    "functional": 16,
+    "story_scenarios": 12,
+    "success": 7
+  },
+  "rust_passed": 329,
+  "scope": "Validated implementation and exact local artifact; later acceptance-record-only commits change no packaged, proof, or test implementation inputs.",
+  "source_commit": "fdbed105d2d721dd176b811bc9faccfbab2c178a",
+  "tasks_completed": 21,
+  "verifier": "0.11.0"
+}

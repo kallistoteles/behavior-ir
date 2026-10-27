@@ -1,0 +1,22 @@
+warning: Git tree '/home/kalle/repos/behavior-ir-512' is dirty
+F                                                                        [100%]
+=================================== FAILURES ===================================
+________ test_previous_core_bundle_has_no_fresh_certification_authority ________
+
+tmp_path = PosixPath('/tmp/nix-shell.bYztXV/pytest-of-kalle/pytest-0/test_previous_core_bundle_has_0')
+
+    def test_previous_core_bundle_has_no_fresh_certification_authority(tmp_path):
+        from models.examples.safety_models.fo_field import build
+        archive = Path(__file__).resolve().parents[2] / "specs/512-adopt-core-update/evidence/baseline-safety-bundle.json"
+        bundle = b.load_safety_bundle(archive)
+        assert not bundle.is_verified
+        result = b.verify_safety_evidence(build(), bundle, output=tmp_path / "old-core")
+        assert result.certificate is None and result.outcome == "Failed"
+        record = result.to_dict()
+>       assert "SAFETY_INVALID_INVENTORY" in record["diagnostic_codes"]
+E       AssertionError: assert 'SAFETY_INVALID_INVENTORY' in ['SAFETY_INVALID_DATA']
+
+python/tests/test_safety_evidence.py:147: AssertionError
+=========================== short test summary info ============================
+FAILED python/tests/test_safety_evidence.py::test_previous_core_bundle_has_no_fresh_certification_authority
+1 failed in 0.38s

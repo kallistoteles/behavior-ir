@@ -1,0 +1,2 @@
+warning: Git tree '/home/kalle/repos/behavior-ir-512' is dirty
+{"positive_cases": 6, "negative_cases": 4, "runtime_controls": "passed", "missing_reference_proofs": []}

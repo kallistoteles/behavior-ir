@@ -57,7 +57,7 @@ fn proof_and_exhaustion_assessments_have_scope_identities_classes_and_external_b
         assert_eq!(report["format"], "behavior.safety_evidence.v2");
         assert_eq!(report["scope"], "OrdinaryTransitions");
         assert_eq!(report["checker_version"], 3);
-        assert_eq!(report["core_release"]["version"], "0.15.0");
+        assert_eq!(report["core_release"]["version"], "0.16.0");
         assert_eq!(report["initial_validity"], "Unestablished");
         assert_eq!(report["behavior_hash"], a.inventory().behavior_hash());
         assert_eq!(report["policy_set_hash"], a.policy_set_hash());

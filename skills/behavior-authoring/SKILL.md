@@ -1,16 +1,16 @@
 ---
 name: behavior-authoring
 description: Model a domain as Behavior with the Python binding (entities, field types, actions, creation and removal, references, queries over sets, entity constraints, module invariants, exact arithmetic, declared reads, commands, StateMachine, RequestFlow, Approval, WorkQueue, composition, FieldOwnership and LifecycleDependency). Use when writing or changing a behavior model.
-release: 0.14.0
+release: 0.15.0
 ---
 
 # Authoring behavior
 
-This skill describes **Behavior release 0.14.0**. Use only what is described here or listed in the
+This skill describes **Behavior release 0.15.0**. Use only what is described here or listed in the
 release's public API (`behavior.versions()` reports the installed release). Everything is imported
 from the `behavior` package.
 
-This release bundles Core 0.15.0. Command-free modules retain their established profile.
+This release bundles Core 0.16.0. Command-free modules retain their established profile.
 Public `@command` declarations and `emit` author command intents; `commands=[...]` selects the
 command profile. Other versioned documents can be admitted with `BehaviorModule.from_wire_json`.
 Admission, evaluation, hashing and replay always come from Core.
@@ -479,6 +479,14 @@ refused = BehaviorModule(entities=[Customer, Order], constraints=[few_orders])
 assert [e.code for e in admit(refused).errors] == ["QUERY_NOT_ALLOWED"]
 ```
 
+## Verification and global-rule costs
+
+Use real module invariants for global requirements; a supported count bound need not force
+full validation of unchanged entities on every retained-Store transition in Core 0.16.0.
+This optimization does not add joins or grouped invariants. Unsupported dependency shapes
+retain reference validation. For guarded Ref-target removals, follow the supported examples
+in the behavior-verification skill; changing Ref to Id would weaken the existence contract.
+
 ## Safety policies
 
 Use `FieldOwnership` for structural creator, writer and remover restrictions, and restricted
@@ -488,7 +496,7 @@ inspect the complete final module, including generated actions; they do not gene
 state or change ordinary Core behavior. Successful lowering is not certification. For the
 separate proof workflow and its assumptions, use the behavior-verification skill.
 
-## Requirements that are semantic gaps in 0.14.0
+## Requirements that are semantic gaps in 0.15.0
 
 Record these, do not approximate them:
 

@@ -1,15 +1,15 @@
 ---
 name: behavior-verification
 description: Run Core verification and Safety certification or independent evidence checking; act on verification results (proven, counterexample, inconclusive), fixing the model rather than weakening checks, and telling verifier precision debt from a missing requirement. Use after writing or changing a behavior model, and whenever an attestation is not verified.
-release: 0.14.0
+release: 0.15.0
 ---
 
 # Verifying behavior
 
-This skill describes **Behavior release 0.14.0**. Use only what is described here or listed in the
+This skill describes **Behavior release 0.15.0**. Use only what is described here or listed in the
 release's public API.
 
-The package bundles Core 0.15.0 and verifier 0.10.0, including corrected read-filter,
+The package bundles Core 0.16.0 and verifier 0.11.0, including corrected read-filter,
 entity-role and complete resulting-state assumptions. Version 0.10.0 fixes Approval query
 congruence (Core #35): the unchanged reference Approval's local uniqueness postconditions now
 prove, and Feature 506 C19 is no longer blocked. Verification helpers return Core's findings.
@@ -24,7 +24,7 @@ fresh required-governance v1 writes require explicit adoption into store-v2 hist
 ## Safety certification
 
 Safety certification is separate from Core SMT verification. For Safety policies, use the
-public certification workflow in `models/examples/safety_models/README.md`. Release 0.14.0
+public certification workflow in `models/examples/safety_models/README.md`. Release 0.15.0
 uses checker 3, statement version 2 and separate v2 evidence/bundles. Certification and
 independent checking cover the exact admitted module and complete expected policy set;
 loading or hashing a bundle alone establishes neither validity nor completeness.
@@ -91,7 +91,7 @@ deadlines, scheduling fairness or exactly-once external execution. Target-state 
 does not prove those migration assumptions. All 12 WorkQueue verification obligations can have
 evidence without all being universal SMT proofs.
 
-The small example asserts actual local postcondition outcomes with verifier 0.10.0. It does not
+The small example asserts actual local postcondition outcomes with verifier 0.11.0. It does not
 claim every profile, module or global safety obligation is proven:
 
 ```python
@@ -100,12 +100,39 @@ review = Approval("review", subject=Document, actor=User, approve_threshold=2, r
 review.approve(actor=lambda decision_id, subject, actor: actor, context={"actor": Id[User]})
 review.reject(actor=lambda decision_id, subject, actor: actor, context={"actor": Id[User]})
 model = BehaviorModule(entities=[User, Document], models=[review])
-assert versions()["verifier"] == "0.10.0"
+assert versions()["verifier"] == "0.11.0"
 local = verify(model, Profile(checks=["postcondition"]))
 assert local.checks and all(c["outcome"] == "proven" for c in local.checks), local.checks
 assert {c["action"]["name"] for c in local.checks} == {"review__approve", "review__reject"}
 assert local.verified
 ```
+
+## Ref-target removal
+
+Verifier 0.11.0 supports guarded free removal, joint referrer/target removal and
+retarget/removal in admitted profiles 0.7 and 0.8. The complete example is
+`examples/reference_removals.py`; it checks both actual proofs and allowed commits/replay.
+For joint removal, count incoming references **to the bound target**, rather than bounding
+all Holder entities. Retargeting additionally binds a distinct existing replacement target.
+Every incoming reference class and field must be covered; additional fields are separate
+obligations. Preserve the authored association, guards and effect order.
+
+```python
+# from examples/reference_removals.py
+@b.action
+def remove_joint(target: Target, holder: Holder):
+    b.requires(holder.target == target.id)
+    b.requires(b.count(b.select(Holder).where(lambda h: h.target == target.id)) == 1)
+    b.remove(holder)
+    b.remove(target)
+```
+
+Inspect nonempty `subject.kind == "reference_world"` checks and require actual `proven`
+outcomes, alongside the complete selected report. An empty inventory proves nothing about
+removal. Unsupported binding/effect shapes return inconclusive encoding errors; solver
+exhaustion also remains inconclusive. Runtime Ref integrity remains enforced independently.
+This Core improvement does not expand LifecycleDependency v1: its immutable ownership and
+one-relevant-operation restrictions still apply.
 
 ## Reading an attestation
 
@@ -244,7 +271,7 @@ assert check["outcome"] == "inconclusive" and not debt.verified
 
 The command line has `behavior migration verify <source> <target> <migration>`.
 
-## Precision debt catalogue (release 0.14.0)
+## Precision debt catalogue (release 0.15.0)
 
 These properties can hold and still be inconclusive. They are verifier limits, not model errors.
 

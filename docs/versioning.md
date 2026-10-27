@@ -8,10 +8,10 @@ engine/verifier versions.
 
 | Kind | Example | What it identifies | Where it lives |
 |---|---|---|---|
-| **Release** | `0.14.0` | this repository's release: the Python package and everything it bundles | `[workspace.package] version` in `Cargo.toml`, the single source |
-| **Core** | `0.15.0` | the exact Core Release the package is built against and bundles (feature 011) | `core-release.json`; `behavior.versions()["core"]` reports the full immutable commit |
-| **Binding** | `python 0.14.0` | the installable package of the Python binding | the release version in Python's form (PEP 440); the package requires *exactly* the core in `core-release.json` (checked at import) |
-| **Formats and verifier** | accepted wire IR `0.4` … `0.8`, records `0.4` … `0.8`, verifier `0.10.0` | the document formats and the verification encoding | defined by the core: [its versioning](https://github.com/kallistoteles/behavior-ir-core/blob/v0.15.0/docs/versioning.md); reported by `behavior engine-info` |
+| **Release** | `0.15.0` | this repository's release: the Python package and everything it bundles | `[workspace.package] version` in `Cargo.toml`, the single source |
+| **Core** | `0.16.0` | the exact Core Release the package is built against and bundles (feature 011) | `core-release.json`; `behavior.versions()["core"]` reports the full immutable commit |
+| **Binding** | `python 0.15.0` | the installable package of the Python binding | the release version in Python's form (PEP 440); the package requires *exactly* the core in `core-release.json` (checked at import) |
+| **Formats and verifier** | accepted wire IR `0.4` … `0.8`, records `0.4` … `0.8`, verifier `0.11.0` | the document formats and the verification encoding | defined by the core: [its versioning](https://github.com/kallistoteles/behavior-ir-core/blob/v0.16.0/docs/versioning.md); reported by `behavior engine-info` |
 | **Safety certification** | checker `3`, statement `2`, evidence/bundle `v2` | build-time checking and proof-data contracts; policy meanings remain v1 | Safety analysis/evidence; `crates/behavior-models/src/safety/` and `crates/behavior-models/proofs/toolchain.json` |
 
 A module document, a record or a store document says which format version it is written in.
@@ -39,6 +39,17 @@ or helper without a deprecation period, compatibility shim or fallback, and cons
 the new contract. What never changes by accident is determinism, canonical content identity
 where semantically required, and evidence integrity; a change of semantic meaning is a
 deliberate design decision, documented with its release.
+
+Release 0.15.0 adopts exact Core 0.16.0 at commit
+`63a8c164523275e06ac1d7dc5330db4a899c9d99`, including verifier 0.11.0.
+The minor bump follows the verifier-outcome rule: supported Ref-target removals can now prove.
+Core 029 also improves supported retained-Store global-rule validation without changing runtime
+semantics, formats or replay. Fresh governance selects verifier-0.11 policies explicitly;
+historical policies and evidence are not upgraded. Fresh Safety evidence binds the new exact
+Core dependency; policy semantics v1, checker 3, statement 2 and bundle v2 remain unchanged.
+Historical Model tuples remain intact; new dependency tuples are appended. See the
+[0.15.0 notes](../release/notes/0.15.0.md) and
+[adoption evidence](../specs/512-adopt-core-update/evidence/README.md).
 
 Release 0.14.0 changes Safety certification outcomes and its evidence contract (feature 511),
 so it follows the minor rule. Safety checker 3 and statement contract 2 use evidence/bundle v2.

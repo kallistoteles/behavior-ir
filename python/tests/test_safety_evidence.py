@@ -134,3 +134,16 @@ def test_version_two_transport_remains_unverified_even_with_a_success_claim():
     bundle = b.load_safety_bundle(data)
     assert not bundle.is_verified
     assert not hasattr(bundle, "certificate")
+
+
+def test_previous_core_bundle_has_no_fresh_certification_authority(tmp_path):
+    from models.examples.safety_models.fo_field import build
+    archive = Path(__file__).resolve().parents[2] / "specs/512-adopt-core-update/evidence/baseline-safety-bundle.json"
+    bundle = b.load_safety_bundle(archive)
+    assert not bundle.is_verified
+    result = b.verify_safety_evidence(build(), bundle, output=tmp_path / "old-core")
+    assert result.certificate is None and result.outcome == "Failed"
+    record = result.to_dict()
+    assert record["diagnostic_codes"] == ["SAFETY_INVALID_DATA"]
+    assert "wrong Core release" in json.dumps(record["diagnostics"])
+    assert record["obligations"]["generic_proof"] == "NotRun"

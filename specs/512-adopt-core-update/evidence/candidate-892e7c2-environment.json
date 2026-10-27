@@ -1,0 +1,89 @@
+{
+  "all_wheel_member_contents_identical": true,
+  "final_frozen_growth_recheck": "pending after full release checks, without concurrent builds",
+  "manifest": {
+    "artifacts": [
+      {
+        "file": "behavior-0.15.0-cp313-abi3-manylinux_2_28_x86_64.whl",
+        "sha256": "9d8b7929825b7e6ab4028b7ce7347f635478c1bb5accf38b1d930384b9bd55f6"
+      }
+    ],
+    "bindings": {
+      "python": {
+        "requires_python": ">=3.13",
+        "version": "0.15.0"
+      }
+    },
+    "commit": "892e7c20c649412f0e4127709cea7af232f3c87e",
+    "core": {
+      "commit": "63a8c164523275e06ac1d7dc5330db4a899c9d99",
+      "repository": "https://github.com/kallistoteles/behavior-ir-core",
+      "tag": "v0.16.0",
+      "version": "0.16.0"
+    },
+    "format": "behavior.release_manifest.v1",
+    "platforms": [
+      "manylinux_2_28_x86_64"
+    ],
+    "release": "0.15.0",
+    "solver": {
+      "name": "z3",
+      "version": "4.16.0"
+    },
+    "tag": "v0.15.0",
+    "versions": {
+      "accepted_wire_ir": [
+        "0.4",
+        "0.5",
+        "0.6",
+        "0.7",
+        "0.8"
+      ],
+      "command_occurrence_domain": "behavior.command_occurrence.v1",
+      "command_stream": "behavior.command_stream_request.v1",
+      "engine": "0.16.0",
+      "read_records": [
+        "behavior.read_record.v1",
+        "behavior.read_record.v2"
+      ],
+      "records": [
+        "0.4",
+        "0.5",
+        "0.6",
+        "0.7",
+        "0.8"
+      ],
+      "store_documents": [
+        "behavior.entity_content.v1",
+        "behavior.entity_version.v1",
+        "behavior.state.v1",
+        "behavior.evidence_policy.v1",
+        "behavior.store_genesis.v1",
+        "behavior.commit_bundle.v1",
+        "behavior.transition_record.v1",
+        "behavior.replay_report.v1",
+        "behavior.migration_bundle.v1",
+        "behavior.store_genesis.v2",
+        "behavior.commit_bundle.v2",
+        "behavior.migration_bundle.v2",
+        "behavior.transition_record.v2"
+      ],
+      "verifier": "0.11.0",
+      "wire_ir": [
+        "0.1",
+        "0.2",
+        "0.3",
+        "0.4",
+        "0.5",
+        "0.6",
+        "0.7"
+      ]
+    }
+  },
+  "measured_precommit_wheel_sha256": "a362ccf94abdf3f0009d71fafb44fe1331e0f1f5cea08ec1062fc463cceaf965",
+  "member_count": 32,
+  "original_wheel_preserved_at": "target/core-adoption/measured-candidate-dist/behavior-0.15.0-cp313-abi3-manylinux_2_28_x86_64.whl",
+  "source_commit": "892e7c20c649412f0e4127709cea7af232f3c87e",
+  "source_tree": "538e1ba8e4e76f1ae41268e9218197ea7295c845",
+  "wheel_sha256": "9d8b7929825b7e6ab4028b7ce7347f635478c1bb5accf38b1d930384b9bd55f6"
+}

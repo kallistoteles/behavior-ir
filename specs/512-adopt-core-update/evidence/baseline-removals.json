@@ -1,0 +1,2127 @@
+{
+  "negatives": [
+    {
+      "action": "unguarded",
+      "position": 0,
+      "profile": "0.7",
+      "report": {
+        "attestation_version": "1",
+        "behavior_version": "sha256:80506800b8f46997ff4cfb33894871c036b3eee399861e543e39f56fc30f79f0",
+        "checks": [
+          {
+            "action": {
+              "hash": "sha256:84afa40fec3afb6d81ecab01fb8fcb35b233a18755a77f0b75a99975c5d1bfb6",
+              "name": "unguarded"
+            },
+            "cached": false,
+            "key": "",
+            "kind": "preservation",
+            "outcome": "inconclusive",
+            "reason": "encoding_error",
+            "subject": {
+              "hash": "sha256:84afa40fec3afb6d81ecab01fb8fcb35b233a18755a77f0b75a99975c5d1bfb6",
+              "kind": "action",
+              "loc": {
+                "file": "adoption_cases.py",
+                "line": 58
+              },
+              "name": "unguarded"
+            }
+          }
+        ],
+        "findings": [
+          {
+            "check": "preservation",
+            "cites": {
+              "action": "sha256:84afa40fec3afb6d81ecab01fb8fcb35b233a18755a77f0b75a99975c5d1bfb6"
+            },
+            "explanation": "preservation of unguarded is inconclusive (encoding_error: cannot encode: complete-world reference obligations for removal target)",
+            "hash": "sha256:00b29c272325492801fa3fd88fc28c52f4a001de97b1a2997f34ea9e9313ebd3",
+            "kind": "inconclusive",
+            "locs": [
+              {
+                "file": "adoption_cases.py",
+                "line": 58
+              }
+            ],
+            "severity": "blocking"
+          }
+        ],
+        "hash": "sha256:9363b52e4d7ffa7b7bb01b34fbc3fd878cbcc07229abfa2e0850cd2aa831fa59",
+        "profile": {
+          "checks": [
+            "preservation"
+          ],
+          "hash": "sha256:e5d428c2ea0aae1edb2c0c222ed8972e3ccdd9a015f51547326de4a9c2b6ef70",
+          "rlimit": 20000000,
+          "wall_clock_guard_ms": 60000
+        },
+        "result": "not_verified",
+        "solver_version": "z3 4.16.0",
+        "verifier_version": "0.10.0"
+      },
+      "runtime_result": "DENY"
+    },
+    {
+      "action": "create_dangling",
+      "position": 0,
+      "profile": "0.7",
+      "report": {
+        "attestation_version": "1",
+        "behavior_version": "sha256:f8242ea086eff403fb33be23216187b9c117e4feeb45e85df4f921c0dccc2f7b",
+        "checks": [
+          {
+            "action": {
+              "hash": "sha256:0c2f204076b4f2b44c8ea65e836515bd9cac17578cf076e3eece77d8a865cb13",
+              "name": "create_dangling"
+            },
+            "cached": false,
+            "key": "",
+            "kind": "preservation",
+            "outcome": "inconclusive",
+            "reason": "encoding_error",
+            "subject": {
+              "hash": "sha256:0c2f204076b4f2b44c8ea65e836515bd9cac17578cf076e3eece77d8a865cb13",
+              "kind": "action",
+              "loc": {
+                "file": "adoption_cases.py",
+                "line": 63
+              },
+              "name": "create_dangling"
+            }
+          }
+        ],
+        "findings": [
+          {
+            "check": "preservation",
+            "cites": {
+              "action": "sha256:0c2f204076b4f2b44c8ea65e836515bd9cac17578cf076e3eece77d8a865cb13"
+            },
+            "explanation": "preservation of create_dangling is inconclusive (encoding_error: cannot encode: complete-world reference obligations for removal target)",
+            "hash": "sha256:1ac24714b542dc9d085489d0ac9e6e0c3e8a03e199c7a0586a107488605d6832",
+            "kind": "inconclusive",
+            "locs": [
+              {
+                "file": "adoption_cases.py",
+                "line": 63
+              }
+            ],
+            "severity": "blocking"
+          }
+        ],
+        "hash": "sha256:a282ffc979f3004be1d103552cc2bb9c62a659ef23e9bcf337d46637b5f9567e",
+        "profile": {
+          "checks": [
+            "preservation"
+          ],
+          "hash": "sha256:e5d428c2ea0aae1edb2c0c222ed8972e3ccdd9a015f51547326de4a9c2b6ef70",
+          "rlimit": 20000000,
+          "wall_clock_guard_ms": 60000
+        },
+        "result": "not_verified",
+        "solver_version": "z3 4.16.0",
+        "verifier_version": "0.10.0"
+      },
+      "runtime_result": "DENY"
+    },
+    {
+      "action": "unguarded",
+      "position": 0,
+      "profile": "0.8",
+      "report": {
+        "attestation_version": "1",
+        "behavior_version": "sha256:ce2f3274f841a43591d1bc77efe21f5bbcf9844697313237f758959a21859952",
+        "checks": [
+          {
+            "action": {
+              "hash": "sha256:6aab8c80070d7708e569303fc96062c4d1f82a16c7c7a69409db29eef7697e22",
+              "name": "unguarded"
+            },
+            "cached": false,
+            "key": "",
+            "kind": "preservation",
+            "outcome": "inconclusive",
+            "reason": "encoding_error",
+            "subject": {
+              "hash": "sha256:6aab8c80070d7708e569303fc96062c4d1f82a16c7c7a69409db29eef7697e22",
+              "kind": "action",
+              "loc": {
+                "file": "adoption_cases.py",
+                "line": 58
+              },
+              "name": "unguarded"
+            }
+          }
+        ],
+        "findings": [
+          {
+            "check": "preservation",
+            "cites": {
+              "action": "sha256:6aab8c80070d7708e569303fc96062c4d1f82a16c7c7a69409db29eef7697e22"
+            },
+            "explanation": "preservation of unguarded is inconclusive (encoding_error: cannot encode: complete-world reference obligations for removal target)",
+            "hash": "sha256:b5c76e4b0876b268765752865a09193c41a24e8289af6187854527f03724efcc",
+            "kind": "inconclusive",
+            "locs": [
+              {
+                "file": "adoption_cases.py",
+                "line": 58
+              }
+            ],
+            "severity": "blocking"
+          }
+        ],
+        "hash": "sha256:eaa432ccf2e50af551a169f741acac37dbce3b4186edad669f7ede5c93824c59",
+        "profile": {
+          "checks": [
+            "preservation"
+          ],
+          "hash": "sha256:e5d428c2ea0aae1edb2c0c222ed8972e3ccdd9a015f51547326de4a9c2b6ef70",
+          "rlimit": 20000000,
+          "wall_clock_guard_ms": 60000
+        },
+        "result": "not_verified",
+        "solver_version": "z3 4.16.0",
+        "verifier_version": "0.10.0"
+      },
+      "runtime_result": "DENY"
+    },
+    {
+      "action": "create_dangling",
+      "position": 0,
+      "profile": "0.8",
+      "report": {
+        "attestation_version": "1",
+        "behavior_version": "sha256:862bfd44e7f5cb400fb5e29828a0526574230fa940f3b7160965b260b83e92d1",
+        "checks": [
+          {
+            "action": {
+              "hash": "sha256:d98116c95ce44cc8da5e99c8bc64f1e124246c2ea9d278c137bf42fda799698d",
+              "name": "create_dangling"
+            },
+            "cached": false,
+            "key": "",
+            "kind": "preservation",
+            "outcome": "inconclusive",
+            "reason": "encoding_error",
+            "subject": {
+              "hash": "sha256:d98116c95ce44cc8da5e99c8bc64f1e124246c2ea9d278c137bf42fda799698d",
+              "kind": "action",
+              "loc": {
+                "file": "adoption_cases.py",
+                "line": 63
+              },
+              "name": "create_dangling"
+            }
+          }
+        ],
+        "findings": [
+          {
+            "check": "preservation",
+            "cites": {
+              "action": "sha256:d98116c95ce44cc8da5e99c8bc64f1e124246c2ea9d278c137bf42fda799698d"
+            },
+            "explanation": "preservation of create_dangling is inconclusive (encoding_error: cannot encode: complete-world reference obligations for removal target)",
+            "hash": "sha256:b7154d2591a6696f0992322fc95ab67efe87f6d498d051be496eaef426d9a443",
+            "kind": "inconclusive",
+            "locs": [
+              {
+                "file": "adoption_cases.py",
+                "line": 63
+              }
+            ],
+            "severity": "blocking"
+          }
+        ],
+        "hash": "sha256:0ac9a0e92b5e381316d92acdbeb9af45145217dc84adaabefdc1323b13fb0081",
+        "profile": {
+          "checks": [
+            "preservation"
+          ],
+          "hash": "sha256:e5d428c2ea0aae1edb2c0c222ed8972e3ccdd9a015f51547326de4a9c2b6ef70",
+          "rlimit": 20000000,
+          "wall_clock_guard_ms": 60000
+        },
+        "result": "not_verified",
+        "solver_version": "z3 4.16.0",
+        "verifier_version": "0.10.0"
+      },
+      "runtime_result": "DENY"
+    }
+  ],
+  "positives": [
+    {
+      "behavior_hash": "sha256:08abf469d199a0bc832e30b6b9329c4a590ac0582855500ea72e50602a869dd1",
+      "pattern": "free",
+      "profile": "0.7",
+      "report": {
+        "attestation_version": "1",
+        "behavior_version": "sha256:08abf469d199a0bc832e30b6b9329c4a590ac0582855500ea72e50602a869dd1",
+        "checks": [
+          {
+            "action": {
+              "hash": "sha256:d6e6f086fc601d3aa36827ddb2c83252f7f5cd0b84d511ba1e062ecb0bb84370",
+              "name": "remove_free"
+            },
+            "cached": false,
+            "key": "",
+            "kind": "preservation",
+            "outcome": "inconclusive",
+            "reason": "encoding_error",
+            "subject": {
+              "hash": "sha256:d6e6f086fc601d3aa36827ddb2c83252f7f5cd0b84d511ba1e062ecb0bb84370",
+              "kind": "action",
+              "loc": {
+                "file": "adoption_cases.py",
+                "line": 35
+              },
+              "name": "remove_free"
+            }
+          }
+        ],
+        "findings": [
+          {
+            "check": "preservation",
+            "cites": {
+              "action": "sha256:d6e6f086fc601d3aa36827ddb2c83252f7f5cd0b84d511ba1e062ecb0bb84370"
+            },
+            "explanation": "preservation of remove_free is inconclusive (encoding_error: cannot encode: complete-world reference obligations for removal target)",
+            "hash": "sha256:f00cbdd2128a504d34f89f93d3f6253bff06bae87111d7db29048607c8ff0164",
+            "kind": "inconclusive",
+            "locs": [
+              {
+                "file": "adoption_cases.py",
+                "line": 35
+              }
+            ],
+            "severity": "blocking"
+          }
+        ],
+        "hash": "sha256:28bb64577d0e95905522ca647c871c16fd70435d22daad4202022c5ff02928e6",
+        "profile": {
+          "checks": [
+            "preservation"
+          ],
+          "hash": "sha256:e5d428c2ea0aae1edb2c0c222ed8972e3ccdd9a015f51547326de4a9c2b6ef70",
+          "rlimit": 20000000,
+          "wall_clock_guard_ms": 60000
+        },
+        "result": "not_verified",
+        "solver_version": "z3 4.16.0",
+        "verifier_version": "0.10.0"
+      },
+      "runtime": {
+        "allowed_position": 1,
+        "behavior_replay": true,
+        "data_replay": true,
+        "occupied_refused_position": 0
+      },
+      "supported": false,
+      "wire": {
+        "actions": [
+          {
+            "effects": [
+              {
+                "loc": {
+                  "file": "adoption_cases.py",
+                  "line": 38
+                },
+                "remove": "target"
+              }
+            ],
+            "loc": {
+              "file": "adoption_cases.py",
+              "line": 35
+            },
+            "name": "remove_free",
+            "params": [
+              {
+                "name": "target",
+                "role": "state",
+                "type": {
+                  "name": "Target",
+                  "t": "entity"
+                }
+              }
+            ],
+            "postconditions": [],
+            "preconditions": [
+              {
+                "expr": {
+                  "args": [
+                    {
+                      "args": [
+                        {
+                          "field": "id",
+                          "loc": {
+                            "file": "adoption_cases.py",
+                            "line": 37
+                          },
+                          "op": "field",
+                          "param": "target"
+                        }
+                      ],
+                      "loc": {
+                        "file": "adoption_cases.py",
+                        "line": 37
+                      },
+                      "op": "referenced"
+                    }
+                  ],
+                  "loc": {
+                    "file": "adoption_cases.py",
+                    "line": 37
+                  },
+                  "op": "not"
+                },
+                "loc": {
+                  "file": "adoption_cases.py",
+                  "line": 37
+                }
+              }
+            ]
+          }
+        ],
+        "constraints": [],
+        "derived": [],
+        "entities": [
+          {
+            "fields": [
+              {
+                "loc": {
+                  "file": "adoption_cases.py",
+                  "line": 22
+                },
+                "name": "target",
+                "type": {
+                  "entity": "Target",
+                  "t": "ref"
+                }
+              }
+            ],
+            "loc": {
+              "file": "adoption_cases.py",
+              "line": 20
+            },
+            "name": "Holder"
+          },
+          {
+            "fields": [
+              {
+                "loc": {
+                  "file": "adoption_cases.py",
+                  "line": 17
+                },
+                "name": "value",
+                "type": {
+                  "t": "int"
+                }
+              }
+            ],
+            "loc": {
+              "file": "adoption_cases.py",
+              "line": 15
+            },
+            "name": "Target"
+          }
+        ],
+        "enums": [],
+        "invariants": [],
+        "ir_version": "0.7",
+        "nominals": [],
+        "reads": [
+          {
+            "body": {
+              "value": {
+                "field": "value",
+                "loc": {
+                  "file": "adoption_cases.py",
+                  "line": 32
+                },
+                "op": "field",
+                "param": "target"
+              }
+            },
+            "loc": {
+              "file": "adoption_cases.py",
+              "line": 30
+            },
+            "name": "target_value",
+            "params": [
+              {
+                "name": "target",
+                "role": "state",
+                "type": {
+                  "name": "Target",
+                  "t": "entity"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "behavior_hash": "sha256:b320b5ee1877096577bca6e0f32be5bd9233a9b960ee513da2ef026a583cb811",
+      "pattern": "joint",
+      "profile": "0.7",
+      "report": {
+        "attestation_version": "1",
+        "behavior_version": "sha256:b320b5ee1877096577bca6e0f32be5bd9233a9b960ee513da2ef026a583cb811",
+        "checks": [
+          {
+            "action": {
+              "hash": "sha256:f1dcb3aed657ed7f6bc4d2cd26803ec87444d30d3b22af287802815cc899dadb",
+              "name": "remove_joint"
+            },
+            "cached": false,
+            "key": "",
+            "kind": "preservation",
+            "outcome": "inconclusive",
+            "reason": "encoding_error",
+            "subject": {
+              "hash": "sha256:f1dcb3aed657ed7f6bc4d2cd26803ec87444d30d3b22af287802815cc899dadb",
+              "kind": "action",
+              "loc": {
+                "file": "adoption_cases.py",
+                "line": 41
+              },
+              "name": "remove_joint"
+            }
+          }
+        ],
+        "findings": [
+          {
+            "check": "preservation",
+            "cites": {
+              "action": "sha256:f1dcb3aed657ed7f6bc4d2cd26803ec87444d30d3b22af287802815cc899dadb"
+            },
+            "explanation": "preservation of remove_joint is inconclusive (encoding_error: cannot encode: complete-world reference obligations for removal target)",
+            "hash": "sha256:160f6d9c1322a35af593db5a2a69d3cea9425f63c46eb687d9bb25b3842eff69",
+            "kind": "inconclusive",
+            "locs": [
+              {
+                "file": "adoption_cases.py",
+                "line": 41
+              }
+            ],
+            "severity": "blocking"
+          }
+        ],
+        "hash": "sha256:bde942b50a476f39e2d77df2d63f7eebbae1f6b4fece5ce652d8d964a01ed724",
+        "profile": {
+          "checks": [
+            "preservation"
+          ],
+          "hash": "sha256:e5d428c2ea0aae1edb2c0c222ed8972e3ccdd9a015f51547326de4a9c2b6ef70",
+          "rlimit": 20000000,
+          "wall_clock_guard_ms": 60000
+        },
+        "result": "not_verified",
+        "solver_version": "z3 4.16.0",
+        "verifier_version": "0.10.0"
+      },
+      "runtime": {
+        "allowed_position": 1,
+        "behavior_replay": true,
+        "data_replay": true,
+        "occupied_refused_position": 0
+      },
+      "supported": false,
+      "wire": {
+        "actions": [
+          {
+            "effects": [
+              {
+                "loc": {
+                  "file": "adoption_cases.py",
+                  "line": 45
+                },
+                "remove": "holder"
+              },
+              {
+                "loc": {
+                  "file": "adoption_cases.py",
+                  "line": 46
+                },
+                "remove": "target"
+              }
+            ],
+            "loc": {
+              "file": "adoption_cases.py",
+              "line": 41
+            },
+            "name": "remove_joint",
+            "params": [
+              {
+                "name": "target",
+                "role": "state",
+                "type": {
+                  "name": "Target",
+                  "t": "entity"
+                }
+              },
+              {
+                "name": "holder",
+                "role": "state",
+                "type": {
+                  "name": "Holder",
+                  "t": "entity"
+                }
+              }
+            ],
+            "postconditions": [],
+            "preconditions": [
+              {
+                "expr": {
+                  "args": [
+                    {
+                      "field": "target",
+                      "loc": {
+                        "file": "adoption_cases.py",
+                        "line": 43
+                      },
+                      "op": "field",
+                      "param": "holder"
+                    },
+                    {
+                      "field": "id",
+                      "loc": {
+                        "file": "adoption_cases.py",
+                        "line": 43
+                      },
+                      "op": "field",
+                      "param": "target"
+                    }
+                  ],
+                  "loc": {
+                    "file": "adoption_cases.py",
+                    "line": 43
+                  },
+                  "op": "eq"
+                },
+                "loc": {
+                  "file": "adoption_cases.py",
+                  "line": 43
+                }
+              },
+              {
+                "expr": {
+                  "args": [
+                    {
+                      "args": [
+                        {
+                          "args": [
+                            {
+                              "entity": "Holder",
+                              "loc": {
+                                "file": "adoption_cases.py",
+                                "line": 44
+                              },
+                              "op": "select"
+                            }
+                          ],
+                          "body": {
+                            "args": [
+                              {
+                                "field": "target",
+                                "loc": {
+                                  "file": "adoption_cases.py",
+                                  "line": 44
+                                },
+                                "op": "field",
+                                "param": "h"
+                              },
+                              {
+                                "field": "id",
+                                "loc": {
+                                  "file": "adoption_cases.py",
+                                  "line": 44
+                                },
+                                "op": "field",
+                                "param": "target"
+                              }
+                            ],
+                            "loc": {
+                              "file": "adoption_cases.py",
+                              "line": 44
+                            },
+                            "op": "eq"
+                          },
+                          "loc": {
+                            "file": "adoption_cases.py",
+                            "line": 44
+                          },
+                          "op": "where",
+                          "param": "h"
+                        }
+                      ],
+                      "loc": {
+                        "file": "adoption_cases.py",
+                        "line": 44
+                      },
+                      "op": "count"
+                    },
+                    {
+                      "loc": {
+                        "file": "adoption_cases.py",
+                        "line": 44
+                      },
+                      "op": "lit",
+                      "type": {
+                        "t": "int"
+                      },
+                      "value": 1
+                    }
+                  ],
+                  "loc": {
+                    "file": "adoption_cases.py",
+                    "line": 44
+                  },
+                  "op": "eq"
+                },
+                "loc": {
+                  "file": "adoption_cases.py",
+                  "line": 44
+                }
+              }
+            ]
+          }
+        ],
+        "constraints": [],
+        "derived": [],
+        "entities": [
+          {
+            "fields": [
+              {
+                "loc": {
+                  "file": "adoption_cases.py",
+                  "line": 22
+                },
+                "name": "target",
+                "type": {
+                  "entity": "Target",
+                  "t": "ref"
+                }
+              }
+            ],
+            "loc": {
+              "file": "adoption_cases.py",
+              "line": 20
+            },
+            "name": "Holder"
+          },
+          {
+            "fields": [
+              {
+                "loc": {
+                  "file": "adoption_cases.py",
+                  "line": 17
+                },
+                "name": "value",
+                "type": {
+                  "t": "int"
+                }
+              }
+            ],
+            "loc": {
+              "file": "adoption_cases.py",
+              "line": 15
+            },
+            "name": "Target"
+          }
+        ],
+        "enums": [],
+        "invariants": [],
+        "ir_version": "0.7",
+        "nominals": [],
+        "reads": [
+          {
+            "body": {
+              "value": {
+                "field": "value",
+                "loc": {
+                  "file": "adoption_cases.py",
+                  "line": 32
+                },
+                "op": "field",
+                "param": "target"
+              }
+            },
+            "loc": {
+              "file": "adoption_cases.py",
+              "line": 30
+            },
+            "name": "target_value",
+            "params": [
+              {
+                "name": "target",
+                "role": "state",
+                "type": {
+                  "name": "Target",
+                  "t": "entity"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "behavior_hash": "sha256:a4e934cb90a1313180894cda583fc09d8a790c8079cf1c689646a3466bd678f8",
+      "pattern": "retarget",
+      "profile": "0.7",
+      "report": {
+        "attestation_version": "1",
+        "behavior_version": "sha256:a4e934cb90a1313180894cda583fc09d8a790c8079cf1c689646a3466bd678f8",
+        "checks": [
+          {
+            "action": {
+              "hash": "sha256:cbd784581460f48927a5759536fb0ed1c612d9daf4630b87a2c960f04f9394d1",
+              "name": "remove_retarget"
+            },
+            "cached": false,
+            "key": "",
+            "kind": "preservation",
+            "outcome": "inconclusive",
+            "reason": "encoding_error",
+            "subject": {
+              "hash": "sha256:cbd784581460f48927a5759536fb0ed1c612d9daf4630b87a2c960f04f9394d1",
+              "kind": "action",
+              "loc": {
+                "file": "adoption_cases.py",
+                "line": 49
+              },
+              "name": "remove_retarget"
+            }
+          }
+        ],
+        "findings": [
+          {
+            "check": "preservation",
+            "cites": {
+              "action": "sha256:cbd784581460f48927a5759536fb0ed1c612d9daf4630b87a2c960f04f9394d1"
+            },
+            "explanation": "preservation of remove_retarget is inconclusive (encoding_error: cannot encode: complete-world reference obligations for removal target)",
+            "hash": "sha256:2c5cb3d2afc7e2f5a0f043ebfd762fd2af7121bb07f5f28acbe4ed73671779bc",
+            "kind": "inconclusive",
+            "locs": [
+              {
+                "file": "adoption_cases.py",
+                "line": 49
+              }
+            ],
+            "severity": "blocking"
+          }
+        ],
+        "hash": "sha256:4d0deb207f83823f316eae058ac45e6ace7e429876db8a646083774d2de10185",
+        "profile": {
+          "checks": [
+            "preservation"
+          ],
+          "hash": "sha256:e5d428c2ea0aae1edb2c0c222ed8972e3ccdd9a015f51547326de4a9c2b6ef70",
+          "rlimit": 20000000,
+          "wall_clock_guard_ms": 60000
+        },
+        "result": "not_verified",
+        "solver_version": "z3 4.16.0",
+        "verifier_version": "0.10.0"
+      },
+      "runtime": {
+        "allowed_position": 1,
+        "behavior_replay": true,
+        "data_replay": true,
+        "occupied_refused_position": 0
+      },
+      "supported": false,
+      "wire": {
+        "actions": [
+          {
+            "effects": [
+              {
+                "loc": {
+                  "file": "adoption_cases.py",
+                  "line": 54
+                },
+                "target": {
+                  "field": "target",
+                  "param": "holder"
+                },
+                "value": {
+                  "field": "id",
+                  "loc": {
+                    "file": "adoption_cases.py",
+                    "line": 54
+                  },
+                  "op": "field",
+                  "param": "other"
+                }
+              },
+              {
+                "loc": {
+                  "file": "adoption_cases.py",
+                  "line": 55
+                },
+                "remove": "target"
+              }
+            ],
+            "loc": {
+              "file": "adoption_cases.py",
+              "line": 49
+            },
+            "name": "remove_retarget",
+            "params": [
+              {
+                "name": "target",
+                "role": "state",
+                "type": {
+                  "name": "Target",
+                  "t": "entity"
+                }
+              },
+              {
+                "name": "other",
+                "role": "state",
+                "type": {
+                  "name": "Target",
+                  "t": "entity"
+                }
+              },
+              {
+                "name": "holder",
+                "role": "state",
+                "type": {
+                  "name": "Holder",
+                  "t": "entity"
+                }
+              }
+            ],
+            "postconditions": [],
+            "preconditions": [
+              {
+                "expr": {
+                  "args": [
+                    {
+                      "field": "target",
+                      "loc": {
+                        "file": "adoption_cases.py",
+                        "line": 51
+                      },
+                      "op": "field",
+                      "param": "holder"
+                    },
+                    {
+                      "field": "id",
+                      "loc": {
+                        "file": "adoption_cases.py",
+                        "line": 51
+                      },
+                      "op": "field",
+                      "param": "target"
+                    }
+                  ],
+                  "loc": {
+                    "file": "adoption_cases.py",
+                    "line": 51
+                  },
+                  "op": "eq"
+                },
+                "loc": {
+                  "file": "adoption_cases.py",
+                  "line": 51
+                }
+              },
+              {
+                "expr": {
+                  "args": [
+                    {
+                      "args": [
+                        {
+                          "args": [
+                            {
+                              "entity": "Holder",
+                              "loc": {
+                                "file": "adoption_cases.py",
+                                "line": 52
+                              },
+                              "op": "select"
+                            }
+                          ],
+                          "body": {
+                            "args": [
+                              {
+                                "field": "target",
+                                "loc": {
+                                  "file": "adoption_cases.py",
+                                  "line": 52
+                                },
+                                "op": "field",
+                                "param": "h"
+                              },
+                              {
+                                "field": "id",
+                                "loc": {
+                                  "file": "adoption_cases.py",
+                                  "line": 52
+                                },
+                                "op": "field",
+                                "param": "target"
+                              }
+                            ],
+                            "loc": {
+                              "file": "adoption_cases.py",
+                              "line": 52
+                            },
+                            "op": "eq"
+                          },
+                          "loc": {
+                            "file": "adoption_cases.py",
+                            "line": 52
+                          },
+                          "op": "where",
+                          "param": "h"
+                        }
+                      ],
+                      "loc": {
+                        "file": "adoption_cases.py",
+                        "line": 52
+                      },
+                      "op": "count"
+                    },
+                    {
+                      "loc": {
+                        "file": "adoption_cases.py",
+                        "line": 52
+                      },
+                      "op": "lit",
+                      "type": {
+                        "t": "int"
+                      },
+                      "value": 1
+                    }
+                  ],
+                  "loc": {
+                    "file": "adoption_cases.py",
+                    "line": 52
+                  },
+                  "op": "eq"
+                },
+                "loc": {
+                  "file": "adoption_cases.py",
+                  "line": 52
+                }
+              },
+              {
+                "expr": {
+                  "args": [
+                    {
+                      "field": "id",
+                      "loc": {
+                        "file": "adoption_cases.py",
+                        "line": 53
+                      },
+                      "op": "field",
+                      "param": "target"
+                    },
+                    {
+                      "field": "id",
+                      "loc": {
+                        "file": "adoption_cases.py",
+                        "line": 53
+                      },
+                      "op": "field",
+                      "param": "other"
+                    }
+                  ],
+                  "loc": {
+                    "file": "adoption_cases.py",
+                    "line": 53
+                  },
+                  "op": "ne"
+                },
+                "loc": {
+                  "file": "adoption_cases.py",
+                  "line": 53
+                }
+              }
+            ]
+          }
+        ],
+        "constraints": [],
+        "derived": [],
+        "entities": [
+          {
+            "fields": [
+              {
+                "loc": {
+                  "file": "adoption_cases.py",
+                  "line": 22
+                },
+                "name": "target",
+                "type": {
+                  "entity": "Target",
+                  "t": "ref"
+                }
+              }
+            ],
+            "loc": {
+              "file": "adoption_cases.py",
+              "line": 20
+            },
+            "name": "Holder"
+          },
+          {
+            "fields": [
+              {
+                "loc": {
+                  "file": "adoption_cases.py",
+                  "line": 17
+                },
+                "name": "value",
+                "type": {
+                  "t": "int"
+                }
+              }
+            ],
+            "loc": {
+              "file": "adoption_cases.py",
+              "line": 15
+            },
+            "name": "Target"
+          }
+        ],
+        "enums": [],
+        "invariants": [],
+        "ir_version": "0.7",
+        "nominals": [],
+        "reads": [
+          {
+            "body": {
+              "value": {
+                "field": "value",
+                "loc": {
+                  "file": "adoption_cases.py",
+                  "line": 32
+                },
+                "op": "field",
+                "param": "target"
+              }
+            },
+            "loc": {
+              "file": "adoption_cases.py",
+              "line": 30
+            },
+            "name": "target_value",
+            "params": [
+              {
+                "name": "target",
+                "role": "state",
+                "type": {
+                  "name": "Target",
+                  "t": "entity"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "behavior_hash": "sha256:7a6b40977f8379c7d2a9d7bd78541a34d6f6abea838857301c84797699a98d25",
+      "pattern": "free",
+      "profile": "0.8",
+      "report": {
+        "attestation_version": "1",
+        "behavior_version": "sha256:7a6b40977f8379c7d2a9d7bd78541a34d6f6abea838857301c84797699a98d25",
+        "checks": [
+          {
+            "action": {
+              "hash": "sha256:aa69021bab9d72d933d26a8963f6c233235da6f6125ef624ddccafea7498ac34",
+              "name": "remove_free"
+            },
+            "cached": false,
+            "key": "",
+            "kind": "preservation",
+            "outcome": "inconclusive",
+            "reason": "encoding_error",
+            "subject": {
+              "hash": "sha256:aa69021bab9d72d933d26a8963f6c233235da6f6125ef624ddccafea7498ac34",
+              "kind": "action",
+              "loc": {
+                "file": "adoption_cases.py",
+                "line": 35
+              },
+              "name": "remove_free"
+            }
+          }
+        ],
+        "findings": [
+          {
+            "check": "preservation",
+            "cites": {
+              "action": "sha256:aa69021bab9d72d933d26a8963f6c233235da6f6125ef624ddccafea7498ac34"
+            },
+            "explanation": "preservation of remove_free is inconclusive (encoding_error: cannot encode: complete-world reference obligations for removal target)",
+            "hash": "sha256:7383cf91f781464f0364f830bb43dcf151404b292b772e60bd83ac8d194a3c0e",
+            "kind": "inconclusive",
+            "locs": [
+              {
+                "file": "adoption_cases.py",
+                "line": 35
+              }
+            ],
+            "severity": "blocking"
+          }
+        ],
+        "hash": "sha256:95ea9986e5107e55f0a55d4ef5614e7e49816a5c8246f78bd24663327282b868",
+        "profile": {
+          "checks": [
+            "preservation"
+          ],
+          "hash": "sha256:e5d428c2ea0aae1edb2c0c222ed8972e3ccdd9a015f51547326de4a9c2b6ef70",
+          "rlimit": 20000000,
+          "wall_clock_guard_ms": 60000
+        },
+        "result": "not_verified",
+        "solver_version": "z3 4.16.0",
+        "verifier_version": "0.10.0"
+      },
+      "runtime": {
+        "allowed_position": 1,
+        "behavior_replay": true,
+        "data_replay": true,
+        "occupied_refused_position": 0
+      },
+      "supported": false,
+      "wire": {
+        "actions": [
+          {
+            "command_effects": [],
+            "effects": [
+              {
+                "loc": {
+                  "file": "adoption_cases.py",
+                  "line": 38
+                },
+                "remove": "target"
+              }
+            ],
+            "loc": {
+              "file": "adoption_cases.py",
+              "line": 35
+            },
+            "name": "remove_free",
+            "params": [
+              {
+                "name": "target",
+                "role": "state",
+                "type": {
+                  "name": "Target",
+                  "t": "entity"
+                }
+              }
+            ],
+            "postconditions": [],
+            "preconditions": [
+              {
+                "expr": {
+                  "args": [
+                    {
+                      "args": [
+                        {
+                          "field": "id",
+                          "loc": {
+                            "file": "adoption_cases.py",
+                            "line": 37
+                          },
+                          "op": "field",
+                          "param": "target"
+                        }
+                      ],
+                      "loc": {
+                        "file": "adoption_cases.py",
+                        "line": 37
+                      },
+                      "op": "referenced"
+                    }
+                  ],
+                  "loc": {
+                    "file": "adoption_cases.py",
+                    "line": 37
+                  },
+                  "op": "not"
+                },
+                "loc": {
+                  "file": "adoption_cases.py",
+                  "line": 37
+                }
+              }
+            ]
+          }
+        ],
+        "commands": [
+          {
+            "fields": [
+              {
+                "loc": {
+                  "file": "adoption_cases.py",
+                  "line": 27
+                },
+                "name": "value",
+                "type": {
+                  "t": "int"
+                }
+              }
+            ],
+            "loc": {
+              "file": "adoption_cases.py",
+              "line": 25
+            },
+            "name": "Audit"
+          }
+        ],
+        "constraints": [],
+        "derived": [],
+        "entities": [
+          {
+            "fields": [
+              {
+                "loc": {
+                  "file": "adoption_cases.py",
+                  "line": 22
+                },
+                "name": "target",
+                "type": {
+                  "entity": "Target",
+                  "t": "ref"
+                }
+              }
+            ],
+            "loc": {
+              "file": "adoption_cases.py",
+              "line": 20
+            },
+            "name": "Holder"
+          },
+          {
+            "fields": [
+              {
+                "loc": {
+                  "file": "adoption_cases.py",
+                  "line": 17
+                },
+                "name": "value",
+                "type": {
+                  "t": "int"
+                }
+              }
+            ],
+            "loc": {
+              "file": "adoption_cases.py",
+              "line": 15
+            },
+            "name": "Target"
+          }
+        ],
+        "enums": [],
+        "invariants": [],
+        "ir_version": "0.8",
+        "nominals": [],
+        "reads": [
+          {
+            "body": {
+              "value": {
+                "field": "value",
+                "loc": {
+                  "file": "adoption_cases.py",
+                  "line": 32
+                },
+                "op": "field",
+                "param": "target"
+              }
+            },
+            "loc": {
+              "file": "adoption_cases.py",
+              "line": 30
+            },
+            "name": "target_value",
+            "params": [
+              {
+                "name": "target",
+                "role": "state",
+                "type": {
+                  "name": "Target",
+                  "t": "entity"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "behavior_hash": "sha256:89d8488b23e0c1da960cce30678d0a4441a2179038d63032531813a33bb70a31",
+      "pattern": "joint",
+      "profile": "0.8",
+      "report": {
+        "attestation_version": "1",
+        "behavior_version": "sha256:89d8488b23e0c1da960cce30678d0a4441a2179038d63032531813a33bb70a31",
+        "checks": [
+          {
+            "action": {
+              "hash": "sha256:4670ba0ee914bb72cfe2b47aa1b73dfa64957fc5e2b640815e0f4e7f4087f07f",
+              "name": "remove_joint"
+            },
+            "cached": false,
+            "key": "",
+            "kind": "preservation",
+            "outcome": "inconclusive",
+            "reason": "encoding_error",
+            "subject": {
+              "hash": "sha256:4670ba0ee914bb72cfe2b47aa1b73dfa64957fc5e2b640815e0f4e7f4087f07f",
+              "kind": "action",
+              "loc": {
+                "file": "adoption_cases.py",
+                "line": 41
+              },
+              "name": "remove_joint"
+            }
+          }
+        ],
+        "findings": [
+          {
+            "check": "preservation",
+            "cites": {
+              "action": "sha256:4670ba0ee914bb72cfe2b47aa1b73dfa64957fc5e2b640815e0f4e7f4087f07f"
+            },
+            "explanation": "preservation of remove_joint is inconclusive (encoding_error: cannot encode: complete-world reference obligations for removal target)",
+            "hash": "sha256:b2de775d258c72f5fc4262989ef133332bd9a5d4250e1425dea92d397e722072",
+            "kind": "inconclusive",
+            "locs": [
+              {
+                "file": "adoption_cases.py",
+                "line": 41
+              }
+            ],
+            "severity": "blocking"
+          }
+        ],
+        "hash": "sha256:b807a6488ccaa8a644fdcc9ed9f58704b5bf74f417ebd0a9b5a887b709de330a",
+        "profile": {
+          "checks": [
+            "preservation"
+          ],
+          "hash": "sha256:e5d428c2ea0aae1edb2c0c222ed8972e3ccdd9a015f51547326de4a9c2b6ef70",
+          "rlimit": 20000000,
+          "wall_clock_guard_ms": 60000
+        },
+        "result": "not_verified",
+        "solver_version": "z3 4.16.0",
+        "verifier_version": "0.10.0"
+      },
+      "runtime": {
+        "allowed_position": 1,
+        "behavior_replay": true,
+        "data_replay": true,
+        "occupied_refused_position": 0
+      },
+      "supported": false,
+      "wire": {
+        "actions": [
+          {
+            "command_effects": [],
+            "effects": [
+              {
+                "loc": {
+                  "file": "adoption_cases.py",
+                  "line": 45
+                },
+                "remove": "holder"
+              },
+              {
+                "loc": {
+                  "file": "adoption_cases.py",
+                  "line": 46
+                },
+                "remove": "target"
+              }
+            ],
+            "loc": {
+              "file": "adoption_cases.py",
+              "line": 41
+            },
+            "name": "remove_joint",
+            "params": [
+              {
+                "name": "target",
+                "role": "state",
+                "type": {
+                  "name": "Target",
+                  "t": "entity"
+                }
+              },
+              {
+                "name": "holder",
+                "role": "state",
+                "type": {
+                  "name": "Holder",
+                  "t": "entity"
+                }
+              }
+            ],
+            "postconditions": [],
+            "preconditions": [
+              {
+                "expr": {
+                  "args": [
+                    {
+                      "field": "target",
+                      "loc": {
+                        "file": "adoption_cases.py",
+                        "line": 43
+                      },
+                      "op": "field",
+                      "param": "holder"
+                    },
+                    {
+                      "field": "id",
+                      "loc": {
+                        "file": "adoption_cases.py",
+                        "line": 43
+                      },
+                      "op": "field",
+                      "param": "target"
+                    }
+                  ],
+                  "loc": {
+                    "file": "adoption_cases.py",
+                    "line": 43
+                  },
+                  "op": "eq"
+                },
+                "loc": {
+                  "file": "adoption_cases.py",
+                  "line": 43
+                }
+              },
+              {
+                "expr": {
+                  "args": [
+                    {
+                      "args": [
+                        {
+                          "args": [
+                            {
+                              "entity": "Holder",
+                              "loc": {
+                                "file": "adoption_cases.py",
+                                "line": 44
+                              },
+                              "op": "select"
+                            }
+                          ],
+                          "body": {
+                            "args": [
+                              {
+                                "field": "target",
+                                "loc": {
+                                  "file": "adoption_cases.py",
+                                  "line": 44
+                                },
+                                "op": "field",
+                                "param": "h"
+                              },
+                              {
+                                "field": "id",
+                                "loc": {
+                                  "file": "adoption_cases.py",
+                                  "line": 44
+                                },
+                                "op": "field",
+                                "param": "target"
+                              }
+                            ],
+                            "loc": {
+                              "file": "adoption_cases.py",
+                              "line": 44
+                            },
+                            "op": "eq"
+                          },
+                          "loc": {
+                            "file": "adoption_cases.py",
+                            "line": 44
+                          },
+                          "op": "where",
+                          "param": "h"
+                        }
+                      ],
+                      "loc": {
+                        "file": "adoption_cases.py",
+                        "line": 44
+                      },
+                      "op": "count"
+                    },
+                    {
+                      "loc": {
+                        "file": "adoption_cases.py",
+                        "line": 44
+                      },
+                      "op": "lit",
+                      "type": {
+                        "t": "int"
+                      },
+                      "value": 1
+                    }
+                  ],
+                  "loc": {
+                    "file": "adoption_cases.py",
+                    "line": 44
+                  },
+                  "op": "eq"
+                },
+                "loc": {
+                  "file": "adoption_cases.py",
+                  "line": 44
+                }
+              }
+            ]
+          }
+        ],
+        "commands": [
+          {
+            "fields": [
+              {
+                "loc": {
+                  "file": "adoption_cases.py",
+                  "line": 27
+                },
+                "name": "value",
+                "type": {
+                  "t": "int"
+                }
+              }
+            ],
+            "loc": {
+              "file": "adoption_cases.py",
+              "line": 25
+            },
+            "name": "Audit"
+          }
+        ],
+        "constraints": [],
+        "derived": [],
+        "entities": [
+          {
+            "fields": [
+              {
+                "loc": {
+                  "file": "adoption_cases.py",
+                  "line": 22
+                },
+                "name": "target",
+                "type": {
+                  "entity": "Target",
+                  "t": "ref"
+                }
+              }
+            ],
+            "loc": {
+              "file": "adoption_cases.py",
+              "line": 20
+            },
+            "name": "Holder"
+          },
+          {
+            "fields": [
+              {
+                "loc": {
+                  "file": "adoption_cases.py",
+                  "line": 17
+                },
+                "name": "value",
+                "type": {
+                  "t": "int"
+                }
+              }
+            ],
+            "loc": {
+              "file": "adoption_cases.py",
+              "line": 15
+            },
+            "name": "Target"
+          }
+        ],
+        "enums": [],
+        "invariants": [],
+        "ir_version": "0.8",
+        "nominals": [],
+        "reads": [
+          {
+            "body": {
+              "value": {
+                "field": "value",
+                "loc": {
+                  "file": "adoption_cases.py",
+                  "line": 32
+                },
+                "op": "field",
+                "param": "target"
+              }
+            },
+            "loc": {
+              "file": "adoption_cases.py",
+              "line": 30
+            },
+            "name": "target_value",
+            "params": [
+              {
+                "name": "target",
+                "role": "state",
+                "type": {
+                  "name": "Target",
+                  "t": "entity"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "behavior_hash": "sha256:31f3970b46a5a07166df680bb86462ba8c03ee79221e4e6db914ff183f9dc58c",
+      "pattern": "retarget",
+      "profile": "0.8",
+      "report": {
+        "attestation_version": "1",
+        "behavior_version": "sha256:31f3970b46a5a07166df680bb86462ba8c03ee79221e4e6db914ff183f9dc58c",
+        "checks": [
+          {
+            "action": {
+              "hash": "sha256:2a9776fa8962487a94399b9788ec4b75d9af080eadfa85c4bf4d8d465e85982f",
+              "name": "remove_retarget"
+            },
+            "cached": false,
+            "key": "",
+            "kind": "preservation",
+            "outcome": "inconclusive",
+            "reason": "encoding_error",
+            "subject": {
+              "hash": "sha256:2a9776fa8962487a94399b9788ec4b75d9af080eadfa85c4bf4d8d465e85982f",
+              "kind": "action",
+              "loc": {
+                "file": "adoption_cases.py",
+                "line": 49
+              },
+              "name": "remove_retarget"
+            }
+          }
+        ],
+        "findings": [
+          {
+            "check": "preservation",
+            "cites": {
+              "action": "sha256:2a9776fa8962487a94399b9788ec4b75d9af080eadfa85c4bf4d8d465e85982f"
+            },
+            "explanation": "preservation of remove_retarget is inconclusive (encoding_error: cannot encode: complete-world reference obligations for removal target)",
+            "hash": "sha256:fa08b2ecb2fcdcdc2d1f860007424f44a5c66c595e9464ccb8f4ce01394dff47",
+            "kind": "inconclusive",
+            "locs": [
+              {
+                "file": "adoption_cases.py",
+                "line": 49
+              }
+            ],
+            "severity": "blocking"
+          }
+        ],
+        "hash": "sha256:6bcaab52c82dc7b228dd726da6495788d6b9cff67a16d74d1a82705b85bfd0e8",
+        "profile": {
+          "checks": [
+            "preservation"
+          ],
+          "hash": "sha256:e5d428c2ea0aae1edb2c0c222ed8972e3ccdd9a015f51547326de4a9c2b6ef70",
+          "rlimit": 20000000,
+          "wall_clock_guard_ms": 60000
+        },
+        "result": "not_verified",
+        "solver_version": "z3 4.16.0",
+        "verifier_version": "0.10.0"
+      },
+      "runtime": {
+        "allowed_position": 1,
+        "behavior_replay": true,
+        "data_replay": true,
+        "occupied_refused_position": 0
+      },
+      "supported": false,
+      "wire": {
+        "actions": [
+          {
+            "command_effects": [],
+            "effects": [
+              {
+                "loc": {
+                  "file": "adoption_cases.py",
+                  "line": 54
+                },
+                "target": {
+                  "field": "target",
+                  "param": "holder"
+                },
+                "value": {
+                  "field": "id",
+                  "loc": {
+                    "file": "adoption_cases.py",
+                    "line": 54
+                  },
+                  "op": "field",
+                  "param": "other"
+                }
+              },
+              {
+                "loc": {
+                  "file": "adoption_cases.py",
+                  "line": 55
+                },
+                "remove": "target"
+              }
+            ],
+            "loc": {
+              "file": "adoption_cases.py",
+              "line": 49
+            },
+            "name": "remove_retarget",
+            "params": [
+              {
+                "name": "target",
+                "role": "state",
+                "type": {
+                  "name": "Target",
+                  "t": "entity"
+                }
+              },
+              {
+                "name": "other",
+                "role": "state",
+                "type": {
+                  "name": "Target",
+                  "t": "entity"
+                }
+              },
+              {
+                "name": "holder",
+                "role": "state",
+                "type": {
+                  "name": "Holder",
+                  "t": "entity"
+                }
+              }
+            ],
+            "postconditions": [],
+            "preconditions": [
+              {
+                "expr": {
+                  "args": [
+                    {
+                      "field": "target",
+                      "loc": {
+                        "file": "adoption_cases.py",
+                        "line": 51
+                      },
+                      "op": "field",
+                      "param": "holder"
+                    },
+                    {
+                      "field": "id",
+                      "loc": {
+                        "file": "adoption_cases.py",
+                        "line": 51
+                      },
+                      "op": "field",
+                      "param": "target"
+                    }
+                  ],
+                  "loc": {
+                    "file": "adoption_cases.py",
+                    "line": 51
+                  },
+                  "op": "eq"
+                },
+                "loc": {
+                  "file": "adoption_cases.py",
+                  "line": 51
+                }
+              },
+              {
+                "expr": {
+                  "args": [
+                    {
+                      "args": [
+                        {
+                          "args": [
+                            {
+                              "entity": "Holder",
+                              "loc": {
+                                "file": "adoption_cases.py",
+                                "line": 52
+                              },
+                              "op": "select"
+                            }
+                          ],
+                          "body": {
+                            "args": [
+                              {
+                                "field": "target",
+                                "loc": {
+                                  "file": "adoption_cases.py",
+                                  "line": 52
+                                },
+                                "op": "field",
+                                "param": "h"
+                              },
+                              {
+                                "field": "id",
+                                "loc": {
+                                  "file": "adoption_cases.py",
+                                  "line": 52
+                                },
+                                "op": "field",
+                                "param": "target"
+                              }
+                            ],
+                            "loc": {
+                              "file": "adoption_cases.py",
+                              "line": 52
+                            },
+                            "op": "eq"
+                          },
+                          "loc": {
+                            "file": "adoption_cases.py",
+                            "line": 52
+                          },
+                          "op": "where",
+                          "param": "h"
+                        }
+                      ],
+                      "loc": {
+                        "file": "adoption_cases.py",
+                        "line": 52
+                      },
+                      "op": "count"
+                    },
+                    {
+                      "loc": {
+                        "file": "adoption_cases.py",
+                        "line": 52
+                      },
+                      "op": "lit",
+                      "type": {
+                        "t": "int"
+                      },
+                      "value": 1
+                    }
+                  ],
+                  "loc": {
+                    "file": "adoption_cases.py",
+                    "line": 52
+                  },
+                  "op": "eq"
+                },
+                "loc": {
+                  "file": "adoption_cases.py",
+                  "line": 52
+                }
+              },
+              {
+                "expr": {
+                  "args": [
+                    {
+                      "field": "id",
+                      "loc": {
+                        "file": "adoption_cases.py",
+                        "line": 53
+                      },
+                      "op": "field",
+                      "param": "target"
+                    },
+                    {
+                      "field": "id",
+                      "loc": {
+                        "file": "adoption_cases.py",
+                        "line": 53
+                      },
+                      "op": "field",
+                      "param": "other"
+                    }
+                  ],
+                  "loc": {
+                    "file": "adoption_cases.py",
+                    "line": 53
+                  },
+                  "op": "ne"
+                },
+                "loc": {
+                  "file": "adoption_cases.py",
+                  "line": 53
+                }
+              }
+            ]
+          }
+        ],
+        "commands": [
+          {
+            "fields": [
+              {
+                "loc": {
+                  "file": "adoption_cases.py",
+                  "line": 27
+                },
+                "name": "value",
+                "type": {
+                  "t": "int"
+                }
+              }
+            ],
+            "loc": {
+              "file": "adoption_cases.py",
+              "line": 25
+            },
+            "name": "Audit"
+          }
+        ],
+        "constraints": [],
+        "derived": [],
+        "entities": [
+          {
+            "fields": [
+              {
+                "loc": {
+                  "file": "adoption_cases.py",
+                  "line": 22
+                },
+                "name": "target",
+                "type": {
+                  "entity": "Target",
+                  "t": "ref"
+                }
+              }
+            ],
+            "loc": {
+              "file": "adoption_cases.py",
+              "line": 20
+            },
+            "name": "Holder"
+          },
+          {
+            "fields": [
+              {
+                "loc": {
+                  "file": "adoption_cases.py",
+                  "line": 17
+                },
+                "name": "value",
+                "type": {
+                  "t": "int"
+                }
+              }
+            ],
+            "loc": {
+              "file": "adoption_cases.py",
+              "line": 15
+            },
+            "name": "Target"
+          }
+        ],
+        "enums": [],
+        "invariants": [],
+        "ir_version": "0.8",
+        "nominals": [],
+        "reads": [
+          {
+            "body": {
+              "value": {
+                "field": "value",
+                "loc": {
+                  "file": "adoption_cases.py",
+                  "line": 32
+                },
+                "op": "field",
+                "param": "target"
+              }
+            },
+            "loc": {
+              "file": "adoption_cases.py",
+              "line": 30
+            },
+            "name": "target_value",
+            "params": [
+              {
+                "name": "target",
+                "role": "state",
+                "type": {
+                  "name": "Target",
+                  "t": "entity"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "versions": {
+    "accepted_wire_ir": [
+      "0.4",
+      "0.5",
+      "0.6",
+      "0.7",
+      "0.8"
+    ],
+    "binding": {
+      "python": "0.14.0"
+    },
+    "command_occurrence_domain": "behavior.command_occurrence.v1",
+    "command_stream": "behavior.command_stream_request.v1",
+    "core": {
+      "commit": "6b93898a9375113f7a8946f23ab5535319b6f5d6",
+      "version": "0.15.0"
+    },
+    "engine": "0.15.0",
+    "read_records": [
+      "behavior.read_record.v1",
+      "behavior.read_record.v2"
+    ],
+    "records": [
+      "0.4",
+      "0.5",
+      "0.6",
+      "0.7",
+      "0.8"
+    ],
+    "store_documents": [
+      "behavior.entity_content.v1",
+      "behavior.entity_version.v1",
+      "behavior.state.v1",
+      "behavior.evidence_policy.v1",
+      "behavior.store_genesis.v1",
+      "behavior.commit_bundle.v1",
+      "behavior.transition_record.v1",
+      "behavior.replay_report.v1",
+      "behavior.migration_bundle.v1",
+      "behavior.store_genesis.v2",
+      "behavior.commit_bundle.v2",
+      "behavior.migration_bundle.v2",
+      "behavior.transition_record.v2"
+    ],
+    "verifier": "0.10.0",
+    "wire_ir": [
+      "0.1",
+      "0.2",
+      "0.3",
+      "0.4",
+      "0.5",
+      "0.6",
+      "0.7"
+    ]
+  }
+}

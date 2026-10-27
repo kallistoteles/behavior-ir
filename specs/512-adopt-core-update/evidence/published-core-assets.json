@@ -1,0 +1,34 @@
+{
+  "release_url": "https://github.com/kallistoteles/behavior-ir-core/releases/tag/v0.16.0",
+  "tag": "v0.16.0",
+  "published_at": "2026-10-27T07:44:59Z",
+  "release_workflow": 40465901907,
+  "release_workflow_conclusion": "success",
+  "assets": [
+    {
+      "file": "behavior-0.16.0-x86_64-linux-musl",
+      "sha256": "eb029e24c60a9c2f8fc3bc24a7e78d2459a6c0ae42b4c2891f22038930177eb1",
+      "url": "https://github.com/kallistoteles/behavior-ir-core/releases/download/v0.16.0/behavior-0.16.0-x86_64-linux-musl"
+    },
+    {
+      "file": "behavior-conformance-0.16.0.tar.gz",
+      "sha256": "2486af782f18d06eb32a85c143211c964bd3a2484b969b1bf9bdeb5c2e2e745f",
+      "url": "https://github.com/kallistoteles/behavior-ir-core/releases/download/v0.16.0/behavior-conformance-0.16.0.tar.gz"
+    },
+    {
+      "file": "NOTES.md",
+      "sha256": "e49c125871537cd341555fb034961301668baafc7120abd1487fb7bed758e8a0",
+      "url": "https://github.com/kallistoteles/behavior-ir-core/releases/download/v0.16.0/NOTES.md"
+    },
+    {
+      "file": "release-manifest.json",
+      "sha256": "3cac731c3323de37852acde61d1fe346e6ce0b39e0e93ccbcb220454dac2c0e9",
+      "url": "https://github.com/kallistoteles/behavior-ir-core/releases/download/v0.16.0/release-manifest.json"
+    },
+    {
+      "file": "SHA256SUMS",
+      "sha256": "0c8dd18c3debf84ef4e5f6fa5ea56ad31ebbf267443ee1bf85c7b1e54ba94e53",
+      "url": "https://github.com/kallistoteles/behavior-ir-core/releases/download/v0.16.0/SHA256SUMS"
+    }
+  ]
+}

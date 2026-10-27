@@ -1,0 +1,22 @@
+{
+  "boundary_and_replays": "passed",
+  "candidate_median_transaction_ns": {
+    "64": 41500233,
+    "256": 115637515,
+    "1024": 430160918
+  },
+  "candidate_over_baseline": {
+    "64": 0.7037495071449421,
+    "256": 0.6750498068626639,
+    "1024": 0.6349801267262102
+  },
+  "candidate_wheel_sha256": "6e406b8b05050168763348440e8c31c759c1fa23415d47583e4207ef70757522",
+  "frozen_profile_acceptance": "passed",
+  "growth_increment_ratio": 0.6284230683518605,
+  "measurement_file_sha256": "b266445d1486300af433882482344b1508c9631f35688e40ecd084264eef4834",
+  "measurement_isolated_from_local_builds": true,
+  "profile_sha256": "a4a4626262f506ea1b02c0494a45d9d0db876155e30e1c67b6dbdc35fd070fdf",
+  "same_authored_behavior_and_wire": true,
+  "same_output_sizes_in_every_cycle": true,
+  "source_commit": "fdbed105d2d721dd176b811bc9faccfbab2c178a"
+}

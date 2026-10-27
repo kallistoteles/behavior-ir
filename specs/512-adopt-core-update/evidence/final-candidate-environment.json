@@ -1,0 +1,91 @@
+{
+  "all_wheel_member_contents_identical_to_892e7c2": true,
+  "ci_result": "ci-result.json",
+  "ci_run_id": 40493631821,
+  "ci_status": "all four required jobs passed",
+  "final_frozen_growth_recheck": "passed",
+  "final_growth_record": "final-growth-comparison.json",
+  "local_package_check": "passed all package steps; gates supplied by the existing separate CI job",
+  "manifest": {
+    "artifacts": [
+      {
+        "file": "behavior-0.15.0-cp313-abi3-manylinux_2_28_x86_64.whl",
+        "sha256": "6e406b8b05050168763348440e8c31c759c1fa23415d47583e4207ef70757522"
+      }
+    ],
+    "bindings": {
+      "python": {
+        "requires_python": ">=3.13",
+        "version": "0.15.0"
+      }
+    },
+    "commit": "fdbed105d2d721dd176b811bc9faccfbab2c178a",
+    "core": {
+      "commit": "63a8c164523275e06ac1d7dc5330db4a899c9d99",
+      "repository": "https://github.com/kallistoteles/behavior-ir-core",
+      "tag": "v0.16.0",
+      "version": "0.16.0"
+    },
+    "format": "behavior.release_manifest.v1",
+    "platforms": [
+      "manylinux_2_28_x86_64"
+    ],
+    "release": "0.15.0",
+    "solver": {
+      "name": "z3",
+      "version": "4.16.0"
+    },
+    "tag": "v0.15.0",
+    "versions": {
+      "accepted_wire_ir": [
+        "0.4",
+        "0.5",
+        "0.6",
+        "0.7",
+        "0.8"
+      ],
+      "command_occurrence_domain": "behavior.command_occurrence.v1",
+      "command_stream": "behavior.command_stream_request.v1",
+      "engine": "0.16.0",
+      "read_records": [
+        "behavior.read_record.v1",
+        "behavior.read_record.v2"
+      ],
+      "records": [
+        "0.4",
+        "0.5",
+        "0.6",
+        "0.7",
+        "0.8"
+      ],
+      "store_documents": [
+        "behavior.entity_content.v1",
+        "behavior.entity_version.v1",
+        "behavior.state.v1",
+        "behavior.evidence_policy.v1",
+        "behavior.store_genesis.v1",
+        "behavior.commit_bundle.v1",
+        "behavior.transition_record.v1",
+        "behavior.replay_report.v1",
+        "behavior.migration_bundle.v1",
+        "behavior.store_genesis.v2",
+        "behavior.commit_bundle.v2",
+        "behavior.migration_bundle.v2",
+        "behavior.transition_record.v2"
+      ],
+      "verifier": "0.11.0",
+      "wire_ir": [
+        "0.1",
+        "0.2",
+        "0.3",
+        "0.4",
+        "0.5",
+        "0.6",
+        "0.7"
+      ]
+    }
+  },
+  "source_commit": "fdbed105d2d721dd176b811bc9faccfbab2c178a",
+  "source_tree": "d1151c7d70ae0f6e8ce89cff4e58e81a45ef0e1e",
+  "wheel_sha256": "6e406b8b05050168763348440e8c31c759c1fa23415d47583e4207ef70757522"
+}

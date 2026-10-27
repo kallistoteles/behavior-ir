@@ -1,13 +1,13 @@
 # Behavior skills
 
 Agent skills for building applications with **Behavior**. Each skill describes exactly one
-Behavior release. These Skills describe **0.13.0**, bundling Core **0.15.0** and verifier
-**0.10.0**. The frontmatter field `release` says which one.
+Behavior release. These Skills describe **0.15.0**, bundling Core **0.16.0** and verifier
+**0.11.0**. The frontmatter field `release` says which one.
 
 | Skill | Use it when |
 |---|---|
 | [`behavior-authoring`](behavior-authoring/SKILL.md) | writing or changing a behavior model: entities, actions, commands, StateMachine, RequestFlow, Approval, WorkQueue and composition |
-| [`behavior-verification`](behavior-verification/SKILL.md) | running verifier 0.10.0; distinguishing local proofs, structural arguments, tests and host assumptions |
+| [`behavior-verification`](behavior-verification/SKILL.md) | running verifier 0.11.0; distinguishing local proofs, structural arguments, tests and host assumptions |
 | [`behavior-application`](behavior-application/SKILL.md) | building the host application around a model: stores, atomic commits, replay, trusted context, durable intents and work-state integration |
 
 `evals/` holds the maintainer's acceptance sets for these skills. It is not a skill.

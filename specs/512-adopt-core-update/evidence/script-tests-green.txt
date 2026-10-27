@@ -1,0 +1,32 @@
+warning: Git tree '/home/kalle/repos/behavior-ir-512' is dirty
+test_check_core_pin: OK
+test_check_public_surface: OK
+test_check_tag: OK
+test_check_terms: OK
+test_check_workflows: OK
+test_conformance_506_bytes: OK (selected release metadata normalized)
+test_conformance_report: OK
+test_fetch_core: OK
+test_models_compat: OK
+test_models_safety_compat: OK
+test_pinned_identity_baseline: OK (22 baseline receipts unchanged, 0 new)
+safety smoke: OK
+{"behavior_hash":"sha256:d52b8efe792b2f2dbf39356bfa1af4358c2f16c7e8e2222493a3c6166644fb5c","certified":false,"core_only_replay":"Passed","ordinary_execution":"Passed"}
+safety smoke: certification failed: ('SAFETY_TOOLCHAIN_MISMATCH', 'SAFETY_TOOLCHAIN_MISMATCH: Expected the locked immutable Nix output')
+test_safety_package: OK
+fo_field: Inconclusive
+fo_state_machine: Inconclusive
+ld_parent_child: Inconclusive
+ld_shared_parent: Inconclusive
+ld_vm_resource: Inconclusive
+test_safety_proofs: OK (failure aggregation only; real proofs are mandatory separately)
+test_safety_proofs: real command failure controls OK
+test_safety_scale: collection and failure propagation OK; not proof evidence
+warning: Git tree '/home/kalle/repos/behavior-ir-512' is dirty
+warning: Git tree '/home/kalle/repos/behavior-ir-512' is dirty
+warning: Git tree '/home/kalle/repos/behavior-ir-512' is dirty
+warning: Git tree '/home/kalle/repos/behavior-ir-512' is dirty
+warning: Git tree '/home/kalle/repos/behavior-ir-512' is dirty
+Lean (version 4.30.0, commit v4.30.0, Release)
+test_safety_toolchain: OK
+test_semantic_snapshot: OK

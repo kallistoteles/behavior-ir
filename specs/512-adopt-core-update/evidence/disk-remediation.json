@@ -1,0 +1,15 @@
+{
+  "archive": "/home/kalle/.cache/behavior-ir-512-proof-archive/completed-membership-proofs-3466068.tar-786236a7e81a.gz",
+  "archive_bytes": 140310325,
+  "archive_sha256": "786236a7e81aa743e1ca692bf95bb66d3c447fa3e20efb5fdc353e7f00264a22",
+  "completed_process": 3466068,
+  "every_regular_file_verified_byte_for_byte": true,
+  "files": 4100,
+  "gzip_crc_checked": true,
+  "original_bytes": 445075428,
+  "previous_archive_location": "target/core-adoption/completed-membership-proofs-3466068.tar.gz",
+  "relocation": "Checksum-verified relocation of the completed generated-proof archive from /data to the dedicated task cache; source and user work untouched.",
+  "scope": "Only completed generated proof build outputs in the dedicated Feature512 target; source and user work untouched. Full files preserved in a restorable archive.",
+  "source": "target/safety-models/release-readiness/membership-proofs-3466068",
+  "verification": "Sequential archive pass; original files retained until full CRC and content checks completed. An initial verifier using random seeks through gzip was interrupted before any source removal."
+}

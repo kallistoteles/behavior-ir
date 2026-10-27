@@ -1,0 +1,143 @@
+FF...........                                                            [100%]
+=================================== FAILURES ===================================
+_ test_conformance_baseline_allows_only_selected_release_metadata[release_metadata-True] _
+
+tmp_path = PosixPath('/tmp/nix-shell.em093j/pytest-of-kalle/pytest-0/test_conformance_baseline_allo0')
+change = 'release_metadata', accepted = True
+
+    @pytest.mark.parametrize("change,accepted", [
+        ("release_metadata", True), ("stale_report", True),
+        ("status", False), ("missing_check", False), ("level_type", False),
+        ("nested_metadata", False), ("formats", False), ("model", False),
+        ("extra_core_metadata", False), ("wrong_engine", False),
+        ("wrong_verifier", False), ("missing_core_version", False),
+        ("noncanonical_bytes", False),
+    ])
+    def test_conformance_baseline_allows_only_selected_release_metadata(
+        tmp_path: Path, change: str, accepted: bool,
+    ) -> None:
+        scripts = tmp_path / "scripts"
+        (scripts / "tests").mkdir(parents=True)
+        baseline_dir = tmp_path / "specs/507-work-queue/baseline"
+        baseline_dir.mkdir(parents=True)
+        original = BASELINE.read_bytes()
+        (baseline_dir / BASELINE.name).write_bytes(original)
+        shutil.copyfile(ROOT / "scripts/tests/test_conformance_506_bytes.sh",
+                        scripts / "tests/test_conformance_506_bytes.sh")
+        pin = json.loads((ROOT / "core-release.json").read_text())
+        (tmp_path / "core-release.json").write_text(json.dumps(pin))
+        current = copy.deepcopy(json.loads(original))
+        versions = b.versions()
+        current["core_release"] = versions["core"]
+        current["engine"]["engine"] = versions["engine"]
+        current["engine"]["verifier"] = versions["verifier"]
+        if change == "status": current["checks"][0]["status"] = "failed"
+        elif change == "missing_check": current["checks"].pop()
+        elif change == "level_type": current["checks"][0]["level"] = True
+        elif change == "nested_metadata": current["checks"][0]["core_release"] = {"version": "changed"}
+        elif change == "formats": current["engine"]["accepted_wire_ir"].pop()
+        elif change == "model": current["models"]["unexpected"] = "changed"
+        elif change == "extra_core_metadata": current["core_release"]["unexpected"] = "changed"
+        elif change == "wrong_engine": current["engine"]["engine"] = "99.0.0"
+        elif change == "wrong_verifier": current["engine"]["verifier"] = "99.0.0"
+        elif change == "missing_core_version": current["core_release"].pop("version")
+        encoded = json.dumps(current, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n"
+        if change == "noncanonical_bytes": encoded = json.dumps(current, indent=2) + "\n"
+        (tmp_path / "next-report.json").write_text(encoded)
+        report = tmp_path / "target/conformance/506-report.json"
+        report.parent.mkdir(parents=True)
+        report.write_bytes(original if change == "stale_report" else encoded.encode())
+        # This unit stub is only a regeneration marker; it never supplies conformance proof.
+        runner = scripts / "conformance.sh"
+        runner.write_text('#!/usr/bin/env bash\nset -eu\ncd "$(dirname "$0")/.."\n'
+                          'touch regenerated\ncp next-report.json target/conformance/506-report.json\n')
+        runner.chmod(0o755)
+        result = subprocess.run(["bash", str(scripts / "tests/test_conformance_506_bytes.sh")],
+                                capture_output=True, text=True)
+>       assert (result.returncode == 0) == accepted, result.stdout + result.stderr
+E       AssertionError: test_conformance_506_bytes: the 506 report differs from the baseline
+E         357,358c357,358
+E         <         "commit": "6b93898a9375113f7a8946f23ab5535319b6f5d6",
+E         <         "version": "0.15.0"
+E         ---
+E         >         "commit": "63a8c164523275e06ac1d7dc5330db4a899c9d99",
+E         >         "version": "0.16.0"
+E         370c370
+E         <         "engine": "0.15.0",
+E         ---
+E         >         "engine": "0.16.0",
+E         397c397
+E         <         "verifier": "0.10.0",
+E         ---
+E         >         "verifier": "0.11.0",
+E         
+E       assert (1 == 0) == True
+E        +  where 1 = CompletedProcess(args=['bash', '/tmp/nix-shell.em093j/pytest-of-kalle/pytest-0/test_conformance_baseline_allo0/scripts...n---\n>         "engine": "0.16.0",\n397c397\n<         "verifier": "0.10.0",\n---\n>         "verifier": "0.11.0",\n').returncode
+
+python/tests/test_conformance_baseline.py:66: AssertionError
+_ test_conformance_baseline_allows_only_selected_release_metadata[stale_report-True] _
+
+tmp_path = PosixPath('/tmp/nix-shell.em093j/pytest-of-kalle/pytest-0/test_conformance_baseline_allo1')
+change = 'stale_report', accepted = True
+
+    @pytest.mark.parametrize("change,accepted", [
+        ("release_metadata", True), ("stale_report", True),
+        ("status", False), ("missing_check", False), ("level_type", False),
+        ("nested_metadata", False), ("formats", False), ("model", False),
+        ("extra_core_metadata", False), ("wrong_engine", False),
+        ("wrong_verifier", False), ("missing_core_version", False),
+        ("noncanonical_bytes", False),
+    ])
+    def test_conformance_baseline_allows_only_selected_release_metadata(
+        tmp_path: Path, change: str, accepted: bool,
+    ) -> None:
+        scripts = tmp_path / "scripts"
+        (scripts / "tests").mkdir(parents=True)
+        baseline_dir = tmp_path / "specs/507-work-queue/baseline"
+        baseline_dir.mkdir(parents=True)
+        original = BASELINE.read_bytes()
+        (baseline_dir / BASELINE.name).write_bytes(original)
+        shutil.copyfile(ROOT / "scripts/tests/test_conformance_506_bytes.sh",
+                        scripts / "tests/test_conformance_506_bytes.sh")
+        pin = json.loads((ROOT / "core-release.json").read_text())
+        (tmp_path / "core-release.json").write_text(json.dumps(pin))
+        current = copy.deepcopy(json.loads(original))
+        versions = b.versions()
+        current["core_release"] = versions["core"]
+        current["engine"]["engine"] = versions["engine"]
+        current["engine"]["verifier"] = versions["verifier"]
+        if change == "status": current["checks"][0]["status"] = "failed"
+        elif change == "missing_check": current["checks"].pop()
+        elif change == "level_type": current["checks"][0]["level"] = True
+        elif change == "nested_metadata": current["checks"][0]["core_release"] = {"version": "changed"}
+        elif change == "formats": current["engine"]["accepted_wire_ir"].pop()
+        elif change == "model": current["models"]["unexpected"] = "changed"
+        elif change == "extra_core_metadata": current["core_release"]["unexpected"] = "changed"
+        elif change == "wrong_engine": current["engine"]["engine"] = "99.0.0"
+        elif change == "wrong_verifier": current["engine"]["verifier"] = "99.0.0"
+        elif change == "missing_core_version": current["core_release"].pop("version")
+        encoded = json.dumps(current, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n"
+        if change == "noncanonical_bytes": encoded = json.dumps(current, indent=2) + "\n"
+        (tmp_path / "next-report.json").write_text(encoded)
+        report = tmp_path / "target/conformance/506-report.json"
+        report.parent.mkdir(parents=True)
+        report.write_bytes(original if change == "stale_report" else encoded.encode())
+        # This unit stub is only a regeneration marker; it never supplies conformance proof.
+        runner = scripts / "conformance.sh"
+        runner.write_text('#!/usr/bin/env bash\nset -eu\ncd "$(dirname "$0")/.."\n'
+                          'touch regenerated\ncp next-report.json target/conformance/506-report.json\n')
+        runner.chmod(0o755)
+        result = subprocess.run(["bash", str(scripts / "tests/test_conformance_506_bytes.sh")],
+                                capture_output=True, text=True)
+        assert (result.returncode == 0) == accepted, result.stdout + result.stderr
+>       if change == "stale_report": assert (tmp_path / "regenerated").exists()
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: assert False
+E        +  where False = exists()
+E        +    where exists = (PosixPath('/tmp/nix-shell.em093j/pytest-of-kalle/pytest-0/test_conformance_baseline_allo1') / 'regenerated').exists
+
+python/tests/test_conformance_baseline.py:67: AssertionError
+=========================== short test summary info ============================
+FAILED python/tests/test_conformance_baseline.py::test_conformance_baseline_allows_only_selected_release_metadata[release_metadata-True]
+FAILED python/tests/test_conformance_baseline.py::test_conformance_baseline_allows_only_selected_release_metadata[stale_report-True]
+2 failed, 11 passed in 1.41s

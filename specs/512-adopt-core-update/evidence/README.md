@@ -240,3 +240,26 @@ The map separates the observations from the final release decision.
 
 This covers all 16 FRs, seven SCs and 12 acceptance scenarios. A mapped but unpassed release
 step is not acceptance; final outcome is recorded only after execution completes.
+
+## Final metadata-only report correction and CI acceptance route
+
+The [third local full release attempt](release-check-attempt-3.txt) passed 329 Rust tests,
+749 Python/model tests (including slow package tests), all five Safety reference certificates,
+the six-case Core/Safety comparison, full 506/507, the mandatory 507 quick budget (9.95/35s),
+mypy, compatibility, determinism, ownership, terminology and workflow checks. Its final script
+stage exposed one additional historical report comparison still requiring old release metadata.
+Only Core version/commit and engine/verifier version differed; the published baseline is intact.
+
+The corrected comparison first requires the current pinned Core/verifier context (regenerating
+stale quick reports), retains canonical byte-format checks, then substitutes only those four
+metadata leaves for historical comparison. [Two meaningful red cases](conformance-baseline-red.txt)
+preceded the correction. [Thirteen controls](conformance-baseline-green.txt) now pass, including
+actual result/Model/format/type/nested-field differences, wrong versions, missing fields,
+noncanonical bytes and stale report regeneration. [All script self-tests](script-tests-green.txt)
+pass after the correction. This does not grant archived verification evidence fresh authority.
+
+Final acceptance now uses the repository's existing `ecosystem-ci` split: mandatory `gates`
+and `package` jobs, the latter invoking `release-check.sh --skip-gates`. No workflow, gate or
+proof requirement is changed. A draft PR runs these existing jobs on the exact corrected commit;
+CI success and clean final-package checks remain pending. Local completed component results are
+retained honestly rather than claiming the earlier orchestration exited zero.

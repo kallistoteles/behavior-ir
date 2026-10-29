@@ -1,0 +1,30 @@
+{
+  "observations": [
+    {
+      "output": "\nrunning 2 tests\nsafety::certify::stage_resource_tests::stage_resource_fresh_does_not_claim_lean_elaboration_limits --- FAILED\nsafety::certify::stage_resource_tests::stage_resource_timeout_persists_actual_limits_and_exhaustion --- FAILED\n\nfailures:\n\n---- safety::certify::stage_resource_tests::stage_resource_fresh_does_not_claim_lean_elaboration_limits stdout ----\n\nthread 'safety::certify::stage_resource_tests::stage_resource_fresh_does_not_claim_lean_elaboration_limits' (2066173) panicked at crates/behavior-models/src/safety/../../tests/support/stage_resources.rs:45:5:\nassertion `left == right` failed\n  left: Null\n right: \"Failed\"\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n\n---- safety::certify::stage_resource_tests::stage_resource_timeout_persists_actual_limits_and_exhaustion stdout ----\n\nthread 'safety::certify::stage_resource_tests::stage_resource_timeout_persists_actual_limits_and_exhaustion' (2066193) panicked at crates/behavior-models/src/safety/../../tests/support/stage_resources.rs:25:79:\ncalled `Result::unwrap()` on an `Err` value: Os { code: 2, kind: NotFound, message: \"No such file or directory\" }\n\n\nfailures:\n    safety::certify::stage_resource_tests::stage_resource_fresh_does_not_claim_lean_elaboration_limits\n    safety::certify::stage_resource_tests::stage_resource_timeout_persists_actual_limits_and_exhaustion\n\ntest result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 27 filtered out; finished in 4.10s\n\nerror: test failed, to rerun pass `-p behavior-models --lib`\n",
+      "path": "target/safety-models/scale-511-stage-red.log",
+      "sha256": "d8152fc2e4783010b31ebcca8243c1c066a3c98ab2930e67d78dc26c0e831474"
+    },
+    {
+      "output": "\nrunning 2 tests\n..\ntest result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 27 filtered out; finished in 2.81s\n\n",
+      "path": "target/safety-models/scale-511-stage-green.log",
+      "sha256": "21257d3480ae39f9f0e5590e8c630af4d09015140da3d04281c9a82c2a17590f"
+    },
+    {
+      "output": "\nrunning 1 test\n.\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 1.31s\n\n",
+      "path": "target/safety-models/scale-511-early-obligations.log",
+      "sha256": "9bb84bb0e9239a2541184a7b2f320ca72908699d45bb992610881b046d2094ea"
+    },
+    {
+      "output": "......F                                                                  [100%]\n=================================== FAILURES ===================================\n_____________ test_nonzero_inconclusive_worker_result_is_preserved _____________\n\ntmp_path = PosixPath('/data/core028/behavior-510-build-02dspqju/target/safety-models/release-readiness/tmp/pytest-of-kalle/pytest-25/test_nonzero_inconclusive_work0')\n\n    def test_nonzero_inconclusive_worker_result_is_preserved(tmp_path):\n        body = \"out=pathlib.Path(sys.argv[2]); (out/'result.json').write_text(json.dumps({'certificate_present':False,'outcome':'Inconclusive'})); sys.exit(1)\\n\"\n        report=runner.run_chain(tmp_path/'run',{'case':'tiny'},worker(tmp_path,body),['never-invoked'],hard_timeout=5)\n>       assert report['status']=='Inconclusive'\nE       AssertionError: assert 'Failed' == 'Inconclusive'\nE         \nE         - Inconclusive\nE         + Failed\n\nspecs/511-safety-certification-scale/experiments/tests/test_cold_runner.py:101: AssertionError\n=========================== short test summary info ============================\nFAILED specs/511-safety-certification-scale/experiments/tests/test_cold_runner.py::test_nonzero_inconclusive_worker_result_is_preserved\n1 failed, 6 passed in 0.66s\n",
+      "path": "target/safety-models/scale-511-worker-outcome-red.log",
+      "sha256": "d6a07e103399cc87f170f5953745d676b08bf7a1e4aff85004fe9533f9573c7b"
+    },
+    {
+      "output": ".......                                                                  [100%]\n7 passed in 0.54s\n",
+      "path": "target/safety-models/scale-511-worker-outcome-green.log",
+      "sha256": "bc00cb9031800b93ccbd69445e2d7f8c9a9eef0a12e56e2ceca08bb8c13cd8ac"
+    }
+  ],
+  "scope": "Pinned-process observability and fast harness controls; no new mathematical certificate or scalable remedy asserted."
+}

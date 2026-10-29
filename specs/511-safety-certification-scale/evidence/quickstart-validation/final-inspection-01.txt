@@ -1,0 +1,1 @@
+/home/kalle/repos/behaviour-ir/target/safety-models/scale-511/final-inspection-01/inspection.json

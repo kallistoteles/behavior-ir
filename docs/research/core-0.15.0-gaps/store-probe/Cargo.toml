@@ -1,0 +1,11 @@
+[package]
+name = "core-015-store-gap-probe"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[dependencies]
+behavior-engine = { git = "https://github.com/kallistoteles/behavior-ir-core", rev = "6b93898a9375113f7a8946f23ab5535319b6f5d6" }
+serde_json = "1"

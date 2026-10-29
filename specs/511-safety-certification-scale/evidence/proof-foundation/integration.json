@@ -1,0 +1,19 @@
+{
+  "tests": [
+    {
+      "test": "foundation-integration",
+      "path": "target/safety-models/scale-511/foundation-integration.log",
+      "sha256": "e0758d675b2755b0e0444ef90c08dfc2c6a12d850c11b202e12e94b2162d1c78",
+      "log": "\nrunning 1 test\n/home/kalle/repos/behaviour-ir/crates/behavior-models/../../target/safety-models/fo/safety-proof-control-2079909/proof-2079909-0/OwnershipMutations.lean:51:8: warning: declaration uses `sorry`\n/home/kalle/repos/behaviour-ir/crates/behavior-models/../../target/safety-models/fo/safety-proof-control-2079909/proof-2079909-0/OwnershipMutations.lean:52:31: warning: `Lean.trustCompiler` has been deprecated: in-kernel native reduction is deprecated; assert native evaluations with axioms instead\n.\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 143.30s\n\n",
+      "toolchain": "Lean 4.30.0 /nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0"
+    },
+    {
+      "test": "lifecycle-foundation",
+      "path": "target/safety-models/scale-511/lifecycle-foundation.log",
+      "sha256": "5aefa4e75a911b8f94da533747c0536864873c97d823231cbb71354d2aea009f",
+      "log": "\nrunning 1 test\n.\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 189.22s\n\n",
+      "toolchain": "Lean 4.30.0 /nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0"
+    }
+  ],
+  "notes": "Foundation executions used original concrete encoding and integrated generic helpers. New concrete encoder is validated in subsequent phases."
+}

@@ -1,0 +1,22 @@
+{
+  "authority": "DiagnosticOnly",
+  "child_cpu_seconds": 19.882926,
+  "child_maxrss_kib": 1036368,
+  "command": [
+    "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+    "-DmaxHeartbeats=200000",
+    "-DmaxRecDepth=4096",
+    "-M4096",
+    "-j1",
+    "-o",
+    "Concrete.olean",
+    "Concrete.lean"
+  ],
+  "log": "",
+  "source_sha256": "80c2b589dd390486762c7426acb5911fbfec5a4c0e0304cf7ffaca16b5595a32",
+  "status": "Passed",
+  "variant": "identical compact A512 raw Nat data, noncomputable definitions",
+  "wall_seconds": 20.135260758921504,
+  "raw_path": "target/safety-models/scale-511/noncomp-raw-a512/data-observation.json",
+  "raw_sha256": "768b7ba04c0e055e21cdba3193f90cffecf015ea1fd081721e4a2ac97c24974b"
+}

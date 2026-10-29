@@ -124,7 +124,7 @@ pub(crate) fn assessment(
         }
     }
     let mut diagnostics = errors.iter().map(|e| e.to_json()).collect::<Vec<_>>();
-    let mut record = json!({"format":"behavior.safety_evidence.v1","analysis_version":1,"checker_version":super::SAFETY_CHECKER_VERSION,
+    let mut record = json!({"format":"behavior.safety_evidence.v2","analysis_version":1,"checker_version":super::SAFETY_CHECKER_VERSION,
         "scope":"OrdinaryTransitions","outcome":outcome.as_str(),"behavior_hash":a.inventory.behavior_hash(),
         "provided_behavior_hash":provided_behavior,"core_release":{"version":crate::CORE_RELEASE.version,"commit":crate::CORE_RELEASE.commit},
         "inventory":a.inventory.to_json(),"policy_set_hash":a.policy_set_hash(),"policies":a.policy_records(),
@@ -137,7 +137,7 @@ pub(crate) fn assessment(
         "assumptions":["Core semantic and backend contracts","Rust extraction/probe/encoding correspondence","Pinned kernel/toolchain/build integrity","Valid initial property and host-enforced approved deployment segment"],
         "exclusions":["Genesis validity","Migration safety","Alternative modules","Physical host execution","End-to-end formal verification"],
         "runtime_tests":{"class":"Tests","status":"NotRunByCertification","statement":"Independent Core correspondence tests are separate evidence, not universal proofs"}});
-    let identity = tagged("behavior.safety_evidence.v1", &record);
+    let identity = tagged("behavior.safety_evidence.v2", &record);
     let certificate = match identity {
         Ok(hash) => {
             record["evidence_hash"] = json!(hash);
@@ -174,11 +174,18 @@ impl UnverifiedSafetyBundle {
             )
         };
         let object = document.as_object().ok_or_else(invalid)?;
-        if object.len() != 5
-            || !["format", "module", "inventory", "policies", "evidence"]
-                .iter()
-                .all(|k| object.contains_key(*k))
-            || document["format"] != "behavior.safety_bundle.v1"
+        if object.len() != 6
+            || ![
+                "format",
+                "module",
+                "inventory",
+                "policies",
+                "evidence",
+                "witness",
+            ]
+            .iter()
+            .all(|k| object.contains_key(*k))
+            || document["format"] != "behavior.safety_bundle.v2"
             || !document["module"].is_string()
             || !document["inventory"].is_object()
             || !document["policies"].is_array()
@@ -186,7 +193,7 @@ impl UnverifiedSafetyBundle {
             return Err(invalid());
         }
         let evidence = &document["evidence"];
-        if evidence["format"] != "behavior.safety_evidence.v1"
+        if evidence["format"] != "behavior.safety_evidence.v2"
             || !evidence["obligations"].is_object()
             || !evidence["proof"].is_object()
             || !evidence["behavior_hash"].is_string()
@@ -195,6 +202,7 @@ impl UnverifiedSafetyBundle {
         {
             return Err(invalid());
         }
+        super::merge_witness::MergeWitness::from_json(&document["witness"])?;
         // Unverified data may claim success. Its identities/premises still require
         // fresh re-admission, extraction, proof checking, auditing and replay.
         Ok(Self {

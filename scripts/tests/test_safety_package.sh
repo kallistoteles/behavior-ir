@@ -9,7 +9,7 @@ if [ ! -f release/safety_smoke.py ]; then
 fi
 python_bin="$(command -v python3)"
 package_files="$(cargo package -p behavior-models --allow-dirty --list 2>/dev/null)"
-for source in Data FieldOwnership LifecycleData LifecycleDependency LifecycleCheck LifecycleSequence Check Audit; do
+for source in Data FieldOwnership LifecycleData LifecycleDependency LifecycleCheck LifecycleSequence Finite Check Audit; do
   if ! grep -qx "proofs/safety/$source.lean" <<<"$package_files"; then
     echo "test_safety_package: missing embedded source $source" >&2
     exit 1

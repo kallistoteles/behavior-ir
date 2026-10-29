@@ -1,0 +1,22 @@
+{
+  "format": "session-preservation.v1",
+  "original_branch": "510-safety-models",
+  "original_head": "21ba441299998ca0c6baf53a5178d1b591216b1f",
+  "archive_branch": "archive/session-20261029/behavior-ir-work-in-progress",
+  "snapshot_only": true,
+  "validated_as_release": false,
+  "encrypted_local_files": 4,
+  "encryption_recipient": "age1ql6jw72evaef03u6crhfx89fz867qzu6m25y5d38ku0xhgzrasks6aaqj4",
+  "excluded": [
+    "rebuildable build/tool caches",
+    "machine private keys",
+    "nested Git repositories, preserved independently"
+  ],
+  "encrypted_archive": {
+    "path": "local-state.tar.gz.age",
+    "sha256": "c829e3630b799fa35a67495b676b7d6403af4b2500449b85277d65158a8a17d6",
+    "bytes": 2483919,
+    "sqlite_consistency": "SQLite backup API, individually consistent database snapshots; no multi-database atomic snapshot claimed",
+    "roundtrip_validated": true
+  }
+}

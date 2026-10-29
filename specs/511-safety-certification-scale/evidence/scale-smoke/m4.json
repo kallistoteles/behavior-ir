@@ -1,0 +1,409 @@
+{
+  "build_identity": {
+    "checker_version": 3,
+    "consumer_prefix": "/data/core028/behavior-510-build-02dspqju/target/safety-models/scale-511/consumer",
+    "evaluation_profile_sha256": "d89f382a170001623b16ee6ae95923819a6a8d42c9752484cae59070deed1272",
+    "evidence_format": "behavior.safety_evidence.v2",
+    "release": "0.14.0",
+    "state": "Provisional",
+    "statement_version": 2,
+    "wheel": "/data/core028/behavior-510-build-02dspqju/target/safety-models/scale-511/wheels-core-codec/behavior-0.14.0-cp313-abi3-manylinux_2_39_x86_64.whl",
+    "wheel_sha256": "b2d9e55ea7d16f263651c2e0a7cf0e17024f7b542a6fce3d733bf1e7fbaf99d2"
+  },
+  "certificate_present": true,
+  "environment_at_start": {
+    "affinity": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "cpu_model": "Intel(R) Xeon(R) CPU X5670 @ 2.93GHz",
+    "cpu_model_raw": "Intel(R) Xeon(R) CPU           X5670  @ 2.93GHz",
+    "kernel": "6.18.38",
+    "memory_available_kib": 7635496,
+    "memory_total_kib": 24542280,
+    "os_page_cache": "uncontrolled",
+    "platform": "x86_64-linux",
+    "swap_total_kib": 0,
+    "uid": 1000,
+    "visible_cgroups": [
+      {
+        "cpu.max": "max 100000",
+        "cpuset.cpus.effective": null,
+        "memory.max": "max",
+        "path": "/sys/fs/cgroup/user.slice/user-1000.slice/session-7.scope"
+      },
+      {
+        "cpu.max": "max 100000",
+        "cpuset.cpus.effective": null,
+        "memory.max": "max",
+        "path": "/sys/fs/cgroup/user.slice/user-1000.slice"
+      },
+      {
+        "cpu.max": "max 100000",
+        "cpuset.cpus.effective": null,
+        "memory.max": "max",
+        "path": "/sys/fs/cgroup/user.slice"
+      }
+    ]
+  },
+  "format": "behavior.safety_remediation.cold_observation.v1",
+  "measurement": {
+    "actual_heartbeats": null,
+    "actual_recursion_depth": null,
+    "cpu_scope": "delta of waited-child CPU; runs must be sequential",
+    "installed_dependencies": "inherited pinned environment; record build manifest",
+    "isolation": "fresh processes/workspaces; producer directory search denied during checking; trusted same-UID worker, not an OS sandbox",
+    "memory_scope": "sampled sum of Linux process-tree RSS/VmSize; shared pages may be counted repeatedly",
+    "missing_counter_reason": "Pinned tools expose no consumed-count high-water measurement here",
+    "os_cache": "uncontrolled",
+    "previous_request_results_reused": false,
+    "timing_scope": "input staging through worker result/evidence persistence; observation finalization separate"
+  },
+  "performance": "Passed",
+  "profile_identity": "d89f382a170001623b16ee6ae95923819a6a8d42c9752484cae59070deed1272",
+  "request_sha256": "827cd3d04301d3e13b53d721b1c7b6e11e133ac390f9ce079d2e099b0d4525fb",
+  "stages": [
+    {
+      "actual_limits": {
+        "wall_seconds": 600.0
+      },
+      "budget_seconds": 300,
+      "command": [
+        "/home/kalle/repos/behaviour-ir/target/safety-models/scale-511/consumer/bin/python",
+        "/home/kalle/repos/behaviour-ir/specs/511-safety-certification-scale/experiments/cold_worker.py",
+        "certification",
+        "--request",
+        "/data/core028/behavior-510-build-02dspqju/target/safety-models/scale-511/installed-m4-02/certification/request.json",
+        "--output",
+        "/data/core028/behavior-510-build-02dspqju/target/safety-models/scale-511/installed-m4-02/certification",
+        "--bundle",
+        "/data/core028/behavior-510-build-02dspqju/target/safety-models/scale-511/installed-m4-02/certification/bundle.json",
+        "--toolchain",
+        "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0"
+      ],
+      "error": null,
+      "exit_code": 0,
+      "peak_sampled_tree_resident_kib": 1553824,
+      "peak_sampled_tree_virtual_kib": 8116804,
+      "performance": "Passed",
+      "process_wall_seconds": 85.2841593339108,
+      "result": {
+        "certificate_present": true,
+        "checker_version": 3,
+        "diagnostic_codes": [],
+        "dimensions": {
+          "actions": 37,
+          "analysis_issues": [],
+          "behavior_hash": "sha256:d212af2c1444366fc9d48d4666c043dd4d7f10b08438715e87fd09c7ce76f7f6",
+          "encoded_inventory_bytes": 20604,
+          "expected_action_operations": {
+            "activate_0": 1,
+            "activate_1": 1,
+            "activate_2": 1,
+            "activate_3": 1,
+            "create_child_0": 1,
+            "create_child_1": 1,
+            "create_child_2": 1,
+            "create_child_3": 1,
+            "create_parent": 1,
+            "edit_0": 1,
+            "edit_1": 1,
+            "edit_10": 1,
+            "edit_11": 1,
+            "edit_12": 1,
+            "edit_13": 1,
+            "edit_14": 1,
+            "edit_15": 1,
+            "edit_2": 1,
+            "edit_3": 1,
+            "edit_4": 1,
+            "edit_5": 1,
+            "edit_6": 1,
+            "edit_7": 1,
+            "edit_8": 1,
+            "edit_9": 1,
+            "finish_0": 1,
+            "finish_1": 1,
+            "finish_2": 1,
+            "finish_3": 1,
+            "remove_child_0": 1,
+            "remove_child_1": 1,
+            "remove_child_2": 1,
+            "remove_child_3": 1,
+            "remove_parent": 1,
+            "reopen": 1,
+            "stop": 1,
+            "work__finish": 1
+          },
+          "guard_literal_width": 2,
+          "lifecycle_dependencies": 4,
+          "operations": 37,
+          "ownership_policies": 7,
+          "policy_set_hash": "sha256:66e39e66bddca8e07bde6851a39d00b48d9a9c49947f28197ce784da13344bb7",
+          "required_precondition_roots": 17
+        },
+        "evidence_format": "behavior.safety_evidence.v2",
+        "evidence_sha256": "418604aa3887c320def61b62976764544ed44cb3eda7116bdd0f32de2024a357",
+        "implementation_identity": "sha256:3f34199c5fa8ace62f0cdb6b9fd91c120d68fb91bc972d4de6f6be85717d40f5",
+        "obligations": {
+          "axiom_audit": "Passed",
+          "concrete_proof": "Passed",
+          "fresh_replay": "Passed",
+          "generic_proof": "Passed",
+          "inventory_comparison": "Passed",
+          "lifecycle_preservation": "Passed",
+          "theorem_types": "Passed"
+        },
+        "outcome": "Certified under assumptions",
+        "package": "/home/kalle/repos/behaviour-ir/target/safety-models/scale-511/consumer/lib/python3.13/site-packages/behavior/__init__.py",
+        "proof_source_identities": {
+          "Audit": "sha256:12a18a5bbb36731690dcec06c8498f0177d17f4680d47a534615ca2f4c5507f7",
+          "Check": "sha256:1693bda67e4015edf4310169c1f797a54edbeb2930bffacce9ed0f924c9b1040",
+          "Data": "sha256:3bb755e874dfae701d06f85c278efe078087df73f94322c52855390308863290",
+          "FieldOwnership": "sha256:146b1f1c7f65a8175668ec881e94476b9a3b8ae691fa3cebdb5232d33e757dbc",
+          "Finite": "sha256:1e07025d7544876cef1e5e60e1034928b9a6d32baae48f419f483ccea0628d62",
+          "LifecycleCheck": "sha256:726df35c5bf5cae60710f5aab66baa31fba2678075601b3483e3f5978e55ace9",
+          "LifecycleData": "sha256:bb88841f1f028122d684aabf9136e5170215348aae458827b3e88436e54a92e8",
+          "LifecycleDependency": "sha256:cc1c9f3144264fc216ccf03dad3632eb173c07719e8f44f2206ee974ffbfa1ed",
+          "LifecycleSequence": "sha256:79aac40034e88c8481adf1dd6b3f9e5c5bb7951ee5255eeaf21653b88628491e"
+        },
+        "role": "certification",
+        "statement_version": 2,
+        "versions": {
+          "accepted_wire_ir": [
+            "0.4",
+            "0.5",
+            "0.6",
+            "0.7",
+            "0.8"
+          ],
+          "binding": {
+            "python": "0.14.0"
+          },
+          "command_occurrence_domain": "behavior.command_occurrence.v1",
+          "command_stream": "behavior.command_stream_request.v1",
+          "core": {
+            "commit": "6b93898a9375113f7a8946f23ab5535319b6f5d6",
+            "version": "0.15.0"
+          },
+          "engine": "0.15.0",
+          "read_records": [
+            "behavior.read_record.v1",
+            "behavior.read_record.v2"
+          ],
+          "records": [
+            "0.4",
+            "0.5",
+            "0.6",
+            "0.7",
+            "0.8"
+          ],
+          "store_documents": [
+            "behavior.entity_content.v1",
+            "behavior.entity_version.v1",
+            "behavior.state.v1",
+            "behavior.evidence_policy.v1",
+            "behavior.store_genesis.v1",
+            "behavior.commit_bundle.v1",
+            "behavior.transition_record.v1",
+            "behavior.replay_report.v1",
+            "behavior.migration_bundle.v1",
+            "behavior.store_genesis.v2",
+            "behavior.commit_bundle.v2",
+            "behavior.migration_bundle.v2",
+            "behavior.transition_record.v2"
+          ],
+          "verifier": "0.10.0",
+          "wire_ir": [
+            "0.1",
+            "0.2",
+            "0.3",
+            "0.4",
+            "0.5",
+            "0.6",
+            "0.7"
+          ]
+        }
+      },
+      "role": "certification",
+      "status": "Passed",
+      "waited_child_cpu_seconds": 84.160062,
+      "wall_seconds": 85.28467388194986
+    },
+    {
+      "actual_limits": {
+        "wall_seconds": 600.0
+      },
+      "budget_seconds": 300,
+      "command": [
+        "/home/kalle/repos/behaviour-ir/target/safety-models/scale-511/consumer/bin/python",
+        "/home/kalle/repos/behaviour-ir/specs/511-safety-certification-scale/experiments/cold_worker.py",
+        "verification",
+        "--request",
+        "/data/core028/behavior-510-build-02dspqju/target/safety-models/scale-511/installed-m4-02/verification/request.json",
+        "--output",
+        "/data/core028/behavior-510-build-02dspqju/target/safety-models/scale-511/installed-m4-02/verification",
+        "--bundle",
+        "/data/core028/behavior-510-build-02dspqju/target/safety-models/scale-511/installed-m4-02/verification/bundle.json",
+        "--toolchain",
+        "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0"
+      ],
+      "error": null,
+      "exit_code": 0,
+      "peak_sampled_tree_resident_kib": 1559596,
+      "peak_sampled_tree_virtual_kib": 8118080,
+      "performance": "Passed",
+      "process_wall_seconds": 84.21419960004278,
+      "result": {
+        "certificate_present": true,
+        "checker_version": 3,
+        "diagnostic_codes": [],
+        "dimensions": {
+          "actions": 37,
+          "analysis_issues": [],
+          "behavior_hash": "sha256:d212af2c1444366fc9d48d4666c043dd4d7f10b08438715e87fd09c7ce76f7f6",
+          "encoded_inventory_bytes": 20604,
+          "expected_action_operations": {
+            "activate_0": 1,
+            "activate_1": 1,
+            "activate_2": 1,
+            "activate_3": 1,
+            "create_child_0": 1,
+            "create_child_1": 1,
+            "create_child_2": 1,
+            "create_child_3": 1,
+            "create_parent": 1,
+            "edit_0": 1,
+            "edit_1": 1,
+            "edit_10": 1,
+            "edit_11": 1,
+            "edit_12": 1,
+            "edit_13": 1,
+            "edit_14": 1,
+            "edit_15": 1,
+            "edit_2": 1,
+            "edit_3": 1,
+            "edit_4": 1,
+            "edit_5": 1,
+            "edit_6": 1,
+            "edit_7": 1,
+            "edit_8": 1,
+            "edit_9": 1,
+            "finish_0": 1,
+            "finish_1": 1,
+            "finish_2": 1,
+            "finish_3": 1,
+            "remove_child_0": 1,
+            "remove_child_1": 1,
+            "remove_child_2": 1,
+            "remove_child_3": 1,
+            "remove_parent": 1,
+            "reopen": 1,
+            "stop": 1,
+            "work__finish": 1
+          },
+          "guard_literal_width": 2,
+          "lifecycle_dependencies": 4,
+          "operations": 37,
+          "ownership_policies": 7,
+          "policy_set_hash": "sha256:66e39e66bddca8e07bde6851a39d00b48d9a9c49947f28197ce784da13344bb7",
+          "required_precondition_roots": 17
+        },
+        "evidence_format": "behavior.safety_evidence.v2",
+        "evidence_sha256": "418604aa3887c320def61b62976764544ed44cb3eda7116bdd0f32de2024a357",
+        "implementation_identity": "sha256:3f34199c5fa8ace62f0cdb6b9fd91c120d68fb91bc972d4de6f6be85717d40f5",
+        "obligations": {
+          "axiom_audit": "Passed",
+          "concrete_proof": "Passed",
+          "fresh_replay": "Passed",
+          "generic_proof": "Passed",
+          "inventory_comparison": "Passed",
+          "lifecycle_preservation": "Passed",
+          "theorem_types": "Passed"
+        },
+        "outcome": "Certified under assumptions",
+        "package": "/home/kalle/repos/behaviour-ir/target/safety-models/scale-511/consumer/lib/python3.13/site-packages/behavior/__init__.py",
+        "proof_source_identities": {
+          "Audit": "sha256:12a18a5bbb36731690dcec06c8498f0177d17f4680d47a534615ca2f4c5507f7",
+          "Check": "sha256:1693bda67e4015edf4310169c1f797a54edbeb2930bffacce9ed0f924c9b1040",
+          "Data": "sha256:3bb755e874dfae701d06f85c278efe078087df73f94322c52855390308863290",
+          "FieldOwnership": "sha256:146b1f1c7f65a8175668ec881e94476b9a3b8ae691fa3cebdb5232d33e757dbc",
+          "Finite": "sha256:1e07025d7544876cef1e5e60e1034928b9a6d32baae48f419f483ccea0628d62",
+          "LifecycleCheck": "sha256:726df35c5bf5cae60710f5aab66baa31fba2678075601b3483e3f5978e55ace9",
+          "LifecycleData": "sha256:bb88841f1f028122d684aabf9136e5170215348aae458827b3e88436e54a92e8",
+          "LifecycleDependency": "sha256:cc1c9f3144264fc216ccf03dad3632eb173c07719e8f44f2206ee974ffbfa1ed",
+          "LifecycleSequence": "sha256:79aac40034e88c8481adf1dd6b3f9e5c5bb7951ee5255eeaf21653b88628491e"
+        },
+        "role": "verification",
+        "statement_version": 2,
+        "versions": {
+          "accepted_wire_ir": [
+            "0.4",
+            "0.5",
+            "0.6",
+            "0.7",
+            "0.8"
+          ],
+          "binding": {
+            "python": "0.14.0"
+          },
+          "command_occurrence_domain": "behavior.command_occurrence.v1",
+          "command_stream": "behavior.command_stream_request.v1",
+          "core": {
+            "commit": "6b93898a9375113f7a8946f23ab5535319b6f5d6",
+            "version": "0.15.0"
+          },
+          "engine": "0.15.0",
+          "read_records": [
+            "behavior.read_record.v1",
+            "behavior.read_record.v2"
+          ],
+          "records": [
+            "0.4",
+            "0.5",
+            "0.6",
+            "0.7",
+            "0.8"
+          ],
+          "store_documents": [
+            "behavior.entity_content.v1",
+            "behavior.entity_version.v1",
+            "behavior.state.v1",
+            "behavior.evidence_policy.v1",
+            "behavior.store_genesis.v1",
+            "behavior.commit_bundle.v1",
+            "behavior.transition_record.v1",
+            "behavior.replay_report.v1",
+            "behavior.migration_bundle.v1",
+            "behavior.store_genesis.v2",
+            "behavior.commit_bundle.v2",
+            "behavior.migration_bundle.v2",
+            "behavior.transition_record.v2"
+          ],
+          "verifier": "0.10.0",
+          "wire_ir": [
+            "0.1",
+            "0.2",
+            "0.3",
+            "0.4",
+            "0.5",
+            "0.6",
+            "0.7"
+          ]
+        }
+      },
+      "role": "verification",
+      "status": "Passed",
+      "waited_child_cpu_seconds": 83.22095500000002,
+      "wall_seconds": 84.21547342697158
+    }
+  ],
+  "status": "Passed",
+  "wall_seconds": 169.50451157602947
+}

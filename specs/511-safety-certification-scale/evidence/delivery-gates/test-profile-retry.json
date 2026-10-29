@@ -1,0 +1,9 @@
+{
+  "interrupted_pids": [
+    2103350
+  ],
+  "reason": "Preflight default test profile spent over 30 minutes in unchanged exhaustive Core test; no assertion failure observed. Restart same full gates with CARGO_PROFILE_TEST_OPT_LEVEL=1, keeping debug assertions/overflow checks and all cases. This incomplete attempt is not counted as passing.",
+  "changed": "Test-only compilation optimization; delivered release and fixed certificate limits/budgets unchanged.",
+  "previous_log": "target/safety-models/scale-511/preflight-full-gates-02.log",
+  "next_log": "target/safety-models/scale-511/preflight-full-gates-03.log"
+}

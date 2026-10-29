@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "candidate_manifest_sha256": "c6e392791cfcfe3b41e4fbfe34a59b5271ef3dbac7759b78f7152922a61d6ba8",
+  "wheel_sha256": "810566f34559851fb6e725179a7cb066e64fae3a3a25d3eb85e524855de3902b",
+  "source_tree_sha256": "45bacd04584d9fc450448084b4135cfa86b38f3e166f7c4b01956baaeb794edd",
+  "evaluation_tooling_sha256": "c143ea8b2ce00b666e8224add758116da6301df543f7f847993a35aff0f2e547",
+  "profile_sha256": "d89f382a170001623b16ee6ae95923819a6a8d42c9752484cae59070deed1272",
+  "source_files_compared": 155,
+  "scope": "Original source and declared evaluated tooling still match the frozen staged snapshot after all60pairs. Only analysis/control data, docs outside package inputs and task markers were updated."
+}

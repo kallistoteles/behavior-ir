@@ -1,0 +1,111 @@
+{
+  "008": {
+    "all_replays_passed": true,
+    "binary_sha256": "28a669250230eedd5504642d7297519ffda81970f6043391204a8acbb4807dff",
+    "full_matrix_cases": 15,
+    "measurement_scope": "Selected public Backend method calls around Store::evaluate only. Replay runs outside that scope. Debug timings include instrumentation and are not capacity evidence.",
+    "normal_matrix_exit": 0,
+    "repeated_backend_counts_identical": true,
+    "replayed_transitions": 186,
+    "strict_minimal_exit": 101,
+    "strict_minimal_wall_seconds": 2.2790047930320725,
+    "transitive_versions_match_ecosystem_lock": true
+  },
+  "009": {
+    "actual_positive_solver_control": "Nonnegative Target update preservation is proven; Id/no-holder controls have zero relevant preservation checks",
+    "identical_final_reports": true,
+    "normal_run_exit": 0,
+    "report_sha256": "0e751bcd2bd80d1d222f2126b69390755249990339d579bbc66f4b41a458a977",
+    "strict_run_exit": 1
+  },
+  "baseline": {
+    "installed_wheel_sha256": "794d2dd5ddf8613c52f524a1b4b74c0246d86a5ea52414424ab89ef104e86513",
+    "versions": {
+      "accepted_wire_ir": [
+        "0.4",
+        "0.5",
+        "0.6",
+        "0.7",
+        "0.8"
+      ],
+      "binding": {
+        "python": "0.14.0"
+      },
+      "command_occurrence_domain": "behavior.command_occurrence.v1",
+      "command_stream": "behavior.command_stream_request.v1",
+      "core": {
+        "commit": "6b93898a9375113f7a8946f23ab5535319b6f5d6",
+        "version": "0.15.0"
+      },
+      "engine": "0.15.0",
+      "read_records": [
+        "behavior.read_record.v1",
+        "behavior.read_record.v2"
+      ],
+      "records": [
+        "0.4",
+        "0.5",
+        "0.6",
+        "0.7",
+        "0.8"
+      ],
+      "store_documents": [
+        "behavior.entity_content.v1",
+        "behavior.entity_version.v1",
+        "behavior.state.v1",
+        "behavior.evidence_policy.v1",
+        "behavior.store_genesis.v1",
+        "behavior.commit_bundle.v1",
+        "behavior.transition_record.v1",
+        "behavior.replay_report.v1",
+        "behavior.migration_bundle.v1",
+        "behavior.store_genesis.v2",
+        "behavior.commit_bundle.v2",
+        "behavior.migration_bundle.v2",
+        "behavior.transition_record.v2"
+      ],
+      "verifier": "0.10.0",
+      "wire_ir": [
+        "0.1",
+        "0.2",
+        "0.3",
+        "0.4",
+        "0.5",
+        "0.6",
+        "0.7"
+      ]
+    }
+  },
+  "earlier_attempts": [
+    {
+      "classification": "Invalid environment; unsupported solver variable, Z3 absent on PATH; not defect evidence",
+      "id": "009-attempt-01"
+    },
+    {
+      "classification": "Invalid harness; missing expected StateRef argument to public commit; provisional lock not final",
+      "id": "008-red-01"
+    },
+    {
+      "classification": "Invalid positive-control assertions: zero applicable preservation checks; replaced by actual constrained-update SMT control",
+      "id": "009-attempt-03/04/05"
+    },
+    {
+      "classification": "Valid initial two-action reproduction; superseded by final single-action cases",
+      "id": "009-attempt-02"
+    }
+  ],
+  "evidence_classes": [
+    "Public API observations",
+    "Delegating Backend call counts",
+    "Short data/behavior replay assertions",
+    "Pinned source correspondence"
+  ],
+  "not_claimed": [
+    "Formal proof of a proposed fix",
+    "Private application reproduction or bottleneck attribution",
+    "30-minute endurance or crash recovery approval",
+    "Production performance budget",
+    "Core soundness defect"
+  ],
+  "platform": "Linux-6.18.38-x86_64-with-glibc2.42"
+}

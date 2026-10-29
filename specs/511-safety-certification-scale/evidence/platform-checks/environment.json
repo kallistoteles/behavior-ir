@@ -1,0 +1,36 @@
+{
+  "platform": "x86_64-linux",
+  "kernel": "6.18.38",
+  "tools": {
+    "lean": "Lean (version 4.30.0, commit v4.30.0, Release)",
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)",
+    "cargo": "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+    "python": "Python 3.13.15"
+  },
+  "pinned_profile": {
+    "drvPath": "/nix/store/6wy0z2zc7gl2i6vxzcw59i9pdhk2g6b8-lean4-4.30.0.drv",
+    "outPath": "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0",
+    "version": "4.30.0"
+  },
+  "proof_toolchain": "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0",
+  "toolchain_manifest_sha256": "a4c34efbb8133243e77b7cb4d163c910ce0d91f8c2818c4b41a3c8ccb18514e0",
+  "x86_64_linux": {
+    "status": "Passed",
+    "full_gates": "../delivery-gates/full-gates.json",
+    "installed_package": "../delivery-gates/release-check.json",
+    "exact_rebuild": "../delivery-gates/exact-rebuild.json",
+    "frozen_capacity": "../final-runs/assessment.json",
+    "artifact_binding": "../delivery-gates/final-artifact-binding.json",
+    "correctness_scope": "Pinned local x86_64-linux toolchain, actual package/compatibility/determinism/ordinary replay and all60coldpairs; no ARM execution inferred."
+  },
+  "aarch64_linux": {
+    "status": "NotRun",
+    "reason": "This x86_64-linux environment has no aarch64 execution backend. Pinned profile retained; no ARM correctness execution or performance evidence is claimed.",
+    "pinned_profile": {
+      "drvPath": "/nix/store/2sb6axlw5zc7m60nvzcilcvp05qa8b23-lean4-4.30.0.drv",
+      "outPath": "/nix/store/gzdr4fry7v3r7jl60f0902aqcbaiy3q1-lean4-4.30.0",
+      "version": "4.30.0"
+    }
+  },
+  "scope": "Available-platform checks only; pinned profile identity is not execution evidence."
+}

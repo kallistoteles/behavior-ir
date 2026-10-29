@@ -1,0 +1,3680 @@
+{
+  "candidate_manifest_sha256": "c6e392791cfcfe3b41e4fbfe34a59b5271ef3dbac7759b78f7152922a61d6ba8",
+  "cases": [
+    {
+      "case_repeat": "A256-1",
+      "environment": {
+        "affinity": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "cpu_model": "Intel(R) Xeon(R) CPU X5670 @ 2.93GHz",
+        "cpu_model_raw": "Intel(R) Xeon(R) CPU           X5670  @ 2.93GHz",
+        "kernel": "6.18.38",
+        "memory_available_kib": 7511344,
+        "memory_total_kib": 24542280,
+        "os_page_cache": "uncontrolled",
+        "platform": "x86_64-linux",
+        "swap_total_kib": 0,
+        "uid": 1000,
+        "visible_cgroups": [
+          {
+            "cpu.max": "max 100000",
+            "cpuset.cpus.effective": null,
+            "memory.max": "max",
+            "path": "/sys/fs/cgroup/user.slice/user-1000.slice/session-7.scope"
+          },
+          {
+            "cpu.max": "max 100000",
+            "cpuset.cpus.effective": null,
+            "memory.max": "max",
+            "path": "/sys/fs/cgroup/user.slice/user-1000.slice"
+          },
+          {
+            "cpu.max": "max 100000",
+            "cpuset.cpus.effective": null,
+            "memory.max": "max",
+            "path": "/sys/fs/cgroup/user.slice"
+          }
+        ]
+      },
+      "performance": "Passed",
+      "raw_report_sha256": "6fe0065d268109beae9e9d875cf5cb52023eadce2f3fb28c363ddc0d146bae7e",
+      "roles": [
+        {
+          "obligations": {
+            "axiom_audit": "Passed",
+            "concrete_proof": "Passed",
+            "fresh_replay": "Passed",
+            "generic_proof": "Passed",
+            "inventory_comparison": "Passed",
+            "theorem_types": "Passed"
+          },
+          "performance": "Passed",
+          "role": "certification",
+          "status": "Passed",
+          "wall_seconds": 106.61201684502885
+        },
+        {
+          "obligations": {
+            "axiom_audit": "Passed",
+            "concrete_proof": "Passed",
+            "fresh_replay": "Passed",
+            "generic_proof": "Passed",
+            "inventory_comparison": "Passed",
+            "theorem_types": "Passed"
+          },
+          "performance": "Passed",
+          "role": "verification",
+          "status": "Passed",
+          "wall_seconds": 103.490575612057
+        }
+      ],
+      "semantic_evidence_sha256": "2b17bf086e758550bc0b94d6993c9002ce6047eebc99b86ce2251885a3749f24",
+      "status": "Passed",
+      "tool_stages": {
+        "certification": {
+          "Audit": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 2046,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 1514900,
+            "peak_sampled_virtual_kb": 6401296,
+            "status": "Passed"
+          },
+          "Check": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 970,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 304924,
+            "peak_sampled_virtual_kb": 4725764,
+            "status": "Passed"
+          },
+          "Concrete": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 32804,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 988952,
+            "peak_sampled_virtual_kb": 3614168,
+            "status": "Passed"
+          },
+          "Data": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 932,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 231560,
+            "peak_sampled_virtual_kb": 5767908,
+            "status": "Passed"
+          },
+          "FieldOwnership": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 404,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 221340,
+            "peak_sampled_virtual_kb": 3541252,
+            "status": "Passed"
+          },
+          "Finite": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 1316,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 314724,
+            "peak_sampled_virtual_kb": 8064280,
+            "status": "Passed"
+          },
+          "Fresh": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 57365,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": null,
+              "heartbeats": null,
+              "recursion_depth": null,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 711212,
+            "peak_sampled_virtual_kb": 4737140,
+            "status": "Passed"
+          },
+          "LifecycleCheck": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 5445,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 269836,
+            "peak_sampled_virtual_kb": 5772524,
+            "status": "Passed"
+          },
+          "LifecycleData": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 871,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 237256,
+            "peak_sampled_virtual_kb": 5769620,
+            "status": "Passed"
+          },
+          "LifecycleDependency": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 992,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 228436,
+            "peak_sampled_virtual_kb": 4654940,
+            "status": "Passed"
+          },
+          "LifecycleSequence": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 631,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 222880,
+            "peak_sampled_virtual_kb": 4657280,
+            "status": "Passed"
+          },
+          "Verify": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 2047,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 1505136,
+            "peak_sampled_virtual_kb": 5313324,
+            "status": "Passed"
+          }
+        },
+        "verification": {
+          "Audit": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 2023,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 1514920,
+            "peak_sampled_virtual_kb": 6401296,
+            "status": "Passed"
+          },
+          "Check": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 1010,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 305208,
+            "peak_sampled_virtual_kb": 4725764,
+            "status": "Passed"
+          },
+          "Concrete": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 30293,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 984172,
+            "peak_sampled_virtual_kb": 3612092,
+            "status": "Passed"
+          },
+          "Data": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 934,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 236508,
+            "peak_sampled_virtual_kb": 5768932,
+            "status": "Passed"
+          },
+          "FieldOwnership": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 405,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 213080,
+            "peak_sampled_virtual_kb": 3540272,
+            "status": "Passed"
+          },
+          "Finite": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 1336,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 314940,
+            "peak_sampled_virtual_kb": 8064280,
+            "status": "Passed"
+          },
+          "Fresh": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 56746,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": null,
+              "heartbeats": null,
+              "recursion_depth": null,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 711588,
+            "peak_sampled_virtual_kb": 4737140,
+            "status": "Passed"
+          },
+          "LifecycleCheck": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 5545,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 269840,
+            "peak_sampled_virtual_kb": 5772524,
+            "status": "Passed"
+          },
+          "LifecycleData": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 850,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 237264,
+            "peak_sampled_virtual_kb": 4655492,
+            "status": "Passed"
+          },
+          "LifecycleDependency": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 993,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 228640,
+            "peak_sampled_virtual_kb": 4654940,
+            "status": "Passed"
+          },
+          "LifecycleSequence": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 627,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 223064,
+            "peak_sampled_virtual_kb": 4657280,
+            "status": "Passed"
+          },
+          "Verify": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 1863,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 1504880,
+            "peak_sampled_virtual_kb": 5313324,
+            "status": "Passed"
+          }
+        }
+      }
+    },
+    {
+      "case_repeat": "A256-2",
+      "environment": {
+        "affinity": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "cpu_model": "Intel(R) Xeon(R) CPU X5670 @ 2.93GHz",
+        "cpu_model_raw": "Intel(R) Xeon(R) CPU           X5670  @ 2.93GHz",
+        "kernel": "6.18.38",
+        "memory_available_kib": 7505724,
+        "memory_total_kib": 24542280,
+        "os_page_cache": "uncontrolled",
+        "platform": "x86_64-linux",
+        "swap_total_kib": 0,
+        "uid": 1000,
+        "visible_cgroups": [
+          {
+            "cpu.max": "max 100000",
+            "cpuset.cpus.effective": null,
+            "memory.max": "max",
+            "path": "/sys/fs/cgroup/user.slice/user-1000.slice/session-7.scope"
+          },
+          {
+            "cpu.max": "max 100000",
+            "cpuset.cpus.effective": null,
+            "memory.max": "max",
+            "path": "/sys/fs/cgroup/user.slice/user-1000.slice"
+          },
+          {
+            "cpu.max": "max 100000",
+            "cpuset.cpus.effective": null,
+            "memory.max": "max",
+            "path": "/sys/fs/cgroup/user.slice"
+          }
+        ]
+      },
+      "performance": "Passed",
+      "raw_report_sha256": "a52642a97572271aa18aebea3b8efd9a27076b10089a7d3c07796ef4c4d4eb10",
+      "roles": [
+        {
+          "obligations": {
+            "axiom_audit": "Passed",
+            "concrete_proof": "Passed",
+            "fresh_replay": "Passed",
+            "generic_proof": "Passed",
+            "inventory_comparison": "Passed",
+            "theorem_types": "Passed"
+          },
+          "performance": "Passed",
+          "role": "certification",
+          "status": "Passed",
+          "wall_seconds": 101.71098725299817
+        },
+        {
+          "obligations": {
+            "axiom_audit": "Passed",
+            "concrete_proof": "Passed",
+            "fresh_replay": "Passed",
+            "generic_proof": "Passed",
+            "inventory_comparison": "Passed",
+            "theorem_types": "Passed"
+          },
+          "performance": "Passed",
+          "role": "verification",
+          "status": "Passed",
+          "wall_seconds": 103.09631439100485
+        }
+      ],
+      "semantic_evidence_sha256": "2b17bf086e758550bc0b94d6993c9002ce6047eebc99b86ce2251885a3749f24",
+      "status": "Passed",
+      "tool_stages": {
+        "certification": {
+          "Audit": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 2009,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 1514896,
+            "peak_sampled_virtual_kb": 6401296,
+            "status": "Passed"
+          },
+          "Check": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 992,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 302688,
+            "peak_sampled_virtual_kb": 4725764,
+            "status": "Passed"
+          },
+          "Concrete": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 29972,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 985344,
+            "peak_sampled_virtual_kb": 3614168,
+            "status": "Passed"
+          },
+          "Data": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 911,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 240856,
+            "peak_sampled_virtual_kb": 5768944,
+            "status": "Passed"
+          },
+          "FieldOwnership": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 384,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 213100,
+            "peak_sampled_virtual_kb": 3540216,
+            "status": "Passed"
+          },
+          "Finite": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 1275,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 313624,
+            "peak_sampled_virtual_kb": 8064280,
+            "status": "Passed"
+          },
+          "Fresh": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 55610,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": null,
+              "heartbeats": null,
+              "recursion_depth": null,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 711992,
+            "peak_sampled_virtual_kb": 4737140,
+            "status": "Passed"
+          },
+          "LifecycleCheck": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 5442,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 270604,
+            "peak_sampled_virtual_kb": 5772524,
+            "status": "Passed"
+          },
+          "LifecycleData": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 854,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 239616,
+            "peak_sampled_virtual_kb": 5769620,
+            "status": "Passed"
+          },
+          "LifecycleDependency": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 992,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 228440,
+            "peak_sampled_virtual_kb": 4654940,
+            "status": "Passed"
+          },
+          "LifecycleSequence": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 606,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 231328,
+            "peak_sampled_virtual_kb": 4658316,
+            "status": "Passed"
+          },
+          "Verify": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 1902,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 1504992,
+            "peak_sampled_virtual_kb": 5313324,
+            "status": "Passed"
+          }
+        },
+        "verification": {
+          "Audit": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 1961,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 1512512,
+            "peak_sampled_virtual_kb": 6401296,
+            "status": "Passed"
+          },
+          "Check": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 1236,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 304972,
+            "peak_sampled_virtual_kb": 4725764,
+            "status": "Passed"
+          },
+          "Concrete": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 31316,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 986124,
+            "peak_sampled_virtual_kb": 3614168,
+            "status": "Passed"
+          },
+          "Data": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 936,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 238796,
+            "peak_sampled_virtual_kb": 5768944,
+            "status": "Passed"
+          },
+          "FieldOwnership": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 426,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 221364,
+            "peak_sampled_virtual_kb": 3541252,
+            "status": "Passed"
+          },
+          "Finite": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 1479,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 315052,
+            "peak_sampled_virtual_kb": 8064280,
+            "status": "Passed"
+          },
+          "Fresh": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 54935,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": null,
+              "heartbeats": null,
+              "recursion_depth": null,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 712180,
+            "peak_sampled_virtual_kb": 4737140,
+            "status": "Passed"
+          },
+          "LifecycleCheck": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 5400,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 275028,
+            "peak_sampled_virtual_kb": 5772524,
+            "status": "Passed"
+          },
+          "LifecycleData": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 872,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 237308,
+            "peak_sampled_virtual_kb": 4655492,
+            "status": "Passed"
+          },
+          "LifecycleDependency": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 993,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 238832,
+            "peak_sampled_virtual_kb": 4655976,
+            "status": "Passed"
+          },
+          "LifecycleSequence": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 606,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 222892,
+            "peak_sampled_virtual_kb": 4657280,
+            "status": "Passed"
+          },
+          "Verify": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 2028,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 1505100,
+            "peak_sampled_virtual_kb": 5313404,
+            "status": "Passed"
+          }
+        }
+      }
+    },
+    {
+      "case_repeat": "A256-3",
+      "environment": {
+        "affinity": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "cpu_model": "Intel(R) Xeon(R) CPU X5670 @ 2.93GHz",
+        "cpu_model_raw": "Intel(R) Xeon(R) CPU           X5670  @ 2.93GHz",
+        "kernel": "6.18.38",
+        "memory_available_kib": 7496628,
+        "memory_total_kib": 24542280,
+        "os_page_cache": "uncontrolled",
+        "platform": "x86_64-linux",
+        "swap_total_kib": 0,
+        "uid": 1000,
+        "visible_cgroups": [
+          {
+            "cpu.max": "max 100000",
+            "cpuset.cpus.effective": null,
+            "memory.max": "max",
+            "path": "/sys/fs/cgroup/user.slice/user-1000.slice/session-7.scope"
+          },
+          {
+            "cpu.max": "max 100000",
+            "cpuset.cpus.effective": null,
+            "memory.max": "max",
+            "path": "/sys/fs/cgroup/user.slice/user-1000.slice"
+          },
+          {
+            "cpu.max": "max 100000",
+            "cpuset.cpus.effective": null,
+            "memory.max": "max",
+            "path": "/sys/fs/cgroup/user.slice"
+          }
+        ]
+      },
+      "performance": "Passed",
+      "raw_report_sha256": "baa6698ca45af04012d75f4977a3f96aaf88734642a16b3637aecc7f2bf72769",
+      "roles": [
+        {
+          "obligations": {
+            "axiom_audit": "Passed",
+            "concrete_proof": "Passed",
+            "fresh_replay": "Passed",
+            "generic_proof": "Passed",
+            "inventory_comparison": "Passed",
+            "theorem_types": "Passed"
+          },
+          "performance": "Passed",
+          "role": "certification",
+          "status": "Passed",
+          "wall_seconds": 100.93606931203976
+        },
+        {
+          "obligations": {
+            "axiom_audit": "Passed",
+            "concrete_proof": "Passed",
+            "fresh_replay": "Passed",
+            "generic_proof": "Passed",
+            "inventory_comparison": "Passed",
+            "theorem_types": "Passed"
+          },
+          "performance": "Passed",
+          "role": "verification",
+          "status": "Passed",
+          "wall_seconds": 101.85612231690902
+        }
+      ],
+      "semantic_evidence_sha256": "2b17bf086e758550bc0b94d6993c9002ce6047eebc99b86ce2251885a3749f24",
+      "status": "Passed",
+      "tool_stages": {
+        "certification": {
+          "Audit": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 1963,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 1512452,
+            "peak_sampled_virtual_kb": 6401296,
+            "status": "Passed"
+          },
+          "Check": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 970,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 294396,
+            "peak_sampled_virtual_kb": 4724728,
+            "status": "Passed"
+          },
+          "Concrete": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 29229,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 987440,
+            "peak_sampled_virtual_kb": 3614168,
+            "status": "Passed"
+          },
+          "Data": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 952,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 238648,
+            "peak_sampled_virtual_kb": 5768944,
+            "status": "Passed"
+          },
+          "FieldOwnership": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 405,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 213084,
+            "peak_sampled_virtual_kb": 3540216,
+            "status": "Passed"
+          },
+          "Finite": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 1335,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 311684,
+            "peak_sampled_virtual_kb": 8064280,
+            "status": "Passed"
+          },
+          "Fresh": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 55465,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": null,
+              "heartbeats": null,
+              "recursion_depth": null,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 712280,
+            "peak_sampled_virtual_kb": 4737140,
+            "status": "Passed"
+          },
+          "LifecycleCheck": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 5465,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 268032,
+            "peak_sampled_virtual_kb": 5772512,
+            "status": "Passed"
+          },
+          "LifecycleData": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 873,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 235112,
+            "peak_sampled_virtual_kb": 5769620,
+            "status": "Passed"
+          },
+          "LifecycleDependency": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 992,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 236632,
+            "peak_sampled_virtual_kb": 4655976,
+            "status": "Passed"
+          },
+          "LifecycleSequence": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 627,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 233200,
+            "peak_sampled_virtual_kb": 4658316,
+            "status": "Passed"
+          },
+          "Verify": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 1864,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 1505204,
+            "peak_sampled_virtual_kb": 5313324,
+            "status": "Passed"
+          }
+        },
+        "verification": {
+          "Audit": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 2003,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 1512456,
+            "peak_sampled_virtual_kb": 6401296,
+            "status": "Passed"
+          },
+          "Check": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 991,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 305012,
+            "peak_sampled_virtual_kb": 4725764,
+            "status": "Passed"
+          },
+          "Concrete": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 29879,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 986776,
+            "peak_sampled_virtual_kb": 3614164,
+            "status": "Passed"
+          },
+          "Data": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 892,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 239084,
+            "peak_sampled_virtual_kb": 5768944,
+            "status": "Passed"
+          },
+          "FieldOwnership": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 384,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 213152,
+            "peak_sampled_virtual_kb": 3540216,
+            "status": "Passed"
+          },
+          "Finite": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 1316,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 315968,
+            "peak_sampled_virtual_kb": 8064280,
+            "status": "Passed"
+          },
+          "Fresh": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 55561,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": null,
+              "heartbeats": null,
+              "recursion_depth": null,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 712164,
+            "peak_sampled_virtual_kb": 4737140,
+            "status": "Passed"
+          },
+          "LifecycleCheck": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 5538,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 269888,
+            "peak_sampled_virtual_kb": 5772524,
+            "status": "Passed"
+          },
+          "LifecycleData": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 831,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 237308,
+            "peak_sampled_virtual_kb": 5769620,
+            "status": "Passed"
+          },
+          "LifecycleDependency": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 972,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 238932,
+            "peak_sampled_virtual_kb": 4655976,
+            "status": "Passed"
+          },
+          "LifecycleSequence": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 627,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 222900,
+            "peak_sampled_virtual_kb": 4657280,
+            "status": "Passed"
+          },
+          "Verify": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 1986,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 1505148,
+            "peak_sampled_virtual_kb": 5305128,
+            "status": "Passed"
+          }
+        }
+      }
+    },
+    {
+      "case_repeat": "A512-1",
+      "environment": {
+        "affinity": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "cpu_model": "Intel(R) Xeon(R) CPU X5670 @ 2.93GHz",
+        "cpu_model_raw": "Intel(R) Xeon(R) CPU           X5670  @ 2.93GHz",
+        "kernel": "6.18.38",
+        "memory_available_kib": 7504716,
+        "memory_total_kib": 24542280,
+        "os_page_cache": "uncontrolled",
+        "platform": "x86_64-linux",
+        "swap_total_kib": 0,
+        "uid": 1000,
+        "visible_cgroups": [
+          {
+            "cpu.max": "max 100000",
+            "cpuset.cpus.effective": null,
+            "memory.max": "max",
+            "path": "/sys/fs/cgroup/user.slice/user-1000.slice/session-7.scope"
+          },
+          {
+            "cpu.max": "max 100000",
+            "cpuset.cpus.effective": null,
+            "memory.max": "max",
+            "path": "/sys/fs/cgroup/user.slice/user-1000.slice"
+          },
+          {
+            "cpu.max": "max 100000",
+            "cpuset.cpus.effective": null,
+            "memory.max": "max",
+            "path": "/sys/fs/cgroup/user.slice"
+          }
+        ]
+      },
+      "performance": "Passed",
+      "raw_report_sha256": "80a4963798540b34b581f26a45350c3ae2472134c12584dbb1028def5e9f3565",
+      "roles": [
+        {
+          "obligations": {
+            "axiom_audit": "Passed",
+            "concrete_proof": "Passed",
+            "fresh_replay": "Passed",
+            "generic_proof": "Passed",
+            "inventory_comparison": "Passed",
+            "theorem_types": "Passed"
+          },
+          "performance": "Passed",
+          "role": "certification",
+          "status": "Passed",
+          "wall_seconds": 195.65670977998525
+        },
+        {
+          "obligations": {
+            "axiom_audit": "Passed",
+            "concrete_proof": "Passed",
+            "fresh_replay": "Passed",
+            "generic_proof": "Passed",
+            "inventory_comparison": "Passed",
+            "theorem_types": "Passed"
+          },
+          "performance": "Passed",
+          "role": "verification",
+          "status": "Passed",
+          "wall_seconds": 188.61171922797803
+        }
+      ],
+      "semantic_evidence_sha256": "50c96bf206e85011f12b2d8dd21f9a11bfff685ea88a38f3bb06c0d949ffd658",
+      "status": "Passed",
+      "tool_stages": {
+        "certification": {
+          "Audit": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 1882,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 1512496,
+            "peak_sampled_virtual_kb": 6401296,
+            "status": "Passed"
+          },
+          "Check": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 1011,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 294368,
+            "peak_sampled_virtual_kb": 4724728,
+            "status": "Passed"
+          },
+          "Concrete": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 101847,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 2550064,
+            "peak_sampled_virtual_kb": 5715580,
+            "status": "Passed"
+          },
+          "Data": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 912,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 236616,
+            "peak_sampled_virtual_kb": 5768944,
+            "status": "Passed"
+          },
+          "FieldOwnership": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 405,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 213084,
+            "peak_sampled_virtual_kb": 3540216,
+            "status": "Passed"
+          },
+          "Finite": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 1360,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 314916,
+            "peak_sampled_virtual_kb": 8064280,
+            "status": "Passed"
+          },
+          "Fresh": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 77143,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": null,
+              "heartbeats": null,
+              "recursion_depth": null,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 2007004,
+            "peak_sampled_virtual_kb": 5785940,
+            "status": "Passed"
+          },
+          "LifecycleCheck": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 5486,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 270384,
+            "peak_sampled_virtual_kb": 5772524,
+            "status": "Passed"
+          },
+          "LifecycleData": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 913,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 235100,
+            "peak_sampled_virtual_kb": 5769620,
+            "status": "Passed"
+          },
+          "LifecycleDependency": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 992,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 238944,
+            "peak_sampled_virtual_kb": 4655976,
+            "status": "Passed"
+          },
+          "LifecycleSequence": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 606,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 233436,
+            "peak_sampled_virtual_kb": 4658316,
+            "status": "Passed"
+          },
+          "Verify": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 2047,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 1509480,
+            "peak_sampled_virtual_kb": 5306380,
+            "status": "Passed"
+          }
+        },
+        "verification": {
+          "Audit": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 1983,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 1523180,
+            "peak_sampled_virtual_kb": 6402332,
+            "status": "Passed"
+          },
+          "Check": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 950,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 304828,
+            "peak_sampled_virtual_kb": 4725764,
+            "status": "Passed"
+          },
+          "Concrete": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 95637,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 2550204,
+            "peak_sampled_virtual_kb": 5715572,
+            "status": "Passed"
+          },
+          "Data": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 971,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 240648,
+            "peak_sampled_virtual_kb": 5768944,
+            "status": "Passed"
+          },
+          "FieldOwnership": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 385,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 213104,
+            "peak_sampled_virtual_kb": 3540216,
+            "status": "Passed"
+          },
+          "Finite": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 1273,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 314952,
+            "peak_sampled_virtual_kb": 8064280,
+            "status": "Passed"
+          },
+          "Fresh": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 75874,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": null,
+              "heartbeats": null,
+              "recursion_depth": null,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 2007752,
+            "peak_sampled_virtual_kb": 5785940,
+            "status": "Passed"
+          },
+          "LifecycleCheck": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 5477,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 270380,
+            "peak_sampled_virtual_kb": 5772524,
+            "status": "Passed"
+          },
+          "LifecycleData": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 851,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 239332,
+            "peak_sampled_virtual_kb": 5769620,
+            "status": "Passed"
+          },
+          "LifecycleDependency": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 991,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 236712,
+            "peak_sampled_virtual_kb": 4655976,
+            "status": "Passed"
+          },
+          "LifecycleSequence": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 626,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 222864,
+            "peak_sampled_virtual_kb": 4657280,
+            "status": "Passed"
+          },
+          "Verify": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 2233,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 1509644,
+            "peak_sampled_virtual_kb": 5306268,
+            "status": "Passed"
+          }
+        }
+      }
+    },
+    {
+      "case_repeat": "A512-2",
+      "environment": {
+        "affinity": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "cpu_model": "Intel(R) Xeon(R) CPU X5670 @ 2.93GHz",
+        "cpu_model_raw": "Intel(R) Xeon(R) CPU           X5670  @ 2.93GHz",
+        "kernel": "6.18.38",
+        "memory_available_kib": 7494320,
+        "memory_total_kib": 24542280,
+        "os_page_cache": "uncontrolled",
+        "platform": "x86_64-linux",
+        "swap_total_kib": 0,
+        "uid": 1000,
+        "visible_cgroups": [
+          {
+            "cpu.max": "max 100000",
+            "cpuset.cpus.effective": null,
+            "memory.max": "max",
+            "path": "/sys/fs/cgroup/user.slice/user-1000.slice/session-7.scope"
+          },
+          {
+            "cpu.max": "max 100000",
+            "cpuset.cpus.effective": null,
+            "memory.max": "max",
+            "path": "/sys/fs/cgroup/user.slice/user-1000.slice"
+          },
+          {
+            "cpu.max": "max 100000",
+            "cpuset.cpus.effective": null,
+            "memory.max": "max",
+            "path": "/sys/fs/cgroup/user.slice"
+          }
+        ]
+      },
+      "performance": "Passed",
+      "raw_report_sha256": "efd425f6a218dab9963c3ba7b62395d9bc3d8c66587daa1c801b2ee9dc2d1fd8",
+      "roles": [
+        {
+          "obligations": {
+            "axiom_audit": "Passed",
+            "concrete_proof": "Passed",
+            "fresh_replay": "Passed",
+            "generic_proof": "Passed",
+            "inventory_comparison": "Passed",
+            "theorem_types": "Passed"
+          },
+          "performance": "Passed",
+          "role": "certification",
+          "status": "Passed",
+          "wall_seconds": 188.52046720997896
+        },
+        {
+          "obligations": {
+            "axiom_audit": "Passed",
+            "concrete_proof": "Passed",
+            "fresh_replay": "Passed",
+            "generic_proof": "Passed",
+            "inventory_comparison": "Passed",
+            "theorem_types": "Passed"
+          },
+          "performance": "Passed",
+          "role": "verification",
+          "status": "Passed",
+          "wall_seconds": 186.31598967395257
+        }
+      ],
+      "semantic_evidence_sha256": "50c96bf206e85011f12b2d8dd21f9a11bfff685ea88a38f3bb06c0d949ffd658",
+      "status": "Passed",
+      "tool_stages": {
+        "certification": {
+          "Audit": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 1822,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 1523192,
+            "peak_sampled_virtual_kb": 6402332,
+            "status": "Passed"
+          },
+          "Check": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 971,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 304952,
+            "peak_sampled_virtual_kb": 4725764,
+            "status": "Passed"
+          },
+          "Concrete": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 96839,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 2548324,
+            "peak_sampled_virtual_kb": 5715576,
+            "status": "Passed"
+          },
+          "Data": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 1155,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 237048,
+            "peak_sampled_virtual_kb": 5768944,
+            "status": "Passed"
+          },
+          "FieldOwnership": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 404,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 213136,
+            "peak_sampled_virtual_kb": 3540216,
+            "status": "Passed"
+          },
+          "Finite": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 1319,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 313032,
+            "peak_sampled_virtual_kb": 8064280,
+            "status": "Passed"
+          },
+          "Fresh": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 74068,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": null,
+              "heartbeats": null,
+              "recursion_depth": null,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 2008724,
+            "peak_sampled_virtual_kb": 5785940,
+            "status": "Passed"
+          },
+          "LifecycleCheck": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 5509,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 270616,
+            "peak_sampled_virtual_kb": 5772524,
+            "status": "Passed"
+          },
+          "LifecycleData": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 872,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 237308,
+            "peak_sampled_virtual_kb": 5769620,
+            "status": "Passed"
+          },
+          "LifecycleDependency": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 996,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 238912,
+            "peak_sampled_virtual_kb": 4655976,
+            "status": "Passed"
+          },
+          "LifecycleSequence": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 630,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 223084,
+            "peak_sampled_virtual_kb": 4657280,
+            "status": "Passed"
+          },
+          "Verify": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 2168,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 1508900,
+            "peak_sampled_virtual_kb": 5314576,
+            "status": "Passed"
+          }
+        },
+        "verification": {
+          "Audit": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 1921,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 1526056,
+            "peak_sampled_virtual_kb": 6402432,
+            "status": "Passed"
+          },
+          "Check": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 990,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 304844,
+            "peak_sampled_virtual_kb": 4725764,
+            "status": "Passed"
+          },
+          "Concrete": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 94117,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 2548628,
+            "peak_sampled_virtual_kb": 5715576,
+            "status": "Passed"
+          },
+          "Data": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 952,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 237272,
+            "peak_sampled_virtual_kb": 5768944,
+            "status": "Passed"
+          },
+          "FieldOwnership": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 405,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 213100,
+            "peak_sampled_virtual_kb": 3540216,
+            "status": "Passed"
+          },
+          "Finite": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 1293,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 315072,
+            "peak_sampled_virtual_kb": 8064280,
+            "status": "Passed"
+          },
+          "Fresh": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 75097,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": null,
+              "heartbeats": null,
+              "recursion_depth": null,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 2007028,
+            "peak_sampled_virtual_kb": 5785940,
+            "status": "Passed"
+          },
+          "LifecycleCheck": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 5456,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 270220,
+            "peak_sampled_virtual_kb": 5772524,
+            "status": "Passed"
+          },
+          "LifecycleData": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 872,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 237232,
+            "peak_sampled_virtual_kb": 4655492,
+            "status": "Passed"
+          },
+          "LifecycleDependency": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 993,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 228436,
+            "peak_sampled_virtual_kb": 4654940,
+            "status": "Passed"
+          },
+          "LifecycleSequence": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 626,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 233308,
+            "peak_sampled_virtual_kb": 4658316,
+            "status": "Passed"
+          },
+          "Verify": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 2013,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 1509464,
+            "peak_sampled_virtual_kb": 5306380,
+            "status": "Passed"
+          }
+        }
+      }
+    },
+    {
+      "case_repeat": "A512-3",
+      "environment": {
+        "affinity": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "cpu_model": "Intel(R) Xeon(R) CPU X5670 @ 2.93GHz",
+        "cpu_model_raw": "Intel(R) Xeon(R) CPU           X5670  @ 2.93GHz",
+        "kernel": "6.18.38",
+        "memory_available_kib": 7488980,
+        "memory_total_kib": 24542280,
+        "os_page_cache": "uncontrolled",
+        "platform": "x86_64-linux",
+        "swap_total_kib": 0,
+        "uid": 1000,
+        "visible_cgroups": [
+          {
+            "cpu.max": "max 100000",
+            "cpuset.cpus.effective": null,
+            "memory.max": "max",
+            "path": "/sys/fs/cgroup/user.slice/user-1000.slice/session-7.scope"
+          },
+          {
+            "cpu.max": "max 100000",
+            "cpuset.cpus.effective": null,
+            "memory.max": "max",
+            "path": "/sys/fs/cgroup/user.slice/user-1000.slice"
+          },
+          {
+            "cpu.max": "max 100000",
+            "cpuset.cpus.effective": null,
+            "memory.max": "max",
+            "path": "/sys/fs/cgroup/user.slice"
+          }
+        ]
+      },
+      "performance": "Passed",
+      "raw_report_sha256": "8d9c23075abea9f68c1601ce42d6ee330ee55cf29d646690bbaa08937ab5c7db",
+      "roles": [
+        {
+          "obligations": {
+            "axiom_audit": "Passed",
+            "concrete_proof": "Passed",
+            "fresh_replay": "Passed",
+            "generic_proof": "Passed",
+            "inventory_comparison": "Passed",
+            "theorem_types": "Passed"
+          },
+          "performance": "Passed",
+          "role": "certification",
+          "status": "Passed",
+          "wall_seconds": 183.96171655703802
+        },
+        {
+          "obligations": {
+            "axiom_audit": "Passed",
+            "concrete_proof": "Passed",
+            "fresh_replay": "Passed",
+            "generic_proof": "Passed",
+            "inventory_comparison": "Passed",
+            "theorem_types": "Passed"
+          },
+          "performance": "Passed",
+          "role": "verification",
+          "status": "Passed",
+          "wall_seconds": 180.83318937802687
+        }
+      ],
+      "semantic_evidence_sha256": "50c96bf206e85011f12b2d8dd21f9a11bfff685ea88a38f3bb06c0d949ffd658",
+      "status": "Passed",
+      "tool_stages": {
+        "certification": {
+          "Audit": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 1943,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 1525316,
+            "peak_sampled_virtual_kb": 6402332,
+            "status": "Passed"
+          },
+          "Check": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 1053,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 304724,
+            "peak_sampled_virtual_kb": 4725764,
+            "status": "Passed"
+          },
+          "Concrete": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 92783,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 2549784,
+            "peak_sampled_virtual_kb": 5715580,
+            "status": "Passed"
+          },
+          "Data": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 952,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 237528,
+            "peak_sampled_virtual_kb": 5768944,
+            "status": "Passed"
+          },
+          "FieldOwnership": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 405,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 213072,
+            "peak_sampled_virtual_kb": 3540216,
+            "status": "Passed"
+          },
+          "Finite": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 1378,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 315764,
+            "peak_sampled_virtual_kb": 8064280,
+            "status": "Passed"
+          },
+          "Fresh": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 74400,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": null,
+              "heartbeats": null,
+              "recursion_depth": null,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 2007588,
+            "peak_sampled_virtual_kb": 5785940,
+            "status": "Passed"
+          },
+          "LifecycleCheck": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 5427,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 269576,
+            "peak_sampled_virtual_kb": 5772524,
+            "status": "Passed"
+          },
+          "LifecycleData": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 951,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 229196,
+            "peak_sampled_virtual_kb": 5768584,
+            "status": "Passed"
+          },
+          "LifecycleDependency": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 992,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 236728,
+            "peak_sampled_virtual_kb": 4655976,
+            "status": "Passed"
+          },
+          "LifecycleSequence": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 607,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 224924,
+            "peak_sampled_virtual_kb": 4657280,
+            "status": "Passed"
+          },
+          "Verify": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 1966,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 1509168,
+            "peak_sampled_virtual_kb": 5314672,
+            "status": "Passed"
+          }
+        },
+        "verification": {
+          "Audit": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 2044,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 1512496,
+            "peak_sampled_virtual_kb": 6401296,
+            "status": "Passed"
+          },
+          "Check": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 990,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 304932,
+            "peak_sampled_virtual_kb": 4725764,
+            "status": "Passed"
+          },
+          "Concrete": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 90910,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 2550468,
+            "peak_sampled_virtual_kb": 5715580,
+            "status": "Passed"
+          },
+          "Data": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 911,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 237620,
+            "peak_sampled_virtual_kb": 5768944,
+            "status": "Passed"
+          },
+          "FieldOwnership": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 405,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 213196,
+            "peak_sampled_virtual_kb": 3540216,
+            "status": "Passed"
+          },
+          "Finite": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 1294,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 313244,
+            "peak_sampled_virtual_kb": 8064280,
+            "status": "Passed"
+          },
+          "Fresh": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 73005,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": null,
+              "heartbeats": null,
+              "recursion_depth": null,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 2008336,
+            "peak_sampled_virtual_kb": 5785940,
+            "status": "Passed"
+          },
+          "LifecycleCheck": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 5476,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 268964,
+            "peak_sampled_virtual_kb": 5772524,
+            "status": "Passed"
+          },
+          "LifecycleData": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 851,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 239496,
+            "peak_sampled_virtual_kb": 5769620,
+            "status": "Passed"
+          },
+          "LifecycleDependency": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 970,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 228492,
+            "peak_sampled_virtual_kb": 4654940,
+            "status": "Passed"
+          },
+          "LifecycleSequence": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 607,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 231380,
+            "peak_sampled_virtual_kb": 4658316,
+            "status": "Passed"
+          },
+          "Verify": {
+            "actual_heartbeats": null,
+            "actual_recursion_depth": null,
+            "elapsed_ms": 2147,
+            "exit_code": 0,
+            "limits": {
+              "address_space_mb": 8192,
+              "heap_mb": 4096,
+              "heartbeats": 200000,
+              "recursion_depth": 4096,
+              "wall_seconds": 180
+            },
+            "measurement_limits": [
+              "VmRSS/VmSize are direct-child 20ms samples, not exact whole-tree peaks",
+              "Heartbeat and recursion consumption are not exposed by the pinned tools",
+              "Lean command flags apply only when supplied; fresh checker has no corresponding elaboration flags",
+              "Wall and address-space limits are per launched process, not whole-chain budgets"
+            ],
+            "peak_sampled_resident_kb": 1509280,
+            "peak_sampled_virtual_kb": 5306380,
+            "status": "Passed"
+          }
+        }
+      }
+    }
+  ],
+  "evaluation_profile_sha256": "d89f382a170001623b16ee6ae95923819a6a8d42c9752484cae59070deed1272",
+  "interpretation": "Three consecutive sequential cold certification/checking pairs each. Minimum references, not a language or capacity ceiling. All12tool stages per role passed; no budget changed.",
+  "status": "Passed mandatory A256/A512 floors; complete60pair corpus still in progress"
+}

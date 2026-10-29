@@ -46,3 +46,24 @@ fn repeat_encoding_is_canonical_and_type_changes_fail() {
     support::rehash(&mut data);
     assert!(Inventory::from_json(&data).is_err());
 }
+
+#[test]
+fn checker_transition_preserves_every_established_reference_semantic_identity() {
+    use std::collections::BTreeMap;
+    let manifest: serde_json::Value =
+        serde_json::from_str(include_str!("../../../models/fixtures/safety-compat.json")).unwrap();
+    let mut cases = BTreeMap::new();
+    let mut historical = false;
+    let mut current = false;
+    for tuple in manifest["tuples"].as_array().unwrap() {
+        historical |= tuple["lowerer_version"] == 2;
+        current |= tuple["lowerer_version"] == 3;
+        for (name, case) in tuple["cases"].as_object().unwrap() {
+            if let Some(old) = cases.insert(name, case) {
+                assert_eq!(old, case, "historical case {name} changed");
+            }
+        }
+    }
+    assert!(historical && current);
+    assert_eq!(behavior_models::safety::FIELD_OWNERSHIP_SEMANTIC_VERSION, 1);
+}

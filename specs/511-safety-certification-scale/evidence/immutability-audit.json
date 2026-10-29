@@ -1,0 +1,15 @@
+{
+  "normal_manifest_unchanged": true,
+  "core_pin_unchanged": true,
+  "historical_safety_tuples_preserved": 6,
+  "new_tuples": 3,
+  "scope": "Published semantic fixtures unchanged; checker-3 tuples appended only.",
+  "protected_user_files_unchanged": [
+    ".gitignore",
+    ".specify/init-options.json",
+    ".specify/integration.json",
+    ".specify/integrations/speckit.manifest.json",
+    "docs/research/0.13.1-core-triage.md",
+    "docs/upstream-feedback-0.13.1.md"
+  ]
+}

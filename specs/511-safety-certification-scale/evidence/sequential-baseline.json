@@ -1,0 +1,206 @@
+{
+  "concurrency": "No overlapping feature heavy proofs, builds or benchmarks. Fast source inspections/fixture construction are not proof runs.",
+  "counter_limits": "Actual heartbeat/depth consumption unavailable. Old released timeout resource records absent; external observations retained.",
+  "format": "behavior.safety_remediation.baseline_runs.v1",
+  "limits": "Published per-stage limits unchanged; external hard observation cap 600 seconds per role, no passing performance claim.",
+  "observations": [
+    {
+      "case": "a1",
+      "certificate_present": true,
+      "proof_sources": [
+        {
+          "bytes": 7466,
+          "path": "target/safety-models/scale-511/baseline-6WFcsY/a1/verification/proof/proof-2068195-0/Concrete.lean",
+          "sha256": "66c876a81c79fcb02eef1c066b3d870c4580e8382adb889e7a346294c77130d1"
+        },
+        {
+          "bytes": 7466,
+          "path": "target/safety-models/scale-511/baseline-6WFcsY/a1/certification/proof/proof-2067719-0/Concrete.lean",
+          "sha256": "66c876a81c79fcb02eef1c066b3d870c4580e8382adb889e7a346294c77130d1"
+        }
+      ],
+      "raw_report": "target/safety-models/scale-511/baseline-6WFcsY/a1/report.json",
+      "raw_sha256": "7abcb5c8bb5e2f42ec3b13d5611a079ce7e914e8035b97fe18422ea99fc70dfe",
+      "stages": [
+        {
+          "diagnostic_codes": [],
+          "error": null,
+          "obligations": {
+            "axiom_audit": "Passed",
+            "concrete_proof": "Passed",
+            "fresh_replay": "Passed",
+            "generic_proof": "Passed",
+            "inventory_comparison": "Passed",
+            "theorem_types": "Passed"
+          },
+          "peak_sampled_tree_resident_kib": 1555256,
+          "peak_sampled_tree_virtual_kib": 6452880,
+          "role": "certification",
+          "status": "Passed",
+          "waited_child_cpu_seconds": 145.856986,
+          "wall_seconds": 164.7886883809697
+        },
+        {
+          "diagnostic_codes": [],
+          "error": null,
+          "obligations": {
+            "axiom_audit": "Passed",
+            "concrete_proof": "Passed",
+            "fresh_replay": "Passed",
+            "generic_proof": "Passed",
+            "inventory_comparison": "Passed",
+            "theorem_types": "Passed"
+          },
+          "peak_sampled_tree_resident_kib": 1558044,
+          "peak_sampled_tree_virtual_kib": 6452892,
+          "role": "verification",
+          "status": "Passed",
+          "waited_child_cpu_seconds": 134.308292,
+          "wall_seconds": 136.47683736192994
+        }
+      ],
+      "status": "Passed",
+      "wall_seconds": 301.2678692720365
+    },
+    {
+      "case": "a256",
+      "certificate_present": false,
+      "proof_sources": [
+        {
+          "bytes": 618012,
+          "path": "target/safety-models/scale-511/baseline-6WFcsY/a256/certification/proof/proof-2069378-0/Concrete.lean",
+          "sha256": "8a4ffbab0ae40d6c49817020a8d320b43c0d24866fd3373568bf9bb6b42ead2e"
+        }
+      ],
+      "raw_report": "target/safety-models/scale-511/baseline-6WFcsY/a256/report.json",
+      "raw_sha256": "7011cf7b75b7cb2242d2e8f6ed58a216730e388cda0b64c55d8e20512c4e8828",
+      "stages": [
+        {
+          "diagnostic_codes": [
+            "SAFETY_PROOF_EXHAUSTED"
+          ],
+          "error": "No checked certificate: Inconclusive",
+          "obligations": {
+            "axiom_audit": "NotRun",
+            "concrete_proof": "NotRun",
+            "fresh_replay": "NotRun",
+            "generic_proof": "Passed",
+            "inventory_comparison": "Passed",
+            "theorem_types": "NotRun"
+          },
+          "peak_sampled_tree_resident_kib": 3249728,
+          "peak_sampled_tree_virtual_kib": 6459044,
+          "role": "certification",
+          "status": "Exhausted",
+          "waited_child_cpu_seconds": 192.649457,
+          "wall_seconds": 194.7334779179655
+        },
+        {
+          "role": "verification",
+          "status": "NotRun"
+        }
+      ],
+      "status": "Exhausted",
+      "wall_seconds": 194.7353860780131
+    },
+    {
+      "case": "a4",
+      "certificate_present": true,
+      "proof_sources": [
+        {
+          "bytes": 14552,
+          "path": "target/safety-models/scale-511/baseline-6WFcsY/a4/verification/proof/proof-2069031-0/Concrete.lean",
+          "sha256": "3f87adeffa151a1c3e6438f4d2a9206fe838917f54132f448ccfaef7ee2b7e12"
+        },
+        {
+          "bytes": 14552,
+          "path": "target/safety-models/scale-511/baseline-6WFcsY/a4/certification/proof/proof-2068558-0/Concrete.lean",
+          "sha256": "3f87adeffa151a1c3e6438f4d2a9206fe838917f54132f448ccfaef7ee2b7e12"
+        }
+      ],
+      "raw_report": "target/safety-models/scale-511/baseline-6WFcsY/a4/report.json",
+      "raw_sha256": "d96ea79ed129df5bdb3dc7114c3c069235d816e7c34d6b8d32ddc1dc30afd7fd",
+      "stages": [
+        {
+          "diagnostic_codes": [],
+          "error": null,
+          "obligations": {
+            "axiom_audit": "Passed",
+            "concrete_proof": "Passed",
+            "fresh_replay": "Passed",
+            "generic_proof": "Passed",
+            "inventory_comparison": "Passed",
+            "theorem_types": "Passed"
+          },
+          "peak_sampled_tree_resident_kib": 1586776,
+          "peak_sampled_tree_virtual_kib": 6452860,
+          "role": "certification",
+          "status": "Passed",
+          "waited_child_cpu_seconds": 141.123457,
+          "wall_seconds": 142.90908335300628
+        },
+        {
+          "diagnostic_codes": [],
+          "error": null,
+          "obligations": {
+            "axiom_audit": "Passed",
+            "concrete_proof": "Passed",
+            "fresh_replay": "Passed",
+            "generic_proof": "Passed",
+            "inventory_comparison": "Passed",
+            "theorem_types": "Passed"
+          },
+          "peak_sampled_tree_resident_kib": 1586720,
+          "peak_sampled_tree_virtual_kib": 6453124,
+          "role": "verification",
+          "status": "Passed",
+          "waited_child_cpu_seconds": 140.56847100000002,
+          "wall_seconds": 142.29852954100352
+        }
+      ],
+      "status": "Passed",
+      "wall_seconds": 285.20998615399003
+    },
+    {
+      "case": "a512",
+      "certificate_present": false,
+      "proof_sources": [
+        {
+          "bytes": 1233739,
+          "path": "target/safety-models/scale-511/baseline-6WFcsY/a512/certification/proof/proof-2069792-0/Concrete.lean",
+          "sha256": "11416cc2a9a9fcd9b5575e317bde1c0500bd0d2464ea694e5ffbbd3ab46fe1d1"
+        }
+      ],
+      "raw_report": "target/safety-models/scale-511/baseline-6WFcsY/a512/report.json",
+      "raw_sha256": "7f03f1335f6d0ef5896bf7a5422fb47b196221251ad7b68cba2a906a0c0a33e2",
+      "stages": [
+        {
+          "diagnostic_codes": [
+            "SAFETY_PROOF_EXHAUSTED"
+          ],
+          "error": "No checked certificate: Inconclusive",
+          "obligations": {
+            "axiom_audit": "NotRun",
+            "concrete_proof": "NotRun",
+            "fresh_replay": "NotRun",
+            "generic_proof": "Passed",
+            "inventory_comparison": "Passed",
+            "theorem_types": "NotRun"
+          },
+          "peak_sampled_tree_resident_kib": 2760448,
+          "peak_sampled_tree_virtual_kib": 6466512,
+          "role": "certification",
+          "status": "Exhausted",
+          "waited_child_cpu_seconds": 193.59356899999997,
+          "wall_seconds": 220.7560540450504
+        },
+        {
+          "role": "verification",
+          "status": "NotRun"
+        }
+      ],
+      "status": "Exhausted",
+      "wall_seconds": 220.75792967504822
+    }
+  ]
+}

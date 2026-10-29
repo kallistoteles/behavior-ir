@@ -1,0 +1,443 @@
+{
+  "cases": [
+    {
+      "behavior_hash": "sha256:90461cc532e5d879537ae59981603e40996bbec9f4cc938f8ac1a02e373bf16b",
+      "case": "ref",
+      "checks": [
+        {
+          "action": {
+            "hash": "sha256:d6e6f086fc601d3aa36827ddb2c83252f7f5cd0b84d511ba1e062ecb0bb84370",
+            "name": "remove_free"
+          },
+          "cached": false,
+          "key": "",
+          "kind": "preservation",
+          "outcome": "inconclusive",
+          "reason": "encoding_error",
+          "subject": {
+            "hash": "sha256:d6e6f086fc601d3aa36827ddb2c83252f7f5cd0b84d511ba1e062ecb0bb84370",
+            "kind": "action",
+            "loc": {
+              "file": "reproduce.py",
+              "line": 33
+            },
+            "name": "remove_free"
+          }
+        }
+      ],
+      "findings": [
+        {
+          "check": "preservation",
+          "cites": {
+            "action": "sha256:d6e6f086fc601d3aa36827ddb2c83252f7f5cd0b84d511ba1e062ecb0bb84370"
+          },
+          "explanation": "preservation of remove_free is inconclusive (encoding_error: cannot encode: complete-world reference obligations for removal target)",
+          "hash": "sha256:f00cbdd2128a504d34f89f93d3f6253bff06bae87111d7db29048607c8ff0164",
+          "kind": "inconclusive",
+          "locs": [
+            {
+              "file": "reproduce.py",
+              "line": 33
+            }
+          ],
+          "severity": "blocking"
+        }
+      ],
+      "runtime": [
+        {
+          "action": "remove_free",
+          "behavior_replay_checked": 1,
+          "behavior_replay_ok": true,
+          "committed": true,
+          "data_replay_ok": true,
+          "occupied": false,
+          "position_after": 1,
+          "position_before": 0,
+          "result": "ALLOW"
+        },
+        {
+          "action": "remove_free",
+          "behavior_replay_checked": 0,
+          "behavior_replay_ok": true,
+          "committed": false,
+          "data_replay_ok": true,
+          "occupied": true,
+          "position_after": 0,
+          "position_before": 0,
+          "result": "DENY"
+        }
+      ],
+      "verification": "not_verified",
+      "wire_sha256": "7bf8392612b94ac24892c1dad2947d1fd07a1be7d3db88c42d158f5d655bcdf6"
+    },
+    {
+      "behavior_hash": "sha256:5df3b5916ba3864b8ab3a6b1a3c6efbd1f9d83c99601fb45a521544fe15b4629",
+      "case": "ref_unguarded",
+      "checks": [
+        {
+          "action": {
+            "hash": "sha256:84afa40fec3afb6d81ecab01fb8fcb35b233a18755a77f0b75a99975c5d1bfb6",
+            "name": "remove_without_guard"
+          },
+          "cached": false,
+          "key": "",
+          "kind": "preservation",
+          "outcome": "inconclusive",
+          "reason": "encoding_error",
+          "subject": {
+            "hash": "sha256:84afa40fec3afb6d81ecab01fb8fcb35b233a18755a77f0b75a99975c5d1bfb6",
+            "kind": "action",
+            "loc": {
+              "file": "reproduce.py",
+              "line": 39
+            },
+            "name": "remove_without_guard"
+          }
+        }
+      ],
+      "findings": [
+        {
+          "check": "preservation",
+          "cites": {
+            "action": "sha256:84afa40fec3afb6d81ecab01fb8fcb35b233a18755a77f0b75a99975c5d1bfb6"
+          },
+          "explanation": "preservation of remove_without_guard is inconclusive (encoding_error: cannot encode: complete-world reference obligations for removal target)",
+          "hash": "sha256:00b29c272325492801fa3fd88fc28c52f4a001de97b1a2997f34ea9e9313ebd3",
+          "kind": "inconclusive",
+          "locs": [
+            {
+              "file": "reproduce.py",
+              "line": 39
+            }
+          ],
+          "severity": "blocking"
+        }
+      ],
+      "runtime": [
+        {
+          "action": "remove_without_guard",
+          "behavior_replay_checked": 1,
+          "behavior_replay_ok": true,
+          "committed": true,
+          "data_replay_ok": true,
+          "occupied": false,
+          "position_after": 1,
+          "position_before": 0,
+          "result": "ALLOW"
+        },
+        {
+          "action": "remove_without_guard",
+          "behavior_replay_checked": 0,
+          "behavior_replay_ok": true,
+          "committed": false,
+          "data_replay_ok": true,
+          "occupied": true,
+          "position_after": 0,
+          "position_before": 0,
+          "result": "DENY"
+        }
+      ],
+      "verification": "not_verified",
+      "wire_sha256": "a7fd8bbbfb6a1738ae661b2e76e591f45138e9a160fe733f5d3aaafeeb83821e"
+    },
+    {
+      "behavior_hash": "sha256:9a34274d13b373b4df3e56a6557ba5eac7e3b4972ae31391cf8caecddb9a740b",
+      "case": "id",
+      "checks": [],
+      "findings": [],
+      "runtime": [
+        {
+          "action": "remove_free",
+          "behavior_replay_checked": 1,
+          "behavior_replay_ok": true,
+          "committed": true,
+          "data_replay_ok": true,
+          "occupied": false,
+          "position_after": 1,
+          "position_before": 0,
+          "result": "ALLOW"
+        },
+        {
+          "action": "remove_free",
+          "behavior_replay_checked": 1,
+          "behavior_replay_ok": true,
+          "committed": true,
+          "data_replay_ok": true,
+          "occupied": true,
+          "position_after": 1,
+          "position_before": 0,
+          "result": "ALLOW"
+        }
+      ],
+      "verification": "verified",
+      "wire_sha256": "fbf6da348b6983df113b1e65729363b80fc52ac12b75a6a13ec69d2c04486af6"
+    },
+    {
+      "behavior_hash": "sha256:f55389152182850ccb37e0890d47a70ba39c3142dc246da7cea0ef94c4c138fc",
+      "case": "no_holder",
+      "checks": [],
+      "findings": [],
+      "runtime": [
+        {
+          "action": "remove_free",
+          "behavior_replay_checked": 1,
+          "behavior_replay_ok": true,
+          "committed": true,
+          "data_replay_ok": true,
+          "occupied": false,
+          "position_after": 1,
+          "position_before": 0,
+          "result": "ALLOW"
+        }
+      ],
+      "verification": "verified",
+      "wire_sha256": "c41c20d6a0cfbb5aed178cd211c27ba6ff4790b41f2a59d408a45cdbd0234030"
+    }
+  ],
+  "mixed": [
+    {
+      "action": "remove_and_create_reference",
+      "behavior_hash": "sha256:1ff6e15ea35446c73acb04048c002f93bb5d696a20e3bfbd004c4eda41ab40dc",
+      "behavior_replay_ok": true,
+      "checks": [
+        {
+          "action": {
+            "hash": "sha256:0c2f204076b4f2b44c8ea65e836515bd9cac17578cf076e3eece77d8a865cb13",
+            "name": "remove_and_create_reference"
+          },
+          "cached": false,
+          "key": "",
+          "kind": "preservation",
+          "outcome": "inconclusive",
+          "reason": "encoding_error",
+          "subject": {
+            "hash": "sha256:0c2f204076b4f2b44c8ea65e836515bd9cac17578cf076e3eece77d8a865cb13",
+            "kind": "action",
+            "loc": {
+              "file": "reproduce.py",
+              "line": 44
+            },
+            "name": "remove_and_create_reference"
+          }
+        }
+      ],
+      "committed": false,
+      "data_replay_ok": true,
+      "findings": [
+        {
+          "check": "preservation",
+          "cites": {
+            "action": "sha256:0c2f204076b4f2b44c8ea65e836515bd9cac17578cf076e3eece77d8a865cb13"
+          },
+          "explanation": "preservation of remove_and_create_reference is inconclusive (encoding_error: cannot encode: complete-world reference obligations for removal target)",
+          "hash": "sha256:1ac24714b542dc9d085489d0ac9e6e0c3e8a03e199c7a0586a107488605d6832",
+          "kind": "inconclusive",
+          "locs": [
+            {
+              "file": "reproduce.py",
+              "line": 44
+            }
+          ],
+          "severity": "blocking"
+        }
+      ],
+      "position": 0,
+      "runtime_result": "DENY",
+      "verification": "not_verified"
+    },
+    {
+      "action": "remove_both",
+      "behavior_hash": "sha256:e27c723cbfbeca79d013787dfdc2905d3c18e82a6ff790a6c69c8763526982a3",
+      "behavior_replay_ok": true,
+      "checks": [
+        {
+          "action": {
+            "hash": "sha256:41f1f4c2eff97b62fb32c980504339d73296421bf6afa4d842dba3cadce3ffd8",
+            "name": "remove_both"
+          },
+          "cached": false,
+          "key": "",
+          "kind": "preservation",
+          "outcome": "inconclusive",
+          "reason": "encoding_error",
+          "subject": {
+            "hash": "sha256:41f1f4c2eff97b62fb32c980504339d73296421bf6afa4d842dba3cadce3ffd8",
+            "kind": "action",
+            "loc": {
+              "file": "reproduce.py",
+              "line": 50
+            },
+            "name": "remove_both"
+          }
+        }
+      ],
+      "committed": true,
+      "data_replay_ok": true,
+      "findings": [
+        {
+          "check": "preservation",
+          "cites": {
+            "action": "sha256:41f1f4c2eff97b62fb32c980504339d73296421bf6afa4d842dba3cadce3ffd8"
+          },
+          "explanation": "preservation of remove_both is inconclusive (encoding_error: cannot encode: complete-world reference obligations for removal target)",
+          "hash": "sha256:fbd4492b44a8b31ec79e91f2e450becb13151591aa0f50b1f8d69e0c348c1a0c",
+          "kind": "inconclusive",
+          "locs": [
+            {
+              "file": "reproduce.py",
+              "line": 50
+            }
+          ],
+          "severity": "blocking"
+        }
+      ],
+      "position": 1,
+      "runtime_result": "ALLOW",
+      "verification": "not_verified"
+    },
+    {
+      "action": "retarget_then_remove",
+      "behavior_hash": "sha256:eee87ef95339bd74df8cb753ddcf8d719de3a5b8eb3e9cdc4ab46227468e7859",
+      "behavior_replay_ok": true,
+      "checks": [
+        {
+          "action": {
+            "hash": "sha256:ac12f0ee5a1bed3869a70a40d2af317f5fded06475427d3895e73b537d76eb74",
+            "name": "retarget_then_remove"
+          },
+          "cached": false,
+          "key": "",
+          "kind": "preservation",
+          "outcome": "inconclusive",
+          "reason": "encoding_error",
+          "subject": {
+            "hash": "sha256:ac12f0ee5a1bed3869a70a40d2af317f5fded06475427d3895e73b537d76eb74",
+            "kind": "action",
+            "loc": {
+              "file": "reproduce.py",
+              "line": 57
+            },
+            "name": "retarget_then_remove"
+          }
+        }
+      ],
+      "committed": true,
+      "data_replay_ok": true,
+      "findings": [
+        {
+          "check": "preservation",
+          "cites": {
+            "action": "sha256:ac12f0ee5a1bed3869a70a40d2af317f5fded06475427d3895e73b537d76eb74"
+          },
+          "explanation": "preservation of retarget_then_remove is inconclusive (encoding_error: cannot encode: complete-world reference obligations for removal target)",
+          "hash": "sha256:c071ec875a3d6fbc833261873e78352d39be4e47b76f698b055a20488dae2936",
+          "kind": "inconclusive",
+          "locs": [
+            {
+              "file": "reproduce.py",
+              "line": 57
+            }
+          ],
+          "severity": "blocking"
+        }
+      ],
+      "position": 1,
+      "runtime_result": "ALLOW",
+      "verification": "not_verified"
+    }
+  ],
+  "positive_smt": {
+    "attestation_version": "1",
+    "behavior_version": "sha256:0e3475c679437218fbd8a18e90622c60c9a00feef43335bade5599275251eca6",
+    "checks": [
+      {
+        "action": {
+          "hash": "sha256:d0a4c9fa1033078412b614a34534654b4c22110558e24a04083ca6f1a4f303a5",
+          "name": "update"
+        },
+        "cached": false,
+        "key": "sha256:49f3d5ddcaedb9753b505357d16c5c6db26b66ed9804f7f30057cb84ed170cfc",
+        "kind": "preservation",
+        "outcome": "proven",
+        "subject": {
+          "hash": "sha256:5ea33df0b7276088d3e9b52891e5624d35ab67d7a05aab2be15d70186909533a",
+          "kind": "constraint",
+          "loc": {
+            "file": "reproduce.py",
+            "line": 70
+          },
+          "name": "nonnegative",
+          "param": "target"
+        }
+      }
+    ],
+    "findings": [],
+    "hash": "sha256:8441aaf8ba296748844393a1f5cd0c830f9a43bdb25997afaefbccf44f5eb17b",
+    "profile": {
+      "checks": [
+        "preservation"
+      ],
+      "hash": "sha256:e5d428c2ea0aae1edb2c0c222ed8972e3ccdd9a015f51547326de4a9c2b6ef70",
+      "rlimit": 20000000,
+      "wall_clock_guard_ms": 60000
+    },
+    "result": "verified",
+    "solver_version": "z3 4.16.0",
+    "verifier_version": "0.10.0"
+  },
+  "versions": {
+    "accepted_wire_ir": [
+      "0.4",
+      "0.5",
+      "0.6",
+      "0.7",
+      "0.8"
+    ],
+    "binding": {
+      "python": "0.14.0"
+    },
+    "command_occurrence_domain": "behavior.command_occurrence.v1",
+    "command_stream": "behavior.command_stream_request.v1",
+    "core": {
+      "commit": "6b93898a9375113f7a8946f23ab5535319b6f5d6",
+      "version": "0.15.0"
+    },
+    "engine": "0.15.0",
+    "read_records": [
+      "behavior.read_record.v1",
+      "behavior.read_record.v2"
+    ],
+    "records": [
+      "0.4",
+      "0.5",
+      "0.6",
+      "0.7",
+      "0.8"
+    ],
+    "store_documents": [
+      "behavior.entity_content.v1",
+      "behavior.entity_version.v1",
+      "behavior.state.v1",
+      "behavior.evidence_policy.v1",
+      "behavior.store_genesis.v1",
+      "behavior.commit_bundle.v1",
+      "behavior.transition_record.v1",
+      "behavior.replay_report.v1",
+      "behavior.migration_bundle.v1",
+      "behavior.store_genesis.v2",
+      "behavior.commit_bundle.v2",
+      "behavior.migration_bundle.v2",
+      "behavior.transition_record.v2"
+    ],
+    "verifier": "0.10.0",
+    "wire_ir": [
+      "0.1",
+      "0.2",
+      "0.3",
+      "0.4",
+      "0.5",
+      "0.6",
+      "0.7"
+    ]
+  }
+}

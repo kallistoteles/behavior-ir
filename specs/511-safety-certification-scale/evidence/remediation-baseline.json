@@ -1,0 +1,124 @@
+{
+  "actual_branch": "510-safety-models",
+  "core_pin": {
+    "assets": {
+      "cli": {
+        "file": "behavior-0.15.0-x86_64-linux-musl",
+        "sha256": "89668836823d9be2999acb60864788aea4f09515772d292fa91ff87831f8891b"
+      },
+      "conformance": {
+        "file": "behavior-conformance-0.15.0.tar.gz",
+        "sha256": "d1e50c2c6c87b7ac2a3d10b40101a048d24de989c55514fceeb1400edec5d8f7"
+      }
+    },
+    "commit": "6b93898a9375113f7a8946f23ab5535319b6f5d6",
+    "format": "behavior.core_pin.v1",
+    "repository": "https://github.com/kallistoteles/behavior-ir-core",
+    "tag": "v0.15.0",
+    "version": "0.15.0"
+  },
+  "format": "behavior.safety_remediation.baseline.v1",
+  "free_disk_bytes": 7534600192,
+  "platform": "Linux-6.18.38-x86_64-with-glibc2.42",
+  "policy_semantics": 1,
+  "preexisting_surface_gate_failure": {
+    "cause": "Untracked user documentation has no ownership rule",
+    "files": [
+      "docs/upstream-feedback-0.13.1.md",
+      "docs/research/0.13.1-core-triage.md"
+    ],
+    "preserve_files": true
+  },
+  "proofs_run": false,
+  "safety_checker_version": 2,
+  "source_commit": "21ba441299998ca0c6baf53a5178d1b591216b1f",
+  "source_pins": {
+    "Cargo.lock": "b57e4b384bd73975294475341be122dba85779db4687f1692899255e3f389ff0",
+    "Cargo.toml": "4acee8a9ace74055be15f493651c632b9407dd395065dc644dc2238f23662d78",
+    "flake.lock": "ed16bd3f98b17e19e07d6ecafecdd20897024a170f7f3727ed6565c582a01bbe",
+    "rust-toolchain.toml": "7553618f800829444096beea3dce84c3d07585efda504c19adb6787369bbd9e8"
+  },
+  "toolchain": {
+    "flake_lock_sha256": "ed16bd3f98b17e19e07d6ecafecdd20897024a170f7f3727ed6565c582a01bbe",
+    "profiles": {
+      "aarch64-linux": {
+        "drvPath": "/nix/store/2sb6axlw5zc7m60nvzcilcvp05qa8b23-lean4-4.30.0.drv",
+        "outPath": "/nix/store/gzdr4fry7v3r7jl60f0902aqcbaiy3q1-lean4-4.30.0",
+        "version": "4.30.0"
+      },
+      "x86_64-linux": {
+        "drvPath": "/nix/store/6wy0z2zc7gl2i6vxzcw59i9pdhk2g6b8-lean4-4.30.0.drv",
+        "outPath": "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0",
+        "version": "4.30.0"
+      }
+    }
+  },
+  "user_work_sha256": {
+    ".gitignore": "70f0b9eb61eb8a1772ee8e2b3cbb4bdf06b0398c9e8445dde1da06e0171addc0",
+    ".specify/init-options.json": "d313922d1f6d97e59d044d34de5e995afd2a6b4c06679712c4addb02d6667968",
+    ".specify/integration.json": "71fc49e79c7b9e3e9ff66662df022e688870c8d16902f00462aa86a9929fe815",
+    ".specify/integrations/speckit.manifest.json": "96a74e047c3a959a4ef26cf4e4b73122aacc74c370dd6423777b40672db67f53",
+    "docs/research/0.13.1-core-triage.md": "c4188121056a3771afcd243c60256a6825134b0b8258bb2991ef573ff64dc806",
+    "docs/upstream-feedback-0.13.1.md": "806446c24417d67592b6e89bc29d639c3851be600fcbf932f41ec5cc36367c54"
+  },
+  "versions": {
+    "accepted_wire_ir": [
+      "0.4",
+      "0.5",
+      "0.6",
+      "0.7",
+      "0.8"
+    ],
+    "binding": {
+      "python": "0.13.1"
+    },
+    "command_occurrence_domain": "behavior.command_occurrence.v1",
+    "command_stream": "behavior.command_stream_request.v1",
+    "core": {
+      "commit": "6b93898a9375113f7a8946f23ab5535319b6f5d6",
+      "version": "0.15.0"
+    },
+    "engine": "0.15.0",
+    "read_records": [
+      "behavior.read_record.v1",
+      "behavior.read_record.v2"
+    ],
+    "records": [
+      "0.4",
+      "0.5",
+      "0.6",
+      "0.7",
+      "0.8"
+    ],
+    "store_documents": [
+      "behavior.entity_content.v1",
+      "behavior.entity_version.v1",
+      "behavior.state.v1",
+      "behavior.evidence_policy.v1",
+      "behavior.store_genesis.v1",
+      "behavior.commit_bundle.v1",
+      "behavior.transition_record.v1",
+      "behavior.replay_report.v1",
+      "behavior.migration_bundle.v1",
+      "behavior.store_genesis.v2",
+      "behavior.commit_bundle.v2",
+      "behavior.migration_bundle.v2",
+      "behavior.transition_record.v2"
+    ],
+    "verifier": "0.10.0",
+    "wire_ir": [
+      "0.1",
+      "0.2",
+      "0.3",
+      "0.4",
+      "0.5",
+      "0.6",
+      "0.7"
+    ]
+  },
+  "wheel": {
+    "installed_distribution": "{\"archive_info\": {\"hash\": \"sha256=1e3bd82a54863cc4fa6d035e34891012c14b024bfbbd5cea3ea251e43dbf9a0d\", \"hashes\": {\"sha256\": \"1e3bd82a54863cc4fa6d035e34891012c14b024bfbbd5cea3ea251e43dbf9a0d\"}}, \"url\": \"file:///tmp/behavior-0131-verify.yY3Na5/published/behavior-0.13.1-cp313-abi3-manylinux_2_28_x86_64.whl\"}",
+    "path": "/tmp/behavior-0131-verify.yY3Na5/published/behavior-0.13.1-cp313-abi3-manylinux_2_28_x86_64.whl",
+    "sha256": "1e3bd82a54863cc4fa6d035e34891012c14b024bfbbd5cea3ea251e43dbf9a0d"
+  }
+}

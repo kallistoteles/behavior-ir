@@ -1,0 +1,56 @@
+{
+  "attestation_version": "1",
+  "behavior_version": "sha256:eee87ef95339bd74df8cb753ddcf8d719de3a5b8eb3e9cdc4ab46227468e7859",
+  "checks": [
+    {
+      "action": {
+        "hash": "sha256:ac12f0ee5a1bed3869a70a40d2af317f5fded06475427d3895e73b537d76eb74",
+        "name": "retarget_then_remove"
+      },
+      "cached": false,
+      "key": "",
+      "kind": "preservation",
+      "outcome": "inconclusive",
+      "reason": "encoding_error",
+      "subject": {
+        "hash": "sha256:ac12f0ee5a1bed3869a70a40d2af317f5fded06475427d3895e73b537d76eb74",
+        "kind": "action",
+        "loc": {
+          "file": "reproduce.py",
+          "line": 57
+        },
+        "name": "retarget_then_remove"
+      }
+    }
+  ],
+  "findings": [
+    {
+      "check": "preservation",
+      "cites": {
+        "action": "sha256:ac12f0ee5a1bed3869a70a40d2af317f5fded06475427d3895e73b537d76eb74"
+      },
+      "explanation": "preservation of retarget_then_remove is inconclusive (encoding_error: cannot encode: complete-world reference obligations for removal target)",
+      "hash": "sha256:c071ec875a3d6fbc833261873e78352d39be4e47b76f698b055a20488dae2936",
+      "kind": "inconclusive",
+      "locs": [
+        {
+          "file": "reproduce.py",
+          "line": 57
+        }
+      ],
+      "severity": "blocking"
+    }
+  ],
+  "hash": "sha256:56d02ea4bb414406e4495f575895a2417216ba9d6e30c1ed2222a999aebdf9c3",
+  "profile": {
+    "checks": [
+      "preservation"
+    ],
+    "hash": "sha256:e5d428c2ea0aae1edb2c0c222ed8972e3ccdd9a015f51547326de4a9c2b6ef70",
+    "rlimit": 20000000,
+    "wall_clock_guard_ms": 60000
+  },
+  "result": "not_verified",
+  "solver_version": "z3 4.16.0",
+  "verifier_version": "0.10.0"
+}

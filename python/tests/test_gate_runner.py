@@ -61,6 +61,11 @@ def _model_tree(tmp_path: Path) -> None:
     tests = tmp_path / "python/tests"
     tests.mkdir(parents=True)
     (tests / "test_binding.py").write_text("def test_binding():\n    assert True\n")
+    scale = tmp_path / "specs/511-safety-certification-scale/experiments/tests"
+    scale.mkdir(parents=True)
+    (scale / "test_fast_scale.py").write_text("def test_fast_scale_control():\n    assert True\n")
+    (scale / "test_scale_acceptance.py").write_text('raise AssertionError("full-scale must not be collected")\n')
+
 
 
 def test_gate_order_is_deterministic(tmp_path: Path) -> None:
@@ -72,8 +77,9 @@ def test_gate_order_is_deterministic(tmp_path: Path) -> None:
         "cargo test -q -p behavior-models",
         "maturin develop -q",
         "check-safety-proofs.sh",
-        "python -m pytest -q python/tests models --ignore=models/examples/purchase_approval "
-        "--ignore=models/examples/work_queue",
+        "python -m pytest -q python/tests models specs/511-safety-certification-scale/experiments/tests "
+        "--ignore=specs/511-safety-certification-scale/experiments/tests/test_scale_acceptance.py "
+        "--ignore=models/examples/purchase_approval --ignore=models/examples/work_queue",
         "conformance.sh 506", "conformance.sh 507 quick", "mypy",
         "python3 scripts/check-models-compat.py",
         "determinism-check.sh", "python3 scripts/check-ownership.py", "check-terms.sh",
@@ -106,6 +112,8 @@ def test_shared_gate_collects_the_actual_model_tests(tmp_path: Path) -> None:
                  "test_the_core_admits_it_without_knowing_the_model",
                  "test_lowering_is_deterministic"):
         assert name in result.stdout
+    assert "test_fast_scale_control" in result.stdout
+    assert "full-scale must not be collected" not in result.stdout
 
 
 def test_broken_lowering_fails_the_shared_gate(tmp_path: Path) -> None:

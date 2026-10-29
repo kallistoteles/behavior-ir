@@ -1,0 +1,17 @@
+{
+  "results": [
+    {
+      "test": "encoding-red-corrected",
+      "log": "\nrunning 1 test\nscalable_encoding_preserves_full_keys_and_exact_payload_at_large_sizes --- FAILED\n\nfailures:\n\n---- scalable_encoding_preserves_full_keys_and_exact_payload_at_large_sizes stdout ----\n\nthread 'scalable_encoding_preserves_full_keys_and_exact_payload_at_large_sizes' (2080906) panicked at crates/behavior-models/tests/safety_input.rs:63:5:\nassertion failed: source.contains(\"noncomputable def data : Safety.ModuleData\")\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n\n\nfailures:\n    scalable_encoding_preserves_full_keys_and_exact_payload_at_large_sizes\n\ntest result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.47s\n\nerror: test failed, to rerun pass `-p behavior-models --test safety_input`\n"
+    },
+    {
+      "test": "versions-red",
+      "log": "\nrunning 1 test\nlowered_analysis_is_complete_data_and_never_a_certificate --- FAILED\n\nfailures:\n\n---- lowered_analysis_is_complete_data_and_never_a_certificate stdout ----\n\nthread 'lowered_analysis_is_complete_data_and_never_a_certificate' (2081016) panicked at crates/behavior-models/tests/safety_evidence.rs:23:5:\nassertion `left == right` failed\n  left: Number(2)\n right: 3\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n\n\nfailures:\n    lowered_analysis_is_complete_data_and_never_a_certificate\n\ntest result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s\n\nerror: test failed, to rerun pass `-p behavior-models --test safety_evidence`\n"
+    },
+    {
+      "test": "witness-red",
+      "log": "\nrunning 1 test\nindependent_proposals_are_data_and_have_strict_complete_tree_transport --- FAILED\n\nfailures:\n\n---- independent_proposals_are_data_and_have_strict_complete_tree_transport stdout ----\n\nthread 'independent_proposals_are_data_and_have_strict_complete_tree_transport' (2081154) panicked at crates/behavior-models/tests/safety_correspondence.rs:699:55:\ncalled `Result::unwrap()` on an `Err` value: SafetyError { code: \"SAFETY_INVALID_BUNDLE\", detail: \"Expected the fixed versioned Safety bundle schema; proof code is not an input\", action: None, entity: None, field: None, context: DiagnosticContext { dependency: None, occurrence: 18446744073709551615 } }\nnote: run with `RUST_BACKTRACE=1` environment variable to display a backtrace\n\n\nfailures:\n    independent_proposals_are_data_and_have_strict_complete_tree_transport\n\ntest result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9 filtered out; finished in 0.00s\n\nerror: test failed, to rerun pass `-p behavior-models --test safety_correspondence`\n"
+    }
+  ],
+  "discarded_fixture_failure": "encoding-red.log contained duplicate semantic actions; corrected with distinct literal values before intended red"
+}

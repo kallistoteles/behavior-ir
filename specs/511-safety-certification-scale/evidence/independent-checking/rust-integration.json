@@ -1,0 +1,29 @@
+{
+  "results": [
+    {
+      "test": "concrete-integration",
+      "path": "target/safety-models/scale-511/concrete-integration.log",
+      "sha256": "cb2354c35deea696659580fef504f944ad7dc25e93dfcbe63d2d183454fae481",
+      "log": "\nrunning 5 tests\n.....\ntest result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 136.50s\n\n\nrunning 1 test\n.\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 79.97s\n\n\nrunning 7 tests\n.../home/kalle/repos/behaviour-ir/crates/behavior-models/../../target/safety-models/fo/safety-proof-control-2083537/proof-2083537-0/OwnershipMutations.lean:51:8: warning: declaration uses `sorry`\n/home/kalle/repos/behaviour-ir/crates/behavior-models/../../target/safety-models/fo/safety-proof-control-2083537/proof-2083537-0/OwnershipMutations.lean:52:31: warning: `Lean.trustCompiler` has been deprecated: in-kernel native reduction is deprecated; assert native evaluations with axioms instead\n.AuthorityMutation.lean:35:60: error: Tactic `decide` proved that the proposition\n  Safety.checkAuthority data = true\nis false\nIdentityMutation.lean:39:792: error: Application type mismatch: The argument\n  rfl\nhas type\n  ?m.1222 = ?m.1222\nbut is expected to have type\n  data.behaviorHash =\n    let y :=\n      let y :=\n        let y :=\n          let y := [56, 98, 52, 50, 51];\n          98 :: 102 :: 97 :: 50 :: y;\n        let y := 98 :: 100 :: 51 :: 55 :: 54 :: y;\n        100 :: 55 :: 50 :: 100 :: y;\n      let y :=\n        let y := 48 :: 48 :: 56 :: 102 :: 98 :: y;\n        99 :: 51 :: 101 :: 100 :: y;\n      let y := 56 :: 50 :: 101 :: 56 :: 97 :: y;\n      48 :: 49 :: 101 :: 53 :: y;\n    let y :=\n      let y :=\n        let y := 51 :: 55 :: 97 :: 102 :: 51 :: y;\n        49 :: 50 :: 98 :: 98 :: y;\n      let y := 102 :: 51 :: 55 :: 54 :: 98 :: y;\n      57 :: 48 :: 49 :: 98 :: y;\n    let y :=\n      let y := 99 :: 101 :: 49 :: 55 :: 97 :: y;\n      99 :: 55 :: 51 :: 56 :: y;\n    let y := 53 :: 54 :: 58 :: 48 :: y;\n    115 :: 104 :: 97 :: 50 :: y\nin the application\n  And.intro rfl\n...\ntest result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 71.16s\n\n"
+    },
+    {
+      "test": "independent-witness-integration",
+      "path": "target/safety-models/scale-511/independent-witness-integration.log",
+      "sha256": "16185d5714b108e4d7440e2e46298cac57491757765419212ee90a2773bc2bdc",
+      "log": "\nrunning 2 tests\n..\ntest result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 29 filtered out; finished in 110.71s\n\n"
+    },
+    {
+      "test": "encoding-and-parser-green",
+      "path": "target/safety-models/scale-511/encoding-and-parser-green.log",
+      "sha256": "4f5a80b96315b3ebbeb7e14199a65b28143c2c26187ff0265590b7b336dd190f",
+      "log": "\nrunning 10 tests\n..........\ntest result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.28s\n\n\nrunning 4 tests\n....\ntest result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.54s\n\n"
+    },
+    {
+      "test": "clippy",
+      "path": "target/safety-models/scale-511/clippy.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log": ""
+    }
+  ],
+  "note": "Independent nonbalanced witness passed the complete checker; incomplete/truncated/reordered witnesses produced no certificate."
+}

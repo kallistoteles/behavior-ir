@@ -1,0 +1,127 @@
+{
+  "passed": true,
+  "candidate_manifest_sha256": "c6e392791cfcfe3b41e4fbfe34a59b5271ef3dbac7759b78f7152922a61d6ba8",
+  "cases": [
+    {
+      "case": "A1",
+      "evidence_sha256": "28244872fe7abba7da2e786c141ee577db8fd9d3a1402571ab87b7b2195416b2",
+      "producer_consumer_and_repeats_identical": true,
+      "repetitions": 3
+    },
+    {
+      "case": "A4",
+      "evidence_sha256": "35bd4cb71b52702a3f648cbc6ee2609b013589e550ea391a964adce300705f28",
+      "producer_consumer_and_repeats_identical": true,
+      "repetitions": 3
+    },
+    {
+      "case": "A16",
+      "evidence_sha256": "bee27df21492948a0cee05a5dc65847bad7fa4c3780c5157d67e79d83a04ffc8",
+      "producer_consumer_and_repeats_identical": true,
+      "repetitions": 3
+    },
+    {
+      "case": "A64",
+      "evidence_sha256": "5f23bf4c864afd8397d4800f3c7246725e3a2b01de337feb8f80be0604ab5a73",
+      "producer_consumer_and_repeats_identical": true,
+      "repetitions": 3
+    },
+    {
+      "case": "A256",
+      "evidence_sha256": "2b17bf086e758550bc0b94d6993c9002ce6047eebc99b86ce2251885a3749f24",
+      "producer_consumer_and_repeats_identical": true,
+      "repetitions": 3
+    },
+    {
+      "case": "A512",
+      "evidence_sha256": "50c96bf206e85011f12b2d8dd21f9a11bfff685ea88a38f3bb06c0d949ffd658",
+      "producer_consumer_and_repeats_identical": true,
+      "repetitions": 3
+    },
+    {
+      "case": "O4",
+      "evidence_sha256": "aefd5c556f1ab14d82e9e80e0bc4ed262e30d76e5760a672a05f2b607dbe531f",
+      "producer_consumer_and_repeats_identical": true,
+      "repetitions": 3
+    },
+    {
+      "case": "O8",
+      "evidence_sha256": "485d9706350462335f1b44db3da7962ae243dc6d152b589e5753243626c988ed",
+      "producer_consumer_and_repeats_identical": true,
+      "repetitions": 3
+    },
+    {
+      "case": "P2",
+      "evidence_sha256": "d66f4c8373790a7415c151d842c70ae41a3d1ad39bea912affdbe1d63dd95ce7",
+      "producer_consumer_and_repeats_identical": true,
+      "repetitions": 3
+    },
+    {
+      "case": "P4",
+      "evidence_sha256": "9701cb7e772b1a4a66b946385faf6559dd852508c879fc8599affd3f6ac37ea6",
+      "producer_consumer_and_repeats_identical": true,
+      "repetitions": 3
+    },
+    {
+      "case": "P8",
+      "evidence_sha256": "6a44da209a56ef6d25938935761c50427141fb5d0ef7c2ed3f33124faafe5bb2",
+      "producer_consumer_and_repeats_identical": true,
+      "repetitions": 3
+    },
+    {
+      "case": "D1",
+      "evidence_sha256": "4b2b76f373644a9e42a73b518ea8086f6c3d3dbf1c54806e209013d6e964aade",
+      "producer_consumer_and_repeats_identical": true,
+      "repetitions": 3
+    },
+    {
+      "case": "D2",
+      "evidence_sha256": "40c09d926f4fecf2d44904f73e431679eb70c88f9c268ccdfbde0f91fe3c3b53",
+      "producer_consumer_and_repeats_identical": true,
+      "repetitions": 3
+    },
+    {
+      "case": "D4",
+      "evidence_sha256": "6e18034c8d14b6e964f0a63a6285fed031e6626f9dfa4afaa79fe4045a61c362",
+      "producer_consumer_and_repeats_identical": true,
+      "repetitions": 3
+    },
+    {
+      "case": "G1",
+      "evidence_sha256": "1b60880063a23541aa35b8acd5717e94c196de065f040ef3236c9acf174dcde2",
+      "producer_consumer_and_repeats_identical": true,
+      "repetitions": 3
+    },
+    {
+      "case": "G3",
+      "evidence_sha256": "3267fd65eb3f19dc7892aa051049333468cc3aee820d591d7b71947751e91c5a",
+      "producer_consumer_and_repeats_identical": true,
+      "repetitions": 3
+    },
+    {
+      "case": "B32",
+      "evidence_sha256": "9a9d551f24d664609b03733214935ce45726402ebeb11f05687a5f25d03dee92",
+      "producer_consumer_and_repeats_identical": true,
+      "repetitions": 3
+    },
+    {
+      "case": "B128",
+      "evidence_sha256": "67555ae887e25aa5636cb001413f38865ac85817535db70103b8844ec5489a23",
+      "producer_consumer_and_repeats_identical": true,
+      "repetitions": 3
+    },
+    {
+      "case": "M2",
+      "evidence_sha256": "c62e04777bb73cfffd6d6174987c2b116b85fa85d93dcf19f2dfec5572d204df",
+      "producer_consumer_and_repeats_identical": true,
+      "repetitions": 3
+    },
+    {
+      "case": "M4",
+      "evidence_sha256": "418604aa3887c320def61b62976764544ed44cb3eda7116bdd0f32de2024a357",
+      "producer_consumer_and_repeats_identical": true,
+      "repetitions": 3
+    }
+  ],
+  "scope": "All20identical requests repeated3times; complete producer/checker evidence identities equal. Other valid witnesses need not identify the same artifact. Independently constructed skewed witness and label/order regression were checked in full Rust gates using same frozen checker source identity."
+}

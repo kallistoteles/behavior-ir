@@ -1,0 +1,39 @@
+{
+  "attestation_version": "1",
+  "behavior_version": "sha256:0e3475c679437218fbd8a18e90622c60c9a00feef43335bade5599275251eca6",
+  "checks": [
+    {
+      "action": {
+        "hash": "sha256:d0a4c9fa1033078412b614a34534654b4c22110558e24a04083ca6f1a4f303a5",
+        "name": "update"
+      },
+      "cached": false,
+      "key": "sha256:49f3d5ddcaedb9753b505357d16c5c6db26b66ed9804f7f30057cb84ed170cfc",
+      "kind": "preservation",
+      "outcome": "proven",
+      "subject": {
+        "hash": "sha256:5ea33df0b7276088d3e9b52891e5624d35ab67d7a05aab2be15d70186909533a",
+        "kind": "constraint",
+        "loc": {
+          "file": "reproduce.py",
+          "line": 70
+        },
+        "name": "nonnegative",
+        "param": "target"
+      }
+    }
+  ],
+  "findings": [],
+  "hash": "sha256:8441aaf8ba296748844393a1f5cd0c830f9a43bdb25997afaefbccf44f5eb17b",
+  "profile": {
+    "checks": [
+      "preservation"
+    ],
+    "hash": "sha256:e5d428c2ea0aae1edb2c0c222ed8972e3ccdd9a015f51547326de4a9c2b6ef70",
+    "rlimit": 20000000,
+    "wall_clock_guard_ms": 60000
+  },
+  "result": "verified",
+  "solver_version": "z3 4.16.0",
+  "verifier_version": "0.10.0"
+}

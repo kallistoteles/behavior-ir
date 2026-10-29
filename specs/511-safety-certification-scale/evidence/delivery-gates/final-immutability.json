@@ -1,0 +1,22 @@
+{
+  "passed": true,
+  "protected_user_work": {
+    ".gitignore": true,
+    ".specify/init-options.json": true,
+    ".specify/integration.json": true,
+    ".specify/integrations/speckit.manifest.json": true,
+    "docs/research/0.13.1-core-triage.md": true,
+    "docs/upstream-feedback-0.13.1.md": true
+  },
+  "core_pin_unchanged": true,
+  "ordinary_model_manifest_unchanged": true,
+  "historical_safety_tuples_unchanged": 6,
+  "new_safety_tuples": 3,
+  "safety_manifest_diff": {
+    "added_lines": 102,
+    "deleted_lines": 0
+  },
+  "established_normal_receipts": 22,
+  "real_repository_tags_changed": false,
+  "note": "Full gate pinned-identity baseline verifies22receipts; task has performed no real repository tag or publication operations. Scratch fixture tags are separate repositories."
+}

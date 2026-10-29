@@ -1,0 +1,56 @@
+{
+  "attestation_version": "1",
+  "behavior_version": "sha256:90461cc532e5d879537ae59981603e40996bbec9f4cc938f8ac1a02e373bf16b",
+  "checks": [
+    {
+      "action": {
+        "hash": "sha256:d6e6f086fc601d3aa36827ddb2c83252f7f5cd0b84d511ba1e062ecb0bb84370",
+        "name": "remove_free"
+      },
+      "cached": false,
+      "key": "",
+      "kind": "preservation",
+      "outcome": "inconclusive",
+      "reason": "encoding_error",
+      "subject": {
+        "hash": "sha256:d6e6f086fc601d3aa36827ddb2c83252f7f5cd0b84d511ba1e062ecb0bb84370",
+        "kind": "action",
+        "loc": {
+          "file": "reproduce.py",
+          "line": 33
+        },
+        "name": "remove_free"
+      }
+    }
+  ],
+  "findings": [
+    {
+      "check": "preservation",
+      "cites": {
+        "action": "sha256:d6e6f086fc601d3aa36827ddb2c83252f7f5cd0b84d511ba1e062ecb0bb84370"
+      },
+      "explanation": "preservation of remove_free is inconclusive (encoding_error: cannot encode: complete-world reference obligations for removal target)",
+      "hash": "sha256:f00cbdd2128a504d34f89f93d3f6253bff06bae87111d7db29048607c8ff0164",
+      "kind": "inconclusive",
+      "locs": [
+        {
+          "file": "reproduce.py",
+          "line": 33
+        }
+      ],
+      "severity": "blocking"
+    }
+  ],
+  "hash": "sha256:f99abdc460de772086b836db01288a6c8548a9fc071008b9c7cc9253c6174288",
+  "profile": {
+    "checks": [
+      "preservation"
+    ],
+    "hash": "sha256:e5d428c2ea0aae1edb2c0c222ed8972e3ccdd9a015f51547326de4a9c2b6ef70",
+    "rlimit": 20000000,
+    "wall_clock_guard_ms": 60000
+  },
+  "result": "not_verified",
+  "solver_version": "z3 4.16.0",
+  "verifier_version": "0.10.0"
+}

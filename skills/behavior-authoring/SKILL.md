@@ -1,12 +1,12 @@
 ---
 name: behavior-authoring
-description: Model a domain as Behavior with the Python binding (entities, field types, actions, creation and removal, references, queries over sets, entity constraints, module invariants, exact arithmetic, declared reads, commands, StateMachine, RequestFlow, Approval, WorkQueue and composition). Use when writing or changing a behavior model.
-release: 0.13.1
+description: Model a domain as Behavior with the Python binding (entities, field types, actions, creation and removal, references, queries over sets, entity constraints, module invariants, exact arithmetic, declared reads, commands, StateMachine, RequestFlow, Approval, WorkQueue, composition, FieldOwnership and LifecycleDependency). Use when writing or changing a behavior model.
+release: 0.14.0
 ---
 
 # Authoring behavior
 
-This skill describes **Behavior release 0.13.1**. Use only what is described here or listed in the
+This skill describes **Behavior release 0.14.0**. Use only what is described here or listed in the
 release's public API (`behavior.versions()` reports the installed release). Everything is imported
 from the `behavior` package.
 
@@ -479,7 +479,16 @@ refused = BehaviorModule(entities=[Customer, Order], constraints=[few_orders])
 assert [e.code for e in admit(refused).errors] == ["QUERY_NOT_ALLOWED"]
 ```
 
-## Requirements that are semantic gaps in 0.13.1
+## Safety policies
+
+Use `FieldOwnership` for structural creator, writer and remover restrictions, and restricted
+`LifecycleDependency` for the supported immutable child-to-parent lifecycle pattern. Follow
+`models/examples/safety_models/README.md` for the public API and executable examples. Policies
+inspect the complete final module, including generated actions; they do not generate runtime
+state or change ordinary Core behavior. Successful lowering is not certification. For the
+separate proof workflow and its assumptions, use the behavior-verification skill.
+
+## Requirements that are semantic gaps in 0.14.0
 
 Record these, do not approximate them:
 

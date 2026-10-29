@@ -1,0 +1,1360 @@
+{
+  "authority": "Recorded Rust test/public proof-checking execution, not imported certificate authority",
+  "case_count": 82,
+  "cases": [
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:0462fd0f6896ab0c7dcffa3fb8d98c34d00c8ac451a9be48f3d0ad1de0840633",
+      "evidence_hash": "sha256:5dfe6b0e354909f8300aa9c63697ee52cc8c007aa784f2323b70be41d9549096",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:b223ce0785405b0da9319fe1272483f1c4e0583412246321001268ded72fad24",
+      "semantic_record_sha256": "cc7adce9667a6a5eba88448e13e25d5e2be1587d2339fb973494de07f422357f"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:04bf73ceda522bd39690c97e4bf3ff69b4dfe5447d9f130cb2c78befad29a1a4",
+      "evidence_hash": "sha256:59df427a2c38b00996023486c880952b2aea2294a5a806a4ae2c44bff4c1ca77",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:f68a1f4278c0da0ebdd90291a4d08f48de401da0ca5d1e3d896cb8e26330ebee",
+      "semantic_record_sha256": "9fa0ddb1757bdb2be88a8266abb71c4e5dab15dc31f937df0619995c5e6bbdea"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:084d603ec5169c2b2b243636bcab627a7c83f9fa509845b1a423df635fccf9f3",
+      "evidence_hash": "sha256:51d863ac8ece37a57549d59b72cec769d36aed7a978f9b5bd7ce56164c7e967f",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:eb6ba8fb27babb6158116e762a4fd58084e6e47cb23c0f9a7ec638501b43dedb",
+      "semantic_record_sha256": "225f15456da3ec6c6322668bdb02dfc7ab95fd541dd0c7475ae40526e10d379b"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:09db611151e269a7aa18a2ddd441fc5c8d96a53ec5b82e9b9cd9570ecabcbb32",
+      "evidence_hash": "sha256:946f9fe2cc17ff9399d858cef7fb0ad6d9ef186b775c2b13faf0377704fc47b7",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:2438b434e5637c21498c2638ed94046fe9d9db4e8c4ed359a9704780235156d1",
+      "semantic_record_sha256": "2d97897edd8ddc04bc0ae63f1cbdad754c3b6546c0ca0a51548a84b7c95374b4"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:0c11d6601cf453601de57f8b8a9c81cf278ea33324b24c38fa0c51aed434dd32",
+      "evidence_hash": "sha256:eeaf3247ae985030d5a1087a8a1c0bf8b37205227dea06b6a480cdf35c816c2c",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:6e90d8b1699e4858b163a07441378d3dd9f62f22eb6057182351e9916f75dc6c",
+      "semantic_record_sha256": "9c74cb3964ea5034e2362b11c968117b43ec63d32e4cc35d66a853a6814c4e2f"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:104db607669f4023038f674b040b2eccf7342a937c48db74b8f9e5389ecf995e",
+      "evidence_hash": "sha256:c4aa3e11db2e41d0f6f5f014a38ffc732cd361552e965e5cf47641777fe5a578",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:000e85796832cdaec017b8013fc50165c7bc83427ed56c89502eadbfbbcf0f03",
+      "semantic_record_sha256": "ce2ab8df7917547488aa02693c5a58c5684a6555eceedfbc9a4070c84b41a5a9"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:167a5daf212e97910131dbd954d7dd00eba61f3203340f7f1bc2047579031bc5",
+      "evidence_hash": "sha256:e764804537222cbf7c55920c2a6cc8e9d7ed5468413ad1fdf0cff9d74aa32b72",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:acae58d4e349e7ea608eec70046be1145865fc696ef8444fa3aeeb2cc87eb943",
+      "semantic_record_sha256": "9d2527c7618d866def7a6e86a81c5f0efebacbe87f7fdc1035b9d6706969e36a"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:196da7813d2a2e90c87fba700a4996e7bfeb783314a28b182a869c494d358884",
+      "evidence_hash": "sha256:1b4d9d9118fce5c38e59a3b199f44455eea7cd29ed58b7f12112ac27cadd2974",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:96a81c6ab75bb5b82666c35ab9e39cce9719fc15c3e568d77dbb280989f421cb",
+      "semantic_record_sha256": "afef9e30671dbe5304834ec90ad88c9984f7644760ebf89a5283005f0b746b11"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:1d4919f1e88a2e73e241e8c3ef4fd1cb97c66631f49155818541b9f3770c3df0",
+      "evidence_hash": "sha256:34688678c9ca3335720db3d6d3019af7ed5d427e9f5fc2b98487056f0f77e1a6",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:db5d533d9afa3d39f4b624c6bd001888da00d7d01492722ac0f22dcedf62fef7",
+      "semantic_record_sha256": "ad2a507859304c8fc4d4b56e27027d2eef03efee97b880e14f3ea688afd56c0e"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:1eb6187236ec53ab2b8eb478ef2b8f62bc4e02af22d0f8394c335a4c44d2293b",
+      "evidence_hash": "sha256:a6be7b87ff14e5af689e2bf7bb280668e323bd26dad749fb5ff29294107dffc7",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:60fb8537fe4d757a5f9a6d4f8f4c8a67d8b9c58eb8ced9ab0107efcddf839c43",
+      "semantic_record_sha256": "ed1ac192c05c1f37b6ed6545b5fdca912f203fa446da1c708ca1e235b48ef50e"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:2056735899e449314cb81bd303683ffc67e5a68c4a47339f90c9c862574ec98c",
+      "evidence_hash": "sha256:fa2572156d34c81c5ebc12e3bafa82714b3b42a0c9cf2aee7c9f5f3322e13a98",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:3e23285e8eeb7be2cd00c00429d142c45b8428afb9d05a8eb2e6c6dd1169967a",
+      "semantic_record_sha256": "53e80de3c6b8fffa2d294a4861b05f3f307612590b319290fc8715a87b2464be"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:210d6ab0295571d08fa95ed9dca6a57cfd297c76e96661fa2668e28c752d732c",
+      "evidence_hash": "sha256:30fb58e195fbb1e01b18229b799a8997f4d64d30db438cea6a0ef6e39e1f9ea6",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:7a6adb931a82c76204bac6a2ed5bac11d7882d2a0b2bdd6a73e3a4ee5300685c",
+      "semantic_record_sha256": "9cecaa355a68ea04c38aa07ddbffc930c85dc3010f817b34e1346cb8ea41747a"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:255a4ca38a3e960507b8f04782c662156ffd57d4906fbc72242cab6900af74cf",
+      "evidence_hash": "sha256:7f611c584a49136169976cc681f6e4a2d310d09c35642f627af03aa6cb22aa97",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:729d7d6363046042c4991987ddc6338a7815fae216d82b5432a2c62405490a85",
+      "semantic_record_sha256": "e7058d9cbbc039b1a0e84202d7efa394aacc89bf53dbe80eb5930773e6af0f17"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:2d0d3e25c97a04baf58f1c5c183eeb2eceef36974516d8675b9a3b06aa50c8c5",
+      "evidence_hash": "sha256:a961706a7f12e6863440093f6dec11ad7b45226bc0536d846f802b2a19739107",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:ec1c456eb9bb647ca9731878faeffb853b88890af181d5a6ac4f1a98b00b0b97",
+      "semantic_record_sha256": "d4a4a4e108b2a922429b2c8e748cca0b71645c8506574cb1854d30ccc9989c18"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:2e6dac829b0802878abf0a026222f9219e17a960cea26ccb304223d9702a4bb7",
+      "evidence_hash": "sha256:a52c50637f0194c32e77733b2213ae07a44deccf87d656ac30c57271c29c568c",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:f05a1c4fadac3bed62034064b55d18b19f0dcbae849417118f896166ef2c9ae0",
+      "semantic_record_sha256": "56d70bc19924c837d4af4ecfb2de9ab004f5d57d2d6ac0dfd3fc1b56a859372b"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:2f47c875c91668ef60c45759d5931849be34ba4d726fbb36bf0c615fd8ca7651",
+      "evidence_hash": "sha256:4f4dc2294de553e11de7a61befbe2bf174a88db8f6b19b14536293547e71f4ee",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:f6cb299e113b8ae130d3cd77152e58089bbc0f9b34e843350b03ffd201be9c52",
+      "semantic_record_sha256": "3086038c011431120e3a72ae48a97357188bb37bdade9aeb3fa35eba90269bb3"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:338bdcf474efb2bb6f7c49ce689fc6a79fd5cf09a0a883579e9a055923ff39d1",
+      "evidence_hash": "sha256:4243b0ea2d01191ac0092c88b4eaa2335d9baf68d9ae5c51bc99a436f0548e83",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:c69c8c510759c3526742ac754fcca5e144cc31ab1d45d52373082bd9e69be7da",
+      "semantic_record_sha256": "695d3e8ad93b5c391bfa8790f8deb54c9548cad9d442f70849bc48f2d2455597"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:3e69f8dd3c303fff216ef96b919a2557d9e9326e4901892b4e95257d83aba9c1",
+      "evidence_hash": "sha256:4585e019d79402cfa15c442200459152cb7d5c9ac5364886dba52d2972b77066",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:8555dcadc14611d7dd7e1d02eadb8c77f2ca9b7629d802b959817b17d8c8cc1a",
+      "semantic_record_sha256": "7d51b49b7c98e52a75ad9467379f96924c68f5229c81aac1471c33b1074617c2"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:46bdbf30de4253518cef3432b1b13ce27710e7f31e8b6036cd48f8d7d3d9487b",
+      "evidence_hash": "sha256:7c7cb3497497933dbdfd8a328f9e97e377394f78d896651c28170c75242e14ea",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:67115cd4f95e135c1fee58d489df9b645b68efb7231c760ef67a459a00a1c5a3",
+      "semantic_record_sha256": "d503f37756916c1d9207bcef83bd891216bca9e42bb3e9efaa508fe9dc158106"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:4747d2024a08125eb75613496f2052c2b723a75af11e6336a2761ec383afcc91",
+      "evidence_hash": "sha256:77c5682c34ac7412dcf3c132cf52c4dbf1a722c1b36da24939a2d9f6fc232c27",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:f21b9460be3379eadea80544f92f109ba0c81d603effaef33596d4db3854afec",
+      "semantic_record_sha256": "5f578497f17c513c622b741073aca145098489d47de89e111f2a40f691f6fc5c"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:498213f23c4ea3845049563001b607b969efd8198bbe5a760931c2bda068fb52",
+      "evidence_hash": "sha256:0809cc29831c461c8faaea438006ac20a3b3b833760a9511320b8e090594d2bc",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:8a3d9044f05f381ae5f0db1c683a211fb36e5ab980f9e21dbf9514ba4f5a66cd",
+      "semantic_record_sha256": "da695097945ed651a2854f5243ea2f27c9751f20b38f63b5f06cd67b66e5e558"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:4a773af524ac71344ffc2f0298fa3b189e90ecc0f2e642b0fc14c8359d911e66",
+      "evidence_hash": "sha256:19c73adf75d60e7061e3b5d894f0e56bdaded7e35e0ca656747d40366dc1491f",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:9d61a190b5d98c0fa22d28e899d6163426ade52b4e5e27670e00d878939a6e00",
+      "semantic_record_sha256": "d46137d64d357bd85a18895af9c226743f677317006ae00730b359dd0708e4b5"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:4d6ff424e08ed40d7cdac6cd5c134e1af760425982f29eb231300cb798709231",
+      "evidence_hash": "sha256:3a333626d90d4c67b233a0a832534976592bfb8944e3564019e7f6d3ee474fb3",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:32ae9786edccd415afd99cdb605e838d9708b2c0ee40fcdd50e9bc61040bc57b",
+      "semantic_record_sha256": "98965b9c7b44f338e3bfe3b5c3691b8c23d109e2d18f5462e04570b1a44e69fe"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:510eeeb894b9f91d51078aa96d0669579b512141f44d74fdc73a1f2446777e2b",
+      "evidence_hash": "sha256:832dcf1cf4c1c7bead86bbd40f4467d82cedb0bc454c214a360a5d07c65e2f43",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:36fb9a8568eebdeecace69272035aa2617e18c2345e828c0b1f40e0f23388893",
+      "semantic_record_sha256": "b2cbe58caf359373a02931ca9d02b7329dd8e88badf3931e97c9dec0aa078b4e"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:52566490268419e8a479086508315b0abed609ab32ad6922e259d77180780793",
+      "evidence_hash": "sha256:66d2aad940fa0cb6fca3b180741c2d6a2854979d79e9febadf5623dd5bd3773b",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:11a45c9f73285a89859aff212a3a769d9d2cad38cf7f658345508d28de0e140d",
+      "semantic_record_sha256": "d2a8b2c053a467aab1b7bdb407c59a3cf65c7cde496eeb942dab9c35e5982f3b"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:52ab238841d6683b42fa28584fff7a86b171731dd79f4bdf38ebcf006bb38fcb",
+      "evidence_hash": "sha256:b2c2ac52e8222fb75ad942626993e30c046eaacb7a62b9c284c31f344dd35a90",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:6605ce4292f287015e856bb54bca34b45e6cf9d71ad785a39bf4b4e3b2bb0492",
+      "semantic_record_sha256": "7987340828e7f5187a7e144fb5b524689340c3c28343fbd1ae57304dae7da569"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:53f888ad32617c8a72f48de927b2a1a48b4f80b29bff06eebc0a5e4e308291e7",
+      "evidence_hash": "sha256:93bccf571762780eeee72a18c0d2e75a00cf598f306c0a49f5e38485317fbaab",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:4b9189b62d7486a4cf52c5c57b33f37b4537d6abb62723154b92876fb065c86e",
+      "semantic_record_sha256": "a780af60192a38e375641fa57558e508c145bfa28796b9f8eb3ede86072c21aa"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:58a7327d6f90c6a8bf6f181c33db424615e29794f2e81ea1245f3610ffb37cbb",
+      "evidence_hash": "sha256:d6df3adaa2d7fe957c6b0c4506a4f20a2a5488c2f88f318492dd05af10b24596",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:f3bbf3e27747c184d7159902e10b967f9d90dfc6fcb6d1491c263f72e2fa3291",
+      "semantic_record_sha256": "fc292f84c0fff7de08a6f7716c49bbdd5a60c0bd0fb069a61f3152493aa55573"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:5bbd50513bad17ca38e7a8adcea5774ec400c170a60c6425c09d3e73af7954a8",
+      "evidence_hash": "sha256:0ea9a077cb243d9b409be501f6b09436518e607affad0eca967ff45a1a6c0d46",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:cd1aecd303e6cdf912847b2d3e6ba570abdbb3d9b0846129d052b09a559bf19e",
+      "semantic_record_sha256": "251c1f281d5f8c8bfcf69b80861308a0b9dcba6ca46c0385b35ff2175d568a81"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:5c37b93098e71501bbf145d949336318895d8018a05d6eb86430deb263ddad19",
+      "evidence_hash": "sha256:8d54514d40eadc70d2f815859fc287b5789c6c80868bc7c9f96dac8572e396b3",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:64c50225b5ef45ac19ea122a834e8edb8d9db41b4430cbe47d4b36288d3007b4",
+      "semantic_record_sha256": "1fefcda6c1a3d165ff39431694858cbb2e5f981fb2ca99a1cda68367b18ef50e"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:5e0d50a17e144e5883f5e6796ce964567e816aa110a8868ac5b788ae0be5c25e",
+      "evidence_hash": "sha256:3f93daba642ee3c13adb945467ea1b62cc2562daf06168fe08b254ed0e8d88be",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:aa7e506dde2144f4831c6b532a629c06302993847aa223fbe9b9ff4535b8b008",
+      "semantic_record_sha256": "09c513ad3bd80b518146787a84b26706c314d90eed5ae0bd17317d916f6fe406"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:626b3b495ac5e1e5ce18000dc2b763d8aedd14c7414be7bca75464c6f44b6aec",
+      "evidence_hash": "sha256:34ad538936d75c5cde81077e8947e26dfb59af885bb9900090cd00e7094045b1",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:56049148cf97362ffa5ee223e5b305d78e988257f1ac5cb17b97403f4a66b142",
+      "semantic_record_sha256": "af89c49ab0884e6f8e58dc39060f74a7a2d0da865978e49953236b27a77109f6"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:6365249bfeaf751038797e7db94878f2a6019c99d37959e0dc675e98e6c0fbdf",
+      "evidence_hash": "sha256:32924f69e7d028110645309e25aee5434b6381ac6aba88b73fc161f2e9c6a33b",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:78d421f1d99d109aed9e1223db996f40182eb8a63764521cb45463feb3c6050d",
+      "semantic_record_sha256": "743da2afdcbf7d808ddd3320a0313026920edf4c71bf573b797ecb812fbd1c2d"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:636e992c9b73828fa12c691e89965f98ccf33751c1f046d73fee8e4930c0d2d8",
+      "evidence_hash": "sha256:843882e4877f0916bcff0acaf091af9c0a6cb118572a2705ff9aa93447497c13",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:b07401f53eb114b15436c75ce093d96d9a3192c6a66963863daa7d748adc4349",
+      "semantic_record_sha256": "9ecbf483a6d44fa70100159a75bd2a60dac2bb6ac4cbcc494037ff6221f8d647"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:63984def9966350a95c8d35b1879bb2f97b5446d43ed6ddd807d7b04c32663b5",
+      "evidence_hash": "sha256:43ccd945b0c28fab08f872fb04c8002a703b3140b987428db95526d014b5aa71",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:6e13b806a48253baa41548622941b25600cb3cb7202b6d8a5854eca3e93a6522",
+      "semantic_record_sha256": "4a4124b60964c1815d9a3cdf813aa1c40430647d67be36cfe47fae96884889c8"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:64238d7b438a6841ef37b07517c7804b212c6c775b5c1bad4af097b931538419",
+      "evidence_hash": "sha256:3806b942536f16dfbd4c615f85d5f4732f5d8c01d01d5121fa94e2aa4605887d",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:fac69bcca6c4180f59fbe7704e4387bbffff07e146f584dc2d9deae4b975d3cc",
+      "semantic_record_sha256": "5908e8d84c97d11734abaa13a6a17c0518094fb6a517d70f5e7941d180ee94d7"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:70f0518c93c4d5b42ca7295b78d13b2f659389fc3a06bedb7fab975baa41eb0d",
+      "evidence_hash": "sha256:d5d768aa82375a1039dd8279ae498c5815bbd92ba463fd82c4ef7220c5fa6dff",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:43e4d7ded477c7a87423878b1aad8590eec7ad5ad42f79cf80fa0eebffe1bb7f",
+      "semantic_record_sha256": "d7de40d67c73e96607ebc3c77d48703e72dca46534d80fb7b5e0dffe23a6d75b"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:7306c15da747eb1095b68b5afca143224f028a48127041bcf9f61a010cd4f62f",
+      "evidence_hash": "sha256:01d87453aa4a2e8861cb3d9705e8e3983addd0eef5309631d80dc28120192757",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:e6a200e1ab8cae54735b70b72dad6fd99d6ec72ae734cef8683065cd09203863",
+      "semantic_record_sha256": "8fa945056673037f11fe9cba4c62172207d79621855303336aee1e6044b080d9"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:7306f1ddbe199641c96f3ecbb5d04f85fb6410928840afb687141c50f55fd22b",
+      "evidence_hash": "sha256:d4ce318be2baf099de7553b090e6077ef471c2ac42dd550ac3d39425f32b1392",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:af32b36716f9c3f8a6469853f0d2d214cfc1b2ae033f0a73cf7818fb519d06f0",
+      "semantic_record_sha256": "11fdb49e7dbb536e11728d9417682eee2f060feb893d4b2c04ecb7150618656d"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:73602749140882d6dc0f90abaf29c36eed569772875ea032a988e0bee26220b6",
+      "evidence_hash": "sha256:22f3790aa1cdaab928bbbf01d2a4a65c7311526b5084f7c0db92f9c5ad869cb1",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:bae5bb5299afed9a8052e70c409d2eff5d1322953fda7054068a135d9331bdc0",
+      "semantic_record_sha256": "603803809c33238a440563d550e8fb6b93e83a5459fc9ed8588321b84a6cc36f"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:736d1798c4a63140728e2e30aeff8e21db90a1e9e370b0619b8905e73d795ff9",
+      "evidence_hash": "sha256:65a6ddb8dbc708b1fe28c7176486d710cae34775201ce464cfc9a7df3950c964",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:833d5f81317b1fffb9701e8b4d46a2a3c364a7da12a0899ce65ae6209c937bfa",
+      "semantic_record_sha256": "2e57f6e8558870ca5ce65058e67331fcb906a3b2812353f08a68a97cfc1354ce"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:746a4664a782114c6886244a6c5b83edfdc4c12bd769aa81b8f0c13bef432eb0",
+      "evidence_hash": "sha256:4415a3af7bdd1f0dbf1e1ec5014f1b19fd642cc381962341a0143b71cfad37ed",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:64778065369754ea3a5fc13e97ed768ad0ebc144bb8468ea1cab02f6b7bf56f4",
+      "semantic_record_sha256": "c05634e2f6f7309d9be6d2296b737f4a318bafe0c8698d8b1d5a18d459c9c6d4"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:748cd904378fa0d13ff84782769547effda911cf3c4845572781dc602df3d45a",
+      "evidence_hash": "sha256:368b9f7a305ce944bccb2929afbad1d724b52ac4d036154ab3a446210481add8",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:22a782e06c162dec5c67d38a11f4670d2b2fe41197da319d9601de5f9967f83b",
+      "semantic_record_sha256": "9337a759228fd460d47c0e4baabf39e6512e1b626e1dfbbd773a933a1ab4d4d7"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:75b22f9f31f1da44a1af07c3465bd1cfa4646248d6b87308054666a403f13961",
+      "evidence_hash": "sha256:b38388df8e54994e84da34c4d4c8d5d92a3549f66d1c271fe85bbc96ea772f6e",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:748798aed4220669de5975ad498c4c0e5a0516e74f8d09217abeb752ef2a6e9d",
+      "semantic_record_sha256": "e201c421251edfb6eb0694c04d54a0d9dcaae5f6b698a0f07d787e940d696988"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:764d65d966adc14c14bae9ae34c9d0f73eba8305a4723caa08ddb41965b00f89",
+      "evidence_hash": "sha256:ea3fe3c1f7461a78be302c8866175e2f0fb04afd18f352e4bcf563876739f5c0",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:255af2b1fd6450ce9a9a57292bee8d8e15ae46bf30dc3ef93568c78347f537f5",
+      "semantic_record_sha256": "35c579039d029295fbe6cf9480e62e7b36d04654b0cae32b33d14b3e5390cdd0"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:765d1bdd17515eb0ebce11ea26551e176ff3dd4760d0bd032d41493d55a8d653",
+      "evidence_hash": "sha256:9851da932ded458c9ac946ba56dae5d56c16d428d336d58f303a97b20856fff8",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:4a03c8d293ff88c9259a85dc488169e7be05a9f5e48dbe7c4880f316937004f0",
+      "semantic_record_sha256": "3d6cc59f8b1567c42487b2120a4eb8b17526a6528e4a625bcebeecab9aebbbe1"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:7ec03030f6df9a09231d994e19698d9dd16ec30ca7e199eb4707f104493d2e13",
+      "evidence_hash": "sha256:445b4ec4922f49362d1f8f00e7d3a531e560029c62f2187865cb46d9bb3f34f6",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:8ebc12ae5d47a9b9bee0ef09ceea23c07e05cd2b1ad54c2b7425dfefd85e6368",
+      "semantic_record_sha256": "e0248c90ab4ec95f7aa0f4969b88a7d3ae81a88bcccc4d3f2335b65065b8669b"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:82de0d4d01ce4e3f60d03567e084391fad2987f47c06a92487413969fc8b1ed6",
+      "evidence_hash": "sha256:d62f9c7ed46f973eb023e1b1e70c2ba29bb573fa75d20b3a065cbb4360d54200",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:91097aa30f92c9df0a15461a350bad85e01b7989355529ff7df6f16812c932f6",
+      "semantic_record_sha256": "1ac26867ac5c531b4709ec620255aca8d444233ce2d67036bc70df9c3927c6fd"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:85f1913ffc33a7d9da63de50d1e0dce4d5b0ec83de1ad6dae3b131dbc03ff128",
+      "evidence_hash": "sha256:6134975223d5db68d4ae5e36a189386fa0be784e1598b5692d6b3ba9fff95f99",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:d2251728aafa9c9c25cdcca2526269daae0db6107bac7aa31d65e09cfcb6197a",
+      "semantic_record_sha256": "afc0ce5519381c30ab7139ba9935c2f9fe8b0dbaba1a271b32aa33b779ff259a"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:88bd237d5a8cbab8728d486019ef916c5e84ab2ffdcb68248822189bb9b349fe",
+      "evidence_hash": "sha256:cc09bd013b98009a9928c9e8463a7c234588642b6d939456df2b20ae4920c344",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:e88d72c2da8db6c8c26d18ae2f94014cab8f04bc95f2ed77b9741d7c943d4175",
+      "semantic_record_sha256": "0bb8c1fc965875de6e712b07c4a1c6919933704f1f14e44f1997cf48a9be40df"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:8deb64205d86e354bdfaa147153f9936a5c37a75003f86eacb7cd3c397d90a29",
+      "evidence_hash": "sha256:6626bf31d036dd21d6c9752130be4d52afaecc6442142f4f238104ea7780a14f",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:dcb55d67f36119653f068693a5de82cf47a13109bb8eec367ef6f14b1b4cb472",
+      "semantic_record_sha256": "49130977b015d09d23149eb3aa0cf47e63670ce643e4cd34a7ffa4118450feb7"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:918069286a72e9aa7ac4d69756d50b7fd605206cc2c115de7e55671b7f328282",
+      "evidence_hash": "sha256:ec19f0d3415749987182b6854c71035c1e151c180f9a6c8b5c1a11ccae68f8c8",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:acc31e5a2f7a600b1717d2461a87f105bbe3830d7ad165f4f4f9cbd6722b9daf",
+      "semantic_record_sha256": "05d4a2b904f59f90ce30c98c2efed7a8fe6188f545bea230c391fbea246fd1a5"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:95ccd4ff07f682356a1b4b5ade2b4294cad617be04423d04b1d291424a169398",
+      "evidence_hash": "sha256:64d5277dc43b27dcaa1a903023f6e0d694872d2e944edc8ad659b37ebc18843c",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:4f70810da75284880b1d57f25569472eb12300138b6db9721699d142ac1098bc",
+      "semantic_record_sha256": "c52aeb8b01a62458f78b6e01a41ef843ae8155cd3f1ce6fdd0577f53678610b2"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:9728e91a6c9000d715c4df4f5fca4fdbf8cd99df1050c67701c3772dd5a3aca3",
+      "evidence_hash": "sha256:732e3a91c4ddaf6859f198923873bc9da797fe0ffdb0e742c1b4515f60c86493",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:47c81be2791bf28aad277b86c236bfdaf032abd10efecbbbc5e7776efdaae1d2",
+      "semantic_record_sha256": "cc6021b037482e0aeb31bf851d9e209b187ac263e79eec6cbadfc8cd902d5884"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:97c5d01f2bc38fb2da30f634293b171c06aa32074d9d311a88ebb8f6a3cb7cfb",
+      "evidence_hash": "sha256:cb991aa333d72e0994235802748a3be21641a0af49157e25947af58ead9143a3",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:d0e5446994d32bae8611adab7d550352a18fd948ce728996cea756c2a3785c27",
+      "semantic_record_sha256": "3a263094653a45c99a119407bb4b5925a58971dbf069ad2c48f2879336ccd49a"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:97df8d94231bbcb34121e6cb453a23c5e923e642f6f77eefdd7e1a9d4669e67b",
+      "evidence_hash": "sha256:a02ebc2a084defc11b7a33e312271b8328a5495f28815398f06ef942331affd9",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:fc4c9002cccaf3df0ff56fc77d74de692f402f00b82eacef0eb2f2fa75a00ea9",
+      "semantic_record_sha256": "7f4418733a36b07a57160e5c71439f63d6cf647348415a54b48503189244512b"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:a0a6cb091f7273eb75909845a3aa5a0e0401100999abe5805c4296dea44cbd71",
+      "evidence_hash": "sha256:0c6481a55e19c46db9d04ecf7bca84473a17a43acbf75ba52d17fe6fd0cecbf0",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:d9f2fd233631fd36bbafaf5d654fc0c794405e94ec8c15eafffedc8177943215",
+      "semantic_record_sha256": "86d50e93bebe89f31fc679d6616919a7b31409d8fc0f74d52bb0767971beba68"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:a8cb0674b069bc3e597ae821a513f9ff446737ccb81a445ed73cf6d86b1394ce",
+      "evidence_hash": "sha256:565786b1972cbb2a22c28d433c041c67402d2d12621e63d811f2184e0c3070d1",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:cae41b1ff8291976a69dc611741062c514b023f09ca1b79c4a7d2e473caaf85e",
+      "semantic_record_sha256": "c8bdb8fb9ee68c008645458f8cc7cfab420000eb77e9f382652a9cdc8ff22733"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:aa0da0c729faa1b9e770660f6a076a946a2dac5b1e7a2cb4a3f9ad77787cd7dd",
+      "evidence_hash": "sha256:c8b803dae5ba871ecae1b24301d5787197883cb7f649b47058b9ccd4f093646b",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:8e68d326c0feb3faf811778d3e261583f7d51c8de55f714cac428d822d916ff7",
+      "semantic_record_sha256": "71b655aa4983eeeb408610d6d87ed171c69640e6d83b92e82fcdbeeecd8039ce"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:aa76f349d830358fe6eddb42e814038296d99665cb37bdcc384e1ba667542623",
+      "evidence_hash": "sha256:c397a1ed5e375fafed6834b633504b14d77a16f0a99813ae07d968dcbdf00697",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:ee3579984fc0a557ef5da905e599ce106569af3978e79079999f4ff5cedd842d",
+      "semantic_record_sha256": "b80a2fc127ad9417b877269f51c5e16f280fd1df58aa6e9af5e6bf2a3461b105"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:b364a9b06563905b518da81cd1435296396a10a89b08e3e64ea3ec2f4cc1ab52",
+      "evidence_hash": "sha256:cb4f6556820f99647ed51ec2c6ddc1719ebda438ea13a9a38d6f0a88e0e235ce",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:e8b391ac0e821a6d9eb2f527dbc034141d9ca1262ab892b9b3a06c3a78603ec3",
+      "semantic_record_sha256": "5e989f44bcce268c3fdd78551d982fc6f828c753ad618ce7bab21ca66b7b47fa"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:bbe102b58228e4c21b09724d11314be94502128ba37553e2c96a01aebb23357a",
+      "evidence_hash": "sha256:1aa08c34ca7a413e89aeb98eaacddb09d0ca0f804c483f56befeb4c496cb947d",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:e8d9496dddd391e8adebad3ae472490070622e23fff651b245a6fada347a316c",
+      "semantic_record_sha256": "6f12c685b08b31113eeb587318311781958b31cdeeb469e87e64d1c7361c4169"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:bdd14066e441d3f0c08e494da8c95097de4eaa7632da9249b55e8fd0d0d2a244",
+      "evidence_hash": "sha256:70cfeb6a1f0f298a637e26f686568425ca640e832ebbc733e34bf85786bcb654",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:c1f81d27a8c614b70ab745de98f2384ba6d9e30f6befe9691796ee2740485cb9",
+      "semantic_record_sha256": "daefd32fdda21cdf6c7fb150141485a1406047b9d6faf2f45baf9caabae937ad"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:bea63af224788094115023a095d919aaaf1b6c6a2cee40537877ae619f9a096a",
+      "evidence_hash": "sha256:162fc9f7277c61e170b48d33715bd3b7fa8654e2c8bed87a964dcac798b9a2fd",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:e90e8a4744761ffa3d2d178b83c30c93d715346ce40938dcdc310f811f0212d9",
+      "semantic_record_sha256": "2f05b06542858c2150fa9655c7b0da849d3756b02eaae824e92095da7827506f"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:c18366cee464671e536de9939b1492e8235c604b5f9b181a8daa996877302182",
+      "evidence_hash": "sha256:e7aa6acd47764df6ba2a7f280fce5ca1f3a195eb583716783e3abb5d3304542a",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:c1fdacccc2531e85a19b86c69c2014aee23b14d030733eddcff3c0dd0117f5c6",
+      "semantic_record_sha256": "9ab1dbbc5fc4c5e8d24b13398d9fe368951b02b3bfbf5d853105e4ef51ee2f85"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:c367a38b8afa4febb3e5dbd1f9e26b24a3562cb636de1f6feea87e620923fd8f",
+      "evidence_hash": "sha256:e24ed29114a7d217cf2d741b166ded512ddcbf4b8e51e2ae3805b7fa0b70436e",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:65e3cc1b7953409c1d21f118f18df0361b440a5a7cfd71c9f3d7f894c33bd69e",
+      "semantic_record_sha256": "14d8a91b4844acc11b2a6a2e13d80fa7efc5555c063ffd1b206c6f5a4149b1e4"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:c5ca1010623b84c8fb3951debd3689e23c2275ff0f991e45c93de43104d4a588",
+      "evidence_hash": "sha256:97de50b87bba67d778d0cd2736fb97524e9fe957b7f0d0a0246988aafb97fdb9",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:a29bb66326148fdda58c05d726275249f6179382cce434924b312f585495cbaf",
+      "semantic_record_sha256": "ea255035372fdb492f4a51c69e6f2907f5259634aff36b5c2cd8078ce6b4cc96"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:cb65c103436c912e95eddaa12665a736bd475c37cf182c480bad3cabc88701e9",
+      "evidence_hash": "sha256:09a03701a53e748994590046c453c45d14db8dba59251e0296f7ccb3320f1211",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:293109f9dd8a3d83b71734223d891a02736d7cfe50d3e7e69794bca4fd2e6d7f",
+      "semantic_record_sha256": "b0f854a61614cf41ad7fc9071f129f38cbd0932a206f8c4c806e9b8ec20f45ba"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:cd5ba5400a53fe5d23caa1aecdcf5ea70b70691581cc72aaff9c36d63e12b137",
+      "evidence_hash": "sha256:743e74c468887795f239e00234cc165cf4ed177dc261664935ffb8178aa0cc2b",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:7b3a1cd560673bd1ef3e612b1b26140710182c6a975bd44226c9364cdd1f83b0",
+      "semantic_record_sha256": "83d6f5413ba2af48c7e88dfb61572d33f16562b4bb54234b07c87a1ce232f159"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:d0289caead6af5fde01476512195d2f65119b37d035e80614ece2379cdb62a58",
+      "evidence_hash": "sha256:3150b51b07bf515f8eadb7fb64e7a5b778d279c6a1be716710364bde289802a9",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:0faed092c877cf83301158e41319a4924724f5a3da38339e475a0cc15d10bca0",
+      "semantic_record_sha256": "e86332915a41aedc35de1ce69e768adb6ee7bd57267e2771a97aad0bfd488fd7"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:d1061959d594d6c6445ef64f74b81dadc0b8075074fe464da4055426ad442bc6",
+      "evidence_hash": "sha256:3dc4b584cc43d85a869b6ebd201965547eaba7549570ee7761423d4d9b0a6961",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:c2a0cc80fc6b716652a66db9712fde6afb2f691d9e2f29502d9a11105ceb4e58",
+      "semantic_record_sha256": "b778bc2f72074c85e2c2a35fc6bb9b815e0484d74a013546c3361408cdd05a91"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:d313a531db8e9b428019ccd5a29782adf096b08d7a0c2681c37817d0764a3e8f",
+      "evidence_hash": "sha256:d39a7967a58a8eb920aebf2796099d6745c8af7168ecc804abebc43aa62e857d",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:46fe2c3cb435e16d631198a0f9075e8bbfc4acf46c79b435ee0abb2f6f19942e",
+      "semantic_record_sha256": "9911aa9e57dc3e3e68a8eedd7aa21f3f21b4cde8904ea639f86453affba41dcc"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:e7d06c65176897bbcba2f4de30cfaaa765ce4345196bfefba9aff6ce1ff593cd",
+      "evidence_hash": "sha256:41162746d5bf0ef7d0c5aba3e618f44c31582606bb228cb5fc86fe097424ae3d",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:958c0b3e81d9dc397b31660160786418782dde9977248199dc53b94c95d315c2",
+      "semantic_record_sha256": "065b1431ff483fcd2669b70c7bc6852e0476bcc6e728249e2478497ff64e0b94"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:eeac9757886b9bc6092136586157f529f9b992dad99984aa1c1e4b424d04cea2",
+      "evidence_hash": "sha256:2692832549d0f8d87eeafbf4f772c7eaeda391d17155315f5d08324c617ed50c",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:34f76aa84a334c006a67957483e28859d07f97205f7d0e31705bd829d762a171",
+      "semantic_record_sha256": "53dc4e2c3be5b4c3995f8ea4fc7ed8cc8b810a83aa2605a68ecc997d92be97a7"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:f0b0bd936715e9c7e6da81a4ea572324b1a243ac7fa4e0ac0a2f151a240d58d4",
+      "evidence_hash": "sha256:b1c6433cae687c2a9cd257619d138ef5da1329162c24d1550e19f31528ff64d9",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:daedb4dd8e38cd56aba102da9df5ca058447f4b4732f862f00d7be320ce5962f",
+      "semantic_record_sha256": "75ab32cbddf7be2c11adfe4ab8aa32dda4114bc3cf2f3c1657da3b0339a774e0"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:f18d35435ad09f3b7f3a85b721ea83529a84cad376b50fd2d66e623bac1c1eea",
+      "evidence_hash": "sha256:3ef6b0ccf992b6d183bc1e7e20f81f71bef816b997589534bd59519e7a6d9740",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:6dd2e94095aacf42fc6beb4b1b70787a96acb5d720bb90f8dd0e420d97280e6d",
+      "semantic_record_sha256": "25daec2ec9c1a6655325fb6d8920bfe0cb467fe5cb2d80c4d8ce0a3e8ab1d345"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:f4904202cbe721632c8e60117f57591c16977154bc5a506d5f64cb37caebc521",
+      "evidence_hash": "sha256:30e1db2ec03f67e2098f752b5c03c4e16f8f416109ebfd13ad3186bdc5c32b4a",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:f4f8c6caa2f573410e20f396aa620a0b9e9cef5c54283d8dc32b3395d6a44c11",
+      "semantic_record_sha256": "09a1605915bf1504da169b533ba145b5f3362a28f6875bd93703a986ab0e7ccb"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:f99485e22b6d3fb323a7c52a960430be2c6f482124a3e2bda7757f88053b6831",
+      "evidence_hash": "sha256:42fd7b3acd9f0b460a3cda05644394e5ec76e573e5f065074b569ee4c25e345f",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:0f1fa54c1aa8447bc52b180d290e48c6b69da21caf438728b134bb25c23fe1b0",
+      "semantic_record_sha256": "c41edb185bed4ba7ecc6015a01a306401c10767e43d6a0a6e79a52fa78b3434a"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:fa078c5348028ac6c09b65bea4b834d95afbff9069974167cd3992a63667d788",
+      "evidence_hash": "sha256:569aed1f2e346284c63637e60d58458b85bafb02271e96429af45a3527ff4bba",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:101bc90543e5b7d6cd94df3c65bef56ef761c698cee8156567e6a7c2e9bf3aa9",
+      "semantic_record_sha256": "4419406acbed7a88f52c63b5ecce554c3dbf3f8a5cf0fa071603001abeb27d47"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:faacf7e7bf6d8a08af003d6ec62921dd13bb1b3a68ccf6ea01214504015c99a1",
+      "evidence_hash": "sha256:9d5538dbc45d68d808647bfcd686b75ed00440da82f54b8accb9c78af80065e5",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:0eb07ded706ba09ed2a7dfed887c1b8cd09643071932d99f824b49a1c7e827c7",
+      "semantic_record_sha256": "f4246c486915372b04edf73c5d8df39e1f7c0cb8499dfedd7918b2b7c3f563ae"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:fb67e2325bba5521b43ffb9b52a5d84c09819d56a94aec1ac117e538e7857a43",
+      "evidence_hash": "sha256:38f097282e0d7317235a3d6b4872b778f7f3f63a09d9d99c3fc5c784fc553304",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:761ec8390d72250a4c6d8eedddd4aac5e39efda3ea75c7d143a4dcfa687165bb",
+      "semantic_record_sha256": "bb4c18eeb431b4cfb8f46e4b7643738c3efea44e056b12ef53edcb2bec380d89"
+    },
+    {
+      "audited_roots": 16,
+      "behavior_hash": "sha256:ffe9eacb9c818aa02890e90e5e6f230be373710acf6a9044936fb033c2e64abc",
+      "evidence_hash": "sha256:9e8a3c228feaebfae97cb38fb65eeb3776980268b9e154db8cae9282c031326e",
+      "obligations": {
+        "axiom_audit": "Passed",
+        "concrete_proof": "Passed",
+        "fresh_replay": "Passed",
+        "generic_proof": "Passed",
+        "inventory_comparison": "Passed",
+        "lifecycle_preservation": "Passed",
+        "theorem_types": "Passed"
+      },
+      "policy_set_hash": "sha256:02dc6557af9e7700d0ec736d23284d91ea22e16349825529015ccf32dd5d303a",
+      "semantic_record_sha256": "1a015f9a6c7b994938ecc34c730feefbe18b7b783ff1ed7574c90a75a70c980a"
+    }
+  ],
+  "checked_implementation": {
+    "dependency": {
+      "cargo_lock": "sha256:7a2296c69095c093086d1b914805003de36fde00c7d89e170236bf011be88309",
+      "core_release": {
+        "commit": "6b93898a9375113f7a8946f23ab5535319b6f5d6",
+        "version": "0.15.0"
+      },
+      "proof_toolchain_manifest": "sha256:84d169bb98b6ee50139e4f2bf3ba0f9e06c2ffb8a034a91245e1a644b1977d0a",
+      "rust_toolchain": "sha256:023075a0ddb84ee3a394b26da660bb9b49491db99c7ccf9cf440b6e69e51b1c5"
+    },
+    "implementation": "sha256:3f34199c5fa8ace62f0cdb6b9fd91c120d68fb91bc972d4de6f6be85717d40f5",
+    "proof_sources": {
+      "Audit": "sha256:12a18a5bbb36731690dcec06c8498f0177d17f4680d47a534615ca2f4c5507f7",
+      "Check": "sha256:1693bda67e4015edf4310169c1f797a54edbeb2930bffacce9ed0f924c9b1040",
+      "Data": "sha256:3bb755e874dfae701d06f85c278efe078087df73f94322c52855390308863290",
+      "FieldOwnership": "sha256:146b1f1c7f65a8175668ec881e94476b9a3b8ae691fa3cebdb5232d33e757dbc",
+      "Finite": "sha256:1e07025d7544876cef1e5e60e1034928b9a6d32baae48f419f483ccea0628d62",
+      "LifecycleCheck": "sha256:726df35c5bf5cae60710f5aab66baa31fba2678075601b3483e3f5978e55ace9",
+      "LifecycleData": "sha256:bb88841f1f028122d684aabf9136e5170215348aae458827b3e88436e54a92e8",
+      "LifecycleDependency": "sha256:cc1c9f3144264fc216ccf03dad3632eb173c07719e8f44f2206ee974ffbfa1ed",
+      "LifecycleSequence": "sha256:79aac40034e88c8481adf1dd6b3f9e5c5bb7951ee5255eeaf21653b88628491e"
+    },
+    "toolchain": {
+      "flake_lock_sha256": "ed16bd3f98b17e19e07d6ecafecdd20897024a170f7f3727ed6565c582a01bbe",
+      "platform": "x86_64-linux",
+      "profile": {
+        "drvPath": "/nix/store/6wy0z2zc7gl2i6vxzcw59i9pdhk2g6b8-lean4-4.30.0.drv",
+        "outPath": "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0",
+        "version": "4.30.0"
+      }
+    }
+  },
+  "final_installed_binding": {
+    "candidate_manifest_sha256": "c6e392791cfcfe3b41e4fbfe34a59b5271ef3dbac7759b78f7152922a61d6ba8",
+    "dependency_identity_match": true,
+    "implementation_identity_match": true,
+    "proof_sources_match": true,
+    "scope": "Actual82Rust proof instances use exact source/proof/checker identities of the final installed wheel; installed public reference checks remain separately required.",
+    "toolchain_match": true
+  },
+  "root": "/tmp/behavior-511-delivery-tqmy2d06/cargo-target/safety-models/release-readiness/membership-proofs-2138878",
+  "status": "82 actual source regression instances completed; overall release gate still running"
+}

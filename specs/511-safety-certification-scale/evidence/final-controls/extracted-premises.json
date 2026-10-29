@@ -1,0 +1,256 @@
+{
+  "audit": [
+    {
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "declaration": "PremiseControls.positive",
+      "expected_type_checked": true
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "declaration": "PremiseControls.missingGuard_rejected",
+      "expected_type_checked": true
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "declaration": "PremiseControls.wrongStateRole_rejected",
+      "expected_type_checked": true
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "declaration": "PremiseControls.wrongParentProbe_rejected",
+      "expected_type_checked": true
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "declaration": "PremiseControls.missingLifecycleInventory_rejected",
+      "expected_type_checked": true
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "declaration": "PremiseControls.missingControlPolicy_rejected",
+      "expected_type_checked": true
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "declaration": "PremiseControls.deniedPermissions_rejected",
+      "expected_type_checked": true
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "declaration": "PremiseControls.duplicateFullKeys_rejected",
+      "expected_type_checked": true
+    }
+  ],
+  "authority": "Diagnostic proof-premise controls only; no Safety Certificate issued",
+  "base_concrete_sha256": "f9c787db035f761caadf373105be659b793fb5462038045c7174dc2316bf3e75",
+  "candidate_manifest_sha256": "c6e392791cfcfe3b41e4fbfe34a59b5271ef3dbac7759b78f7152922a61d6ba8",
+  "driver_sha256": "b239c2df92b0d22b5f30da9c50ba1d42f50d0b7d7b406dc79fb8c8433e82044d",
+  "expected_behavior_hash": "sha256:9f471169fd5b6fa480a82a0f225e307e4de4cb35786d1690e3d013231c895fb7",
+  "expected_policy_set_hash": "sha256:d082f1d7940135ad2b8ade076fc178bf75923f48b4e76f47e5d31d9152a05adf",
+  "passed": true,
+  "positive_evidence_hash": "sha256:a73f26b368cbfba43893756cb8583e77494ebdc1b404af286a0f39f24a40586e",
+  "results": [
+    {
+      "case": "missingGuard",
+      "certificate_present": false,
+      "rejected": true,
+      "source_sha256": "bbf016629812188712f44f072ab8d95e6b37e424d65abbac4ebbeb67983798c6"
+    },
+    {
+      "case": "wrongStateRole",
+      "certificate_present": false,
+      "rejected": true,
+      "source_sha256": "d22cbbdfc9ab13671ec03640e6a79091aa5eefb66a6a3b342057fe89f979db37"
+    },
+    {
+      "case": "wrongParentProbe",
+      "certificate_present": false,
+      "rejected": true,
+      "source_sha256": "c31a70df9bd55742def64b6046d1bf0fede0ed0c940551188aff30e2c4f3a831"
+    },
+    {
+      "case": "missingLifecycleInventory",
+      "certificate_present": false,
+      "rejected": true,
+      "source_sha256": "8d46baba28e95e7c4d42a6b0ded804aa8ce1b5df014ad3ff21b5e5d3bc7cdf24"
+    },
+    {
+      "case": "missingControlPolicy",
+      "certificate_present": false,
+      "rejected": true,
+      "source_sha256": "8fb649feef43439057710f4dd4d3701f1d40ddce46e1621540111336223fba57"
+    },
+    {
+      "case": "deniedPermissions",
+      "certificate_present": false,
+      "rejected": true,
+      "source_sha256": "f212674b53e6bdcc52839ccf9f6a237e4e38078ab0ded0c299aaf2b7d7dd3bd3"
+    },
+    {
+      "case": "duplicateFullKeys",
+      "certificate_present": false,
+      "rejected": true,
+      "source_sha256": "990c1db59d37fe24fa08b2a8c050ced508f5edeef5ff54df62630008cf77f7fd"
+    }
+  ],
+  "scope": "Perturbed finite premises from actual frozen D1 data. This does not claim the original certified Core module is unsafe; Core extraction and expected-policy coverage remain separate tested/trusted boundaries.",
+  "stages": [
+    {
+      "command": [
+        "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+        "-DmaxHeartbeats=200000",
+        "-M4096",
+        "-j1",
+        "-DmaxRecDepth=4096",
+        "-o",
+        "PremiseControls.olean",
+        "PremiseControls.lean"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stage": "positive-and-refutations",
+      "wall_seconds": 2.036235695006326
+    },
+    {
+      "command": [
+        "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+        "-DmaxHeartbeats=200000",
+        "-M4096",
+        "-j1",
+        "-DmaxRecDepth=4096",
+        "PremiseAudit.lean"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stage": "axiom-audit",
+      "wall_seconds": 1.5796891179634258
+    },
+    {
+      "command": [
+        "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/leanchecker",
+        "--fresh",
+        "PremiseControls"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stage": "fresh",
+      "wall_seconds": 50.71864353097044
+    },
+    {
+      "command": [
+        "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+        "-DmaxHeartbeats=200000",
+        "-M4096",
+        "-j1",
+        "-DmaxRecDepth=4096",
+        "Attempt_missingGuard.lean"
+      ],
+      "exit_code": 1,
+      "log_sha256": "558cbc0636d2e5c3d004546ba2792ed79b2dc1efe695a640cbcf56a120ecd6c7",
+      "stage": "missingGuard",
+      "wall_seconds": 0.489308763993904
+    },
+    {
+      "command": [
+        "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+        "-DmaxHeartbeats=200000",
+        "-M4096",
+        "-j1",
+        "-DmaxRecDepth=4096",
+        "Attempt_wrongStateRole.lean"
+      ],
+      "exit_code": 1,
+      "log_sha256": "2dbf2c860047fec75264f418a19518f9bf0924e66f911775c0b2286f7470e21e",
+      "stage": "wrongStateRole",
+      "wall_seconds": 0.45091686001978815
+    },
+    {
+      "command": [
+        "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+        "-DmaxHeartbeats=200000",
+        "-M4096",
+        "-j1",
+        "-DmaxRecDepth=4096",
+        "Attempt_wrongParentProbe.lean"
+      ],
+      "exit_code": 1,
+      "log_sha256": "e0528c4ab1db68f38199b295f31577a92250693919f489bd3913a52cf0570dea",
+      "stage": "wrongParentProbe",
+      "wall_seconds": 0.46004890091717243
+    },
+    {
+      "command": [
+        "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+        "-DmaxHeartbeats=200000",
+        "-M4096",
+        "-j1",
+        "-DmaxRecDepth=4096",
+        "Attempt_missingLifecycleInventory.lean"
+      ],
+      "exit_code": 1,
+      "log_sha256": "fe6044b896deff9eaae63b9db4bca7fd793bf2cc3dba789074c360d67977f3ad",
+      "stage": "missingLifecycleInventory",
+      "wall_seconds": 0.36149147897958755
+    },
+    {
+      "command": [
+        "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+        "-DmaxHeartbeats=200000",
+        "-M4096",
+        "-j1",
+        "-DmaxRecDepth=4096",
+        "Attempt_missingControlPolicy.lean"
+      ],
+      "exit_code": 1,
+      "log_sha256": "cc53881f201d22bcee1b5bdd31203ce5a71b440f4c7731382e3f45ab58887a3e",
+      "stage": "missingControlPolicy",
+      "wall_seconds": 0.38684400799684227
+    },
+    {
+      "command": [
+        "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+        "-DmaxHeartbeats=200000",
+        "-M4096",
+        "-j1",
+        "-DmaxRecDepth=4096",
+        "Attempt_deniedPermissions.lean"
+      ],
+      "exit_code": 1,
+      "log_sha256": "66596018629d4486a6d5d0616663c804911712c1ec7e08d7fe6bf3f6518a3ecc",
+      "stage": "deniedPermissions",
+      "wall_seconds": 0.3515377169242129
+    },
+    {
+      "command": [
+        "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+        "-DmaxHeartbeats=200000",
+        "-M4096",
+        "-j1",
+        "-DmaxRecDepth=4096",
+        "Attempt_duplicateFullKeys.lean"
+      ],
+      "exit_code": 1,
+      "log_sha256": "8eae8e9d82d8044a8c482a619eb3bf531ac18468d785fff660ec09c8b525a504",
+      "stage": "duplicateFullKeys",
+      "wall_seconds": 0.27322252898011357
+    }
+  ]
+}

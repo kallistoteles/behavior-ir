@@ -94,3 +94,11 @@ example : True := by
 def chainedParent : LifecyclePolicy := {policy with parent := 2,child := 0,referenceParent := 2,childValues := [([10],[50]),([11],[51])],terminal := [[50]]}
 example : checkLifecycle (one {goodAction with probes := [{probe with noChildrenMembers := [[50]]}]} chainedParent) = true := by decide
 example : checkLifecycle ⟨[goodAction],[policy,chainedParent]⟩ = false := by decide
+
+-- The new representation still has to establish the original full module
+-- predicate; uniqueness alone never substitutes for lifecycle/link/authority.
+example (m : Safety.ModuleData) (unique : m.actionHashes.Pairwise (· ≠ ·))
+    (bounds : Safety.Candidate.bounds m = true)
+    (authority : Safety.checkAuthority m = true) (link : Safety.checkLifecycleLink m = true)
+    (lifecycle : Safety.checkLifecycle m.lifecycle = true) : Safety.checkModule m = true :=
+  Safety.Candidate.checked_from_parts m unique bounds authority link lifecycle

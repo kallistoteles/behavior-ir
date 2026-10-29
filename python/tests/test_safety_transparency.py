@@ -65,3 +65,19 @@ def test_dependency_histories_replay_with_core_ir_alone(case, tmp_path, monkeypa
     assert plain.safety_analysis is None
     assert b.replay_data(store).ok
     assert b.replay_behavior(store,[plain]).ok
+
+
+def test_generated_receipts_and_wire_ignore_safety_evidence_version():
+    from models.examples.safety_models.fo_state_machine import build
+    model=build()
+    # Rebuild the same ordinary Model declarations without its Safety policies.
+    ordinary=build(safety=False)
+    assert model.safety_analysis.to_dict()["checker_version"]==3
+    wire=model.to_wire_json()
+    plain=b.BehaviorModule.from_wire_json(wire)
+    assert plain.to_wire_json()==wire
+    assert plain.behavior_version==model.behavior_version
+    assert model.model_receipts==ordinary.model_receipts
+    assert model.model_receipts
+    assert ordinary.to_wire_json()==wire
+    assert ordinary.behavior_version==model.behavior_version

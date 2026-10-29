@@ -1,0 +1,453 @@
+{
+  "results": [
+    {
+      "case": "positive",
+      "authority": "DiagnosticOnly",
+      "stages": [
+        {
+          "stage": "Concrete",
+          "exit_code": 0,
+          "wall_seconds": 0.48447848693467677,
+          "log": "",
+          "source_sha256": "5a29e15c0cf5f3b404d85a7290f3e7d11463248991472c6ecedd929c49ff975f",
+          "command": [
+            "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+            "-DmaxHeartbeats=200000",
+            "-DmaxRecDepth=4096",
+            "-M4096",
+            "-j1",
+            "-o",
+            "Concrete.olean",
+            "Concrete.lean"
+          ]
+        },
+        {
+          "stage": "MergeProbe",
+          "exit_code": 0,
+          "wall_seconds": 0.252032331074588,
+          "log": "",
+          "source_sha256": "1bd28d57f9afa401a99497f7a6fb1b418bfb0d880d5f8511f839ebc6571e1646",
+          "command": [
+            "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+            "-DmaxHeartbeats=200000",
+            "-DmaxRecDepth=4096",
+            "-M4096",
+            "-j1",
+            "-o",
+            "MergeProbe.olean",
+            "MergeProbe.lean"
+          ]
+        },
+        {
+          "stage": "CompleteProbe",
+          "exit_code": 0,
+          "wall_seconds": 0.5020217470591888,
+          "log": "",
+          "source_sha256": "e86541f0e473df783bfb5162966fe947f82c19baae7e70424d22c426946a7c71",
+          "command": [
+            "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+            "-DmaxHeartbeats=200000",
+            "-DmaxRecDepth=4096",
+            "-M4096",
+            "-j1",
+            "-o",
+            "CompleteProbe.olean",
+            "CompleteProbe.lean"
+          ]
+        },
+        {
+          "stage": "Verify",
+          "exit_code": 0,
+          "wall_seconds": 1.9003953480860218,
+          "log": "",
+          "source_sha256": "01f1f78887cfc7f9cd231405068db8788d563479bf4f8ef0039348a22479a8f3",
+          "command": [
+            "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+            "-DmaxHeartbeats=200000",
+            "-DmaxRecDepth=4096",
+            "-M4096",
+            "-j1",
+            "Verify.lean"
+          ]
+        }
+      ],
+      "original_instance_importable": false,
+      "accepted": true
+    },
+    {
+      "case": "unauthorized_writer",
+      "authority": "DiagnosticOnly",
+      "stages": [
+        {
+          "stage": "Concrete",
+          "exit_code": 0,
+          "wall_seconds": 0.4683107150485739,
+          "log": "",
+          "source_sha256": "3a75bea1028970886e537d71d113a41203a68993f931025b43eb3668690856a9",
+          "command": [
+            "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+            "-DmaxHeartbeats=200000",
+            "-DmaxRecDepth=4096",
+            "-M4096",
+            "-j1",
+            "-o",
+            "Concrete.olean",
+            "Concrete.lean"
+          ]
+        },
+        {
+          "stage": "MergeProbe",
+          "exit_code": 0,
+          "wall_seconds": 0.2542376220226288,
+          "log": "",
+          "source_sha256": "1bd28d57f9afa401a99497f7a6fb1b418bfb0d880d5f8511f839ebc6571e1646",
+          "command": [
+            "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+            "-DmaxHeartbeats=200000",
+            "-DmaxRecDepth=4096",
+            "-M4096",
+            "-j1",
+            "-o",
+            "MergeProbe.olean",
+            "MergeProbe.lean"
+          ]
+        },
+        {
+          "stage": "CompleteProbe",
+          "exit_code": 1,
+          "wall_seconds": 0.48316794098354876,
+          "log": "CompleteProbe.lean:7:69: error: Tactic `decide` proved that the proposition\n  Safety.checkAuthority Concrete.data = true\nis false\n",
+          "source_sha256": "e86541f0e473df783bfb5162966fe947f82c19baae7e70424d22c426946a7c71",
+          "command": [
+            "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+            "-DmaxHeartbeats=200000",
+            "-DmaxRecDepth=4096",
+            "-M4096",
+            "-j1",
+            "-o",
+            "CompleteProbe.olean",
+            "CompleteProbe.lean"
+          ]
+        }
+      ],
+      "original_instance_importable": false,
+      "accepted": false
+    },
+    {
+      "case": "wrong_identity",
+      "authority": "DiagnosticOnly",
+      "stages": [
+        {
+          "stage": "Concrete",
+          "exit_code": 0,
+          "wall_seconds": 0.46132828295230865,
+          "log": "",
+          "source_sha256": "7ed0bd2b651cb08361983e567a9a05535e727ae0c49dbb38c7f2764e28c1d5c8",
+          "command": [
+            "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+            "-DmaxHeartbeats=200000",
+            "-DmaxRecDepth=4096",
+            "-M4096",
+            "-j1",
+            "-o",
+            "Concrete.olean",
+            "Concrete.lean"
+          ]
+        },
+        {
+          "stage": "MergeProbe",
+          "exit_code": 0,
+          "wall_seconds": 0.2527933940291405,
+          "log": "",
+          "source_sha256": "1bd28d57f9afa401a99497f7a6fb1b418bfb0d880d5f8511f839ebc6571e1646",
+          "command": [
+            "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+            "-DmaxHeartbeats=200000",
+            "-DmaxRecDepth=4096",
+            "-M4096",
+            "-j1",
+            "-o",
+            "MergeProbe.olean",
+            "MergeProbe.lean"
+          ]
+        },
+        {
+          "stage": "CompleteProbe",
+          "exit_code": 1,
+          "wall_seconds": 0.5171154569834471,
+          "log": "CompleteProbe.lean:11:804: error: Application type mismatch: The argument\n  rfl\nhas type\n  ?m.1222 = ?m.1222\nbut is expected to have type\n  Concrete.data.behaviorHash =\n    let y :=\n      let y :=\n        let y :=\n          let y := [101, 57, 101, 49, 100];\n          55 :: 56 :: 98 :: 101 :: y;\n        let y := 98 :: 99 :: 99 :: 53 :: 50 :: y;\n        97 :: 57 :: 49 :: 56 :: y;\n      let y :=\n        let y := 50 :: 55 :: 102 :: 100 :: 100 :: y;\n        97 :: 48 :: 99 :: 52 :: y;\n      let y := 57 :: 101 :: 57 :: 99 :: 100 :: y;\n      57 :: 55 :: 51 :: 49 :: y;\n    let y :=\n      let y :=\n        let y := 100 :: 100 :: 102 :: 51 :: 102 :: y;\n        52 :: 50 :: 98 :: 54 :: y;\n      let y := 48 :: 48 :: 99 :: 48 :: 55 :: y;\n      101 :: 50 :: 101 :: 98 :: y;\n    let y :=\n      let y := 102 :: 57 :: 99 :: 100 :: 49 :: y;\n      48 :: 98 :: 50 :: 57 :: y;\n    let y := 53 :: 54 :: 58 :: 48 :: y;\n    115 :: 104 :: 97 :: 50 :: y\nin the application\n  And.intro rfl\n",
+          "source_sha256": "e86541f0e473df783bfb5162966fe947f82c19baae7e70424d22c426946a7c71",
+          "command": [
+            "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+            "-DmaxHeartbeats=200000",
+            "-DmaxRecDepth=4096",
+            "-M4096",
+            "-j1",
+            "-o",
+            "CompleteProbe.olean",
+            "CompleteProbe.lean"
+          ]
+        }
+      ],
+      "original_instance_importable": false,
+      "accepted": false
+    },
+    {
+      "case": "proof_hole",
+      "authority": "DiagnosticOnly",
+      "stages": [
+        {
+          "stage": "Concrete",
+          "exit_code": 0,
+          "wall_seconds": 0.46422253909986466,
+          "log": "",
+          "source_sha256": "5a29e15c0cf5f3b404d85a7290f3e7d11463248991472c6ecedd929c49ff975f",
+          "command": [
+            "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+            "-DmaxHeartbeats=200000",
+            "-DmaxRecDepth=4096",
+            "-M4096",
+            "-j1",
+            "-o",
+            "Concrete.olean",
+            "Concrete.lean"
+          ]
+        },
+        {
+          "stage": "MergeProbe",
+          "exit_code": 0,
+          "wall_seconds": 0.2528138789348304,
+          "log": "",
+          "source_sha256": "1bd28d57f9afa401a99497f7a6fb1b418bfb0d880d5f8511f839ebc6571e1646",
+          "command": [
+            "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+            "-DmaxHeartbeats=200000",
+            "-DmaxRecDepth=4096",
+            "-M4096",
+            "-j1",
+            "-o",
+            "MergeProbe.olean",
+            "MergeProbe.lean"
+          ]
+        },
+        {
+          "stage": "CompleteProbe",
+          "exit_code": 0,
+          "wall_seconds": 0.5101182599319145,
+          "log": "CompleteProbe.lean:10:8: warning: declaration uses `sorry`\n",
+          "source_sha256": "9d1cb6b76580effa4834e92aa99f871acfdace88477f1165924cac248054d033",
+          "command": [
+            "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+            "-DmaxHeartbeats=200000",
+            "-DmaxRecDepth=4096",
+            "-M4096",
+            "-j1",
+            "-o",
+            "CompleteProbe.olean",
+            "CompleteProbe.lean"
+          ]
+        },
+        {
+          "stage": "Verify",
+          "exit_code": 1,
+          "wall_seconds": 1.755082048010081,
+          "log": "Verify.lean:8:0: error: Safety theorem CompleteProbe.checked uses forbidden axioms: [propext, sorryAx]\nVerify.lean:9:0: error: Safety theorem CompleteProbe.certified uses forbidden axioms: [propext, sorryAx, Classical.choice, Quot.sound]\n",
+          "source_sha256": "01f1f78887cfc7f9cd231405068db8788d563479bf4f8ef0039348a22479a8f3",
+          "command": [
+            "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+            "-DmaxHeartbeats=200000",
+            "-DmaxRecDepth=4096",
+            "-M4096",
+            "-j1",
+            "Verify.lean"
+          ]
+        }
+      ],
+      "original_instance_importable": false,
+      "accepted": false
+    },
+    {
+      "case": "weakened_statement",
+      "authority": "DiagnosticOnly",
+      "stages": [
+        {
+          "stage": "Concrete",
+          "exit_code": 0,
+          "wall_seconds": 0.47401083703152835,
+          "log": "",
+          "source_sha256": "5a29e15c0cf5f3b404d85a7290f3e7d11463248991472c6ecedd929c49ff975f",
+          "command": [
+            "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+            "-DmaxHeartbeats=200000",
+            "-DmaxRecDepth=4096",
+            "-M4096",
+            "-j1",
+            "-o",
+            "Concrete.olean",
+            "Concrete.lean"
+          ]
+        },
+        {
+          "stage": "MergeProbe",
+          "exit_code": 0,
+          "wall_seconds": 0.31765788001939654,
+          "log": "",
+          "source_sha256": "1bd28d57f9afa401a99497f7a6fb1b418bfb0d880d5f8511f839ebc6571e1646",
+          "command": [
+            "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+            "-DmaxHeartbeats=200000",
+            "-DmaxRecDepth=4096",
+            "-M4096",
+            "-j1",
+            "-o",
+            "MergeProbe.olean",
+            "MergeProbe.lean"
+          ]
+        },
+        {
+          "stage": "CompleteProbe",
+          "exit_code": 0,
+          "wall_seconds": 0.29668150504585356,
+          "log": "",
+          "source_sha256": "93f2bf426c1e7900ca5205c47d2e5798c2bb42b3062729fa88bdd505bb72e981",
+          "command": [
+            "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+            "-DmaxHeartbeats=200000",
+            "-DmaxRecDepth=4096",
+            "-M4096",
+            "-j1",
+            "-o",
+            "CompleteProbe.olean",
+            "CompleteProbe.lean"
+          ]
+        },
+        {
+          "stage": "Verify",
+          "exit_code": 1,
+          "wall_seconds": 1.7848772009601817,
+          "log": "Verify.lean:9:0: error: Safety theorem CompleteProbe.certified has the wrong proposition\n",
+          "source_sha256": "01f1f78887cfc7f9cd231405068db8788d563479bf4f8ef0039348a22479a8f3",
+          "command": [
+            "/nix/store/7m5ds60a41w276hsx3rybv76x3609l6k-lean4-4.30.0/bin/lean",
+            "-DmaxHeartbeats=200000",
+            "-DmaxRecDepth=4096",
+            "-M4096",
+            "-j1",
+            "Verify.lean"
+          ]
+        }
+      ],
+      "original_instance_importable": false,
+      "accepted": false
+    }
+  ],
+  "all_checks_passed": true,
+  "certificates_issued": 0,
+  "metadata": {
+    "inventory_utf8_hex": "7b22616374696f6e73223a5b7b2268617368223a227368613235363a36656434343537613564643161393435653463666564633331393762323364343738383961353863333666323236373038363363646132333231616236653935222c226e616d65223a22656469745f30303030222c226f7065726174696f6e73223a5b7b22656e74697479223a224974656d222c226669656c64223a2276616c75655f30303030222c2268617368223a227368613235363a66306462653238656261623462363165353237393332343939653666366130376666336238393166313663313738336631336438633264646339633633373865222c22696e646578223a302c226b696e64223a2261737369676e222c22706172616d223a226974656d222c2276616c7565223a227368613235363a66623430373162623564643765356666663033353035636465396536333365386462346131636137303030336230336238366136653766633133333832333434227d5d2c22706172616d73223a5b7b226e616d65223a226974656d222c2274797065223a7b22456e74697479223a224974656d227d7d5d2c22706f7374636f6e646974696f6e73223a5b5d2c22707265636f6e646974696f6e73223a5b5d7d5d2c226265686176696f725f68617368223a227368613235363a30306232396639636431653265623030633037343262366464663366393733313965396364613063343237666464613931386263633532373862656539653164222c22636f72655f72656c65617365223a7b22636f6d6d6974223a2236623933383938613933373531313366376138393436663233616235353335333139623666356436222c2276657273696f6e223a22302e31352e30227d2c226465636c61726174696f6e73223a7b224974656d223a7b226669656c6473223a7b226964223a7b227265666572656e6365223a66616c73652c2274797065223a7b224964223a224974656d227d7d2c2276616c75655f30303030223a7b227265666572656e6365223a66616c73652c2274797065223a22496e74227d7d2c2268617368223a227368613235363a31343032613164666638303737303135643164663062616366643035336365303035643862373630316463333161366537616636366364356230393763363161227d7d2c22666f726d6174223a226265686176696f722e7361666574795f696e76656e746f72792e7631222c22696e76656e746f72795f68617368223a227368613235363a34623133623232626131323461316333303462653438316663393637363063653630313932326434366461613737633130626361613233656562393361663162227d",
+    "policies_utf8_hex": "5b7b2263726561746f7273223a5b5d2c22656e74697479223a227368613235363a31343032613164666638303737303135643164663062616366643035336365303035643862373630316463333161366537616636366364356230393763363161222c226b696e64223a224669656c644f776e657273686970222c226d6f64656c5f73656d616e7469635f76657273696f6e223a312c2272656d6f76657273223a5b5d2c2277726974657273223a7b2276616c75655f30303030223a5b227368613235363a36656434343537613564643161393435653463666564633331393762323364343738383961353863333666323236373038363363646132333231616236653935225d7d7d5d",
+    "action_hashes": [
+      [
+        115,
+        104,
+        97,
+        50,
+        53,
+        54,
+        58,
+        54,
+        101,
+        100,
+        52,
+        52,
+        53,
+        55,
+        97,
+        53,
+        100,
+        100,
+        49,
+        97,
+        57,
+        52,
+        53,
+        101,
+        52,
+        99,
+        102,
+        101,
+        100,
+        99,
+        51,
+        49,
+        57,
+        55,
+        98,
+        50,
+        51,
+        100,
+        52,
+        55,
+        56,
+        56,
+        57,
+        97,
+        53,
+        56,
+        99,
+        51,
+        54,
+        102,
+        50,
+        50,
+        54,
+        55,
+        48,
+        56,
+        54,
+        51,
+        99,
+        100,
+        97,
+        50,
+        51,
+        50,
+        49,
+        97,
+        98,
+        54,
+        101,
+        57,
+        53
+      ]
+    ],
+    "original_chunk_lengths": {
+      "inventory": [
+        64,
+        64,
+        64,
+        64,
+        64,
+        64,
+        64,
+        64,
+        64,
+        64,
+        64,
+        64,
+        64,
+        64,
+        64,
+        23
+      ],
+      "policies": [
+        64,
+        64,
+        64,
+        64,
+        10
+      ]
+    },
+    "layout_change": "single interpreted UTF-8 chunk; diagnostic only"
+  }
+}

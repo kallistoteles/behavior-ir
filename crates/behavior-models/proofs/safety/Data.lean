@@ -1,4 +1,13 @@
-import Init
+prelude
+import Init.Data.List.Perm
+import Init.Data.List.Nat.Range
+import Init.Data.List.Nat.Pairwise
+import Init.Data.List.Zip
+import Init.Data.Fin.Lemmas
+import Init.Data.Repr
+import Init.Data.Order.Ord
+import Init.RCases
+import Init.Classical
 
 /-!
 Safety statement contract v1. Entity, identity and field bounds are arbitrary;
